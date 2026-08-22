@@ -1,0 +1,11 @@
+(()=>{
+const $=id=>document.getElementById(id);
+function removeMetric(id){const el=$(id);const box=el?.closest?.('.stats>div');if(box)box.remove()}
+function removeHomeTile(page){const home=$('home');if(!home)return;home.querySelectorAll('.tiles button').forEach(b=>{const oc=b.getAttribute('onclick')||'';if(oc.includes(`show('${page}')`)||oc.includes(`show(\"${page}\")`))b.remove()})}
+function addMore(){const sec=$('settings');if(!sec||$('moreManagement'))return;const first=sec.querySelector('.card');const card=document.createElement('div');card.id='moreManagement';card.className='card';card.innerHTML=`<h2>📂 Management</h2><p class="muted">Stock, saved deals and sales tools.</p><div class="stats"><div><small>STOCK UNITS</small><b id="moreStockUnits">0</b></div></div><div class="tiles" style="margin-top:10px"><button id="moreInventory">📦<b>Inventory</b><small>View and manage stock</small></button><button id="moreDeals">⭐<b>Saved Deals</b><small>Review saved valuations</small></button><button id="moreSales">📈<b>Sales</b><small>Sales history and realised profit</small></button></div>`;if(first)first.insertAdjacentElement('afterend',card);else sec.appendChild(card);$('moreInventory').onclick=()=>window.show?.('inventory');$('moreDeals').onclick=()=>window.show?.('deals');$('moreSales').onclick=()=>window.show?.('sales');}
+function syncUnits(){const src=$('dUnits'),dst=$('moreStockUnits');if(dst)dst.textContent=src?.textContent||'0'}
+function cleanNav(){document.querySelectorAll('nav button').forEach(b=>{const p=b.dataset.page;if(p==='deals'||p==='inventory')b.remove()});const nav=document.querySelector('nav');if(nav){const count=nav.children.length||4;nav.style.gridTemplateColumns=`repeat(${count},1fr)`}}
+function cleanDashboard(){['dUnits','dCost','dSales','dProfit','dDeals','dRealProfit'].forEach(removeMetric);['inventory','sales','deals'].forEach(removeHomeTile);document.querySelectorAll('#home .stats').forEach(s=>{if(!s.children.length)s.remove()})}
+function boot(){addMore();syncUnits();cleanDashboard();cleanNav();setInterval(syncUnits,1200)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,360));else setTimeout(boot,360);
+})();
