@@ -1,0 +1,1 @@
+B&L Morley Android launcher icon source is the approved generated image from the ChatGPT project conversation. This marker is retained for release provenance; binary launcher assets are generated during the Android build from the approved source image.
