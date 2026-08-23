@@ -2,14 +2,16 @@ name: Build B&L Morley APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, native-ota-component-pricing ]
     paths:
       - 'android/**'
+      - 'ota/**'
       - '.github/workflows/build-apk.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'android/**'
+      - 'ota/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -36,10 +38,10 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.1.0-native-evidence-beta.apk'
+          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.3.0-native-ota.apk'
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.1.0-evidence-beta
-          path: 'dist/B&L-Morley-v2.1.0-native-evidence-beta.apk'
+          name: B-and-L-Morley-Native-v2.3.0-OTA
+          path: 'dist/B&L-Morley-v2.3.0-native-ota.apk'
           if-no-files-found: error
