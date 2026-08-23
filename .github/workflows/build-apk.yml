@@ -36,10 +36,10 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.0.0-native-beta.apk'
+          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.1.0-native-evidence-beta.apk'
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.0.0-beta
-          path: 'dist/B&L-Morley-v2.0.0-native-beta.apk'
+          name: B-and-L-Morley-Native-v2.1.0-evidence-beta
+          path: 'dist/B&L-Morley-v2.1.0-native-evidence-beta.apk'
           if-no-files-found: error
