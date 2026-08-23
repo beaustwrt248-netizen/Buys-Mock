@@ -23,8 +23,10 @@ class UpdateCheckWorker(
 
             if (update.versionCode > lastNotified) {
                 NotificationHelper.createChannels(applicationContext)
-                NotificationHelper.showUpdateAvailable(applicationContext, update)
-                prefs.edit().putInt("last_notified_version_code", update.versionCode).apply()
+                val delivered = NotificationHelper.showUpdateAvailable(applicationContext, update)
+                if (delivered) {
+                    prefs.edit().putInt("last_notified_version_code", update.versionCode).apply()
+                }
             }
             Result.success()
         } catch (_: Exception) {
