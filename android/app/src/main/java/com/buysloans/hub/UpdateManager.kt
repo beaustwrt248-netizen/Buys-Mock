@@ -37,6 +37,11 @@ object UpdateManager {
     }
 
     fun openDownload(context:Context, update:AppUpdate) {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.apkUrl)))
+        context.startActivity(Intent(context, UpdateActivity::class.java).apply {
+            putExtra("versionCode", update.versionCode)
+            putExtra("versionName", update.versionName)
+            putExtra("apkUrl", update.apkUrl)
+            putExtra("notes", update.notes)
+        })
     }
 }
