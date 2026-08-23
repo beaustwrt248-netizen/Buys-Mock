@@ -25,14 +25,27 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = android.graphics.Color.rgb(17,17,17)
         window.navigationBarColor = android.graphics.Color.rgb(17,17,17)
-        setContent { DashboardApp() }
+        val prefs=getSharedPreferences("app_state",MODE_PRIVATE)
+        val previous=prefs.getInt("last_seen_version_code",0)
+        val updated=previous>0 && previous<BuildConfig.VERSION_CODE
+        prefs.edit().putInt("last_seen_version_code",BuildConfig.VERSION_CODE).apply()
+        setContent { DashboardApp(updated) }
     }
 }
 
 @Composable
-private fun DashboardApp() {
+private fun DashboardApp(showUpdatedInitially:Boolean=false) {
     var page by remember { mutableStateOf(Page.Home) }
+    var showUpdated by remember { mutableStateOf(showUpdatedInitially) }
     MaterialTheme(colorScheme = darkColorScheme(primary = DashYellow, background = DashBg, surface = DashCard)) {
+        if(showUpdated) {
+            AlertDialog(
+                onDismissRequest={showUpdated=false},
+                title={Text("Update installed")},
+                text={Text("B&L Morley has been updated successfully to v${BuildConfig.VERSION_NAME}. The new version is now running.")},
+                confirmButton={Button(onClick={showUpdated=false},colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)){Text("Continue",fontWeight=FontWeight.Black)}}
+            )
+        }
         Scaffold(
             containerColor = DashBg,
             bottomBar = {
