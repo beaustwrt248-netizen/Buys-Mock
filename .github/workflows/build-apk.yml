@@ -2,14 +2,16 @@ name: Build B&L Morley APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, native-ota-component-pricing ]
     paths:
       - 'android/**'
+      - 'ota/**'
       - '.github/workflows/build-apk.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'android/**'
+      - 'ota/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -22,29 +24,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-
+      - name: Run regression tests
+        run: gradle -p android testDebugUnitTest --stacktrace
       - name: Build release APK
         run: gradle -p android assembleRelease --stacktrace
-
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v1.0.1.apk'
-
+          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.3.0-native-ota.apk'
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-APK-v1.0.1
-          path: 'dist/B&L-Morley-v1.0.1.apk'
+          name: B-and-L-Morley-Native-v2.3.0-OTA
+          path: 'dist/B&L-Morley-v2.3.0-native-ota.apk'
           if-no-files-found: error
