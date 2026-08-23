@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -41,9 +41,24 @@ jobs:
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.4.0-native-ota.apk'
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: B-and-L-Morley-Native-v2.4.0-OTA
           path: 'dist/B&L-Morley-v2.4.0-native-ota.apk'
           if-no-files-found: error
+      - name: Publish v2.4.0 OTA release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.4.0
+          name: B&L Morley v2.4.0
+          body: |
+            Native v2.4.0 OTA release.
+            - Multi-source valuation evidence and cross-source confidence
+            - Safer OEM search broadening and model/generation validation
+            - Real-time OTA download progress and APK verification
+            - Install/restart update flow
+          files: 'dist/B&L-Morley-v2.4.0-native-ota.apk'
+          fail_on_unmatched_files: true
+          make_latest: true
