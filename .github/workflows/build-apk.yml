@@ -2,7 +2,7 @@ name: Build B&L Morley APK
 
 on:
   push:
-    branches: [ main, native-ota-component-pricing, feature-multisource-evidence, fix-release-signing ]
+    branches: [ main, native-ota-component-pricing, feature-multisource-evidence, fix-release-signing, v2.4.3-icon-notifications ]
     paths:
       - 'android/**'
       - 'ota/**'
@@ -64,24 +64,25 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.2-native-ota.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.3-native-ota.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.4.2-OTA
-          path: dist/B-and-L-Morley-v2.4.2-native-ota.apk
+          name: B-and-L-Morley-Native-v2.4.3-OTA
+          path: dist/B-and-L-Morley-v2.4.3-native-ota.apk
           if-no-files-found: error
-      - name: Publish v2.4.2 OTA release
+      - name: Publish v2.4.3 OTA release
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.2
-          name: B&L Morley v2.4.2
+          tag_name: v2.4.3
+          name: B&L Morley v2.4.3
           body: |
-            Native v2.4.2 OTA verification release.
-            - Verifies in-place OTA upgrade from production-signed v2.4.1
-            - Uses the permanent production signing identity
-            - Retains native in-app download, progress, install and restart flow
-          files: dist/B-and-L-Morley-v2.4.2-native-ota.apk
+            Native v2.4.3 launcher and notifications release.
+            - Adds adaptive Android launcher icon resources
+            - Adds Android 13+ notification permission handling
+            - Adds update and valuation notification channels
+            - Retains production signing and native OTA upgrade flow
+          files: dist/B-and-L-Morley-v2.4.3-native-ota.apk
           fail_on_unmatched_files: true
           make_latest: true
