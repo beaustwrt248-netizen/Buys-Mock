@@ -33,10 +33,10 @@ object NotificationHelper {
         manager.createNotificationChannels(listOf(updates, valuations))
     }
 
-    fun showUpdateAvailable(context: Context, update: AppUpdate) {
+    fun showUpdateAvailable(context: Context, update: AppUpdate): Boolean {
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
+        ) return false
 
         val launchIntent = Intent(context, UpdateActivity::class.java).apply {
             putExtra("versionCode", update.versionCode)
@@ -59,5 +59,6 @@ object NotificationHelper {
             .build()
 
         context.getSystemService(NotificationManager::class.java).notify(2001, notification)
+        return true
     }
 }
