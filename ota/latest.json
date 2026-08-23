@@ -1,6 +1,6 @@
 {
-  "versionCode": 6,
-  "versionName": "2.4.1-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.1/B-and-L-Morley-v2.4.1-native-ota.apk",
-  "notes": "B&L Morley v2.4.1: TARGET GP now displays as a percentage, A/B/C/Luxury grade guidance is retained, and permanent production signing plus native OTA update flow remain enabled."
+  "versionCode": 7,
+  "versionName": "2.4.2-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.2/B-and-L-Morley-v2.4.2-native-ota.apk",
+  "notes": "B&L Morley v2.4.2: production OTA verification release. Tests in-place upgrade from permanently signed v2.4.1 while retaining native download progress, APK install and restart flow."
 }
