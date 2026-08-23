@@ -20,9 +20,10 @@
     <section id="loginView" class="card auth-card">
       <h2>Admin sign in</h2>
       <p>Use your authorised B&L Morley account.</p>
-      <input id="email" type="email" placeholder="Email" autocomplete="email" />
+      <input id="email" type="email" placeholder="Email" autocomplete="email" value="Beaujohn2012@yahoo.com" />
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
       <button id="loginBtn">Sign in</button>
+      <button id="createAdminBtn" class="ghost">Create first admin account</button>
       <div id="loginStatus" class="status"></div>
     </section>
 
@@ -52,9 +53,7 @@
 
       <section id="tab-users" class="panel hidden"><div class="card"><h2>Accounts</h2><div id="usersList"></div></div></section>
       <section id="tab-devices" class="panel hidden"><div class="card"><h2>Registered devices</h2><div id="devicesList"></div></div></section>
-      <section id="tab-config" class="panel hidden">
-        <div class="card"><h2>Remote controls</h2><div id="configList"></div></div>
-      </section>
+      <section id="tab-config" class="panel hidden"><div class="card"><h2>Remote controls</h2><div id="configList"></div></div></section>
       <section id="tab-notify" class="panel hidden">
         <div class="card">
           <h2>Send notification</h2>
