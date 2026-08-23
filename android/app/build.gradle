@@ -18,8 +18,8 @@ android {
     def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH')
     def releaseStorePassword = System.getenv('B_AND_L_STORE_PASSWORD')
     def releaseKeyAlias = System.getenv('B_AND_L_KEY_ALIAS')
-    def releaseKeyPassword = System.getenv('B_AND_L_KEY_PASSWORD')
-    def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+    def releaseKeyPassword = releaseStorePassword
+    def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias
 
     signingConfigs {
         if (hasReleaseSigning) {
