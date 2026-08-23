@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>B&L Morley Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">B&L MORLEY</div>
+        <h1>Admin Control</h1>
+      </div>
+      <span class="badge">v2.5 foundation</span>
+    </header>
+
+    <section id="loginView" class="card auth-card">
+      <h2>Admin sign in</h2>
+      <p>Use your authorised B&L Morley account.</p>
+      <input id="email" type="email" placeholder="Email" autocomplete="email" value="Beaujohn2012@yahoo.com" />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="loginBtn">Sign in</button>
+      <button id="createAdminBtn" class="ghost">Create first admin account</button>
+      <div id="loginStatus" class="status"></div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="toolbar card">
+        <div><strong id="whoami">Signed in</strong><div id="roleText" class="muted"></div></div>
+        <button id="logoutBtn" class="ghost">Sign out</button>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="users">Accounts</button>
+        <button class="tab" data-tab="devices">Devices</button>
+        <button class="tab" data-tab="config">Controls</button>
+        <button class="tab" data-tab="notify">Notifications</button>
+        <button class="tab" data-tab="audit">Audit</button>
+      </nav>
+
+      <section id="tab-overview" class="panel">
+        <div class="grid">
+          <article class="card metric"><span>Accounts</span><strong id="metricUsers">—</strong></article>
+          <article class="card metric"><span>Devices</span><strong id="metricDevices">—</strong></article>
+          <article class="card metric"><span>Current release</span><strong id="metricVersion">—</strong></article>
+          <article class="card metric"><span>Queued notifications</span><strong id="metricQueued">—</strong></article>
+        </div>
+      </section>
+
+      <section id="tab-users" class="panel hidden"><div class="card"><h2>Accounts</h2><div id="usersList"></div></div></section>
+      <section id="tab-devices" class="panel hidden"><div class="card"><h2>Registered devices</h2><div id="devicesList"></div></div></section>
+      <section id="tab-config" class="panel hidden"><div class="card"><h2>Remote controls</h2><div id="configList"></div></div></section>
+      <section id="tab-notify" class="panel hidden">
+        <div class="card">
+          <h2>Send notification</h2>
+          <input id="notifTitle" placeholder="Title" value="B&L Morley" />
+          <textarea id="notifBody" placeholder="Message"></textarea>
+          <select id="notifAudience"><option value="all">All users</option><option value="admin">Admins</option><option value="manager">Managers</option><option value="staff">Staff</option></select>
+          <button id="queueNotifBtn">Queue notification</button>
+          <div id="notifStatus" class="status"></div>
+        </div>
+      </section>
+      <section id="tab-audit" class="panel hidden"><div class="card"><h2>Admin audit log</h2><div id="auditList"></div></div></section>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
