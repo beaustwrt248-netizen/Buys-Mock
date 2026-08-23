@@ -74,7 +74,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
                     )
                     Page.Laptop -> Laptop()
                     Page.Desktop -> Desktop()
-                    Page.GP -> GP()
+                    Page.GP -> GPFix()
                     Page.More -> More()
                 }
             }
