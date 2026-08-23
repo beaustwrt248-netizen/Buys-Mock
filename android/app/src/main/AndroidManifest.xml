@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".MorleyApplication"
         android:allowBackup="true"
         android:usesCleartextTraffic="false"
         android:label="B&amp;L Morley"
