@@ -1,6 +1,6 @@
 {
   "versionCode": 5,
   "versionName": "2.4.0-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.0/B%26L-Morley-v2.4.0-native-ota.apk",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.0/B-and-L-Morley-v2.4.0-native-ota.apk",
   "notes": "B&L Morley v2.4.0: multi-source valuation evidence and cross-source confidence, safer OEM/model search failsafes, real-time OTA download progress, APK verification, and install/restart update flow."
 }
