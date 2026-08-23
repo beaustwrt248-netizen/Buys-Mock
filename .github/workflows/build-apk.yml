@@ -40,12 +40,12 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v2.4.0-native-ota.apk'
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.0-native-ota.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: B-and-L-Morley-Native-v2.4.0-OTA
-          path: 'dist/B&L-Morley-v2.4.0-native-ota.apk'
+          path: dist/B-and-L-Morley-v2.4.0-native-ota.apk
           if-no-files-found: error
       - name: Publish v2.4.0 OTA release
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -59,6 +59,6 @@ jobs:
             - Safer OEM search broadening and model/generation validation
             - Real-time OTA download progress and APK verification
             - Install/restart update flow
-          files: 'dist/B&L-Morley-v2.4.0-native-ota.apk'
+          files: dist/B-and-L-Morley-v2.4.0-native-ota.apk
           fail_on_unmatched_files: true
           make_latest: true
