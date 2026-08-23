@@ -1,8 +1,12 @@
 package com.buysloans.hub
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,10 +25,22 @@ private val DashBg = Color(0xFF111111)
 private val DashCard = Color(0xFF222222)
 
 class DashboardActivity : ComponentActivity() {
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = android.graphics.Color.rgb(17,17,17)
         window.navigationBarColor = android.graphics.Color.rgb(17,17,17)
+
+        NotificationHelper.createChannels(this)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         val prefs=getSharedPreferences("app_state",MODE_PRIVATE)
         val previous=prefs.getInt("last_seen_version_code",0)
         val updated=previous>0 && previous<BuildConfig.VERSION_CODE
