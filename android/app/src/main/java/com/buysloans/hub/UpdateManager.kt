@@ -10,24 +10,26 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Lightweight OTA coordinator. Release metadata lives in ota/latest.json.
- * Installation remains Android/user approved; this app never silently installs APKs.
- */
 data class AppUpdate(val versionCode:Int,val versionName:String,val apkUrl:String,val notes:String)
 
 object UpdateManager {
-    const val METADATA_URL = "https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/native-compose/ota/latest.json"
+    const val METADATA_URL = "https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/ota/latest.json"
 
     suspend fun check(): AppUpdate? = withContext(Dispatchers.IO) {
         val c=(URL(METADATA_URL).openConnection() as HttpURLConnection).apply {
-            connectTimeout=10000; readTimeout=10000; requestMethod="GET"
+            connectTimeout=10000
+            readTimeout=10000
+            requestMethod="GET"
+            setRequestProperty("Cache-Control","no-cache")
         }
-        if(c.responseCode !in 200..299) return@withContext null
-        val o=JSONObject(c.inputStream.bufferedReader().use{it.readText()})
-        val remote=o.optInt("versionCode",0)
-        if(remote<=BuildConfig.VERSION_CODE) return@withContext null
-        AppUpdate(remote,o.optString("versionName"),o.optString("apkUrl"),o.optString("notes"))
+        try {
+            if(c.responseCode !in 200..299) return@withContext null
+            val o=JSONObject(c.inputStream.bufferedReader().use{it.readText()})
+            val remote=o.optInt("versionCode",0)
+            val apk=o.optString("apkUrl","")
+            if(remote<=BuildConfig.VERSION_CODE || apk.isBlank()) return@withContext null
+            AppUpdate(remote,o.optString("versionName"),apk,o.optString("notes"))
+        } finally { c.disconnect() }
     }
 
     fun openInstallerPermission(context:Context) {
@@ -35,8 +37,6 @@ object UpdateManager {
     }
 
     fun openDownload(context:Context, update:AppUpdate) {
-        // Browser/download-manager handoff is intentionally user visible. Once downloaded,
-        // Android's package installer verifies package identity/signature and asks for approval.
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.apkUrl)))
     }
 }
