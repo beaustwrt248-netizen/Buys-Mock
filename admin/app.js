@@ -1,5 +1,6 @@
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
+const FIRST_ADMIN_EMAIL='beaujohn2012@yahoo.com';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const $=id=>document.getElementById(id);
@@ -11,6 +12,7 @@ function showLogin(){$('loginView').classList.remove('hidden');$('appView').clas
 function showApp(){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('whoami').textContent=myProfile.display_name||myProfile.email||'Admin';$('roleText').textContent=`${myProfile.role.toUpperCase()} • ${myProfile.email||''}`}
 
 $('loginBtn').onclick=async()=>{const email=$('email').value.trim(),password=$('password').value;$('loginStatus').textContent='Signing in…';const {error}=await sb.auth.signInWithPassword({email,password});if(error){$('loginStatus').textContent=error.message;return}await loadSession()};
+$('createAdminBtn').onclick=async()=>{const email=$('email').value.trim().toLowerCase(),password=$('password').value;if(email!==FIRST_ADMIN_EMAIL){$('loginStatus').textContent='This bootstrap button is only enabled for the designated first administrator.';return}if(password.length<8){$('loginStatus').textContent='Choose a password of at least 8 characters.';return}$('loginStatus').textContent='Creating administrator account…';const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:'B&L Morley Admin'}}});if(error){$('loginStatus').textContent=error.message;return}if(data.session){$('loginStatus').textContent='Administrator account created. Signing in…';await loadSession();return}$('loginStatus').textContent='Account created. Check your email for the Supabase confirmation link, then return here and sign in.';};
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.panel').forEach(x=>x.classList.add('hidden'));$('tab-'+b.dataset.tab).classList.remove('hidden')});
