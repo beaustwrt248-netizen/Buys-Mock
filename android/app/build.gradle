@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 6
-        versionName '2.4.1-native'
+        versionCode 7
+        versionName '2.4.2-native'
     }
 
     def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH')
