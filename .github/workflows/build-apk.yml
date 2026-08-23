@@ -2,7 +2,7 @@ name: Build B&L Morley APK
 
 on:
   push:
-    branches: [ main, native-ota-component-pricing, feature-multisource-evidence ]
+    branches: [ main, native-ota-component-pricing, feature-multisource-evidence, fix-release-signing ]
     paths:
       - 'android/**'
       - 'ota/**'
@@ -35,6 +35,24 @@ jobs:
           gradle-version: '8.11.1'
       - name: Run regression tests
         run: gradle -p android testDebugUnitTest --stacktrace
+      - name: Prepare production signing key
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.BL_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.BL_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || (echo 'Missing BL_KEYSTORE_BASE64' && exit 1)
+          test -n "$STORE_PASSWORD" || (echo 'Missing BL_KEYSTORE_PASSWORD' && exit 1)
+          test -n "$KEY_ALIAS" || (echo 'Missing BL_KEY_ALIAS' && exit 1)
+          test -n "$KEY_PASSWORD" || (echo 'Missing BL_KEY_PASSWORD' && exit 1)
+          KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "B_AND_L_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Build release APK
         run: gradle -p android assembleRelease --stacktrace
       - name: Rename APK
@@ -59,6 +77,7 @@ jobs:
             - Safer OEM search broadening and model/generation validation
             - Real-time OTA download progress and APK verification
             - Install/restart update flow
+            - Persistent production signing for future OTA compatibility
           files: dist/B-and-L-Morley-v2.4.0-native-ota.apk
           fail_on_unmatched_files: true
           make_latest: true
