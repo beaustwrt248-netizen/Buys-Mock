@@ -16,18 +16,23 @@ object UpdateManager {
     const val METADATA_URL = "https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/ota/latest.json"
 
     suspend fun check(): AppUpdate? = withContext(Dispatchers.IO) {
-        val c=(URL(METADATA_URL).openConnection() as HttpURLConnection).apply {
+        val cacheBustedUrl = "$METADATA_URL?t=${System.currentTimeMillis()}"
+        val c=(URL(cacheBustedUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout=10000
             readTimeout=10000
             requestMethod="GET"
-            setRequestProperty("Cache-Control","no-cache")
+            useCaches=false
+            setRequestProperty("Cache-Control","no-cache, no-store, max-age=0")
+            setRequestProperty("Pragma","no-cache")
         }
         try {
-            if(c.responseCode !in 200..299) return@withContext null
+            if(c.responseCode !in 200..299) throw IllegalStateException("Update server returned HTTP ${c.responseCode}")
             val o=JSONObject(c.inputStream.bufferedReader().use{it.readText()})
             val remote=o.optInt("versionCode",0)
             val apk=o.optString("apkUrl","")
-            if(remote<=BuildConfig.VERSION_CODE || apk.isBlank()) return@withContext null
+            if(remote<=0) throw IllegalStateException("Update metadata is missing versionCode")
+            if(apk.isBlank()) throw IllegalStateException("Update metadata is missing apkUrl")
+            if(remote<=BuildConfig.VERSION_CODE) return@withContext null
             AppUpdate(remote,o.optString("versionName"),apk,o.optString("notes"))
         } finally { c.disconnect() }
     }
