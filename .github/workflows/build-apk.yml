@@ -40,11 +40,11 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v1.0.0.apk'
+          cp android/app/build/outputs/apk/release/app-release.apk 'dist/B&L-Morley-v1.0.1.apk'
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-APK
-          path: 'dist/B&L-Morley-v1.0.0.apk'
+          name: B-and-L-Morley-APK-v1.0.1
+          path: 'dist/B&L-Morley-v1.0.1.apk'
           if-no-files-found: error
