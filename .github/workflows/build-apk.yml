@@ -38,17 +38,50 @@ jobs:
       - name: Prepare production signing key
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
-          KEYSTORE_BASE64: ${{ secrets.BL_KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.BL_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.BL_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.BL_KEY_PASSWORD }}
+          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
+          KEY_PASSWORD_RAW: ${{ secrets.BL_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+
+          # Remove accidental CR/LF characters introduced by mobile copy/paste.
+          KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
+          STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
+          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
+          KEY_PASSWORD="$(printf '%s' "$KEY_PASSWORD_RAW" | tr -d '\r\n')"
+
           test -n "$KEYSTORE_BASE64" || (echo 'Missing BL_KEYSTORE_BASE64' && exit 1)
           test -n "$STORE_PASSWORD" || (echo 'Missing BL_KEYSTORE_PASSWORD' && exit 1)
           test -n "$KEY_ALIAS" || (echo 'Missing BL_KEY_ALIAS' && exit 1)
           test -n "$KEY_PASSWORD" || (echo 'Missing BL_KEY_PASSWORD' && exit 1)
+
           KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+
+          # Fail here with a precise message if the keystore password or alias is wrong.
+          if ! keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo 'Signing validation failed: BL_KEYSTORE_PASSWORD or BL_KEY_ALIAS does not match the decoded keystore.'
+            exit 1
+          fi
+
+          # Verify the private-key password too without modifying the production keystore.
+          VERIFY_STORE="$RUNNER_TEMP/signing-verify.p12"
+          if ! keytool -importkeystore \
+            -srckeystore "$KEYSTORE_PATH" \
+            -srcstorepass "$STORE_PASSWORD" \
+            -srcalias "$KEY_ALIAS" \
+            -srckeypass "$KEY_PASSWORD" \
+            -destkeystore "$VERIFY_STORE" \
+            -deststoretype PKCS12 \
+            -deststorepass 'temporary-signing-check-2026' \
+            -destkeypass 'temporary-signing-check-2026' \
+            -noprompt >/dev/null 2>&1; then
+            echo 'Signing validation failed: BL_KEY_PASSWORD does not match the private key.'
+            exit 1
+          fi
+          rm -f "$VERIFY_STORE"
+
           echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
           echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
