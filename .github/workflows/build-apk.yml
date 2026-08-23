@@ -46,27 +46,16 @@ jobs:
           KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
           STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
           KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
-
           test -n "$KEYSTORE_BASE64" || (echo 'Missing BL_KEYSTORE_BASE64' && exit 1)
           test -n "$STORE_PASSWORD" || (echo 'Missing BL_KEYSTORE_PASSWORD' && exit 1)
           test -n "$KEY_ALIAS" || (echo 'Missing BL_KEY_ALIAS' && exit 1)
-
           KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-
-          if ! keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
-            echo 'Signing validation failed: BL_KEYSTORE_PASSWORD or BL_KEY_ALIAS does not match the decoded keystore.'
-            exit 1
-          fi
-
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
           VERIFY_JAR="$RUNNER_TEMP/signing-check.jar"
           printf 'signing-check' > "$RUNNER_TEMP/signing-check.txt"
           jar cf "$VERIFY_JAR" -C "$RUNNER_TEMP" signing-check.txt
-          if ! jarsigner -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -keypass "$STORE_PASSWORD" "$VERIFY_JAR" "$KEY_ALIAS" >/dev/null 2>&1; then
-            echo 'Signing validation failed: private key could not be unlocked with the keystore password.'
-            exit 1
-          fi
-
+          jarsigner -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -keypass "$STORE_PASSWORD" "$VERIFY_JAR" "$KEY_ALIAS" >/dev/null
           echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
           echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
@@ -75,25 +64,24 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.1-native-ota.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.2-native-ota.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.4.1-OTA
-          path: dist/B-and-L-Morley-v2.4.1-native-ota.apk
+          name: B-and-L-Morley-Native-v2.4.2-OTA
+          path: dist/B-and-L-Morley-v2.4.2-native-ota.apk
           if-no-files-found: error
-      - name: Publish v2.4.1 OTA release
+      - name: Publish v2.4.2 OTA release
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.1
-          name: B&L Morley v2.4.1
+          tag_name: v2.4.2
+          name: B&L Morley v2.4.2
           body: |
-            Native v2.4.1 OTA cleanup release.
-            - TARGET GP now displays as a percentage instead of currency
-            - GP grade descriptions retained for A, B, C and Luxury
-            - Persistent production signing retained for future OTA compatibility
-            - Native in-app OTA download/install flow retained
-          files: dist/B-and-L-Morley-v2.4.1-native-ota.apk
+            Native v2.4.2 OTA verification release.
+            - Verifies in-place OTA upgrade from production-signed v2.4.1
+            - Uses the permanent production signing identity
+            - Retains native in-app download, progress, install and restart flow
+          files: dist/B-and-L-Morley-v2.4.2-native-ota.apk
           fail_on_unmatched_files: true
           make_latest: true
