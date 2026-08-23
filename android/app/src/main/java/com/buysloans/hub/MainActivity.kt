@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
-import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,15 +11,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -44,7 +46,26 @@ private fun Color.toArgbCompat(): Int = android.graphics.Color.argb((alpha*255).
 
 enum class Page(val label:String,val icon:String){Home("Home","⌂"),Laptop("Laptop","💻"),Desktop("Desktop","🖥"),GP("GP","$"),More("More","⚙")}
 
-data class MarketResult(val newPrice:Double,val usedPrice:Double,val googleCount:Int,val ebayCount:Int,val estimated:Boolean)
+data class Listing(
+    val title:String,
+    val price:Double,
+    val source:String,
+    val url:String,
+    val condition:String,
+    val matchScore:Int,
+    val matchLabel:String,
+    val matchReasons:String
+)
+
+data class MarketResult(
+    val newPrice:Double,
+    val usedPrice:Double,
+    val googleCount:Int,
+    val ebayCount:Int,
+    val estimated:Boolean,
+    val googleItems:List<Listing>,
+    val ebayItems:List<Listing>
+)
 
 @Composable
 fun BLMorleyApp(){
@@ -93,15 +114,15 @@ fun LaptopScreen()=Screen("💻 Laptop / MacBook"){
     var model by remember{ mutableStateOf("") }; var ask by remember{ mutableStateOf("") }; var busy by remember{ mutableStateOf(false) }; var status by remember{ mutableStateOf("Ready") }; var result by remember{ mutableStateOf<MarketResult?>(null) }; val scope=rememberCoroutineScope()
     NativeField("Exact model / clean search",model,{model=it})
     NativeField("Seller asking price",ask,{ask=it},single=true)
-    NativeButton(if(busy)"Searching…" else "Analyse Laptop",enabled=!busy&&model.isNotBlank()){
+    NativeButton(if(busy)"Searching…" else "Analyse Laptop",onClick={
         busy=true; status="Searching live market…"; scope.launch{ runCatching{ market(model,40,"device") }.onSuccess{ result=it; status="${it.googleCount} Google new offers • ${it.ebayCount} eBay used matches" }.onFailure{ status=it.message?:"Search failed" };busy=false }
-    }
+    },enabled=!busy&&model.isNotBlank())
     Text(status,color=Color.LightGray)
     result?.let{ r->
         val used=if(r.usedPrice>0)r.usedPrice else r.newPrice*.58; val max=used*.7; val a=ask.toDoubleOrNull()?:0.0; val verdict=if(a<=0)"PRICE READY" else if(a<=max)"BUY" else if(a<=max*1.1)"NEGOTIATE" else "PASS"
         MetricGrid(listOf("NEW RETAIL" to r.newPrice,"USED VALUE" to used,"MAX BUY" to max))
         Verdict(verdict)
-        CardBlock(if(r.estimated)"ESTIMATED USED VALUE" else "DIRECT MARKET EVIDENCE","Used value based on ${r.ebayCount} eBay used matches and ${r.googleCount} Google new offers.")
+        EvidenceSection(r, if(r.ebayCount==0) "Estimated used value (${(58).toInt()}% of verified new retail; no exact used comps)" else "Exact/filtered used comparables")
     }
 }
 
@@ -111,11 +132,61 @@ fun DesktopScreen()=Screen("🖥 Desktop / Gaming PC"){
     NativeField("Seller asking price",ask,{ask=it},single=true)
     NativeField("Target gross profit %",margin,{margin=it},single=true)
     NativeField("Paste PC specs",specs,{specs=it})
-    NativeButton(if(busy)"Searching…" else "Detect + Price All",enabled=!busy&&specs.isNotBlank()){
+    NativeButton(if(busy)"Searching…" else "Detect + Price All",onClick={
         busy=true;status="Searching exact whole-system market…";scope.launch{runCatching{market(specs,40,"device")}.onSuccess{result=it;status="OEM whole-device valuation • ${it.googleCount} Google new • ${it.ebayCount} eBay used"}.onFailure{status=it.message?:"Search failed"};busy=false}
-    }
+    },enabled=!busy&&specs.isNotBlank())
     Text(status,color=Color.LightGray)
-    result?.let{r-> val used=if(r.usedPrice>0)r.usedPrice else r.newPrice*.65;val gp=(margin.toDoubleOrNull()?:30.0)/100.0;val max=used*(1-gp);val a=ask.toDoubleOrNull()?:0.0;val verdict=if(a<=0)"PRICE READY" else if(a<=max)"BUY" else if(a<=max*1.1)"NEGOTIATE" else "PASS";MetricGrid(listOf("NEW PARTS" to r.newPrice,"USED VALUE" to used,"MAX BUY" to max,"AVERAGE RESULT" to used));Verdict(verdict);CardBlock(if(r.ebayCount==0)"ESTIMATED USED VALUE" else "VALUATION EVIDENCE","Whole-device filtering remains on the server so accessories, parts and unrelated keyword collisions stay excluded.")}
+    result?.let{r->
+        val used=if(r.usedPrice>0)r.usedPrice else r.newPrice*.65
+        val gp=(margin.toDoubleOrNull()?:30.0)/100.0
+        val max=used*(1-gp)
+        val a=ask.toDoubleOrNull()?:0.0
+        val verdict=if(a<=0)"PRICE READY" else if(a<=max)"BUY" else if(a<=max*1.1)"NEGOTIATE" else "PASS"
+        MetricGrid(listOf("NEW PARTS" to r.newPrice,"USED VALUE" to used,"MAX BUY" to max,"AVERAGE RESULT" to used))
+        Verdict(verdict)
+        EvidenceSection(r, if(r.ebayCount==0) "Estimated used value (65% of verified new retail; no exact used comps)" else "Exact/filtered used comparables")
+    }
+}
+
+@Composable
+fun EvidenceSection(r:MarketResult,usedBasis:String){
+    CardBlock(
+        if(r.ebayCount==0)"ESTIMATED USED VALUE" else "VALUATION EVIDENCE",
+        "${r.googleCount} Google new offers • ${r.ebayCount} eBay used matches\nUsed basis: $usedBasis\nRetail basis: Google Shopping filtered whole-device offers"
+    )
+    Text("eBay AU used comparables",color=Color.White,fontSize=22.sp,fontWeight=FontWeight.Black)
+    if(r.ebayItems.isEmpty()) Text("No reliable exact-model results found.",color=Color.LightGray)
+    else r.ebayItems.take(12).forEach{ ListingCard(it) }
+    Spacer(Modifier.height(4.dp))
+    Text("Google Shopping AU new offers",color=Color.White,fontSize=22.sp,fontWeight=FontWeight.Black)
+    if(r.googleItems.isEmpty()) Text("No reliable filtered new offers found.",color=Color.LightGray)
+    else r.googleItems.take(12).forEach{ ListingCard(it) }
+}
+
+@Composable
+fun ListingCard(item:Listing){
+    val context= LocalContext.current
+    Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF1B1B1B)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
+                Text(money(item.price),color=Color.White,fontSize=21.sp,fontWeight=FontWeight.Black)
+                if(item.url.isNotBlank()) TextButton(onClick={ runCatching{context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(item.url)))} }){Text("Open")}
+            }
+            Text(item.title,color=Color(0xFFE2E2E2),fontSize=16.sp,lineHeight=21.sp)
+            if(item.source.isNotBlank()) Text(item.source,color=Color.Gray,fontSize=14.sp)
+            if(item.condition.isNotBlank()) Text(item.condition,color=Color.LightGray,fontSize=13.sp)
+            if(item.matchScore>0 || item.matchLabel.isNotBlank()){
+                val badge=listOfNotNull(
+                    item.matchScore.takeIf{it>0}?.let{"$it%"},
+                    item.matchLabel.takeIf{it.isNotBlank()},
+                    item.matchReasons.takeIf{it.isNotBlank()}
+                ).joinToString(" · ")
+                Surface(color=Color(0xFF171717),shape=RoundedCornerShape(999.dp),border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFF555555))){
+                    Text(badge,Modifier.padding(horizontal=10.dp,vertical=6.dp),color=if(item.matchScore>=72)Color(0xFF72E79B) else CashYellow,fontSize=12.sp,fontWeight=FontWeight.Bold)
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -125,8 +196,8 @@ fun GpScreen()=Screen("$ GP Calculator"){
 }
 
 @Composable fun MoreScreen()=Screen("⚙ More"){
-    CardBlock("B&L MORLEY","Native Android beta 2.0.0")
-    CardBlock("STATUS","No WebView. Native Compose UI with direct live-pricing API access.")
+    CardBlock("B&L MORLEY","Native Android beta 2.0.1")
+    CardBlock("STATUS","No WebView. Native Compose UI with direct live-pricing API access and native valuation evidence.")
     CardBlock("FALLBACK","The previous v1.0.1 WebView APK remains available until this native build finishes validation.")
 }
 
@@ -138,10 +209,42 @@ fun GpScreen()=Screen("$ GP Calculator"){
 
 private fun money(v:Double):String=NumberFormat.getCurrencyInstance(Locale("en","AU")).apply{maximumFractionDigits=0}.format(v)
 
+private fun parseListings(obj:JSONObject?):List<Listing>{
+    if(obj==null)return emptyList()
+    val arr=obj.optJSONArray("items")?: JSONArray()
+    val out= mutableListOf<Listing>()
+    for(i in 0 until arr.length()){
+        val x=arr.optJSONObject(i)?:continue
+        val mq=x.optJSONObject("matchQuality")
+        val reasons=mq?.optJSONArray("reasons")?.let{a->(0 until a.length()).mapNotNull{a.optString(it).takeIf(String::isNotBlank)}.joinToString(" + ")}?:""
+        val p=listOf("deliveredPrice","price","itemPrice").asSequence().map{x.optDouble(it,0.0)}.firstOrNull{it>0}?:0.0
+        out+=Listing(
+            title=x.optString("title",x.optString("name","Untitled result")),
+            price=p,
+            source=x.optString("seller",x.optString("store",x.optString("source",x.optString("merchant","")))),
+            url=x.optString("url",x.optString("link",x.optString("itemWebUrl",""))),
+            condition=x.optString("condition",""),
+            matchScore=mq?.optInt("score",0)?:0,
+            matchLabel=mq?.optString("label","")?:"",
+            matchReasons=reasons
+        )
+    }
+    return out
+}
+
 private suspend fun market(query:String,limit:Int,mode:String):MarketResult=withContext(Dispatchers.IO){
     val conn=(URL(API).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=15000;readTimeout=20000;doOutput=true;setRequestProperty("Content-Type","application/json")}
     val body=JSONObject().put("query",query).put("limit",limit).put("australiaOnly",true).put("mode",mode).toString();conn.outputStream.use{it.write(body.toByteArray())}
     val code=conn.responseCode;val text=(if(code in 200..299)conn.inputStream else conn.errorStream).bufferedReader().use{it.readText()};val root=JSONObject(text);if(code !in 200..299||!root.optBoolean("success"))throw IllegalStateException(root.optString("error","HTTP $code"))
     fun price(o:JSONObject?,vararg keys:String):Double{if(o==null)return 0.0;for(k in keys){val v=o.optDouble(k,0.0);if(v>0)return v};return 0.0}
-    val g=root.optJSONObject("google");val e=root.optJSONObject("ebay");val gp=g?.optJSONObject("pricing");val ep=e?.optJSONObject("pricing");MarketResult(price(gp,"competitiveLow","typicalNew"),price(ep,"typicalUsed"),g?.optInt("analysedListings",0)?:0,e?.optInt("analysedListings",0)?:0,ep?.optBoolean("estimatedFromNew",false)?:false)
+    val g=root.optJSONObject("google");val e=root.optJSONObject("ebay");val gp=g?.optJSONObject("pricing");val ep=e?.optJSONObject("pricing")
+    MarketResult(
+        price(gp,"competitiveLow","typicalNew"),
+        price(ep,"typicalUsed"),
+        g?.optInt("analysedListings",0)?:0,
+        e?.optInt("analysedListings",0)?:0,
+        ep?.optBoolean("estimatedFromNew",false)?:false,
+        parseListings(g),
+        parseListings(e)
+    )
 }
