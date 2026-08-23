@@ -1,6 +1,6 @@
 {
-  "versionCode": 7,
-  "versionName": "2.4.2-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.2/B-and-L-Morley-v2.4.2-native-ota.apk",
-  "notes": "B&L Morley v2.4.2: production OTA verification release. Tests in-place upgrade from permanently signed v2.4.1 while retaining native download progress, APK install and restart flow."
+  "versionCode": 8,
+  "versionName": "2.4.3-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.3/B-and-L-Morley-v2.4.3-native-ota.apk",
+  "notes": "B&L Morley v2.4.3: adaptive Android launcher icon, Android 13+ notification permission and channels, and production OTA release."
 }
