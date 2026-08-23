@@ -33,12 +33,17 @@ object NotificationHelper {
         manager.createNotificationChannels(listOf(updates, valuations))
     }
 
-    fun showUpdateAvailable(context: Context, versionName: String) {
+    fun showUpdateAvailable(context: Context, update: AppUpdate): Boolean {
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
+        ) return false
 
-        val launchIntent = Intent(context, UpdateActivity::class.java)
+        val launchIntent = Intent(context, UpdateActivity::class.java).apply {
+            putExtra("versionCode", update.versionCode)
+            putExtra("versionName", update.versionName)
+            putExtra("apkUrl", update.apkUrl)
+            putExtra("notes", update.notes)
+        }
         val pendingIntent = PendingIntent.getActivity(
             context,
             2001,
@@ -48,11 +53,12 @@ object NotificationHelper {
         val notification = Notification.Builder(context, CHANNEL_UPDATES)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("B&L Morley update available")
-            .setContentText("Version $versionName is ready to install.")
+            .setContentText("Version ${update.versionName} is ready to download and install.")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
 
         context.getSystemService(NotificationManager::class.java).notify(2001, notification)
+        return true
     }
 }

@@ -2,7 +2,7 @@ name: Build B&L Morley APK
 
 on:
   push:
-    branches: [ main, native-ota-component-pricing, feature-multisource-evidence, fix-release-signing, v2.4.3-icon-notifications ]
+    branches: [ main, native-ota-component-pricing, feature-multisource-evidence, fix-release-signing, v2.4.3-icon-notifications, v2.4.4-update-notifications-icon ]
     paths:
       - 'android/**'
       - 'ota/**'
@@ -64,25 +64,26 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.3-native-ota.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.4-native-ota.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.4.3-OTA
-          path: dist/B-and-L-Morley-v2.4.3-native-ota.apk
+          name: B-and-L-Morley-Native-v2.4.4-OTA
+          path: dist/B-and-L-Morley-v2.4.4-native-ota.apk
           if-no-files-found: error
-      - name: Publish v2.4.3 OTA release
+      - name: Publish v2.4.4 OTA release
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.3
-          name: B&L Morley v2.4.3
+          tag_name: v2.4.4
+          name: B&L Morley v2.4.4
           body: |
-            Native v2.4.3 launcher and notifications release.
-            - Adds adaptive Android launcher icon resources
-            - Adds Android 13+ notification permission handling
-            - Adds update and valuation notification channels
-            - Retains production signing and native OTA upgrade flow
-          files: dist/B-and-L-Morley-v2.4.3-native-ota.apk
+            Native v2.4.4 update alerts and launcher icon release.
+            - Replaces the generic launcher artwork with a branded adaptive brain/circuit icon
+            - Adds automatic background update checks with Android WorkManager
+            - Sends a notification when a newer B&L Morley version is available
+            - Tapping an update notification opens the native download/install screen
+            - Retains cache-busted OTA checks, production signing and in-place upgrades
+          files: dist/B-and-L-Morley-v2.4.4-native-ota.apk
           fail_on_unmatched_files: true
           make_latest: true
