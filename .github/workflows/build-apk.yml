@@ -39,12 +39,14 @@ jobs:
         run: |
           test -f morley_buys_login_bg_app.zip || { echo 'Missing morley_buys_login_bg_app.zip'; exit 1; }
           rm -rf "$RUNNER_TEMP/morley-login-video"
-          mkdir -p "$RUNNER_TEMP/morley-login-video" android/app/src/main/res/raw
+          mkdir -p "$RUNNER_TEMP/morley-login-video" android/app/src/main/res/raw web-assets
           unzip -q -o morley_buys_login_bg_app.zip -d "$RUNNER_TEMP/morley-login-video"
           VIDEO_PATH="$(find "$RUNNER_TEMP/morley-login-video" -type f -iname '*.mp4' | head -n 1)"
           test -n "$VIDEO_PATH" && test -s "$VIDEO_PATH" || { echo 'No MP4 found inside morley_buys_login_bg_app.zip'; exit 1; }
           cp "$VIDEO_PATH" android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+          cp "$VIDEO_PATH" web-assets/morley_buys_login_bg_app.mp4
           test -s android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+          test -s web-assets/morley_buys_login_bg_app.mp4
           echo "Bundled login video: $(du -h android/app/src/main/res/raw/morley_buys_login_bg_app.mp4 | cut -f1)"
 
       - name: Prepare Firebase Android config
@@ -97,6 +99,18 @@ jobs:
           }
           echo "Verified login background video in APK as $PACKAGED_PATH ($EXPECTED_BYTES bytes)"
 
+      - name: Publish desktop web login video
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web-assets/morley_buys_login_bg_app.mp4
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish desktop login video [skip ci]"
+            git push
+          fi
+
       - name: Rename APK
         run: |
           mkdir -p dist
@@ -138,7 +152,7 @@ jobs:
           }
           EOF
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "418982248-netizen@users.noreply.github.com"
           git add ota/latest.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish v2.6.0 OTA metadata [skip ci]"
