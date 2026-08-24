@@ -1,0 +1,12 @@
+(()=>{
+const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
+const API_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
+const STORE='morley_web_auth';
+const $=(s,r=document)=>r.querySelector(s);
+function session(){try{return JSON.parse(localStorage.getItem(STORE)||'null')}catch{return null}}
+function jwtSub(token){try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(p+'='.repeat((4-p.length%4)%4))).sub||''}catch{return''}}
+async function profile(token){const id=jwtSub(token);if(!id)return null;try{const r=await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=display_name,email,is_enabled&id=eq.${encodeURIComponent(id)}`,{headers:{apikey:API_KEY,Authorization:`Bearer ${token}`}});if(!r.ok)return null;const a=await r.json();return a[0]||null}catch{return null}}
+function styles(){if($('#morleySignedInUserStyle'))return;const s=document.createElement('style');s.id='morleySignedInUserStyle';s.textContent=`.morley-web-user{position:fixed!important;top:18px!important;right:118px!important;z-index:99989!important;display:flex!important;align-items:center!important;gap:7px!important;height:38px!important;max-width:260px!important;padding:0 12px!important;border:1px solid #3a3a3a!important;background:#171717!important;color:#f4f4f4!important;border-radius:999px!important;font-size:12px!important;font-weight:800!important;box-shadow:0 8px 24px rgba(0,0,0,.25)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.morley-web-user:before{content:'●';color:#57d68d;font-size:10px;flex:0 0 auto}@media(max-width:600px){.morley-web-user{top:10px!important;right:102px!important;height:34px!important;max-width:180px!important;padding:0 9px!important;font-size:10px!important}}`;document.head.appendChild(s)}
+async function add(){if($('.morley-web-user'))return true;const s=session();if(!s?.access_token)return false;if(!$('.morley-web-signout'))return false;const p=await profile(s.access_token);const name=(p?.display_name||'').trim()||s.email||'Signed in';const u=document.createElement('div');u.className='morley-web-user';u.textContent=name;u.title=`Signed in as ${name}`;document.body.appendChild(u);return true}
+styles();let tries=0;const t=setInterval(async()=>{if(await add()||++tries>50)clearInterval(t)},200);
+})();
