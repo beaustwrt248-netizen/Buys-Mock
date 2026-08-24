@@ -50,7 +50,9 @@ jobs:
 
           required = [
               'web-auth.js', 'signed-in-user.js', 'desktop-parity.js',
-              'reference-theme.css', 'no-gold.css', 'premium-motion.css'
+              'reference-theme.css', 'no-gold.css', 'premium-motion.css',
+              'admin/index.html', 'admin/app.js', 'admin/styles.css',
+              'admin/invites.js', 'admin/targeted-notifications.js', 'admin/turnstile.html'
           ]
           absent = [p for p in required if not Path(p).is_file()]
           if absent:
@@ -63,6 +65,17 @@ jobs:
           print('Web asset graph OK')
           PY
 
+      - name: JavaScript syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            app.js web-auth.js signed-in-user.js desktop-parity.js workflow.js \
+            admin/app.js admin/invites.js admin/targeted-notifications.js; do
+            test -s "$file"
+            node --check "$file"
+          done
+
       - name: Reject legacy gold in active web UI layers
         shell: bash
         run: |
@@ -72,7 +85,7 @@ jobs:
           active = [
               'mobile-more.css', 'cyber-ui.css', 'cyber-spectrum.css',
               'premium-motion.css', 'reference-theme.css', 'no-gold.css',
-              'web-auth.js'
+              'web-auth.js', 'admin/styles.css', 'admin/index.html', 'admin/app.js'
           ]
           forbidden = [
               '#ffd400', '#ffe65b', '#ffd000', '#ffc800', '#ffe95a',
@@ -87,10 +100,10 @@ jobs:
                   failures.append(f'{file}: {", ".join(found)}')
           if failures:
               raise SystemExit('Legacy gold detected in active UI layers:\n' + '\n'.join(failures))
-          print('No legacy gold found in active web UI layers')
+          print('No legacy gold found in active web/admin UI layers')
           PY
 
-      - name: Validate auth and navigation hooks
+      - name: Validate auth navigation and admin hooks
         shell: bash
         run: |
           python3 - <<'PY'
@@ -99,11 +112,16 @@ jobs:
               'web-auth.js': ['morley-web-signout', 'clearSession()', 'verifyAuthorised'],
               'signed-in-user.js': ['display_name', 'morley-web-user'],
               'desktop-parity.js': ['morleyDesktopGo', 'morleyMoreBackBar'],
+              'admin/app.js': ["admin-user-control", "action:'set_role'", 'secureUserAction'],
+              'admin/invites.js': ['crypto.getRandomValues', 'sha256Hex'],
+              'admin/turnstile.html': ['postMessage(payload,parentOrigin)'],
           }
           for file, needles in checks.items():
               text = Path(file).read_text(encoding='utf-8')
               missing = [n for n in needles if n not in text]
               if missing:
                   raise SystemExit(f'{file} missing expected production hooks: {missing}')
-          print('Auth/navigation hooks OK')
+          if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
+              raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
+          print('Auth/navigation/admin hooks OK')
           PY
