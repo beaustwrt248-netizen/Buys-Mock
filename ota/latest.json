@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "2.5.4-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.4/B-and-L-Morley-v2.5.4-native.apk",
-  "notes": "B&L Morley v2.5.4 fixes email confirmation redirects by returning users to the B&L Morley app instead of localhost."
+  "versionCode": 15,
+  "versionName": "2.5.5-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.5/B-and-L-Morley-v2.5.5-native.apk",
+  "notes": "B&L Morley v2.5.5 improves authentication messages, including a friendly explanation when verification email sending is temporarily rate limited."
 }
