@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="color-scheme" content="dark">
+  <title>B&L Morley Security Check</title>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  <style>
+    html,body{margin:0;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+    main{min-height:86px;display:flex;align-items:center;justify-content:center;padding:8px}
+    #status{font-size:13px;color:#aaa;text-align:center;margin-top:6px}
+  </style>
+</head>
+<body>
+<main><div><div id="challenge"></div><div id="status">Security check loading…</div></div></main>
+<script>
+(function(){
+  const sitekey='0x4AAAAAAEZul-Qo6dqMim2U';
+  const status=document.getElementById('status');
+  function send(name,value){
+    try{ if(window.AndroidBridge && typeof window.AndroidBridge[name]==='function') window.AndroidBridge[name](value||''); }catch(_){}
+  }
+  function render(){
+    if(!window.turnstile){setTimeout(render,100);return;}
+    status.textContent='Complete the security check.';
+    turnstile.render('#challenge',{
+      sitekey,
+      theme:'dark',
+      size:'flexible',
+      action:'blmorley_auth',
+      callback:function(token){status.textContent='Security check complete.';send('onToken',token);},
+      'expired-callback':function(){status.textContent='Security check expired. Complete it again.';send('onExpired','');},
+      'error-callback':function(code){status.textContent='Security check failed. Tap to retry.';send('onError',String(code||''));return true;}
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
