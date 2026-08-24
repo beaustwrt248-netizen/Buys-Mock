@@ -42,7 +42,21 @@ jobs:
           printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
           python3 -m json.tool android/app/google-services.json >/dev/null
       - name: Run regression tests
-        run: gradle -p android testDebugUnitTest --stacktrace
+        shell: bash
+        run: |
+          set +e
+          gradle -p android testDebugUnitTest --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/gradle-test.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo
+            echo '================ B&L MORLEY ROOT CAUSE ================'
+            grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/gradle-test.log" | head -n 120 || true
+            echo '========================================================'
+            echo
+            echo 'Last 100 lines:'
+            tail -n 100 "$RUNNER_TEMP/gradle-test.log"
+            exit "$status"
+          fi
       - name: Prepare production signing key
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
