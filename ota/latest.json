@@ -1,6 +1,6 @@
 {
-  "versionCode": 16,
-  "versionName": "2.5.6-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.6/B-and-L-Morley-v2.5.6-native.apk",
-  "notes": "B&L Morley v2.5.6 makes account creation invite-only and locks down backend access to authorised authenticated users."
+  "versionCode": 18,
+  "versionName": "2.5.8-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.8/B-and-L-Morley-v2.5.8-native.apk",
+  "notes": "B&L Morley v2.5.8 fixes Turnstile challenge deployment so protected sign-in, invite signup and password reset can obtain a valid CAPTCHA token."
 }
