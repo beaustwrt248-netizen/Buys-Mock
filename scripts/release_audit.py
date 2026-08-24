@@ -17,6 +17,7 @@ required = [
     "index.html",
     "web-auth.js",
     "signed-in-user.js",
+    "web-a11y.js",
     "reference-theme.css",
     "premium-motion.css",
     "mobile-more.css",
@@ -97,7 +98,7 @@ if ota_path.exists():
         errors.append(f"Invalid ota/latest.json: {exc}")
 
 index = (ROOT / "index.html").read_text(encoding="utf-8")
-for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-auth.js", "signed-in-user.js"):
+for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-auth.js", "signed-in-user.js", "web-a11y.js"):
     if token not in index:
         errors.append(f"index.html does not load required layer: {token}")
 if "cache:'no-store'" not in index and 'cache:"no-store"' not in index:
