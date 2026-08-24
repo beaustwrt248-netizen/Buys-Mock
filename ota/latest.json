@@ -1,6 +1,6 @@
 {
-  "versionCode": 19,
-  "versionName": "2.5.9-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.9/B-and-L-Morley-v2.5.9-native.apk",
-  "notes": "B&L Morley v2.5.9 upgrades Admin Control notifications to a fresh high-importance channel for Android heads-up pop-up alerts, with sound and vibration enabled."
+  "versionCode": 20,
+  "versionName": "2.6.0-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.6.0/B-and-L-Morley-v2.6.0-native.apk",
+  "notes": "B&L Morley v2.6.0 adds persistent Valuations & Deals under More, including quoted/bought/sold/passed status and actual profit tracking."
 }
