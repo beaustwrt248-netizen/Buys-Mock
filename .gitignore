@@ -1,0 +1,2 @@
+# Firebase Android config is generated in CI from a GitHub Actions secret
+android/app/google-services.json
