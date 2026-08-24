@@ -32,6 +32,7 @@ private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyI
     var loading by remember{mutableStateOf(true)}
     var error by remember{mutableStateOf("")}
     var filter by remember{mutableStateOf("all")}
+    var search by remember{mutableStateOf("")}
     var showAdd by remember{mutableStateOf(false)}
     fun reload(){scope.launch{loading=true;error="";runCatching{ValuationHistoryManager.list(context)}.onSuccess{items=it}.onFailure{error=it.message?:"Could not load history"};loading=false}}
     LaunchedEffect(Unit){reload()}
@@ -40,14 +41,37 @@ private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyI
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Valuations & Deals",fontSize=26.sp,fontWeight=FontWeight.Black);TextButton(onClick=onBack){Text("Back")}}
             Text("Saved quotes and less-used deal tracking live here so the main calculator stays uncluttered.",color=Color.LightGray)
+            if(items.isNotEmpty()) DealSummary(items)
             Button(onClick={showAdd=true},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=HistYellow,contentColor=Color.Black)){Text("+ Save valuation / deal",fontWeight=FontWeight.Black)}
+            OutlinedTextField(value=search,onValueChange={search=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Search valuations")},placeholder={Text("Model, specs, notes…")})
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},label={Text(s.replaceFirstChar{it.uppercase()},fontSize=11.sp)})}}
             if(loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(error.isNotBlank()) Text(error,color=MaterialTheme.colorScheme.error)
-            val shown=items.filter{filter=="all"||it.status==filter}
-            if(!loading&&shown.isEmpty()) Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text("No saved valuations yet.",Modifier.padding(18.dp),color=Color.LightGray)}
+            val needle=search.trim().lowercase()
+            val shown=items.filter{item->
+                val filterMatch=filter=="all"||item.status==filter
+                val searchMatch=needle.isBlank()||listOf(item.itemSummary,item.specs,item.notes,item.itemType,item.status,item.confidence).any{it.lowercase().contains(needle)}
+                filterMatch&&searchMatch
+            }
+            Text("${shown.size} result${if(shown.size==1)"" else "s"}",color=Color.Gray,fontSize=12.sp)
+            if(!loading&&shown.isEmpty()) Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this filter.",Modifier.padding(18.dp),color=Color.LightGray)}
             shown.forEach{item->HistoryCard(item){reload()}}
             Spacer(Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable private fun DealSummary(items:List<SavedValuation>){
+    val bought=items.filter{it.status=="bought"||it.status=="sold"}
+    val sold=items.filter{it.status=="sold"}
+    val totalSpend=bought.sumOf{it.boughtPrice?:0.0}
+    val revenue=sold.sumOf{it.soldPrice?:0.0}
+    val profit=sold.sumOf{it.actualProfit?:((it.soldPrice?:0.0)-(it.boughtPrice?:0.0))}
+    Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+            Text("DEAL SNAPSHOT",color=HistYellow,fontSize=11.sp,fontWeight=FontWeight.Black)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Records",items.size.toString());Metric("Bought",bought.size.toString());Metric("Sold",sold.size.toString())}
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Spend",moneyHist(totalSpend));Metric("Revenue",moneyHist(revenue));Metric("Profit",moneyHist(profit))}
         }
     }
 }
@@ -86,6 +110,7 @@ private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyI
             if(item.actualProfit!=null) Text("Actual profit ${moneyHist(item.actualProfit)}",color=if(item.actualProfit>=0)Color(0xFF57E389) else Color(0xFFFF6B6B),fontWeight=FontWeight.Black)
             if(item.expectedProfit!=null)Text("Expected profit ${moneyHist(item.expectedProfit)}",color=Color.LightGray,fontSize=12.sp)
             if(item.confidence.isNotBlank())Text("Confidence: ${item.confidence}",color=Color.LightGray,fontSize=12.sp)
+            if(item.specs.isNotBlank())Text(item.specs,color=Color.Gray,fontSize=12.sp,maxLines=3)
             if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error,fontSize=12.sp)
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         }
