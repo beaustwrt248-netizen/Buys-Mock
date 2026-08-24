@@ -81,6 +81,17 @@ jobs:
       - name: Build release APK
         run: gradle -p android assembleRelease --stacktrace --console=plain
 
+      - name: Verify login video packaged in APK
+        shell: bash
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          unzip -l "$APK" | tee "$RUNNER_TEMP/apk-contents.txt"
+          grep -E 'res/raw/morley_buys_login_bg_app(\.mp4)?' "$RUNNER_TEMP/apk-contents.txt" || {
+            echo 'Login background video was not packaged in the APK'
+            exit 1
+          }
+
       - name: Rename APK
         run: |
           mkdir -p dist
