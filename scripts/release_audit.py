@@ -24,6 +24,7 @@ required = [
     "cyber-ui.css",
     "cyber-spectrum.css",
     "no-gold.css",
+    "web-assets/morley_buys_login_bg_app.mp4",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
@@ -35,6 +36,10 @@ required = [
 ]
 for f in required:
     require(f)
+
+video = ROOT / "web-assets/morley_buys_login_bg_app.mp4"
+if video.exists() and video.stat().st_size < 1_000_000:
+    errors.append("Web login background video is unexpectedly small")
 
 for rel in [
     "web-auth.js",
@@ -71,9 +76,11 @@ else:
 
 if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
     errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
+if "issues: write" in workflow:
+    errors.append("Android release workflow requests unnecessary issues:write permission")
 
 pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(encoding="utf-8")
-for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site"):
+for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
 
