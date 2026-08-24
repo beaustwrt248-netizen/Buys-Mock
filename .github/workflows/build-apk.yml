@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -42,20 +43,45 @@ jobs:
           printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
           python3 -m json.tool android/app/google-services.json >/dev/null
       - name: Run regression tests
+        id: regression
         shell: bash
         run: |
           set +e
           gradle -p android testDebugUnitTest --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/gradle-test.log"
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
-            echo
-            echo '================ B&L MORLEY ROOT CAUSE ================'
-            grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/gradle-test.log" | head -n 120 || true
-            echo '========================================================'
-            echo
-            echo 'Last 100 lines:'
-            tail -n 100 "$RUNNER_TEMP/gradle-test.log"
+            {
+              echo '================ B&L MORLEY ROOT CAUSE ================'
+              grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/gradle-test.log" | head -n 120 || true
+              echo '========================================================'
+              echo
+              echo 'Last 100 lines:'
+              tail -n 100 "$RUNNER_TEMP/gradle-test.log"
+            } | tee "$RUNNER_TEMP/root-cause.txt"
             exit "$status"
+          fi
+      - name: Publish CI root cause to issue
+        if: failure() && steps.regression.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ISSUE_TITLE='B&L Morley Android CI root cause'
+          BODY_FILE="$RUNNER_TEMP/ci-issue.md"
+          {
+            echo "Commit: $GITHUB_SHA"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/root-cause.txt"
+            echo '```'
+          } > "$BODY_FILE"
+          issue_number="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'B&L Morley Android CI root cause in:title' --json number,title --jq '.[] | select(.title == "B&L Morley Android CI root cause") | .number' | head -n1)"
+          if [ -n "$issue_number" ]; then
+            gh issue edit "$issue_number" --repo "$GITHUB_REPOSITORY" --body-file "$BODY_FILE"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file "$BODY_FILE"
           fi
       - name: Prepare production signing key
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
