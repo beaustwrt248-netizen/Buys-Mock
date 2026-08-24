@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "2.5.5-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.5/B-and-L-Morley-v2.5.5-native.apk",
-  "notes": "B&L Morley v2.5.5 improves authentication messages, including a friendly explanation when verification email sending is temporarily rate limited."
+  "versionCode": 16,
+  "versionName": "2.5.6-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.6/B-and-L-Morley-v2.5.6-native.apk",
+  "notes": "B&L Morley v2.5.6 makes account creation invite-only and locks down backend access to authorised authenticated users."
 }
