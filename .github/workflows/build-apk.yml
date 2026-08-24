@@ -6,12 +6,14 @@ on:
     paths:
       - 'android/**'
       - 'ota/**'
+      - 'morley_buys_login_bg_app.zip'
       - '.github/workflows/build-apk.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'android/**'
       - 'ota/**'
+      - 'morley_buys_login_bg_app.zip'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -31,6 +33,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+
+      - name: Bundle Morley login background video
+        shell: bash
+        run: |
+          test -f morley_buys_login_bg_app.zip || { echo 'Missing morley_buys_login_bg_app.zip'; exit 1; }
+          rm -rf "$RUNNER_TEMP/morley-login-video"
+          mkdir -p "$RUNNER_TEMP/morley-login-video" android/app/src/main/res/raw
+          unzip -q -o morley_buys_login_bg_app.zip -d "$RUNNER_TEMP/morley-login-video"
+          VIDEO_PATH="$(find "$RUNNER_TEMP/morley-login-video" -type f -iname '*.mp4' | head -n 1)"
+          test -n "$VIDEO_PATH" && test -s "$VIDEO_PATH" || { echo 'No MP4 found inside morley_buys_login_bg_app.zip'; exit 1; }
+          cp "$VIDEO_PATH" android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+          test -s android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+          echo "Bundled login video: $(du -h android/app/src/main/res/raw/morley_buys_login_bg_app.mp4 | cut -f1)"
 
       - name: Prepare Firebase Android config
         env:
