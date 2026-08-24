@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -57,6 +57,7 @@ jobs:
           if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
           touch site/.nojekyll
           test -s site/index.html
+          test -s site/secure-pricing.js
           test -s site/web-auth.js
           test -s site/no-gold.css
           test -s site/web-a11y.js
@@ -99,11 +100,13 @@ jobs:
           }
           fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/page-index.html"
+          grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
           fetch_with_retry "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js"
           grep -q 'verifyAuthorised' "$RUNNER_TEMP/web-auth.js"
-          fetch_with_retry "$BASE/app.js" "$RUNNER_TEMP/app.js"
-          grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/app.js"
-          grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/app.js"
+          fetch_with_retry "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js"
+          grep -q "localStorage.getItem(STORE)" "$RUNNER_TEMP/secure-pricing.js"
+          grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/secure-pricing.js"
+          grep -q 'window.market=secureMarket' "$RUNNER_TEMP/secure-pricing.js"
           fetch_with_retry "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/desktop-oem.js"
@@ -116,6 +119,8 @@ jobs:
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/desktop-parity.js"
           fetch_with_retry "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html"
           grep -q 'postMessage(payload,parentOrigin)' "$RUNNER_TEMP/turnstile.html"
+          fetch_with_retry "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html"
+          grep -q 'app.js?v=3' "$RUNNER_TEMP/admin-index.html"
           fetch_with_retry "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js"
           grep -q "secureUserAction('set_role'" "$RUNNER_TEMP/admin-app.js"
           grep -q 'admin-user-control' "$RUNNER_TEMP/admin-app.js"
