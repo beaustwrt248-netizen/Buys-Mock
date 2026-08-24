@@ -2,7 +2,7 @@ name: Deploy B&L Morley Admin
 
 on:
   push:
-    branches: [ v2.5.0-admin-foundation ]
+    branches: [ main ]
     paths:
       - 'admin/**'
       - '.github/workflows/deploy-admin-pages.yml'
