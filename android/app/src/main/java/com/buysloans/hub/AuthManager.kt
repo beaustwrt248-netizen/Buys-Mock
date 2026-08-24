@@ -50,6 +50,12 @@ object AuthManager {
     private suspend fun post(path: String, payload: JSONObject, bearer: String? = null) =
         postAbsolute("${BuildConfig.SUPABASE_URL}$path", payload, bearer)
 
+    private fun withCaptcha(payload: JSONObject, captchaToken: String): JSONObject {
+        require(captchaToken.isNotBlank()) { "Complete the security check first." }
+        payload.put("gotrue_meta_security", JSONObject().put("captcha_token", captchaToken))
+        return payload
+    }
+
     private fun errorMessage(code: Int, body: String, fallback: String): String {
         val raw = runCatching {
             val j = JSONObject(body)
@@ -58,6 +64,7 @@ object AuthManager {
         val normalized = raw.lowercase()
         return when {
             code == 429 || "rate limit" in normalized || "too many" in normalized -> "Too many attempts. Please wait a few minutes and try again."
+            "captcha" in normalized -> "Security check failed or expired. Complete it again and retry."
             "email not confirmed" in normalized -> "Please confirm your email address before signing in."
             "invalid login credentials" in normalized -> "Incorrect email address or password."
             "already exists" in normalized || "already registered" in normalized -> "An account with this email already exists. Try signing in or use Forgot Password."
@@ -67,7 +74,9 @@ object AuthManager {
     }
 
     private suspend fun verifyAuthorised(token: String): Boolean = withContext(Dispatchers.IO) {
-        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${URLEncoder.encode(extractUserId(token), "UTF-8")}")
+        val userId = extractUserId(token)
+        if (userId.isBlank()) return@withContext false
+        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
         val c = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 10_000
@@ -88,13 +97,14 @@ object AuthManager {
         JSONObject(String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT))).optString("sub")
     }.getOrDefault("")
 
-    suspend fun signIn(context: Context, email: String, password: String) {
+    suspend fun signIn(context: Context, email: String, password: String, captchaToken: String) {
         require(email.isNotBlank()) { "Enter your email address." }
         require(password.isNotBlank()) { "Enter your password." }
-        val (code, body) = post("/auth/v1/token?grant_type=password", JSONObject().apply {
+        val payload = withCaptcha(JSONObject().apply {
             put("email", email.trim())
             put("password", password)
-        })
+        }, captchaToken)
+        val (code, body) = post("/auth/v1/token?grant_type=password", payload)
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Sign in failed ($code)."))
         val token = JSONObject(body).optString("access_token")
         if (token.isBlank()) throw IllegalStateException("Sign in did not return a session.")
@@ -105,22 +115,25 @@ object AuthManager {
             .apply()
     }
 
-    suspend fun signUp(email: String, password: String, inviteCode: String) {
+    suspend fun signUp(email: String, password: String, inviteCode: String, captchaToken: String) {
         require(email.isNotBlank()) { "Enter your approved email address." }
         require(inviteCode.isNotBlank()) { "Enter your invite code." }
-        require(password.length >= 8) { "Password must be at least 8 characters." }
+        require(password.length >= 10) { "Password must be at least 10 characters." }
+        require(captchaToken.isNotBlank()) { "Complete the security check first." }
         val (code, body) = postAbsolute("${BuildConfig.SUPABASE_URL}/functions/v1/redeem-app-invite", JSONObject().apply {
             put("email", email.trim())
             put("password", password)
             put("inviteCode", inviteCode.trim())
+            put("captchaToken", captchaToken)
         })
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Invite could not be redeemed."))
     }
 
-    suspend fun sendPasswordReset(email: String) {
+    suspend fun sendPasswordReset(email: String, captchaToken: String) {
         require(email.isNotBlank()) { "Enter your email address." }
         val redirect = URLEncoder.encode(AUTH_CALLBACK, Charsets.UTF_8.name())
-        val (code, body) = post("/auth/v1/recover?redirect_to=$redirect", JSONObject().apply { put("email", email.trim()) })
+        val payload = withCaptcha(JSONObject().apply { put("email", email.trim()) }, captchaToken)
+        val (code, body) = post("/auth/v1/recover?redirect_to=$redirect", payload)
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Password reset failed ($code)."))
     }
 }
