@@ -46,7 +46,7 @@ private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyI
             if(error.isNotBlank()) Text(error,color=MaterialTheme.colorScheme.error)
             val shown=items.filter{filter=="all"||it.status==filter}
             if(!loading&&shown.isEmpty()) Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text("No saved valuations yet.",Modifier.padding(18.dp),color=Color.LightGray)}
-            shown.forEach{item->HistoryCard(item,reload)}
+            shown.forEach{item->HistoryCard(item){reload()}}
             Spacer(Modifier.height(40.dp))
         }
     }
