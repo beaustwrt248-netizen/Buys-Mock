@@ -182,6 +182,7 @@ jobs:
             - Invite-only authentication, OTA updates and signed production APK
             - Morley login video bundled and verified during release build
             - Release APK passes regression tests, Android lint and signature verification
+            - OTA downloads are protected with SHA-256 integrity verification
           files: |
             dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
             dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
@@ -193,16 +194,19 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os
+          import hashlib, json, os
           from pathlib import Path
           name = os.environ['APP_VERSION_NAME']
           safe = os.environ['APP_VERSION_SAFE']
           code = int(os.environ['APP_VERSION_CODE'])
           tag = os.environ['APP_RELEASE_TAG']
+          apk_path = Path(f'dist/B-and-L-Morley-{safe}.apk')
+          sha256 = hashlib.sha256(apk_path.read_bytes()).hexdigest()
           data = {
               'versionCode': code,
               'versionName': name,
               'apkUrl': f'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/{tag}/B-and-L-Morley-{safe}.apk',
+              'sha256': sha256,
               'notes': f'B&L Morley {name} production release with the unified navy/blue/cyan cyber interface and current valuation workflow.'
           }
           Path('ota').mkdir(parents=True, exist_ok=True)
