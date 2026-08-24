@@ -12,18 +12,17 @@ import java.net.URLEncoder
 object AuthManager {
     private const val PREFS = "morley_auth"
     private const val ACCESS_TOKEN = "access_token"
+    private const val REFRESH_TOKEN = "refresh_token"
+    private const val EXPIRES_AT = "expires_at"
     private const val USER_EMAIL = "user_email"
     const val AUTH_CALLBACK = "bnlmorley://auth/callback"
 
-    fun isSignedIn(context: Context): Boolean = accessToken(context).isNotBlank()
+    fun accessToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACCESS_TOKEN, "").orEmpty()
+    fun refreshToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(REFRESH_TOKEN, "").orEmpty()
+    fun email(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_EMAIL, "").orEmpty()
+    private fun expiresAt(context: Context): Long = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(EXPIRES_AT, 0L)
 
-    fun accessToken(context: Context): String =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(ACCESS_TOKEN, "").orEmpty()
-
-    fun email(context: Context): String =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(USER_EMAIL, "").orEmpty()
+    fun isSignedIn(context: Context): Boolean = accessToken(context).isNotBlank() || refreshToken(context).isNotBlank()
 
     fun signOut(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
@@ -31,10 +30,7 @@ object AuthManager {
 
     private suspend fun postAbsolute(url: String, payload: JSONObject, bearer: String? = null): Pair<Int,String> = withContext(Dispatchers.IO) {
         val c = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            doOutput = true
+            requestMethod = "POST"; connectTimeout = 10_000; readTimeout = 10_000; doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             if (!bearer.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $bearer")
@@ -47,8 +43,7 @@ object AuthManager {
         } finally { c.disconnect() }
     }
 
-    private suspend fun post(path: String, payload: JSONObject, bearer: String? = null) =
-        postAbsolute("${BuildConfig.SUPABASE_URL}$path", payload, bearer)
+    private suspend fun post(path: String, payload: JSONObject, bearer: String? = null) = postAbsolute("${BuildConfig.SUPABASE_URL}$path", payload, bearer)
 
     private fun withCaptcha(payload: JSONObject, captchaToken: String): JSONObject {
         require(captchaToken.isNotBlank()) { "Complete the security check first." }
@@ -57,10 +52,7 @@ object AuthManager {
     }
 
     private fun errorMessage(code: Int, body: String, fallback: String): String {
-        val raw = runCatching {
-            val j = JSONObject(body)
-            j.optString("error").ifBlank { j.optString("msg") }.ifBlank { j.optString("message") }.ifBlank { j.optString("error_description") }
-        }.getOrNull()?.trim().orEmpty()
+        val raw = runCatching { val j = JSONObject(body); j.optString("error").ifBlank { j.optString("msg") }.ifBlank { j.optString("message") }.ifBlank { j.optString("error_description") } }.getOrNull()?.trim().orEmpty()
         val normalized = raw.lowercase()
         return when {
             code == 429 || "rate limit" in normalized || "too many" in normalized -> "Too many attempts. Please wait a few minutes and try again."
@@ -74,15 +66,11 @@ object AuthManager {
     }
 
     private suspend fun verifyAuthorised(token: String): Boolean = withContext(Dispatchers.IO) {
-        val userId = extractUserId(token)
-        if (userId.isBlank()) return@withContext false
+        val userId = extractUserId(token); if (userId.isBlank()) return@withContext false
         val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
         val c = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
-            setRequestProperty("Authorization", "Bearer $token")
+            requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
+            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); setRequestProperty("Authorization", "Bearer $token")
         }
         try {
             if (c.responseCode !in 200..299) return@withContext false
@@ -97,45 +85,63 @@ object AuthManager {
         JSONObject(String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT))).optString("sub")
     }.getOrDefault("")
 
-    /**
-     * Legacy dashboard sign-in entry point retained only so older dashboard code compiles.
-     * It deliberately refuses authentication rather than bypassing Turnstile.
-     * All real sign-ins must go through AuthActivity and provide a CAPTCHA token.
-     */
+    private fun saveSession(context: Context, body: String, fallbackEmail: String = email(context)) {
+        val j = JSONObject(body)
+        val access = j.optString("access_token")
+        val refresh = j.optString("refresh_token")
+        val expiresIn = j.optLong("expires_in", 3600L)
+        require(access.isNotBlank()) { "Authentication did not return a session." }
+        val edit = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(ACCESS_TOKEN, access)
+            .putLong(EXPIRES_AT, System.currentTimeMillis() / 1000L + expiresIn)
+        if (refresh.isNotBlank()) edit.putString(REFRESH_TOKEN, refresh)
+        if (fallbackEmail.isNotBlank()) edit.putString(USER_EMAIL, fallbackEmail.trim().lowercase())
+        edit.apply()
+    }
+
+    suspend fun validAccessToken(context: Context): String {
+        val access = accessToken(context)
+        val expiry = expiresAt(context)
+        val now = System.currentTimeMillis() / 1000L
+        if (access.isNotBlank() && (expiry == 0L || expiry > now + 60L)) return access
+        val refresh = refreshToken(context)
+        if (refresh.isBlank()) {
+            signOut(context)
+            throw IllegalStateException("Your session has expired. Please sign in again once to enable automatic session renewal.")
+        }
+        val (code, body) = post("/auth/v1/token?grant_type=refresh_token", JSONObject().put("refresh_token", refresh))
+        if (code !in 200..299) {
+            signOut(context)
+            throw IllegalStateException("Your session has expired. Please sign in again.")
+        }
+        saveSession(context, body)
+        val token = accessToken(context)
+        if (!verifyAuthorised(token)) {
+            signOut(context)
+            throw IllegalStateException("This account is no longer authorised for B&L Morley.")
+        }
+        return token
+    }
+
     @Deprecated("Use the CAPTCHA-protected signIn overload")
     suspend fun signIn(context: Context, email: String, password: String) {
         throw IllegalStateException("Secure sign-in is required. Return to the B&L Morley sign-in screen and complete the security check.")
     }
 
     suspend fun signIn(context: Context, email: String, password: String, captchaToken: String) {
-        require(email.isNotBlank()) { "Enter your email address." }
-        require(password.isNotBlank()) { "Enter your password." }
-        val payload = withCaptcha(JSONObject().apply {
-            put("email", email.trim())
-            put("password", password)
-        }, captchaToken)
+        require(email.isNotBlank()) { "Enter your email address." }; require(password.isNotBlank()) { "Enter your password." }
+        val payload = withCaptcha(JSONObject().apply { put("email", email.trim()); put("password", password) }, captchaToken)
         val (code, body) = post("/auth/v1/token?grant_type=password", payload)
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Sign in failed ($code)."))
         val token = JSONObject(body).optString("access_token")
         if (token.isBlank()) throw IllegalStateException("Sign in did not return a session.")
         if (!verifyAuthorised(token)) throw IllegalStateException("This account is not authorised for B&L Morley. Contact an administrator.")
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(ACCESS_TOKEN, token)
-            .putString(USER_EMAIL, email.trim().lowercase())
-            .apply()
+        saveSession(context, body, email)
     }
 
     suspend fun signUp(email: String, password: String, inviteCode: String, captchaToken: String) {
-        require(email.isNotBlank()) { "Enter your approved email address." }
-        require(inviteCode.isNotBlank()) { "Enter your invite code." }
-        require(password.length >= 10) { "Password must be at least 10 characters." }
-        require(captchaToken.isNotBlank()) { "Complete the security check first." }
-        val (code, body) = postAbsolute("${BuildConfig.SUPABASE_URL}/functions/v1/redeem-app-invite", JSONObject().apply {
-            put("email", email.trim())
-            put("password", password)
-            put("inviteCode", inviteCode.trim())
-            put("captchaToken", captchaToken)
-        })
+        require(email.isNotBlank()) { "Enter your approved email address." }; require(inviteCode.isNotBlank()) { "Enter your invite code." }; require(password.length >= 10) { "Password must be at least 10 characters." }; require(captchaToken.isNotBlank()) { "Complete the security check first." }
+        val (code, body) = postAbsolute("${BuildConfig.SUPABASE_URL}/functions/v1/redeem-app-invite", JSONObject().apply { put("email", email.trim()); put("password", password); put("inviteCode", inviteCode.trim()); put("captchaToken", captchaToken) })
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Invite could not be redeemed."))
     }
 
