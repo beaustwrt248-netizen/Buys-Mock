@@ -144,11 +144,40 @@ private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
 @Composable
 private fun MoreHub(){
     val context=androidx.compose.ui.platform.LocalContext.current
+    val scope=rememberCoroutineScope()
+    var checking by remember{mutableStateOf(false)}
+    var updateStatus by remember{mutableStateOf("Tap below to check for the latest secure B&L Morley build.")}
+    var availableUpdate by remember{mutableStateOf<AppUpdate?>(null)}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         Text("More",fontSize=27.sp,fontWeight=FontWeight.Black)
         Text("Less-used tools and account options live here to keep the main workspace clean.",color=Color.LightGray)
         NavCard("◷","Valuations & Deals","Search saved valuations, convert quotes into deals, and track bought / sold / passed status."){
             context.startActivity(Intent(context,ValuationHistoryActivity::class.java))
+        }
+        Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
+            Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("APP UPDATES",color=DashYellow,fontSize=12.sp,fontWeight=FontWeight.Black)
+                Text("OTA Updates",fontSize=24.sp,fontWeight=FontWeight.Black)
+                Text(updateStatus,color=Color.LightGray,lineHeight=20.sp)
+                Button(onClick={
+                    checking=true;availableUpdate=null;updateStatus="Checking for updates…"
+                    scope.launch{
+                        runCatching{UpdateManager.check()}.onSuccess{u->
+                            availableUpdate=u
+                            updateStatus=if(u==null)"You're up to date on v${BuildConfig.VERSION_NAME}." else "${u.versionName} is available. ${u.notes}"
+                        }.onFailure{updateStatus="Update check failed: ${it.message?:"network error"}"}
+                        checking=false
+                    }
+                },enabled=!checking,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)){
+                    Text(if(checking)"Checking…" else "Check for Updates",fontWeight=FontWeight.Black)
+                }
+                availableUpdate?.let{u->
+                    OutlinedButton(onClick={
+                        if(Build.VERSION.SDK_INT>=26&&!context.packageManager.canRequestPackageInstalls()) UpdateManager.openInstallerPermission(context)
+                        else UpdateManager.openDownload(context,u)
+                    },modifier=Modifier.fillMaxWidth()) { Text("Download ${u.versionName}") }
+                }
+            }
         }
         DashboardCard("ACCOUNT","Signed in",AuthManager.email(context).ifBlank{"Authorised B&L Morley account"})
         DashboardCard("APP VERSION",BuildConfig.VERSION_NAME,"Secure private build • notifications • OTA updates")
