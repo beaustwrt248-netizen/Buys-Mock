@@ -39,9 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in \
-            web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js workflow.js match-quality.js \
-            admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -93,9 +91,7 @@ jobs:
           fetch_with_retry() {
             local url="$1" out="$2"
             for attempt in 1 2 3 4 5 6; do
-              if curl --fail --silent --show-error --location --max-time 30 --output "$out" "$url"; then
-                return 0
-              fi
+              if curl --fail --silent --show-error --location --max-time 30 --output "$out" "$url"; then return 0; fi
               echo "Waiting for Pages propagation ($attempt/6): $url"
               sleep 10
             done
@@ -105,14 +101,23 @@ jobs:
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/page-index.html"
           fetch_with_retry "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js"
           grep -q 'verifyAuthorised' "$RUNNER_TEMP/web-auth.js"
+          fetch_with_retry "$BASE/app.js" "$RUNNER_TEMP/app.js"
+          grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/app.js"
+          grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/app.js"
+          fetch_with_retry "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js"
+          grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/desktop-oem.js"
+          grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/desktop-oem.js"
           fetch_with_retry "$BASE/no-gold.css" "$RUNNER_TEMP/no-gold.css"
           grep -q -- '--yellow:#2f7cff' "$RUNNER_TEMP/no-gold.css"
           fetch_with_retry "$BASE/web-a11y.js" "$RUNNER_TEMP/web-a11y.js"
           grep -q 'focus-visible' "$RUNNER_TEMP/web-a11y.js"
+          fetch_with_retry "$BASE/desktop-parity.js" "$RUNNER_TEMP/desktop-parity.js"
+          grep -q 'morley-section-back' "$RUNNER_TEMP/desktop-parity.js"
+          ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/desktop-parity.js"
           fetch_with_retry "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html"
           grep -q 'postMessage(payload,parentOrigin)' "$RUNNER_TEMP/turnstile.html"
           fetch_with_retry "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js"
-          grep -q "action:'set_role'" "$RUNNER_TEMP/admin-app.js"
+          grep -q "secureUserAction('set_role'" "$RUNNER_TEMP/admin-app.js"
           grep -q 'admin-user-control' "$RUNNER_TEMP/admin-app.js"
           ! grep -q "sb.rpc('admin_set_user_role'" "$RUNNER_TEMP/admin-app.js"
           fetch_with_retry "$BASE/admin/styles.css" "$RUNNER_TEMP/admin-styles.css"
