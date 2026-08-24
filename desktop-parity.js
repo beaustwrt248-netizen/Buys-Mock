@@ -104,7 +104,7 @@
 
   function addMoreBackButtons(){
     if(!$('#morleyBackStyle')){
-      const s=document.createElement('style');s.id='morleyBackStyle';s.textContent=`.morley-section-back{display:inline-flex!important;align-items:center!important;gap:8px!important;width:auto!important;margin:0 0 12px!important;padding:9px 13px!important;border:1px solid #5f531a!important;border-radius:999px!important;background:#211e10!important;color:#ffd400!important;font-weight:900!important;box-shadow:none!important}.morley-section-back:hover{background:#302a10!important}@media(max-width:600px){.morley-section-back{margin-bottom:10px!important;padding:8px 12px!important;font-size:12px!important}}`;document.head.appendChild(s);
+      const s=document.createElement('style');s.id='morleyBackStyle';s.textContent=`.morley-section-back{display:inline-flex!important;align-items:center!important;gap:8px!important;width:auto!important;margin:0 0 12px!important;padding:9px 13px!important;border:1px solid rgba(18,201,255,.55)!important;border-radius:999px!important;background:#081a31!important;color:#dff8ff!important;font-weight:900!important;box-shadow:0 8px 24px rgba(0,0,0,.2)!important}.morley-section-back:hover{background:#0b2345!important;border-color:#12c9ff!important}@media(max-width:600px){.morley-section-back{margin-bottom:10px!important;padding:8px 12px!important;font-size:12px!important}}`;document.head.appendChild(s);
     }
     ['deals','inventory','sales','scanner'].forEach(id=>{
       const sec=$('#'+id); if(!sec||$('.morley-section-back',sec)) return;
