@@ -18,6 +18,7 @@
 (function(){
   const sitekey='0x4AAAAAAEZul-Qo6dqMim2U';
   const status=document.getElementById('status');
+  const parentOrigin=window.location.origin;
   window.__morleyTurnstileToken='';
   window.__morleyTurnstileState='loading';
   function send(name,value){
@@ -28,10 +29,11 @@
     try{
       if(window.parent && window.parent!==window){
         const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
-        window.parent.postMessage({source:'morley-turnstile',type,value:token},'*');
+        const payload={source:'morley-turnstile',type,value:token};
+        window.parent.postMessage(payload,parentOrigin);
         if(name==='onToken'){
-          setTimeout(()=>window.parent.postMessage({source:'morley-turnstile',type:'token',value:token},'*'),150);
-          setTimeout(()=>window.parent.postMessage({source:'morley-turnstile',type:'token',value:token},'*'),600);
+          setTimeout(()=>window.parent.postMessage(payload,parentOrigin),150);
+          setTimeout(()=>window.parent.postMessage(payload,parentOrigin),600);
         }
       }
     }catch(_){}
