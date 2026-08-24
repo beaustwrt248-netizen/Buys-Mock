@@ -25,13 +25,14 @@ required = [
     "no-gold.css",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
+    "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
+    "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
     ".github/workflows/build-apk.yml",
     "morley_buys_login_bg_app.zip",
 ]
 for f in required:
     require(f)
 
-# Keep the active web palette free of the retired yellow/gold branding values.
 for rel in [
     "web-auth.js",
     "signed-in-user.js",
@@ -50,7 +51,6 @@ for rel in [
         if token in text:
             errors.append(f"Retired gold token {token} still present in active web layer: {rel}")
 
-# Version consistency between Android source and release workflow.
 gradle = (ROOT / "android/app/build.gradle").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/build-apk.yml").read_text(encoding="utf-8")
 vc = re.search(r"versionCode\s+(\d+)", gradle)
@@ -66,7 +66,18 @@ else:
     if "APP_VERSION_CODE" not in workflow or "APP_VERSION_NAME" not in workflow:
         errors.append("Release workflow is not using resolved Android version metadata")
 
-# OTA may intentionally lag until a successful release, but it must never point ahead.
+if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
+    errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
+
+update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
+update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
+for token in ("isTrustedApkUrl", "isValidSha256", 'putExtra("sha256"'):
+    if token not in update_manager:
+        errors.append(f"Android OTA manager is missing integrity control: {token}")
+for token in ("MessageDigest", "SHA-256", "expectedSha256"):
+    if token not in update_activity:
+        errors.append(f"Android OTA installer is missing checksum verification control: {token}")
+
 ota_path = ROOT / "ota/latest.json"
 if ota_path.exists():
     try:
@@ -78,7 +89,6 @@ if ota_path.exists():
     except Exception as exc:
         errors.append(f"Invalid ota/latest.json: {exc}")
 
-# Ensure the shell actually loads the current auth and palette layers.
 index = (ROOT / "index.html").read_text(encoding="utf-8")
 for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-auth.js", "signed-in-user.js"):
     if token not in index:
@@ -86,13 +96,11 @@ for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-a
 if "cache:'no-store'" not in index and 'cache:"no-store"' not in index:
     errors.append("Web shell candidate fetch is not configured with no-store caching")
 
-# Auth must keep the production controls that prevent a public/open signup path.
 auth = (ROOT / "web-auth.js").read_text(encoding="utf-8")
 for token in ("verifyAuthorised", "redeem-app-invite", "captchaToken", "refresh_token"):
     if token not in auth:
         errors.append(f"Web auth is missing required control: {token}")
 
-# Avoid accidentally shipping private signing material/config files.
 for forbidden in (".jks", ".keystore", "google-services.json"):
     matches = [p for p in ROOT.rglob(f"*{forbidden}") if ".git" not in p.parts]
     if matches:
