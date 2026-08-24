@@ -2,7 +2,9 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parent / 'app' / 'src' / 'main' / 'java' / 'com' / 'buysloans' / 'hub'
 replacements = {
-    '0xFFFFD400': '0xFFC99A27',
+    '0xFFFFD400': '0xFF2F7CFF',
+    '0xFFC99A27': '0xFF2F7CFF',
+    '0xFFDDB347': '0xFF12C9FF',
     '0xFF111111': '0xFF030712',
     '0xFF222222': '0xFF07172C',
     '0xFF101010': '0xFF041024',
@@ -28,4 +30,4 @@ for path in root.glob('*.kt'):
         updated = updated.replace(old, new)
     if updated != text:
         path.write_text(updated, encoding='utf-8')
-        print(f'Applied cyber palette: {path.name}')
+        print(f'Applied blue/cyan cyber palette: {path.name}')
