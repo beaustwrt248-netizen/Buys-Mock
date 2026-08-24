@@ -25,6 +25,7 @@ required = [
     "no-gold.css",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
+    "android/app/src/main/AndroidManifest.xml",
     "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
     ".github/workflows/build-apk.yml",
@@ -77,6 +78,12 @@ for token in ("isTrustedApkUrl", "isValidSha256", 'putExtra("sha256"'):
 for token in ("MessageDigest", "SHA-256", "expectedSha256"):
     if token not in update_activity:
         errors.append(f"Android OTA installer is missing checksum verification control: {token}")
+
+manifest = (ROOT / "android/app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+if 'android:usesCleartextTraffic="false"' not in manifest:
+    errors.append("Android manifest must disable cleartext network traffic")
+if 'android:allowBackup="false"' not in manifest:
+    errors.append("Android manifest must disable app-data backup for private session data")
 
 ota_path = ROOT / "ota/latest.json"
 if ota_path.exists():
