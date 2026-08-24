@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -97,10 +98,27 @@ private fun LoginScreen(onSignedIn: () -> Unit) {
 
 @Composable
 private fun DashboardApp(showUpdatedInitially:Boolean=false) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var page by remember { mutableStateOf(Page.Home) }
     var showUpdated by remember { mutableStateOf(showUpdatedInitially) }
+    var confirmSignOut by remember { mutableStateOf(false) }
     if(showUpdated) AlertDialog(onDismissRequest={showUpdated=false},title={Text("Update installed")},text={Text("B&L Morley has been updated successfully to v${BuildConfig.VERSION_NAME}.")},confirmButton={Button(onClick={showUpdated=false}){Text("Continue")}})
-    Scaffold(containerColor=DashBg,bottomBar={NavigationBar(containerColor=Color(0xFF101010)){Page.entries.forEach{p->NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashYellow.copy(alpha=.25f),selectedTextColor=DashYellow))}}}){pad->Box(Modifier.padding(pad).fillMaxSize()){when(page){Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP});Page.Laptop->Laptop();Page.Desktop->Desktop();Page.GP->GPFix();Page.More->More()}}}
+    if(confirmSignOut) AlertDialog(
+        onDismissRequest={confirmSignOut=false},
+        title={Text("Sign out?")},
+        text={Text("You are signed in as ${AuthManager.email(context)}. You will need to sign in again to use B&L Morley.")},
+        dismissButton={TextButton(onClick={confirmSignOut=false}){Text("Cancel")}},
+        confirmButton={Button(onClick={
+            AuthManager.signOut(context)
+            val intent=Intent(context,AuthActivity::class.java).apply{addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)}
+            context.startActivity(intent)
+        },colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)){Text("Sign out",fontWeight=FontWeight.Black)}}
+    )
+    Scaffold(
+        containerColor=DashBg,
+        bottomBar={NavigationBar(containerColor=Color(0xFF101010)){Page.entries.forEach{p->NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashYellow.copy(alpha=.25f),selectedTextColor=DashYellow))}}},
+        floatingActionButton={if(page==Page.More) ExtendedFloatingActionButton(onClick={confirmSignOut=true},containerColor=DashYellow,contentColor=Color.Black,text={Text("Sign out",fontWeight=FontWeight.Black)},icon={Text("↪")})}
+    ){pad->Box(Modifier.padding(pad).fillMaxSize()){when(page){Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP});Page.Laptop->Laptop();Page.Desktop->Desktop();Page.GP->GPFix();Page.More->More()}}}
 }
 
 @Composable
