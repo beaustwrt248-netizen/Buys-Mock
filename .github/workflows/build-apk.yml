@@ -25,23 +25,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+
       - name: Prepare Firebase Android config
+        id: firebase_config
         env:
           FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        shell: bash
         run: |
-          set -euo pipefail
-          test -n "$FIREBASE_GOOGLE_SERVICES_JSON" || (echo 'Missing FIREBASE_GOOGLE_SERVICES_JSON' && exit 1)
-          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
-          python3 -m json.tool android/app/google-services.json >/dev/null
+          set +e
+          {
+            test -n "$FIREBASE_GOOGLE_SERVICES_JSON" || { echo 'Missing FIREBASE_GOOGLE_SERVICES_JSON'; exit 1; }
+            printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            python3 -m json.tool android/app/google-services.json >/dev/null
+          } 2>&1 | tee "$RUNNER_TEMP/firebase-config.log"
+          exit ${PIPESTATUS[0]}
+
       - name: Run regression tests
         id: regression
         shell: bash
@@ -52,16 +61,67 @@ jobs:
           if [ "$status" -ne 0 ]; then
             {
               echo '================ B&L MORLEY ROOT CAUSE ================'
-              grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/gradle-test.log" | head -n 120 || true
+              grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/gradle-test.log" | head -n 160 || true
               echo '========================================================'
               echo
-              echo 'Last 100 lines:'
-              tail -n 100 "$RUNNER_TEMP/gradle-test.log"
+              echo 'Last 120 lines:'
+              tail -n 120 "$RUNNER_TEMP/gradle-test.log"
             } | tee "$RUNNER_TEMP/root-cause.txt"
-            exit "$status"
           fi
-      - name: Publish CI root cause to issue
-        if: failure() && steps.regression.outcome == 'failure'
+          exit "$status"
+
+      - name: Prepare production signing key
+        id: signing
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set +e
+          {
+            KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
+            STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
+            KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
+            test -n "$KEYSTORE_BASE64" || { echo 'Missing BL_KEYSTORE_BASE64'; exit 1; }
+            test -n "$STORE_PASSWORD" || { echo 'Missing BL_KEYSTORE_PASSWORD'; exit 1; }
+            test -n "$KEY_ALIAS" || { echo 'Missing BL_KEY_ALIAS'; exit 1; }
+            KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+            VERIFY_JAR="$RUNNER_TEMP/signing-check.jar"
+            printf 'signing-check' > "$RUNNER_TEMP/signing-check.txt"
+            jar cf "$VERIFY_JAR" -C "$RUNNER_TEMP" signing-check.txt
+            jarsigner -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -keypass "$STORE_PASSWORD" "$VERIFY_JAR" "$KEY_ALIAS" >/dev/null
+            echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+            echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          } 2>&1 | tee "$RUNNER_TEMP/signing.log"
+          exit ${PIPESTATUS[0]}
+
+      - name: Build release APK
+        id: release_build
+        if: success()
+        shell: bash
+        run: |
+          set +e
+          gradle -p android assembleRelease --stacktrace --console=plain 2>&1 | tee "$RUNNER_TEMP/release-build.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            {
+              echo '================ RELEASE BUILD ROOT CAUSE ================'
+              grep -n -E '(^e: |FAILURE:|What went wrong:|Execution failed for task|Caused by:|FAILED|error:|Exception is:)' "$RUNNER_TEMP/release-build.log" | head -n 160 || true
+              echo '==========================================================='
+              echo
+              echo 'Last 120 lines:'
+              tail -n 120 "$RUNNER_TEMP/release-build.log"
+            } | tee "$RUNNER_TEMP/release-root-cause.txt"
+          fi
+          exit "$status"
+
+      - name: Publish CI failure to issue
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -73,8 +133,16 @@ jobs:
             echo "Commit: $GITHUB_SHA"
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
+            echo "Firebase config: ${{ steps.firebase_config.outcome }}"
+            echo "Regression tests: ${{ steps.regression.outcome }}"
+            echo "Signing: ${{ steps.signing.outcome }}"
+            echo "Release build: ${{ steps.release_build.outcome }}"
+            echo
             echo '```text'
-            cat "$RUNNER_TEMP/root-cause.txt"
+            if [ -f "$RUNNER_TEMP/root-cause.txt" ]; then cat "$RUNNER_TEMP/root-cause.txt"; fi
+            if [ -f "$RUNNER_TEMP/release-root-cause.txt" ]; then cat "$RUNNER_TEMP/release-root-cause.txt"; fi
+            if [ -f "$RUNNER_TEMP/firebase-config.log" ]; then tail -n 80 "$RUNNER_TEMP/firebase-config.log"; fi
+            if [ -f "$RUNNER_TEMP/signing.log" ]; then tail -n 80 "$RUNNER_TEMP/signing.log"; fi
             echo '```'
           } > "$BODY_FILE"
           issue_number="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'B&L Morley Android CI root cause in:title' --json number,title --jq '.[] | select(.title == "B&L Morley Android CI root cause") | .number' | head -n1)"
@@ -83,44 +151,23 @@ jobs:
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file "$BODY_FILE"
           fi
-      - name: Prepare production signing key
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        env:
-          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
-          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
-          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
-        run: |
-          set -euo pipefail
-          KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
-          STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
-          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
-          test -n "$KEYSTORE_BASE64" || (echo 'Missing BL_KEYSTORE_BASE64' && exit 1)
-          test -n "$STORE_PASSWORD" || (echo 'Missing BL_KEYSTORE_PASSWORD' && exit 1)
-          test -n "$KEY_ALIAS" || (echo 'Missing BL_KEY_ALIAS' && exit 1)
-          KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
-          VERIFY_JAR="$RUNNER_TEMP/signing-check.jar"
-          printf 'signing-check' > "$RUNNER_TEMP/signing-check.txt"
-          jar cf "$VERIFY_JAR" -C "$RUNNER_TEMP" signing-check.txt
-          jarsigner -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -keypass "$STORE_PASSWORD" "$VERIFY_JAR" "$KEY_ALIAS" >/dev/null
-          echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-      - name: Build release APK
-        run: gradle -p android assembleRelease --stacktrace
+
       - name: Rename APK
+        if: success()
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.0-native.apk
+
       - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: B-and-L-Morley-Native-v2.5.0
           path: dist/B-and-L-Morley-v2.5.0-native.apk
           if-no-files-found: error
+
       - name: Publish v2.5.0 release
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v2.5.0
