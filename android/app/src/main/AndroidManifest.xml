@@ -7,7 +7,7 @@
 
     <application
         android:name=".MorleyApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:label="B&amp;L Morley"
         android:icon="@mipmap/ic_launcher"
