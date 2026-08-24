@@ -55,9 +55,23 @@ if(result==null&&!busy){Card(colors=CardDefaults.cardColors(containerColor=Color
 if(!busy)result?.let{Valuation(it,ask,0.30,0.58)}
 }'''
     if old in text:
-        main.write_text(text.replace(old, new), encoding='utf-8')
+        text = text.replace(old, new)
+        main.write_text(text, encoding='utf-8')
         print('Applied cyber Laptop layout redesign')
     elif 'Laptop Intelligence' in text:
         print('Laptop layout redesign already applied')
     else:
         print('WARNING: Laptop layout source pattern not found; leaving screen unchanged')
+
+# Secure paid pricing endpoints behind the same authenticated session used by the app.
+if main.exists():
+    text = main.read_text(encoding='utf-8')
+    old_request = '''private suspend fun request(query:String,limit:Int=40):JSONObject=withContext(Dispatchers.IO){val c=(URL(API).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=15000;readTimeout=20000;doOutput=true;setRequestProperty("Content-Type","application/json")};val body=JSONObject().put("query",query).put("limit",limit).put("australiaOnly",true).put("mode","device").toString();c.outputStream.use{it.write(body.toByteArray())};val code=c.responseCode;val text=(if(code in 200..299)c.inputStream else c.errorStream).bufferedReader().use{it.readText()};val root=JSONObject(text);if(code !in 200..299||!root.optBoolean("success"))throw IllegalStateException(root.optString("error","HTTP $code"));root}'''
+    secure_request = '''private suspend fun request(query:String,limit:Int=40):JSONObject=withContext(Dispatchers.IO){val token=AuthManager.accessToken(MorleyApplication.instance);if(token.isBlank())throw IllegalStateException("Your secure session has expired. Sign in again.");val c=(URL(API).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=15000;readTimeout=20000;doOutput=true;setRequestProperty("Content-Type","application/json");setRequestProperty("Authorization","Bearer $token")};val body=JSONObject().put("query",query).put("limit",limit).put("australiaOnly",true).put("mode","device").toString();c.outputStream.use{it.write(body.toByteArray())};val code=c.responseCode;val responseText=(if(code in 200..299)c.inputStream else c.errorStream)?.bufferedReader()?.use{it.readText()}.orEmpty();if(code==401||code==403)throw IllegalStateException("Your secure session has expired or is not authorised. Sign in again.");val root=if(responseText.isBlank())JSONObject() else JSONObject(responseText);if(code !in 200..299||!root.optBoolean("success"))throw IllegalStateException(root.optString("error","HTTP $code"));root}'''
+    if old_request in text:
+        main.write_text(text.replace(old_request, secure_request), encoding='utf-8')
+        print('Secured Android pricing API requests')
+    elif 'setRequestProperty("Authorization","Bearer $token")' in text:
+        print('Android pricing API requests already secured')
+    else:
+        raise SystemExit('Could not locate Android pricing request for authentication hardening')
