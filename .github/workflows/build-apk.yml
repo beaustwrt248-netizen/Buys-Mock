@@ -69,47 +69,47 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.7-native.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.8-native.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.5.7
-          path: dist/B-and-L-Morley-v2.5.7-native.apk
+          name: B-and-L-Morley-Native-v2.5.8
+          path: dist/B-and-L-Morley-v2.5.8-native.apk
           if-no-files-found: error
 
-      - name: Publish v2.5.7 release
+      - name: Publish v2.5.8 release
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.7
-          name: B&L Morley v2.5.7
+          tag_name: v2.5.8
+          name: B&L Morley v2.5.8
           body: |
-            Turnstile security release.
-            - Cloudflare Turnstile security check added to sign in, invite sign up and password reset
-            - Invite redemption validates Turnstile tokens server-side before creating an account
-            - Invite-only registration and authorised-profile checks remain enforced
-            - Anonymous backend/database access remains locked down
+            Turnstile deployment fix.
+            - Ensures the hosted Turnstile challenge page is deployed from main
+            - Sign in, invite sign up and password reset wait for a valid CAPTCHA token
+            - Invite redemption validates Turnstile tokens server-side
+            - Private invite-only access and backend lockdown remain enforced
             - Keeps OTA updates, push notifications, sign out and Admin Control
-          files: dist/B-and-L-Morley-v2.5.7-native.apk
+          files: dist/B-and-L-Morley-v2.5.8-native.apk
           fail_on_unmatched_files: true
           make_latest: true
 
-      - name: Publish v2.5.7 OTA metadata
+      - name: Publish v2.5.8 OTA metadata
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
           cat > ota/latest.json <<'EOF'
           {
-            "versionCode": 17,
-            "versionName": "2.5.7-native",
-            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.7/B-and-L-Morley-v2.5.7-native.apk",
-            "notes": "B&L Morley v2.5.7 adds Cloudflare Turnstile protection to authentication while keeping invite-only private access and backend lockdown."
+            "versionCode": 18,
+            "versionName": "2.5.8-native",
+            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.8/B-and-L-Morley-v2.5.8-native.apk",
+            "notes": "B&L Morley v2.5.8 fixes Turnstile challenge deployment so protected sign-in, invite signup and password reset can obtain a valid CAPTCHA token."
           }
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ota/latest.json
           if ! git diff --cached --quiet; then
-            git commit -m "Publish v2.5.7 OTA metadata [skip ci]"
+            git commit -m "Publish v2.5.8 OTA metadata [skip ci]"
             git push
           fi
