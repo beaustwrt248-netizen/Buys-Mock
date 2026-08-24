@@ -156,42 +156,43 @@ jobs:
         if: success()
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.2-native.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.3-native.apk
 
       - name: Upload APK artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.5.2
-          path: dist/B-and-L-Morley-v2.5.2-native.apk
+          name: B-and-L-Morley-Native-v2.5.3
+          path: dist/B-and-L-Morley-v2.5.3-native.apk
           if-no-files-found: error
 
-      - name: Publish v2.5.2 release
+      - name: Publish v2.5.3 release
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.2
-          name: B&L Morley v2.5.2
+          tag_name: v2.5.3
+          name: B&L Morley v2.5.3
           body: |
-            Account self-service and targeted Admin Control release.
-            - Adds Sign In, Sign Up and Forgot Password flows
-            - Keeps authenticated FCM device registration and notifications
-            - Adds targeted Admin Control notifications by audience, user and device
-            - Keeps production signing and in-place OTA upgrades
-          files: dist/B-and-L-Morley-v2.5.2-native.apk
+            Account sign-out release.
+            - Adds a visible Sign out control on the More screen
+            - Shows the signed-in account in the confirmation dialog
+            - Requires confirmation before signing out
+            - Returns directly to the authentication screen after sign out
+            - Keeps Sign In, Sign Up, Forgot Password, notifications and OTA updates
+          files: dist/B-and-L-Morley-v2.5.3-native.apk
           fail_on_unmatched_files: true
           make_latest: true
 
-      - name: Publish v2.5.2 OTA metadata
+      - name: Publish v2.5.3 OTA metadata
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
           cat > ota/latest.json <<'EOF'
           {
-            "versionCode": 12,
-            "versionName": "2.5.2-native",
-            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.2/B-and-L-Morley-v2.5.2-native.apk",
-            "notes": "B&L Morley v2.5.2 adds Sign In, Sign Up and Forgot Password, keeps Firebase notification registration, and adds targeted Admin Control notifications by audience, user and device."
+            "versionCode": 13,
+            "versionName": "2.5.3-native",
+            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.3/B-and-L-Morley-v2.5.3-native.apk",
+            "notes": "B&L Morley v2.5.3 adds a visible Sign out control with confirmation and returns directly to the authentication screen after sign out."
           }
           EOF
           git config user.name "github-actions[bot]"
@@ -200,6 +201,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "OTA metadata already current."
           else
-            git commit -m "Publish v2.5.2 OTA metadata [skip ci]"
+            git commit -m "Publish v2.5.3 OTA metadata [skip ci]"
             git push
           fi
