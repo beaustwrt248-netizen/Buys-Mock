@@ -6,7 +6,7 @@ import com.google.firebase.messaging.RemoteMessage
 class MorleyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        DeviceRegistrar.register(this, token)
+        if (AuthManager.isSignedIn(this)) DeviceRegistrar.register(this, token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

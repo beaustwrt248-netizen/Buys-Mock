@@ -8,7 +8,9 @@ class MorleyApplication : Application() {
         super.onCreate()
         NotificationHelper.createChannels(this)
         UpdateCheckScheduler.schedule(this)
-        FirebaseMessaging.getInstance().token
-            .addOnSuccessListener { token -> DeviceRegistrar.register(this, token) }
+        if (AuthManager.isSignedIn(this)) {
+            FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token -> DeviceRegistrar.register(this, token) }
+        }
     }
 }
