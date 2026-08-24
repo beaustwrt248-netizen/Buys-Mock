@@ -1,6 +1,6 @@
 {
-  "versionCode": 18,
-  "versionName": "2.5.8-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.8/B-and-L-Morley-v2.5.8-native.apk",
-  "notes": "B&L Morley v2.5.8 fixes Turnstile challenge deployment so protected sign-in, invite signup and password reset can obtain a valid CAPTCHA token."
+  "versionCode": 19,
+  "versionName": "2.5.9-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.9/B-and-L-Morley-v2.5.9-native.apk",
+  "notes": "B&L Morley v2.5.9 upgrades Admin Control notifications to a fresh high-importance channel for Android heads-up pop-up alerts, with sound and vibration enabled."
 }
