@@ -43,7 +43,8 @@ jobs:
             desktop-parity.js \
             web-auth.js \
             signed-in-user.js \
-            premium-motion.js; do
+            premium-motion.js \
+            web-a11y.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -65,6 +66,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'reference-theme.css' index.html
+          grep -q 'no-gold.css' index.html
           grep -q 'web-auth.js' index.html
           grep -q 'signed-in-user.js' index.html
           grep -q 'premium-motion.js' index.html
+          grep -q 'web-a11y.js' index.html
