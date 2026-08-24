@@ -38,7 +38,9 @@ class AuthActivity : ComponentActivity() {
             continueToApp()
             return
         }
-        setContent { AuthRoot(onSignedIn = { continueToApp() }) }
+        val fromAuthCallback = intent?.data?.scheme == "bnlmorley" && intent?.data?.host == "auth"
+        val callbackMessage = if (fromAuthCallback) "Email confirmed successfully. You can now sign in." else ""
+        setContent { AuthRoot(onSignedIn = { continueToApp() }, initialMessage = callbackMessage) }
     }
 
     private fun continueToApp() {
@@ -61,13 +63,13 @@ class AuthActivity : ComponentActivity() {
 private enum class AuthMode { SIGN_IN, SIGN_UP, RESET }
 
 @Composable
-private fun AuthRoot(onSignedIn: () -> Unit) {
+private fun AuthRoot(onSignedIn: () -> Unit, initialMessage: String = "") {
     var mode by remember { mutableStateOf(AuthMode.SIGN_IN) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf(initialMessage) }
     var isError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -114,7 +116,7 @@ private fun AuthRoot(onSignedIn: () -> Unit) {
                         }.onSuccess {
                             when(mode){
                                 AuthMode.SIGN_IN -> onSignedIn()
-                                AuthMode.SIGN_UP -> { message="Account created. Check your email to confirm your account, then sign in."; mode=AuthMode.SIGN_IN; password=""; confirmPassword="" }
+                                AuthMode.SIGN_UP -> { message="Account created. Check your email to confirm your account, then return here to sign in."; mode=AuthMode.SIGN_IN; password=""; confirmPassword="" }
                                 AuthMode.RESET -> { message="Password reset email sent. Check your inbox."; mode=AuthMode.SIGN_IN }
                             }
                         }.onFailure { message=it.message?:"Something went wrong.";isError=true }
