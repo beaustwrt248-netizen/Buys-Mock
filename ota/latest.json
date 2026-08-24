@@ -1,6 +1,6 @@
 {
-  "versionCode": 12,
-  "versionName": "2.5.2-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.2/B-and-L-Morley-v2.5.2-native.apk",
-  "notes": "B&L Morley v2.5.2 adds Sign In, Sign Up and Forgot Password, keeps Firebase notification registration, and adds targeted Admin Control notifications by audience, user and device."
+  "versionCode": 13,
+  "versionName": "2.5.3-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.3/B-and-L-Morley-v2.5.3-native.apk",
+  "notes": "B&L Morley v2.5.3 adds a visible Sign out control with confirmation and returns directly to the authentication screen after sign out."
 }
