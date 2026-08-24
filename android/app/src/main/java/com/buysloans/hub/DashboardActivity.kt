@@ -118,7 +118,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
         containerColor=DashBg,
         bottomBar={NavigationBar(containerColor=Color(0xFF101010)){Page.entries.forEach{p->NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashYellow.copy(alpha=.25f),selectedTextColor=DashYellow))}}},
         floatingActionButton={if(page==Page.More) ExtendedFloatingActionButton(onClick={confirmSignOut=true},containerColor=DashYellow,contentColor=Color.Black,text={Text("Sign out",fontWeight=FontWeight.Black)},icon={Text("↪")})}
-    ){pad->Box(Modifier.padding(pad).fillMaxSize()){when(page){Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP});Page.Laptop->Laptop();Page.Desktop->Desktop();Page.GP->GPFix();Page.More->More()}}}
+    ){pad->Box(Modifier.padding(pad).fillMaxSize()){when(page){Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP});Page.Laptop->Laptop();Page.Desktop->Desktop();Page.GP->GPFix();Page.More->MoreHub()}}}
 }
 
 @Composable
@@ -136,11 +136,26 @@ private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onLaptop,modifier=Modifier.weight(1f)){Text("💻 Laptop")};OutlinedButton(onDesktop,modifier=Modifier.weight(1f)){Text("🖥 Desktop")}}
             }
         }
-        DashboardCard("◷ RECENT VALUATIONS","Recent Valuations","Your latest native valuations will appear here as we add persistent history in the next pass.")
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){StatusTile("LIVE PRICING","READY",Modifier.weight(1f));StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))}
         NavCard("💻","Laptops / MacBooks","Whole-device Google + eBay AU valuation",onLaptop);NavCard("🖥","Desktops / Gaming PCs","Component-based live pricing",onDesktop);NavCard("💰","General Buys / GP","A / B / C / Luxury buying targets",onGp)
     }
 }
+
+@Composable
+private fun MoreHub(){
+    val context=androidx.compose.ui.platform.LocalContext.current
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+        Text("More",fontSize=27.sp,fontWeight=FontWeight.Black)
+        Text("Less-used tools and account options live here to keep the main workspace clean.",color=Color.LightGray)
+        NavCard("◷","Valuations & Deals","Search saved valuations, convert quotes into deals, and track bought / sold / passed status."){
+            context.startActivity(Intent(context,ValuationHistoryActivity::class.java))
+        }
+        DashboardCard("ACCOUNT","Signed in",AuthManager.email(context).ifBlank{"Authorised B&L Morley account"})
+        DashboardCard("APP VERSION",BuildConfig.VERSION_NAME,"Secure private build • notifications • OTA updates")
+        Spacer(Modifier.height(80.dp))
+    }
+}
+
 @Composable private fun DashboardCard(kicker:String,title:String,body:String){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(kicker,color=DashYellow,fontSize=12.sp,fontWeight=FontWeight.Black);Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)}}}
 @Composable private fun StatusTile(label:String,value:String,modifier:Modifier=Modifier){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(18.dp),modifier=modifier){Column(Modifier.padding(14.dp)){Text(label,color=Color.Gray,fontSize=10.sp,fontWeight=FontWeight.Bold);Text(value,color=Color(0xFF57E389),fontSize=18.sp,fontWeight=FontWeight.Black)}}}
 @Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp);HorizontalDivider(color=DashYellow,thickness=3.dp)}}}
