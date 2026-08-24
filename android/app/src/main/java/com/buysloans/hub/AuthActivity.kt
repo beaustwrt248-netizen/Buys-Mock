@@ -185,7 +185,7 @@ private fun TurnstileChallenge(refreshKey:Int,onToken:(String)->Unit,onExpired:(
  MaterialTheme(colorScheme=darkColorScheme(primary=AuthYellow,background=AuthBg,surface=AuthCard)){
   Box(Modifier.fillMaxSize().background(AuthBg)){
    LoginVideoBackground()
-   Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.48f)))
+   Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.62f)))
    Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center){
     Text("B&L Morley",fontSize=34.sp,fontWeight=FontWeight.Black,color=Color.White)
     Spacer(Modifier.height(8.dp))
