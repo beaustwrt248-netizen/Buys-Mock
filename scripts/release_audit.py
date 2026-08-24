@@ -25,6 +25,9 @@ required = [
     "cyber-spectrum.css",
     "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
+    "admin/index.html",
+    "admin/app.js",
+    "admin/styles.css",
     "admin/turnstile.html",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
@@ -33,6 +36,7 @@ required = [
     "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
     ".github/workflows/build-apk.yml",
     ".github/workflows/deploy-admin-pages.yml",
+    ".github/workflows/quality-gate.yml",
     "morley_buys_login_bg_app.zip",
 ]
 for f in required:
@@ -42,6 +46,7 @@ video = ROOT / "web-assets/morley_buys_login_bg_app.mp4"
 if video.exists() and video.stat().st_size < 1_000_000:
     errors.append("Web login background video is unexpectedly small")
 
+retired_gold = ("#ffd400", "#ffe65b", "#ffd000", "#c99a27", "#cda51d")
 for rel in [
     "web-auth.js",
     "signed-in-user.js",
@@ -51,17 +56,22 @@ for rel in [
     "cyber-ui.css",
     "cyber-spectrum.css",
     "no-gold.css",
+    "admin/styles.css",
+    "admin/index.html",
+    "admin/app.js",
 ]:
     p = ROOT / rel
     if not p.exists():
         continue
     text = p.read_text(encoding="utf-8", errors="replace").lower()
-    for token in ("#ffd400", "#ffe65b", "#ffd000", "#c99a27", "#cda51d"):
+    for token in retired_gold:
         if token in text:
-            errors.append(f"Retired gold token {token} still present in active web layer: {rel}")
+            errors.append(f"Retired gold token {token} still present in active UI layer: {rel}")
 
 gradle = (ROOT / "android/app/build.gradle").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/build-apk.yml").read_text(encoding="utf-8")
+quality_gate = (ROOT / ".github/workflows/quality-gate.yml").read_text(encoding="utf-8")
+palette = (ROOT / "android/apply_cyber_palette.py").read_text(encoding="utf-8")
 vc = re.search(r"versionCode\s+(\d+)", gradle)
 vn = re.search(r"versionName\s+'([^']+)'", gradle)
 if not vc or not vn:
@@ -74,6 +84,14 @@ else:
         errors.append("Release workflow is missing dynamic Android version resolution")
     if "APP_VERSION_CODE" not in workflow or "APP_VERSION_NAME" not in workflow:
         errors.append("Release workflow is not using resolved Android version metadata")
+
+for token in ("0xFFFFD400", "0xFFC99A27", "0xFFDDB347"):
+    if token not in palette:
+        errors.append(f"Android palette transformer does not account for retired token {token}")
+if "Verify Android cyber palette transform" not in quality_gate:
+    errors.append("Quality gate does not verify the Android cyber palette transform")
+if "palette-before.sha" not in quality_gate or "palette-after.sha" not in quality_gate:
+    errors.append("Quality gate does not verify Android palette transform idempotence")
 
 if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
     errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
