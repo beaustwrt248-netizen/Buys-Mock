@@ -17,22 +17,39 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.security.MessageDigest
 
 class UpdateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(17,17,17)
-        window.navigationBarColor = android.graphics.Color.rgb(17,17,17)
+        window.statusBarColor = android.graphics.Color.rgb(3,7,18)
+        window.navigationBarColor = android.graphics.Color.rgb(3,7,18)
         val versionName = intent.getStringExtra("versionName").orEmpty()
         val apkUrl = intent.getStringExtra("apkUrl").orEmpty()
-        setContent { UpdateScreen(versionName, apkUrl) { finish() } }
+        val sha256 = intent.getStringExtra("sha256").orEmpty().lowercase()
+        setContent { UpdateScreen(versionName, apkUrl, sha256) { finish() } }
     }
 }
 
+private suspend fun sha256OfUri(context:Context, uri:Uri):String = withContext(Dispatchers.IO) {
+    val digest=MessageDigest.getInstance("SHA-256")
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        val buffer=ByteArray(64*1024)
+        while(true){
+            val count=input.read(buffer)
+            if(count<0) break
+            if(count>0) digest.update(buffer,0,count)
+        }
+    } ?: throw IllegalStateException("Downloaded APK could not be opened for verification")
+    digest.digest().joinToString(""){"%02x".format(it)}
+}
+
 @Composable
-private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
+private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:String, close:()->Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var progress by remember { mutableFloatStateOf(0f) }
@@ -44,10 +61,20 @@ private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
 
     fun beginDownload() {
         if (apkUrl.isBlank() || downloadId >= 0) return
+        if (!apkUrl.startsWith("https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/")) {
+            failed=true
+            status="Update URL failed security validation"
+            return
+        }
+        if (!expectedSha256.matches(Regex("^[a-f0-9]{64}$"))) {
+            failed=true
+            status="Update checksum is missing or invalid"
+            return
+        }
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val request = DownloadManager.Request(Uri.parse(apkUrl))
             .setTitle("B&L Morley $versionName")
-            .setDescription("Downloading app update")
+            .setDescription("Downloading verified app update")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(false)
@@ -55,6 +82,7 @@ private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
         downloadId = dm.enqueue(request)
         status = "Downloading update…"
         failed = false
+        installUri = null
     }
 
     LaunchedEffect(Unit) { beginDownload() }
@@ -79,11 +107,30 @@ private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
                 when(state) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
                         progress = 1f
-                        status = "Download complete — verifying APK…"
-                        delay(350)
-                        installUri = dm.getUriForDownloadedFile(downloadId)
-                        status = if (installUri != null) "Ready to install" else "APK verification failed"
-                        failed = installUri == null
+                        status = "Download complete — verifying SHA-256…"
+                        val uri=dm.getUriForDownloadedFile(downloadId)
+                        if(uri==null){
+                            failed=true
+                            status="Downloaded APK could not be opened"
+                            return@LaunchedEffect
+                        }
+                        val actual=runCatching{sha256OfUri(context,uri)}.getOrElse{
+                            failed=true
+                            status="APK checksum verification failed"
+                            details=it.message.orEmpty()
+                            return@LaunchedEffect
+                        }
+                        if(!actual.equals(expectedSha256,ignoreCase=true)){
+                            failed=true
+                            installUri=null
+                            status="APK integrity check failed"
+                            details="The downloaded file did not match the signed release checksum. Installation has been blocked."
+                            dm.remove(downloadId)
+                            return@LaunchedEffect
+                        }
+                        installUri = uri
+                        status = "Verified — ready to install"
+                        details = "SHA-256 verified • ${if(total>0)mb(total) else "download complete"}"
                         return@LaunchedEffect
                     }
                     DownloadManager.STATUS_FAILED -> {
@@ -100,17 +147,17 @@ private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
         }
     }
 
-    MaterialTheme(colorScheme = darkColorScheme(primary=Color(0xFFFFD400),background=Color(0xFF111111),surface=Color(0xFF222222))) {
-        Surface(color=Color(0xFF111111),modifier=Modifier.fillMaxSize()) {
+    MaterialTheme(colorScheme = darkColorScheme(primary=Color(0xFF2F7CFF),background=Color(0xFF030712),surface=Color(0xFF07172C))) {
+        Surface(color=Color(0xFF030712),modifier=Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
                 Text("B&L Morley Update",fontSize=28.sp,fontWeight=FontWeight.Black)
-                Text(if(versionName.isBlank()) "New version" else versionName,color=Color(0xFFFFD400),fontSize=20.sp,fontWeight=FontWeight.Bold)
-                Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF222222)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
+                Text(if(versionName.isBlank()) "New version" else versionName,color=Color(0xFF70DFFF),fontSize=20.sp,fontWeight=FontWeight.Bold)
+                Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                         Text(status,fontWeight=FontWeight.Black,fontSize=20.sp)
-                        LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(10.dp))
-                        Text("${(progress*100).toInt()}%${if(details.isNotBlank())" • $details" else ""}",color=Color.LightGray)
-                        Text("Android will show the system installer when the APK is ready. Keep B&L Morley open until the download finishes.",color=Color.Gray,fontSize=13.sp)
+                        LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(10.dp),color=Color(0xFF12C9FF),trackColor=Color(0xFF0A1B33))
+                        Text("${(progress*100).toInt()}%${if(details.isNotBlank())" • $details" else ""}",color=Color(0xFFA7BAD3))
+                        Text("The APK is downloaded from the B&L Morley GitHub release and its SHA-256 checksum is verified before Android is allowed to install it.",color=Color(0xFF8FA6C6),fontSize=13.sp)
                     }
                 }
                 installUri?.let { uri ->
@@ -120,10 +167,10 @@ private fun UpdateScreen(versionName:String, apkUrl:String, close:()->Unit) {
                             setDataAndType(uri,"application/vnd.android.package-archive")
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
-                    },modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFFFFD400),contentColor=Color.Black)) {
-                        Text("Install Update",fontWeight=FontWeight.Black)
+                    },modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF2F7CFF),contentColor=Color.White)) {
+                        Text("Install Verified Update",fontWeight=FontWeight.Black)
                     }
-                    Text("After installation, reopen B&L Morley. The app will confirm the new version and offer a restart/relaunch message if needed.",color=Color.LightGray,fontSize=13.sp)
+                    Text("After installation, reopen B&L Morley. The app will confirm the installed version on launch.",color=Color(0xFFA7BAD3),fontSize=13.sp)
                 }
                 if(failed) {
                     Button(onClick={
