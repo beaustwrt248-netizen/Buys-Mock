@@ -1,0 +1,70 @@
+name: B&L Morley Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Release readiness audit
+        run: python3 scripts/release_audit.py
+
+      - name: JavaScript syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            app.js \
+            global-device-filter.js \
+            match-quality.js \
+            workflow.js \
+            desktop-oem.js \
+            oem-live-fix.js \
+            oem-row-guard.js \
+            desktop-results.js \
+            deal-workflow.js \
+            dashboard-cleanup.js \
+            reliability-polish.js \
+            desktop-parity.js \
+            web-auth.js \
+            signed-in-user.js \
+            premium-motion.js; do
+            test -s "$file"
+            node --check "$file"
+          done
+
+      - name: Validate OTA JSON
+        run: python3 -m json.tool ota/latest.json >/dev/null
+
+      - name: Validate login video archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP=morley_buys_login_bg_app_hq.zip
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
+          unzip -t "$ZIP" >/dev/null
+          unzip -l "$ZIP" | grep -Ei '\.mp4$' >/dev/null
+
+      - name: Verify web shell references
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'reference-theme.css' index.html
+          grep -q 'web-auth.js' index.html
+          grep -q 'signed-in-user.js' index.html
+          grep -q 'premium-motion.js' index.html
