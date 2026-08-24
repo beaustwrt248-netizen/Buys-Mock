@@ -14,71 +14,65 @@ def require(path: str):
     return p
 
 required = [
-    "index.html",
-    "web-auth.js",
-    "signed-in-user.js",
-    "web-a11y.js",
-    "reference-theme.css",
-    "premium-motion.css",
-    "mobile-more.css",
-    "cyber-ui.css",
-    "cyber-spectrum.css",
-    "no-gold.css",
+    "index.html", "app.js", "desktop-oem.js", "desktop-parity.js",
+    "web-auth.js", "signed-in-user.js", "web-a11y.js",
+    "reference-theme.css", "premium-motion.css", "mobile-more.css",
+    "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
-    "admin/index.html",
-    "admin/app.js",
-    "admin/styles.css",
-    "admin/turnstile.html",
-    "android/app/build.gradle",
-    "android/apply_cyber_palette.py",
+    "admin/index.html", "admin/app.js", "admin/styles.css", "admin/turnstile.html",
+    "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
-    ".github/workflows/build-apk.yml",
-    ".github/workflows/deploy-admin-pages.yml",
-    ".github/workflows/quality-gate.yml",
+    ".github/workflows/build-apk.yml", ".github/workflows/deploy-admin-pages.yml",
+    ".github/workflows/quality-gate.yml", ".github/workflows/web-smoke.yml",
     "morley_buys_login_bg_app.zip",
 ]
-for f in required:
-    require(f)
+for f in required: require(f)
 
 video = ROOT / "web-assets/morley_buys_login_bg_app.mp4"
 if video.exists() and video.stat().st_size < 1_000_000:
     errors.append("Web login background video is unexpectedly small")
 
-retired_gold = ("#ffd400", "#ffe65b", "#ffd000", "#c99a27", "#cda51d")
+retired_gold = ("#ffd400", "#ffe65b", "#ffd000", "#c99a27", "#cda51d", "#ddb347")
 for rel in [
-    "web-auth.js",
-    "signed-in-user.js",
-    "reference-theme.css",
-    "premium-motion.css",
-    "mobile-more.css",
-    "cyber-ui.css",
-    "cyber-spectrum.css",
-    "no-gold.css",
-    "admin/styles.css",
-    "admin/index.html",
-    "admin/app.js",
+    "web-auth.js", "signed-in-user.js", "desktop-parity.js",
+    "reference-theme.css", "premium-motion.css", "mobile-more.css",
+    "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
+    "admin/styles.css", "admin/index.html", "admin/app.js",
 ]:
     p = ROOT / rel
-    if not p.exists():
-        continue
+    if not p.exists(): continue
     text = p.read_text(encoding="utf-8", errors="replace").lower()
     for token in retired_gold:
         if token in text:
             errors.append(f"Retired gold token {token} still present in active UI layer: {rel}")
 
+# Paid pricing calls must carry the signed-in user's bearer token.
+for rel in ("app.js", "desktop-oem.js"):
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    for token in ("morley_web_auth", "Authorization", "Bearer"):
+        if token not in text:
+            errors.append(f"Web pricing client {rel} is missing authenticated API control: {token}")
+
+palette = (ROOT / "android/apply_cyber_palette.py").read_text(encoding="utf-8")
+for token in ("AuthManager.accessToken", "MorleyApplication.instance", 'setRequestProperty(\"Authorization\",\"Bearer $token\")'):
+    if token not in palette:
+        errors.append(f"Android pricing transform is missing authenticated API control: {token}")
+application = (ROOT / "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt").read_text(encoding="utf-8")
+if "lateinit var instance: MorleyApplication" not in application or "instance = this" not in application:
+    errors.append("MorleyApplication does not expose the application context required by authenticated pricing")
+
 gradle = (ROOT / "android/app/build.gradle").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/build-apk.yml").read_text(encoding="utf-8")
 quality_gate = (ROOT / ".github/workflows/quality-gate.yml").read_text(encoding="utf-8")
-palette = (ROOT / "android/apply_cyber_palette.py").read_text(encoding="utf-8")
 vc = re.search(r"versionCode\s+(\d+)", gradle)
 vn = re.search(r"versionName\s+'([^']+)'", gradle)
 if not vc or not vn:
     errors.append("Could not parse Android versionCode/versionName")
 else:
-    version_code = int(vc.group(1))
-    version_name = vn.group(1)
+    version_code = int(vc.group(1)); version_name = vn.group(1)
     notes.append(f"Android version: {version_name} ({version_code})")
     if "Resolve Android release version" not in workflow:
         errors.append("Release workflow is missing dynamic Android version resolution")
@@ -106,12 +100,21 @@ pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(e
 for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
+for token in ("morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'"):
+    if token not in pages_workflow:
+        errors.append(f"GitHub Pages post-deploy verification is missing production control: {token}")
 
 turnstile = (ROOT / "admin/turnstile.html").read_text(encoding="utf-8")
 if "postMessage(payload,parentOrigin)" not in turnstile:
     errors.append("Turnstile bridge must restrict browser postMessage delivery to the same origin")
 if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turnstile:
     errors.append("Turnstile bridge must not broadcast tokens with a wildcard target origin")
+
+admin_app = (ROOT / "admin/app.js").read_text(encoding="utf-8")
+if "secureUserAction('set_role'" not in admin_app or "admin-user-control" not in admin_app:
+    errors.append("Admin role changes are not routed through the hardened user-control function")
+if "sb.rpc('admin_set_user_role'" in admin_app:
+    errors.append("Admin UI still calls the retired role-change SECURITY DEFINER RPC")
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
@@ -158,10 +161,8 @@ for forbidden in (".jks", ".keystore", "google-services.json"):
 
 if errors:
     print("RELEASE AUDIT FAILED")
-    for e in errors:
-        print(f"- {e}")
+    for e in errors: print(f"- {e}")
     sys.exit(1)
 
 print("RELEASE AUDIT PASSED")
-for n in notes:
-    print(f"- {n}")
+for n in notes: print(f"- {n}")
