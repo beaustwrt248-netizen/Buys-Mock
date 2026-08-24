@@ -18,6 +18,12 @@ on:
       - 'scripts/release_audit.py'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish the verified APK as an official GitHub release and update OTA metadata'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -168,7 +174,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
-        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.APP_RELEASE_TAG }}
@@ -189,7 +195,7 @@ jobs:
           make_latest: true
 
       - name: Publish OTA metadata
-        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
         shell: bash
         run: |
           python3 - <<'PY'
