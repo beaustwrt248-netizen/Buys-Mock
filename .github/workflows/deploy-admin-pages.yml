@@ -61,6 +61,8 @@ jobs:
           test -s site/no-gold.css
           test -s site/web-a11y.js
           test -s site/admin/turnstile.html
+          test -s site/web-assets/morley_buys_login_bg_app.mp4
+          test "$(stat -c%s site/web-assets/morley_buys_login_bg_app.mp4)" -gt 1000000
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
