@@ -25,6 +25,7 @@ required = [
     "cyber-spectrum.css",
     "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
+    "admin/turnstile.html",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
@@ -78,11 +79,21 @@ if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
     errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
 if "issues: write" in workflow:
     errors.append("Android release workflow requests unnecessary issues:write permission")
+if "publish_release:" not in workflow or "inputs.publish_release" not in workflow:
+    errors.append("Official Android publishing must require an explicit workflow_dispatch approval")
+if re.search(r"Publish GitHub release[\s\S]{0,300}github\.event_name == 'push'", workflow):
+    errors.append("Official Android release publishing must not run automatically on a normal push")
 
 pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(encoding="utf-8")
 for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
+
+turnstile = (ROOT / "admin/turnstile.html").read_text(encoding="utf-8")
+if "postMessage(payload,parentOrigin)" not in turnstile:
+    errors.append("Turnstile bridge must restrict browser postMessage delivery to the same origin")
+if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turnstile:
+    errors.append("Turnstile bridge must not broadcast tokens with a wildcard target origin")
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
