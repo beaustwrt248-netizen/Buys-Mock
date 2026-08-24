@@ -33,6 +33,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Prepare Firebase Android config
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_GOOGLE_SERVICES_JSON" || (echo 'Missing FIREBASE_GOOGLE_SERVICES_JSON' && exit 1)
+          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          python3 -m json.tool android/app/google-services.json >/dev/null
       - name: Run regression tests
         run: gradle -p android testDebugUnitTest --stacktrace
       - name: Prepare production signing key
