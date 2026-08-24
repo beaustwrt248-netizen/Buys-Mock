@@ -156,29 +156,50 @@ jobs:
         if: success()
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.1-native.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.2-native.apk
 
       - name: Upload APK artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.5.1
-          path: dist/B-and-L-Morley-v2.5.1-native.apk
+          name: B-and-L-Morley-Native-v2.5.2
+          path: dist/B-and-L-Morley-v2.5.2-native.apk
           if-no-files-found: error
 
-      - name: Publish v2.5.1 release
+      - name: Publish v2.5.2 release
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.1
-          name: B&L Morley v2.5.1
+          tag_name: v2.5.2
+          name: B&L Morley v2.5.2
           body: |
-            Authentication and notification onboarding release.
-            - Adds Supabase email/password sign-in before the main workspace
-            - Requests Android notification permission after successful sign-in
-            - Registers and refreshes Firebase Cloud Messaging tokens after authentication
-            - Connects signed-in devices to B&L Morley Admin Control
+            Account self-service and targeted Admin Control release.
+            - Adds Sign In, Sign Up and Forgot Password flows
+            - Keeps authenticated FCM device registration and notifications
+            - Adds targeted Admin Control notifications by audience, user and device
             - Keeps production signing and in-place OTA upgrades
-          files: dist/B-and-L-Morley-v2.5.1-native.apk
+          files: dist/B-and-L-Morley-v2.5.2-native.apk
           fail_on_unmatched_files: true
           make_latest: true
+
+      - name: Publish v2.5.2 OTA metadata
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        shell: bash
+        run: |
+          cat > ota/latest.json <<'EOF'
+          {
+            "versionCode": 12,
+            "versionName": "2.5.2-native",
+            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.2/B-and-L-Morley-v2.5.2-native.apk",
+            "notes": "B&L Morley v2.5.2 adds Sign In, Sign Up and Forgot Password, keeps Firebase notification registration, and adds targeted Admin Control notifications by audience, user and device."
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ota/latest.json
+          if git diff --cached --quiet; then
+            echo "OTA metadata already current."
+          else
+            git commit -m "Publish v2.5.2 OTA metadata [skip ci]"
+            git push
+          fi
