@@ -9,6 +9,7 @@ on:
       - '*.js'
       - 'admin/**'
       - 'web-assets/**'
+      - 'scripts/release_audit.py'
       - '.github/workflows/deploy-admin-pages.yml'
   workflow_dispatch:
 
@@ -30,6 +31,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Release readiness audit
+        run: python3 scripts/release_audit.py
+
+      - name: Web JavaScript syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js workflow.js match-quality.js; do
+            test -s "$file"
+            node --check "$file"
+          done
 
       - name: Build static web bundle
         shell: bash
