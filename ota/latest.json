@@ -1,6 +1,6 @@
 {
-  "versionCode": 9,
-  "versionName": "2.4.4-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.4.4/B-and-L-Morley-v2.4.4-native-ota.apk",
-  "notes": "B&L Morley v2.4.4: branded adaptive brain/circuit launcher icon, automatic background update checks, update-available notifications, and hardened cache-busted OTA delivery."
+  "versionCode": 11,
+  "versionName": "2.5.1-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.1/B-and-L-Morley-v2.5.1-native.apk",
+  "notes": "B&L Morley v2.5.1: adds Supabase email/password sign-in before the main workspace, requests Android notification permission after successful sign-in, registers and refreshes Firebase Cloud Messaging tokens for authenticated devices, and connects signed-in devices to Admin Control while keeping in-place OTA updates."
 }
