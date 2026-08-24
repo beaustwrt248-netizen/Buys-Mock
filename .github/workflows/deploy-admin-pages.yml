@@ -1,10 +1,14 @@
-name: Deploy B&L Morley Admin
+name: Deploy B&L Morley Web
 
 on:
   push:
     branches: [ main ]
     paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
       - 'admin/**'
+      - 'web-assets/**'
       - '.github/workflows/deploy-admin-pages.yml'
   workflow_dispatch:
 
@@ -26,14 +30,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Build static web bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site
+          mkdir -p site
+          cp index.html site/
+          cp -v ./*.css site/
+          cp -v ./*.js site/
+          cp -R admin site/admin
+          if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
+          touch site/.nojekyll
+          test -s site/index.html
+          test -s site/web-auth.js
+          test -s site/no-gold.css
+          test -s site/web-a11y.js
+          test -s site/admin/turnstile.html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Upload admin site
+
+      - name: Upload web site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: admin
+          path: site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
