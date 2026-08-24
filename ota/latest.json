@@ -1,6 +1,6 @@
 {
-  "versionCode": 20,
-  "versionName": "2.6.0-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.6.0/B-and-L-Morley-v2.6.0-native.apk",
-  "notes": "B&L Morley v2.6.0 adds persistent Valuations & Deals under More, including quoted/bought/sold/passed status and actual profit tracking."
+  "versionCode": 21,
+  "versionName": "2.7.0-cyber",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.7.0-cyber/B-and-L-Morley-v2.7.0-cyber.apk",
+  "notes": "B&L Morley v2.7.0 Cyber aligns the Android interface with the deep navy/blue/cyan web palette and refreshes the Laptop/MacBook valuation workspace."
 }
