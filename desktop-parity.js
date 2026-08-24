@@ -1,7 +1,7 @@
 (()=>{
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
-  const money=v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(v)||0);
+  const ROUTE_KEY='morley_desktop_route';
 
   function go(page){
     if(typeof window.show==='function') window.show(page);
@@ -10,6 +10,8 @@
       $$('nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
     }
     $$('.desktop-side-nav [data-target]').forEach(x=>x.classList.toggle('active',x.dataset.target===page || (x.dataset.target==='settings' && ['deals','inventory','sales','scanner'].includes(page))));
+    try{localStorage.setItem(ROUTE_KEY,page)}catch{}
+    if(location.hash!==`#${page}`) history.replaceState(null,'',`#${page}`);
     window.scrollTo({top:0,behavior:'smooth'});
   }
   window.morleyDesktopGo=go;
@@ -27,11 +29,9 @@
         <button data-target="general"><b>$</b><span>GP</span></button>
         <button data-target="settings"><b>⚙</b><span>More</span></button>
       </nav>
-      <div class="desktop-side-status"><small>LIVE PRICING</small><strong class="good">READY</strong><small>ONLINE STATUS</small><strong class="good">ONLINE</strong></div>`;
+      <div class="desktop-side-status"><small>LIVE PRICING</small><strong id="desktopPricingState" class="good">READY</strong><small>ONLINE STATUS</small><strong id="desktopOnlineState" class="good">ONLINE</strong></div>`;
     document.body.appendChild(shell);
     $$('.desktop-side-nav button').forEach(b=>b.onclick=()=>go(b.dataset.target));
-    const active=$('.section.active')?.id||'home';
-    $(`.desktop-side-nav [data-target="${active}"]`)?.classList.add('active');
   }
 
   function addDesktopHeader(){
@@ -39,7 +39,7 @@
     const h=document.createElement('header');
     h.id='desktopWorkspaceHeader';
     h.className='desktop-workspace-header';
-    h.innerHTML=`<div><small>B&L MORLEY</small><h1>Buys and Loans Workspace</h1></div><div class="desktop-header-actions"><span class="desktop-pill good-dot">Live pricing</span><span class="desktop-pill good-dot">Online</span></div>`;
+    h.innerHTML=`<div><small>B&L MORLEY</small><h1>Buys and Loans Workspace</h1></div><div class="desktop-header-actions"><span class="desktop-pill good-dot" id="desktopPricingPill">Live pricing</span><span class="desktop-pill good-dot" id="desktopOnlinePill">Online</span></div>`;
     app.prepend(h);
   }
 
@@ -62,7 +62,7 @@
       const text=$('#dqText',card).value.trim(); const ask=$('#dqAsk',card).value;
       if(!text) return;
       const low=text.toLowerCase();
-      const isLaptop=type==='laptop'||(type==='auto'&&/(laptop|notebook|macbook|thinkpad|latitude|elitebook|vivobook|ideapad)/i.test(low));
+      const isLaptop=type==='laptop'||(type==='auto'&&/(laptop|notebook|macbook|thinkpad|latitude|elitebook|vivobook|ideapad|zenbook|surface laptop)/i.test(low));
       if(isLaptop){
         const model=$('#lapModel'), specs=$('#lapSpecs'), price=$('#lapAsk');
         if(model) model.value=text.split(/\n|\||,/)[0].slice(0,120);
@@ -77,14 +77,15 @@
     const sec=$('#settings'); if(!sec||$('#desktopMoreHub')) return;
     const existing=sec.innerHTML;
     sec.innerHTML=`<div id="desktopMoreHub" class="desktop-more-hub">
-      <div class="desktop-page-title"><div><small>MORE</small><h1>Tools & account</h1><p class="muted">Less-used tools and workspace options live here to keep the main valuation flow clean.</p></div></div>
+      <div class="desktop-page-title"><div><small>MORE</small><h1>Tools & account</h1><p class="muted">The same supporting workflow as the Android app, arranged for desktop.</p></div></div>
       <div class="desktop-more-grid">
-        <button class="desktop-nav-card" data-go="deals"><span>◷</span><div><b>Valuations & Deals</b><small>Search saved valuations and compare opportunities.</small></div></button>
+        <button class="desktop-nav-card" data-go="deals"><span>◷</span><div><b>Valuations & Deals</b><small>Search saved valuations, quoted/bought/sold/passed deals and profit history.</small></div></button>
         <button class="desktop-nav-card" data-go="inventory"><span>▣</span><div><b>Inventory</b><small>Stock, costs, resale values and profit tracking.</small></div></button>
         <button class="desktop-nav-card" data-go="sales"><span>↗</span><div><b>Sales History</b><small>Revenue, cost and realised gross profit.</small></div></button>
         <button class="desktop-nav-card" data-go="scanner"><span>⌗</span><div><b>Barcode Scanner</b><small>Find existing stock or quickly add an item.</small></div></button>
       </div>
-      <div class="card desktop-account-card"><small>ACCOUNT</small><h2>Desktop Web</h2><p class="muted">Same B&L Morley valuation workspace, optimised for keyboard, mouse and widescreen displays.</p></div>
+      <div class="card desktop-parity-status"><small>DESKTOP PARITY</small><h2>Shared B&L Morley workflow</h2><div class="desktop-parity-grid"><div><b>✓</b><span>Same sign-in & authorised accounts</span></div><div><b>✓</b><span>Same Laptop / Desktop / GP tools</span></div><div><b>✓</b><span>Same saved valuations & deals</span></div><div><b>✓</b><span>Same inventory & sales data</span></div><div><b>✓</b><span>Same live pricing sources</span></div><div><b>✓</b><span>Desktop keyboard & widescreen layout</span></div></div><p class="muted">Android-only system features such as APK installation and native push handling stay in the Android app; the business workflow and data remain shared.</p></div>
+      <div class="card desktop-account-card"><small>ACCOUNT</small><h2>Desktop Web</h2><p class="muted">Signed-in workspace optimised for keyboard, mouse and widescreen displays.</p></div>
       <div class="desktop-original-settings">${existing}</div>
     </div>`;
     $$('[data-go]',sec).forEach(b=>b.onclick=()=>go(b.dataset.go));
@@ -105,9 +106,26 @@
     });
   }
 
+  function monitorConnectivity(){
+    const paint=()=>{
+      const online=navigator.onLine;
+      const state=$('#desktopOnlineState'),pill=$('#desktopOnlinePill');
+      if(state){state.textContent=online?'ONLINE':'OFFLINE';state.classList.toggle('good',online);state.classList.toggle('bad',!online)}
+      if(pill){pill.textContent=online?'Online':'Offline';pill.classList.toggle('good-dot',online);pill.classList.toggle('bad-dot',!online)}
+    };
+    addEventListener('online',paint);addEventListener('offline',paint);paint();
+  }
+
+  function restoreRoute(){
+    const valid=['home','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
+    let page=(location.hash||'').replace('#','');
+    if(!valid.includes(page)){try{page=localStorage.getItem(ROUTE_KEY)||''}catch{}}
+    if(valid.includes(page)) setTimeout(()=>go(page),0);
+  }
+
   function init(){
     document.documentElement.classList.add('morley-web-parity');
-    addDesktopShell(); addDesktopHeader(); addQuickDeal(); buildMoreHub(); enrichPageTitles(); addKeyboardShortcuts();
+    addDesktopShell(); addDesktopHeader(); addQuickDeal(); buildMoreHub(); enrichPageTitles(); addKeyboardShortcuts(); monitorConnectivity(); restoreRoute();
     const originalShow=window.show;
     if(typeof originalShow==='function') window.show=function(page){originalShow(page); $$('.desktop-side-nav [data-target]').forEach(x=>x.classList.toggle('active',x.dataset.target===page || (x.dataset.target==='settings'&&['deals','inventory','sales','scanner'].includes(page))));};
   }
