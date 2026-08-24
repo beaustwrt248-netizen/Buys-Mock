@@ -34,34 +34,20 @@ jobs:
           python3 - <<'PY'
           import re
           from pathlib import Path
-
           root = Path('.')
           html = Path('index.html').read_text(encoding='utf-8')
           refs = re.findall(r'(?:href|src)=\\?"([^"?]+)', html)
           missing = []
           for ref in refs:
-              if ref.startswith(('http://','https://','data:','#')):
-                  continue
+              if ref.startswith(('http://','https://','data:','#')): continue
               path = root / ref.lstrip('./')
-              if not path.exists():
-                  missing.append(ref)
-          if missing:
-              raise SystemExit('Missing local assets referenced by index.html: ' + ', '.join(missing))
-
-          required = [
-              'web-auth.js', 'signed-in-user.js', 'desktop-parity.js',
-              'reference-theme.css', 'no-gold.css', 'premium-motion.css',
-              'admin/index.html', 'admin/app.js', 'admin/styles.css',
-              'admin/invites.js', 'admin/targeted-notifications.js', 'admin/turnstile.html'
-          ]
+              if not path.exists(): missing.append(ref)
+          if missing: raise SystemExit('Missing local assets referenced by index.html: ' + ', '.join(missing))
+          required = ['web-auth.js','signed-in-user.js','desktop-parity.js','reference-theme.css','no-gold.css','premium-motion.css','admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html']
           absent = [p for p in required if not Path(p).is_file()]
-          if absent:
-              raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
-
-          if 'no-gold.css' not in html:
-              raise SystemExit('Final no-gold safeguard is not loaded by index.html')
-          if html.rfind('no-gold.css') < html.rfind('reference-theme.css'):
-              raise SystemExit('no-gold.css must load after the other theme layers')
+          if absent: raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
+          if 'no-gold.css' not in html: raise SystemExit('Final no-gold safeguard is not loaded by index.html')
+          if html.rfind('no-gold.css') < html.rfind('reference-theme.css'): raise SystemExit('no-gold.css must load after the other theme layers')
           print('Web asset graph OK')
           PY
 
@@ -69,9 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in \
-            app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js \
-            admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -81,26 +65,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          active = [
-              'mobile-more.css', 'cyber-ui.css', 'cyber-spectrum.css',
-              'premium-motion.css', 'reference-theme.css', 'no-gold.css',
-              'web-auth.js', 'desktop-parity.js',
-              'admin/styles.css', 'admin/index.html', 'admin/app.js'
-          ]
-          forbidden = [
-              '#ffd400', '#ffe65b', '#ffd000', '#ffc800', '#ffe95a',
-              '#c99a27', '#ddb347', '#cda51d', '#e0bb39', '#caa21c', '#e1bd3d',
-              'rgba(255,212,0', 'rgb(255,212,0'
-          ]
-          failures = []
+          active = ['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','web-auth.js','desktop-parity.js','admin/styles.css','admin/index.html','admin/app.js']
+          forbidden = ['#ffd400','#ffe65b','#ffd000','#ffc800','#ffe95a','#c99a27','#ddb347','#cda51d','#e0bb39','#caa21c','#e1bd3d','rgba(255,212,0','rgb(255,212,0']
+          failures=[]
           for file in active:
-              text = Path(file).read_text(encoding='utf-8').lower()
-              found = [token for token in forbidden if token in text]
-              if found:
-                  failures.append(f'{file}: {", ".join(found)}')
-          if failures:
-              raise SystemExit('Legacy gold detected in active UI layers:\n' + '\n'.join(failures))
+              text=Path(file).read_text(encoding='utf-8').lower(); found=[t for t in forbidden if t in text]
+              if found: failures.append(f'{file}: {", ".join(found)}')
+          if failures: raise SystemExit('Legacy gold detected in active UI layers:\n'+'\n'.join(failures))
           print('No legacy gold found in active web/admin UI layers')
           PY
 
@@ -109,21 +80,19 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          checks = {
-              'web-auth.js': ['morley-web-signout', 'clearSession()', 'verifyAuthorised'],
-              'signed-in-user.js': ['display_name', 'morley-web-user'],
-              'desktop-parity.js': ['morleyDesktopGo', 'morley-section-back'],
-              'app.js': ["localStorage.getItem('morley_web_auth')", "'Authorization':'Bearer '+token"],
-              'desktop-oem.js': ["localStorage.getItem('morley_web_auth')", "'Authorization':'Bearer '+token"],
-              'admin/app.js': ["admin-user-control", "action:'set_role'", 'secureUserAction'],
-              'admin/invites.js': ['crypto.getRandomValues', 'sha256Hex'],
-              'admin/turnstile.html': ['postMessage(payload,parentOrigin)'],
+          checks={
+            'web-auth.js':['morley-web-signout','clearSession()','verifyAuthorised'],
+            'signed-in-user.js':['display_name','morley-web-user'],
+            'desktop-parity.js':['morleyDesktopGo','morley-section-back'],
+            'app.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
+            'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
+            'admin/app.js':['admin-user-control',"secureUserAction('set_role'",'secureUserAction'],
+            'admin/invites.js':['crypto.getRandomValues','sha256Hex'],
+            'admin/turnstile.html':['postMessage(payload,parentOrigin)'],
           }
-          for file, needles in checks.items():
-              text = Path(file).read_text(encoding='utf-8')
-              missing = [n for n in needles if n not in text]
-              if missing:
-                  raise SystemExit(f'{file} missing expected production hooks: {missing}')
+          for file,needles in checks.items():
+              text=Path(file).read_text(encoding='utf-8'); missing=[n for n in needles if n not in text]
+              if missing: raise SystemExit(f'{file} missing expected production hooks: {missing}')
           if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
               raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
           print('Auth/navigation/pricing/admin hooks OK')
