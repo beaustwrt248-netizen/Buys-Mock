@@ -35,23 +35,24 @@ object ValuationHistoryManager {
         JSONObject(String(Base64.decode(padded,Base64.DEFAULT))).optString("sub")
     }.getOrDefault("")
 
-    private suspend fun request(context: Context, method:String, path:String, body:JSONObject?=null, prefer:String?=null): Pair<Int,String> = withContext(Dispatchers.IO) {
-        val token=AuthManager.accessToken(context)
-        require(token.isNotBlank()){ "Sign in again to use valuation history." }
-        val c=(URL("${BuildConfig.SUPABASE_URL}/rest/v1/$path").openConnection() as HttpURLConnection).apply {
-            requestMethod=method; connectTimeout=10000; readTimeout=10000
-            setRequestProperty("apikey",BuildConfig.SUPABASE_PUBLISHABLE_KEY)
-            setRequestProperty("Authorization","Bearer $token")
-            setRequestProperty("Content-Type","application/json")
-            if(prefer!=null)setRequestProperty("Prefer",prefer)
-            if(body!=null)doOutput=true
+    private suspend fun request(context: Context, method:String, path:String, body:JSONObject?=null, prefer:String?=null): Pair<Int,String> {
+        val token=AuthManager.validAccessToken(context)
+        return withContext(Dispatchers.IO) {
+            val c=(URL("${BuildConfig.SUPABASE_URL}/rest/v1/$path").openConnection() as HttpURLConnection).apply {
+                requestMethod=method; connectTimeout=10000; readTimeout=10000
+                setRequestProperty("apikey",BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                setRequestProperty("Authorization","Bearer $token")
+                setRequestProperty("Content-Type","application/json")
+                if(prefer!=null)setRequestProperty("Prefer",prefer)
+                if(body!=null)doOutput=true
+            }
+            try {
+                if(body!=null)c.outputStream.use{it.write(body.toString().toByteArray())}
+                val code=c.responseCode
+                val text=(if(code in 200..299)c.inputStream else c.errorStream)?.bufferedReader()?.use{it.readText()}.orEmpty()
+                code to text
+            } finally { c.disconnect() }
         }
-        try {
-            if(body!=null)c.outputStream.use{it.write(body.toString().toByteArray())}
-            val code=c.responseCode
-            val text=(if(code in 200..299)c.inputStream else c.errorStream)?.bufferedReader()?.use{it.readText()}.orEmpty()
-            code to text
-        } finally { c.disconnect() }
     }
 
     suspend fun save(
@@ -65,7 +66,7 @@ object ValuationHistoryManager {
         expectedProfit:Double?,
         confidence:String
     ) {
-        val token=AuthManager.accessToken(context); val uid=userId(token)
+        val token=AuthManager.validAccessToken(context); val uid=userId(token)
         require(uid.isNotBlank()){ "Your session is invalid. Sign in again." }
         val body=JSONObject().apply {
             put("user_id",uid);put("item_type",itemType);put("item_summary",itemSummary.take(180));put("specs",specs)
