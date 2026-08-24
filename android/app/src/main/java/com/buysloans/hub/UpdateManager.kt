@@ -22,6 +22,13 @@ object UpdateManager {
     const val METADATA_URL = "https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/ota/latest.json"
     private const val RELEASE_PREFIX = "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/"
 
+    internal fun isTrustedApkUrl(url:String):Boolean = url.startsWith(RELEASE_PREFIX) && runCatching {
+        val parsed=URL(url)
+        parsed.protocol=="https" && parsed.host=="github.com" && parsed.path.startsWith("/beaustwrt248-netizen/Buys-Mock/releases/download/")
+    }.getOrDefault(false)
+
+    internal fun isValidSha256(value:String):Boolean = value.matches(Regex("^[a-fA-F0-9]{64}$"))
+
     suspend fun check(): AppUpdate? = withContext(Dispatchers.IO) {
         val cacheBustedUrl = "$METADATA_URL?t=${System.currentTimeMillis()}"
         val c=(URL(cacheBustedUrl).openConnection() as HttpURLConnection).apply {
@@ -43,9 +50,9 @@ object UpdateManager {
             if(remote<=0) throw IllegalStateException("Update metadata is missing versionCode")
             if(name.isBlank()) throw IllegalStateException("Update metadata is missing versionName")
             if(apk.isBlank()) throw IllegalStateException("Update metadata is missing apkUrl")
-            if(!apk.startsWith(RELEASE_PREFIX)) throw IllegalStateException("Update download URL is not trusted")
+            if(!isTrustedApkUrl(apk)) throw IllegalStateException("Update download URL is not trusted")
             if(remote<=BuildConfig.VERSION_CODE) return@withContext null
-            if(!sha.matches(Regex("^[a-f0-9]{64}$"))) throw IllegalStateException("Update metadata is missing a valid SHA-256 checksum")
+            if(!isValidSha256(sha)) throw IllegalStateException("Update metadata is missing a valid SHA-256 checksum")
             AppUpdate(remote,name,apk,o.optString("notes"),sha)
         } finally { c.disconnect() }
     }
