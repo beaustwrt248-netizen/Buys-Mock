@@ -20,6 +20,12 @@
   const status=document.getElementById('status');
   function send(name,value){
     try{ if(window.AndroidBridge && typeof window.AndroidBridge[name]==='function') window.AndroidBridge[name](value||''); }catch(_){}
+    try{
+      if(window.parent && window.parent!==window){
+        const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
+        window.parent.postMessage({source:'morley-turnstile',type,value:value||''},location.origin);
+      }
+    }catch(_){}
   }
   function render(){
     if(!window.turnstile){setTimeout(render,100);return;}
