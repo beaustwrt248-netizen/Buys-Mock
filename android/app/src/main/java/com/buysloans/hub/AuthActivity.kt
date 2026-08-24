@@ -72,23 +72,31 @@ private class LoginVideoTextureView(context:Context):TextureView(context),Textur
   releasePlayer()
   val resId=resources.getIdentifier(LOGIN_VIDEO_RESOURCE,"raw",context.packageName)
   if(resId==0)return
+  val owner=this@LoginVideoTextureView
   val surface=Surface(surfaceTexture)
-  player=MediaPlayer().apply{
-   setSurface(surface)
-   surface.release()
-   setDataSource(context,Uri.parse("android.resource://${context.packageName}/$resId"))
-   isLooping=true
-   setVolume(0f,0f)
-   setOnVideoSizeChangedListener{_,w,h->videoWidth=w;videoHeight=h;applyCenterCrop()}
-   setOnPreparedListener{mp->
-    videoWidth=mp.videoWidth
-    videoHeight=mp.videoHeight
-    applyCenterCrop()
-    mp.start()
-   }
-   setOnErrorListener{mp,_,_->runCatching{mp.reset()};true}
-   prepareAsync()
+  val mediaPlayer=MediaPlayer()
+  player=mediaPlayer
+  mediaPlayer.setSurface(surface)
+  surface.release()
+  mediaPlayer.setDataSource(context,Uri.parse("android.resource://${context.packageName}/$resId"))
+  mediaPlayer.isLooping=true
+  mediaPlayer.setVolume(0f,0f)
+  mediaPlayer.setOnVideoSizeChangedListener{_,w,h->
+   owner.videoWidth=w
+   owner.videoHeight=h
+   owner.applyCenterCrop()
   }
+  mediaPlayer.setOnPreparedListener{mp->
+   owner.videoWidth=mp.videoWidth
+   owner.videoHeight=mp.videoHeight
+   owner.applyCenterCrop()
+   mp.start()
+  }
+  mediaPlayer.setOnErrorListener{mp,_,_->
+   runCatching{mp.reset()}
+   true
+  }
+  mediaPlayer.prepareAsync()
  }
 
  private fun applyCenterCrop(){
