@@ -97,10 +97,10 @@ if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turn
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
-for token in ("isTrustedApkUrl", "isValidSha256", 'putExtra("sha256"'):
+for token in ("isTrustedApkUrl", "isValidSha256", 'putExtra("sha256", update.sha256)'):
     if token not in update_manager:
         errors.append(f"Android OTA manager is missing integrity control: {token}")
-for token in ("MessageDigest", "SHA-256", "expectedSha256"):
+for token in ("MessageDigest", "SHA-256", "expectedSha256", "APK integrity check failed"):
     if token not in update_activity:
         errors.append(f"Android OTA installer is missing checksum verification control: {token}")
 
