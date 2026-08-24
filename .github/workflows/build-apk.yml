@@ -69,48 +69,47 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.6-native.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.7-native.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.5.6
-          path: dist/B-and-L-Morley-v2.5.6-native.apk
+          name: B-and-L-Morley-Native-v2.5.7
+          path: dist/B-and-L-Morley-v2.5.7-native.apk
           if-no-files-found: error
 
-      - name: Publish v2.5.6 release
+      - name: Publish v2.5.7 release
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.6
-          name: B&L Morley v2.5.6
+          tag_name: v2.5.7
+          name: B&L Morley v2.5.7
           body: |
-            Private access and backend security release.
-            - Invite-only account creation using approved email + one-time code
-            - Sign-in blocked for missing or disabled B&L Morley profiles
-            - Authenticated device registration; anonymous registration removed
-            - Admin Control invite creation with Staff/Manager/Admin roles
-            - Backend anonymous table/RPC access locked down
-            - Keeps OTA updates, push notifications, sign out and remote controls
-          files: dist/B-and-L-Morley-v2.5.6-native.apk
+            Turnstile security release.
+            - Cloudflare Turnstile security check added to sign in, invite sign up and password reset
+            - Invite redemption validates Turnstile tokens server-side before creating an account
+            - Invite-only registration and authorised-profile checks remain enforced
+            - Anonymous backend/database access remains locked down
+            - Keeps OTA updates, push notifications, sign out and Admin Control
+          files: dist/B-and-L-Morley-v2.5.7-native.apk
           fail_on_unmatched_files: true
           make_latest: true
 
-      - name: Publish v2.5.6 OTA metadata
+      - name: Publish v2.5.7 OTA metadata
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
           cat > ota/latest.json <<'EOF'
           {
-            "versionCode": 16,
-            "versionName": "2.5.6-native",
-            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.6/B-and-L-Morley-v2.5.6-native.apk",
-            "notes": "B&L Morley v2.5.6 makes account creation invite-only and locks down backend access to authorised authenticated users."
+            "versionCode": 17,
+            "versionName": "2.5.7-native",
+            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.7/B-and-L-Morley-v2.5.7-native.apk",
+            "notes": "B&L Morley v2.5.7 adds Cloudflare Turnstile protection to authentication while keeping invite-only private access and backend lockdown."
           }
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ota/latest.json
           if ! git diff --cached --quiet; then
-            git commit -m "Publish v2.5.6 OTA metadata [skip ci]"
+            git commit -m "Publish v2.5.7 OTA metadata [skip ci]"
             git push
           fi
