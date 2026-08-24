@@ -10,10 +10,17 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class AppUpdate(val versionCode:Int,val versionName:String,val apkUrl:String,val notes:String)
+data class AppUpdate(
+    val versionCode:Int,
+    val versionName:String,
+    val apkUrl:String,
+    val notes:String,
+    val sha256:String
+)
 
 object UpdateManager {
     const val METADATA_URL = "https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/ota/latest.json"
+    private const val RELEASE_PREFIX = "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/"
 
     suspend fun check(): AppUpdate? = withContext(Dispatchers.IO) {
         val cacheBustedUrl = "$METADATA_URL?t=${System.currentTimeMillis()}"
@@ -22,6 +29,7 @@ object UpdateManager {
             readTimeout=10000
             requestMethod="GET"
             useCaches=false
+            instanceFollowRedirects=true
             setRequestProperty("Cache-Control","no-cache, no-store, max-age=0")
             setRequestProperty("Pragma","no-cache")
         }
@@ -29,11 +37,16 @@ object UpdateManager {
             if(c.responseCode !in 200..299) throw IllegalStateException("Update server returned HTTP ${c.responseCode}")
             val o=JSONObject(c.inputStream.bufferedReader().use{it.readText()})
             val remote=o.optInt("versionCode",0)
-            val apk=o.optString("apkUrl","")
+            val name=o.optString("versionName","").trim()
+            val apk=o.optString("apkUrl","").trim()
+            val sha=o.optString("sha256","").trim().lowercase()
             if(remote<=0) throw IllegalStateException("Update metadata is missing versionCode")
+            if(name.isBlank()) throw IllegalStateException("Update metadata is missing versionName")
             if(apk.isBlank()) throw IllegalStateException("Update metadata is missing apkUrl")
+            if(!apk.startsWith(RELEASE_PREFIX)) throw IllegalStateException("Update download URL is not trusted")
             if(remote<=BuildConfig.VERSION_CODE) return@withContext null
-            AppUpdate(remote,o.optString("versionName"),apk,o.optString("notes"))
+            if(!sha.matches(Regex("^[a-f0-9]{64}$"))) throw IllegalStateException("Update metadata is missing a valid SHA-256 checksum")
+            AppUpdate(remote,name,apk,o.optString("notes"),sha)
         } finally { c.disconnect() }
     }
 
@@ -47,6 +60,7 @@ object UpdateManager {
             putExtra("versionName", update.versionName)
             putExtra("apkUrl", update.apkUrl)
             putExtra("notes", update.notes)
+            putExtra("sha256", update.sha256)
         })
     }
 }
