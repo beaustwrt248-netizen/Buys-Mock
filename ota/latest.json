@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "2.5.1-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.1/B-and-L-Morley-v2.5.1-native.apk",
-  "notes": "B&L Morley v2.5.1: adds Supabase email/password sign-in before the main workspace, requests Android notification permission after successful sign-in, registers and refreshes Firebase Cloud Messaging tokens for authenticated devices, and connects signed-in devices to Admin Control while keeping in-place OTA updates."
+  "versionCode": 12,
+  "versionName": "2.5.2-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.2/B-and-L-Morley-v2.5.2-native.apk",
+  "notes": "B&L Morley v2.5.2 adds Sign In, Sign Up and Forgot Password, keeps Firebase notification registration, and adds targeted Admin Control notifications by audience, user and device."
 }
