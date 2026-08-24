@@ -69,47 +69,47 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.9-native.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.6.0-native.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.5.9
-          path: dist/B-and-L-Morley-v2.5.9-native.apk
+          name: B-and-L-Morley-Native-v2.6.0
+          path: dist/B-and-L-Morley-v2.6.0-native.apk
           if-no-files-found: error
 
-      - name: Publish v2.5.9 release
+      - name: Publish v2.6.0 release
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.9
-          name: B&L Morley v2.5.9
+          tag_name: v2.6.0
+          name: B&L Morley v2.6.0
           body: |
-            Heads-up notification fix.
-            - Moves Admin Control messages to a fresh high-importance Android notification channel
-            - Enables sound, vibration, lights and public lock-screen visibility for important alerts
-            - Uses high-priority message notifications so supported Android devices can show heads-up pop-ups
-            - Removes the legacy admin notification channel to avoid stale low-importance settings
-            - Keeps Turnstile protection, invite-only access, OTA updates and backend security controls
-          files: dist/B-and-L-Morley-v2.5.9-native.apk
+            Valuation history and deal tracking.
+            - Moves valuation/deal history into More to keep the main workspace uncluttered
+            - Adds persistent Supabase-backed saved valuations
+            - Tracks quoted, bought, sold and passed deals
+            - Records actual buy/sell prices, expected profit and actual profit
+            - Keeps high-priority heads-up notifications, Turnstile protection, invite-only access and OTA updates
+          files: dist/B-and-L-Morley-v2.6.0-native.apk
           fail_on_unmatched_files: true
           make_latest: true
 
-      - name: Publish v2.5.9 OTA metadata
+      - name: Publish v2.6.0 OTA metadata
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
           cat > ota/latest.json <<'EOF'
           {
-            "versionCode": 19,
-            "versionName": "2.5.9-native",
-            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.9/B-and-L-Morley-v2.5.9-native.apk",
-            "notes": "B&L Morley v2.5.9 upgrades Admin Control notifications to a fresh high-importance channel for Android heads-up pop-up alerts, with sound and vibration enabled."
+            "versionCode": 20,
+            "versionName": "2.6.0-native",
+            "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.6.0/B-and-L-Morley-v2.6.0-native.apk",
+            "notes": "B&L Morley v2.6.0 adds persistent Valuations & Deals under More, including quoted/bought/sold/passed status and actual profit tracking."
           }
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ota/latest.json
           if ! git diff --cached --quiet; then
-            git commit -m "Publish v2.5.9 OTA metadata [skip ci]"
+            git commit -m "Publish v2.6.0 OTA metadata [skip ci]"
             git push
           fi
