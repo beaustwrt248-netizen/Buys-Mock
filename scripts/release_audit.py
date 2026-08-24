@@ -14,7 +14,7 @@ def require(path: str):
     return p
 
 required = [
-    "index.html", "app.js", "desktop-oem.js", "desktop-parity.js",
+    "index.html", "secure-pricing.js", "app.js", "desktop-oem.js", "desktop-parity.js",
     "web-auth.js", "signed-in-user.js", "web-a11y.js",
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
@@ -49,7 +49,13 @@ for rel in [
         if token in text:
             errors.append(f"Retired gold token {token} still present in active UI layer: {rel}")
 
-# Paid pricing calls must carry the signed-in user's bearer token.
+# The pinned legacy calculator core must be intercepted by this authenticated
+# transport before any user can trigger the paid eBay / Google pricing backend.
+secure_pricing = (ROOT / "secure-pricing.js").read_text(encoding="utf-8")
+for token in ("morley_web_auth", "Authorization", "Bearer", "window.market=secureMarket"):
+    if token not in secure_pricing:
+        errors.append(f"Production pricing transport is missing authenticated API control: {token}")
+
 for rel in ("app.js", "desktop-oem.js"):
     text = (ROOT / rel).read_text(encoding="utf-8")
     for token in ("morley_web_auth", "Authorization", "Bearer"):
@@ -86,6 +92,8 @@ if "Verify Android cyber palette transform" not in quality_gate:
     errors.append("Quality gate does not verify the Android cyber palette transform")
 if "palette-before.sha" not in quality_gate or "palette-after.sha" not in quality_gate:
     errors.append("Quality gate does not verify Android palette transform idempotence")
+if "Verify protected backend endpoints" not in quality_gate:
+    errors.append("Quality gate does not prove paid backend endpoints reject anonymous requests")
 
 if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
     errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
@@ -100,7 +108,7 @@ pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(e
 for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
-for token in ("morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'"):
+for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages post-deploy verification is missing production control: {token}")
 
@@ -114,7 +122,7 @@ admin_app = (ROOT / "admin/app.js").read_text(encoding="utf-8")
 if "secureUserAction('set_role'" not in admin_app or "admin-user-control" not in admin_app:
     errors.append("Admin role changes are not routed through the hardened user-control function")
 if "sb.rpc('admin_set_user_role'" in admin_app:
-    errors.append("Admin UI still calls the retired role-change SECURITY DEFINER RPC")
+    errors.append("Admin UI still calls the retired role-change SECURITY DEFININER RPC")
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
@@ -143,7 +151,7 @@ if ota_path.exists():
         errors.append(f"Invalid ota/latest.json: {exc}")
 
 index = (ROOT / "index.html").read_text(encoding="utf-8")
-for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-auth.js", "signed-in-user.js", "web-a11y.js"):
+for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "secure-pricing.js", "web-auth.js", "signed-in-user.js", "web-a11y.js"):
     if token not in index:
         errors.append(f"index.html does not load required layer: {token}")
 if "cache:'no-store'" not in index and 'cache:"no-store"' not in index:
