@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import android.content.Context
+import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -11,6 +12,7 @@ object AuthManager {
     private const val PREFS = "morley_auth"
     private const val ACCESS_TOKEN = "access_token"
     private const val USER_EMAIL = "user_email"
+    const val AUTH_CALLBACK = "bnlmorley://auth/callback"
 
     fun isSignedIn(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -68,7 +70,8 @@ object AuthManager {
     suspend fun signUp(email: String, password: String) {
         require(email.isNotBlank()) { "Enter your email address." }
         require(password.length >= 8) { "Password must be at least 8 characters." }
-        val (code, body) = post("/auth/v1/signup", JSONObject().apply {
+        val redirect = URLEncoder.encode(AUTH_CALLBACK, Charsets.UTF_8.name())
+        val (code, body) = post("/auth/v1/signup?redirect_to=$redirect", JSONObject().apply {
             put("email", email.trim())
             put("password", password)
             put("data", JSONObject().apply { put("full_name", email.substringBefore('@')) })
@@ -78,7 +81,8 @@ object AuthManager {
 
     suspend fun sendPasswordReset(email: String) {
         require(email.isNotBlank()) { "Enter your email address." }
-        val (code, body) = post("/auth/v1/recover", JSONObject().apply { put("email", email.trim()) })
+        val redirect = URLEncoder.encode(AUTH_CALLBACK, Charsets.UTF_8.name())
+        val (code, body) = post("/auth/v1/recover?redirect_to=$redirect", JSONObject().apply { put("email", email.trim()) })
         if (code !in 200..299) throw IllegalStateException(errorMessage(body, "Password reset failed ($code)."))
     }
 }
