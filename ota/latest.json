@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "2.5.3-native",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.3/B-and-L-Morley-v2.5.3-native.apk",
-  "notes": "B&L Morley v2.5.3 adds a visible Sign out control with confirmation and returns directly to the authentication screen after sign out."
+  "versionCode": 14,
+  "versionName": "2.5.4-native",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.5.4/B-and-L-Morley-v2.5.4-native.apk",
+  "notes": "B&L Morley v2.5.4 fixes email confirmation redirects by returning users to the B&L Morley app instead of localhost."
 }
