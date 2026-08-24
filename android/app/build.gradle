@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 20
-        versionName '2.6.0-native'
+        versionCode 21
+        versionName '2.7.0-cyber'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -53,6 +53,15 @@ android {
             signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
         }
     }
+}
+
+tasks.register('applyCyberPalette', Exec) {
+    workingDir rootProject.projectDir
+    commandLine 'python3', 'apply_cyber_palette.py'
+}
+
+tasks.matching { it.name == 'preBuild' }.configureEach {
+    dependsOn tasks.named('applyCyberPalette')
 }
 
 dependencies {
