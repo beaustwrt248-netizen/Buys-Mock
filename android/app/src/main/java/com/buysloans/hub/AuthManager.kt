@@ -97,6 +97,16 @@ object AuthManager {
         JSONObject(String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT))).optString("sub")
     }.getOrDefault("")
 
+    /**
+     * Legacy dashboard sign-in entry point retained only so older dashboard code compiles.
+     * It deliberately refuses authentication rather than bypassing Turnstile.
+     * All real sign-ins must go through AuthActivity and provide a CAPTCHA token.
+     */
+    @Deprecated("Use the CAPTCHA-protected signIn overload")
+    suspend fun signIn(context: Context, email: String, password: String) {
+        throw IllegalStateException("Secure sign-in is required. Return to the B&L Morley sign-in screen and complete the security check.")
+    }
+
     suspend fun signIn(context: Context, email: String, password: String, captchaToken: String) {
         require(email.isNotBlank()) { "Enter your email address." }
         require(password.isNotBlank()) { "Enter your password." }
