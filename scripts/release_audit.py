@@ -30,6 +30,7 @@ required = [
     "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
     ".github/workflows/build-apk.yml",
+    ".github/workflows/deploy-admin-pages.yml",
     "morley_buys_login_bg_app.zip",
 ]
 for f in required:
@@ -70,6 +71,11 @@ else:
 
 if "sha256" not in workflow.lower() or "hashlib.sha256" not in workflow:
     errors.append("Release workflow is not publishing an APK SHA-256 checksum into OTA metadata")
+
+pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(encoding="utf-8")
+for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site"):
+    if token not in pages_workflow:
+        errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
