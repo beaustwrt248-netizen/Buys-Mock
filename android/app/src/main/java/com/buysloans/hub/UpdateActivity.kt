@@ -61,16 +61,19 @@ private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:Strin
 
     fun beginDownload() {
         if (apkUrl.isBlank() || downloadId >= 0) return
-        if (!apkUrl.startsWith("https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/")) {
+        if (!UpdateManager.isTrustedApkUrl(apkUrl)) {
             failed=true
             status="Update URL failed security validation"
             return
         }
-        if (!expectedSha256.matches(Regex("^[a-f0-9]{64}$"))) {
+        if (!UpdateManager.isValidSha256(expectedSha256)) {
             failed=true
             status="Update checksum is missing or invalid"
             return
         }
+        val safeVersion=versionName.ifBlank{"update"}.replace(Regex("[^A-Za-z0-9._-]+"),"-")
+        val fileName="B-and-L-Morley-$safeVersion.apk"
+        context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.resolve(fileName)?.delete()
         val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val request = DownloadManager.Request(Uri.parse(apkUrl))
             .setTitle("B&L Morley $versionName")
@@ -78,7 +81,7 @@ private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:Strin
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(false)
-            .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "B-and-L-Morley-$versionName.apk")
+            .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
         downloadId = dm.enqueue(request)
         status = "Downloading update…"
         failed = false
