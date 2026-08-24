@@ -72,26 +72,26 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.4.4-native-ota.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/B-and-L-Morley-v2.5.0-native.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: B-and-L-Morley-Native-v2.4.4-OTA
-          path: dist/B-and-L-Morley-v2.4.4-native-ota.apk
+          name: B-and-L-Morley-Native-v2.5.0
+          path: dist/B-and-L-Morley-v2.5.0-native.apk
           if-no-files-found: error
-      - name: Publish v2.4.4 OTA release
+      - name: Publish v2.5.0 release
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.4
-          name: B&L Morley v2.4.4
+          tag_name: v2.5.0
+          name: B&L Morley v2.5.0
           body: |
-            Native v2.4.4 update alerts and launcher icon release.
-            - Replaces the generic launcher artwork with a branded adaptive brain/circuit icon
-            - Adds automatic background update checks with Android WorkManager
-            - Sends a notification when a newer B&L Morley version is available
-            - Tapping an update notification opens the native download/install screen
-            - Retains cache-busted OTA checks, production signing and in-place upgrades
-          files: dist/B-and-L-Morley-v2.4.4-native-ota.apk
+            Admin Control and Firebase device-management foundation.
+            - Connects the Android app to Firebase Cloud Messaging
+            - Registers each installation with B&L Morley Admin Control
+            - Reports app version, device model, notification permission and last-seen state
+            - Adds a dedicated channel for remote Admin Control messages
+            - Keeps production signing and in-place OTA upgrades
+          files: dist/B-and-L-Morley-v2.5.0-native.apk
           fail_on_unmatched_files: true
           make_latest: true
