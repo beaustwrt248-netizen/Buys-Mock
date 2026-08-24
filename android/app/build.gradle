@@ -64,8 +64,9 @@ dependencies {
     implementation 'androidx.work:work-runtime-ktx:2.9.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
 
+    // FCM only. Analytics pulled in Google Play measurement artifacts compiled
+    // with Kotlin 2.1 metadata, which is incompatible with this app's Kotlin 1.9.24 toolchain.
     implementation platform('com.google.firebase:firebase-bom:34.2.0')
-    implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-messaging'
 
     testImplementation 'junit:junit:4.13.2'
