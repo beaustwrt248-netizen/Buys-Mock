@@ -23,7 +23,7 @@
     try{
       if(window.parent && window.parent!==window){
         const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
-        window.parent.postMessage({source:'morley-turnstile',type,value:value||''},location.origin);
+        window.parent.postMessage({source:'morley-turnstile',type,value:value||''},'*');
       }
     }catch(_){}
   }
