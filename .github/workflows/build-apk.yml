@@ -85,12 +85,17 @@ jobs:
         shell: bash
         run: |
           APK=android/app/build/outputs/apk/release/app-release.apk
+          SOURCE=android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
           test -s "$APK"
+          test -s "$SOURCE"
+          EXPECTED_BYTES="$(stat -c%s "$SOURCE")"
           unzip -l "$APK" | tee "$RUNNER_TEMP/apk-contents.txt"
-          grep -E 'res/raw/morley_buys_login_bg_app(\.mp4)?' "$RUNNER_TEMP/apk-contents.txt" || {
-            echo 'Login background video was not packaged in the APK'
+          PACKAGED_PATH="$(awk -v size="$EXPECTED_BYTES" '$1 == size && $4 ~ /^res\/.*\.mp4$/ {print $4; exit}' "$RUNNER_TEMP/apk-contents.txt")"
+          test -n "$PACKAGED_PATH" || {
+            echo "Login background video was not packaged in the APK (expected $EXPECTED_BYTES bytes)"
             exit 1
           }
+          echo "Verified login background video in APK as $PACKAGED_PATH ($EXPECTED_BYTES bytes)"
 
       - name: Rename APK
         run: |
