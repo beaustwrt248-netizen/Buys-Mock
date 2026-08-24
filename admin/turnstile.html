@@ -18,18 +18,28 @@
 (function(){
   const sitekey='0x4AAAAAAEZul-Qo6dqMim2U';
   const status=document.getElementById('status');
+  window.__morleyTurnstileToken='';
+  window.__morleyTurnstileState='loading';
   function send(name,value){
-    try{ if(window.AndroidBridge && typeof window.AndroidBridge[name]==='function') window.AndroidBridge[name](value||''); }catch(_){}
+    const token=value||'';
+    if(name==='onToken'){window.__morleyTurnstileToken=token;window.__morleyTurnstileState='complete';}
+    else {window.__morleyTurnstileToken='';window.__morleyTurnstileState=name==='onExpired'?'expired':'error';}
+    try{ if(window.AndroidBridge && typeof window.AndroidBridge[name]==='function') window.AndroidBridge[name](token); }catch(_){}
     try{
       if(window.parent && window.parent!==window){
         const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
-        window.parent.postMessage({source:'morley-turnstile',type,value:value||''},'*');
+        window.parent.postMessage({source:'morley-turnstile',type,value:token},'*');
+        if(name==='onToken'){
+          setTimeout(()=>window.parent.postMessage({source:'morley-turnstile',type:'token',value:token},'*'),150);
+          setTimeout(()=>window.parent.postMessage({source:'morley-turnstile',type:'token',value:token},'*'),600);
+        }
       }
     }catch(_){}
   }
   function render(){
     if(!window.turnstile){setTimeout(render,100);return;}
     status.textContent='Complete the security check.';
+    window.__morleyTurnstileState='ready';
     turnstile.render('#challenge',{
       sitekey,
       theme:'dark',
