@@ -22,6 +22,7 @@ required = [
     "mobile-more.css",
     "cyber-ui.css",
     "cyber-spectrum.css",
+    "no-gold.css",
     "android/app/build.gradle",
     "android/apply_cyber_palette.py",
     ".github/workflows/build-apk.yml",
@@ -33,11 +34,13 @@ for f in required:
 # Keep the active web palette free of the retired yellow/gold branding values.
 for rel in [
     "web-auth.js",
+    "signed-in-user.js",
     "reference-theme.css",
     "premium-motion.css",
     "mobile-more.css",
     "cyber-ui.css",
     "cyber-spectrum.css",
+    "no-gold.css",
 ]:
     p = ROOT / rel
     if not p.exists():
@@ -57,11 +60,11 @@ if not vc or not vn:
 else:
     version_code = int(vc.group(1))
     version_name = vn.group(1)
-    if str(version_code) not in workflow:
-        errors.append(f"Release workflow does not reference Android versionCode {version_code}")
-    if version_name not in workflow:
-        errors.append(f"Release workflow does not reference Android versionName {version_name}")
     notes.append(f"Android version: {version_name} ({version_code})")
+    if "Resolve Android release version" not in workflow:
+        errors.append("Release workflow is missing dynamic Android version resolution")
+    if "APP_VERSION_CODE" not in workflow or "APP_VERSION_NAME" not in workflow:
+        errors.append("Release workflow is not using resolved Android version metadata")
 
 # OTA may intentionally lag until a successful release, but it must never point ahead.
 ota_path = ROOT / "ota/latest.json"
@@ -70,14 +73,24 @@ if ota_path.exists():
         ota = json.loads(ota_path.read_text(encoding="utf-8"))
         if vc and int(ota.get("versionCode", 0)) > int(vc.group(1)):
             errors.append("OTA versionCode is ahead of the Android build")
+        if not str(ota.get("apkUrl", "")).startswith("https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/"):
+            errors.append("OTA apkUrl is not a trusted B&L Morley GitHub release URL")
     except Exception as exc:
         errors.append(f"Invalid ota/latest.json: {exc}")
 
 # Ensure the shell actually loads the current auth and palette layers.
 index = (ROOT / "index.html").read_text(encoding="utf-8")
-for token in ("reference-theme.css", "premium-motion.css", "web-auth.js", "signed-in-user.js"):
+for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "web-auth.js", "signed-in-user.js"):
     if token not in index:
         errors.append(f"index.html does not load required layer: {token}")
+if "cache:'no-store'" not in index and 'cache:"no-store"' not in index:
+    errors.append("Web shell candidate fetch is not configured with no-store caching")
+
+# Auth must keep the production controls that prevent a public/open signup path.
+auth = (ROOT / "web-auth.js").read_text(encoding="utf-8")
+for token in ("verifyAuthorised", "redeem-app-invite", "captchaToken", "refresh_token"):
+    if token not in auth:
+        errors.append(f"Web auth is missing required control: {token}")
 
 # Avoid accidentally shipping private signing material/config files.
 for forbidden in (".jks", ".keystore", "google-services.json"):
