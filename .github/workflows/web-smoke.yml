@@ -1,0 +1,109 @@
+name: Web Release Smoke Checks
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'admin/**'
+      - '.github/workflows/web-smoke.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'admin/**'
+      - '.github/workflows/web-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate web asset graph
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          root = Path('.')
+          html = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'(?:href|src)=\\?"([^"?]+)', html)
+          missing = []
+          for ref in refs:
+              if ref.startswith(('http://','https://','data:','#')):
+                  continue
+              path = root / ref.lstrip('./')
+              if not path.exists():
+                  missing.append(ref)
+          if missing:
+              raise SystemExit('Missing local assets referenced by index.html: ' + ', '.join(missing))
+
+          required = [
+              'web-auth.js', 'signed-in-user.js', 'desktop-parity.js',
+              'reference-theme.css', 'no-gold.css', 'premium-motion.css'
+          ]
+          absent = [p for p in required if not Path(p).is_file()]
+          if absent:
+              raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
+
+          if 'no-gold.css' not in html:
+              raise SystemExit('Final no-gold safeguard is not loaded by index.html')
+          if html.rfind('no-gold.css') < html.rfind('reference-theme.css'):
+              raise SystemExit('no-gold.css must load after the other theme layers')
+          print('Web asset graph OK')
+          PY
+
+      - name: Reject legacy gold in active web UI layers
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          active = [
+              'mobile-more.css', 'cyber-ui.css', 'cyber-spectrum.css',
+              'premium-motion.css', 'reference-theme.css', 'no-gold.css',
+              'web-auth.js'
+          ]
+          forbidden = [
+              '#ffd400', '#ffe65b', '#ffd000', '#ffc800', '#ffe95a',
+              '#c99a27', '#ddb347', '#cda51d', '#e0bb39', '#caa21c', '#e1bd3d',
+              'rgba(255,212,0', 'rgb(255,212,0'
+          ]
+          failures = []
+          for file in active:
+              text = Path(file).read_text(encoding='utf-8').lower()
+              found = [token for token in forbidden if token in text]
+              if found:
+                  failures.append(f'{file}: {", ".join(found)}')
+          if failures:
+              raise SystemExit('Legacy gold detected in active UI layers:\n' + '\n'.join(failures))
+          print('No legacy gold found in active web UI layers')
+          PY
+
+      - name: Validate auth and navigation hooks
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              'web-auth.js': ['morley-web-signout', 'clearSession()', 'verifyAuthorised'],
+              'signed-in-user.js': ['display_name', 'morley-web-user'],
+              'desktop-parity.js': ['morleyDesktopGo', 'morleyMoreBackBar'],
+          }
+          for file, needles in checks.items():
+              text = Path(file).read_text(encoding='utf-8')
+              missing = [n for n in needles if n not in text]
+              if missing:
+                  raise SystemExit(f'{file} missing expected production hooks: {missing}')
+          print('Auth/navigation hooks OK')
+          PY
