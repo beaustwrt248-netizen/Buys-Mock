@@ -55,7 +55,6 @@ jobs:
           set -euo pipefail
           python3 -m py_compile android/apply_cyber_palette.py
           python3 android/apply_cyber_palette.py
-          # The build-time transform must remove the retired gold palette and old charcoal surfaces.
           if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
             echo 'Retired Android gold token remains after cyber palette transform'
             exit 1
@@ -63,11 +62,31 @@ jobs:
           grep -q 'Laptop Intelligence' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q '0xFF2F7CFF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q '0xFF12C9FF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
-          # Prove the transformer is idempotent so repeated CI builds cannot keep changing source.
+          grep -q 'AuthManager.accessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-before.sha"
           python3 android/apply_cyber_palette.py
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
           diff -u "$RUNNER_TEMP/palette-before.sha" "$RUNNER_TEMP/palette-after.sha"
+
+      - name: Verify protected backend endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://ghdhairijqjqivqriigi.supabase.co/functions/v1'
+          assert_protected() {
+            local endpoint="$1" body="$2" code
+            code="$(curl --silent --show-error --output "$RUNNER_TEMP/${endpoint}.json" --write-out '%{http_code}' --max-time 20 \
+              -X POST "$BASE/$endpoint" -H 'Content-Type: application/json' --data "$body")"
+            if [ "$code" != '401' ]; then
+              echo "$endpoint accepted or mishandled an unauthenticated request (HTTP $code)"
+              cat "$RUNNER_TEMP/${endpoint}.json" || true
+              exit 1
+            fi
+          }
+          assert_protected ebay-search '{"query":"RTX 4070","limit":5}'
+          assert_protected oem-search '{"query":"Dell OptiPlex 7090"}'
+          assert_protected send-admin-notification '{"job_id":"00000000-0000-0000-0000-000000000000"}'
 
       - name: Validate OTA JSON
         run: python3 -m json.tool ota/latest.json >/dev/null
