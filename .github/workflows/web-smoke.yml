@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           for file in \
-            app.js web-auth.js signed-in-user.js desktop-parity.js workflow.js \
+            app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js \
             admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
@@ -85,7 +85,8 @@ jobs:
           active = [
               'mobile-more.css', 'cyber-ui.css', 'cyber-spectrum.css',
               'premium-motion.css', 'reference-theme.css', 'no-gold.css',
-              'web-auth.js', 'admin/styles.css', 'admin/index.html', 'admin/app.js'
+              'web-auth.js', 'desktop-parity.js',
+              'admin/styles.css', 'admin/index.html', 'admin/app.js'
           ]
           forbidden = [
               '#ffd400', '#ffe65b', '#ffd000', '#ffc800', '#ffe95a',
@@ -103,7 +104,7 @@ jobs:
           print('No legacy gold found in active web/admin UI layers')
           PY
 
-      - name: Validate auth navigation and admin hooks
+      - name: Validate auth navigation pricing and admin hooks
         shell: bash
         run: |
           python3 - <<'PY'
@@ -111,7 +112,9 @@ jobs:
           checks = {
               'web-auth.js': ['morley-web-signout', 'clearSession()', 'verifyAuthorised'],
               'signed-in-user.js': ['display_name', 'morley-web-user'],
-              'desktop-parity.js': ['morleyDesktopGo', 'morleyMoreBackBar'],
+              'desktop-parity.js': ['morleyDesktopGo', 'morley-section-back'],
+              'app.js': ["localStorage.getItem('morley_web_auth')", "'Authorization':'Bearer '+token"],
+              'desktop-oem.js': ["localStorage.getItem('morley_web_auth')", "'Authorization':'Bearer '+token"],
               'admin/app.js': ["admin-user-control", "action:'set_role'", 'secureUserAction'],
               'admin/invites.js': ['crypto.getRandomValues', 'sha256Hex'],
               'admin/turnstile.html': ['postMessage(payload,parentOrigin)'],
@@ -123,5 +126,5 @@ jobs:
                   raise SystemExit(f'{file} missing expected production hooks: {missing}')
           if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
               raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
-          print('Auth/navigation/admin hooks OK')
+          print('Auth/navigation/pricing/admin hooks OK')
           PY
