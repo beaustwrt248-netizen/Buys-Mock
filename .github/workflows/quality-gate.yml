@@ -49,6 +49,26 @@ jobs:
             node --check "$file"
           done
 
+      - name: Verify Android cyber palette transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile android/apply_cyber_palette.py
+          python3 android/apply_cyber_palette.py
+          # The build-time transform must remove the retired gold palette and old charcoal surfaces.
+          if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
+            echo 'Retired Android gold token remains after cyber palette transform'
+            exit 1
+          fi
+          grep -q 'Laptop Intelligence' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q '0xFF2F7CFF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q '0xFF12C9FF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          # Prove the transformer is idempotent so repeated CI builds cannot keep changing source.
+          find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-before.sha"
+          python3 android/apply_cyber_palette.py
+          find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
+          diff -u "$RUNNER_TEMP/palette-before.sha" "$RUNNER_TEMP/palette-after.sha"
+
       - name: Validate OTA JSON
         run: python3 -m json.tool ota/latest.json >/dev/null
 
