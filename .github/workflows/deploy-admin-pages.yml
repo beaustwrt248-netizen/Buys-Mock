@@ -39,7 +39,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js workflow.js match-quality.js; do
+          for file in \
+            web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js workflow.js match-quality.js \
+            admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -60,6 +62,9 @@ jobs:
           test -s site/web-auth.js
           test -s site/no-gold.css
           test -s site/web-a11y.js
+          test -s site/admin/index.html
+          test -s site/admin/app.js
+          test -s site/admin/styles.css
           test -s site/admin/turnstile.html
           test -s site/web-assets/morley_buys_login_bg_app.mp4
           test "$(stat -c%s site/web-assets/morley_buys_login_bg_app.mp4)" -gt 1000000
@@ -105,4 +110,10 @@ jobs:
           fetch_with_retry "$BASE/web-a11y.js" "$RUNNER_TEMP/web-a11y.js"
           grep -q 'focus-visible' "$RUNNER_TEMP/web-a11y.js"
           fetch_with_retry "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html"
-          test -s "$RUNNER_TEMP/turnstile.html"
+          grep -q 'postMessage(payload,parentOrigin)' "$RUNNER_TEMP/turnstile.html"
+          fetch_with_retry "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js"
+          grep -q "action:'set_role'" "$RUNNER_TEMP/admin-app.js"
+          grep -q 'admin-user-control' "$RUNNER_TEMP/admin-app.js"
+          ! grep -q "sb.rpc('admin_set_user_role'" "$RUNNER_TEMP/admin-app.js"
+          fetch_with_retry "$BASE/admin/styles.css" "$RUNNER_TEMP/admin-styles.css"
+          ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/admin-styles.css"
