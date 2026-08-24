@@ -2,6 +2,7 @@
 :root{
   --yellow:#2f7cff!important;
   --yellow2:#70dfff!important;
+  --warn:#b777ff!important;
   --cy-yellow:#2f7cff!important;
   --cy-yellow-soft:#70dfff!important;
   --m-yellow:#2f7cff!important;
@@ -15,7 +16,7 @@
 .tiles button:hover,.desktop-nav-card:hover{border-color:rgba(18,201,255,.42)!important}
 input:focus,select:focus,textarea:focus{border-color:#12c9ff!important;box-shadow:0 0 0 3px rgba(18,201,255,.08),0 0 22px rgba(18,201,255,.08)!important}
 button:not(.secondary):not(.danger):not(.link):not(.morley-web-signout):not(.morley-web-user):not(.desktop-nav-card){background:linear-gradient(120deg,#1f5fd8,#2f7cff 55%,#12c9ff)!important;border-color:#2f7cff!important;color:#fff!important}
-.result a{color:#70dfff!important}.result a:hover{color:#b5efff!important}
+.result a{color:#70dfff!important}.result a:hover{color:#b5efff!important}.warn{color:#b777ff!important}
 .notice{background:linear-gradient(90deg,rgba(47,124,255,.09),rgba(18,201,255,.05))!important;border-color:rgba(18,201,255,.24)!important;color:#ccefff!important;box-shadow:inset 3px 0 0 #12c9ff!important}
 body>nav:before{background:linear-gradient(90deg,transparent,#2f7cff,#12c9ff,#9b4dff,transparent)!important}
 body>nav button.active{background:linear-gradient(145deg,#0b2345,#0a1a33)!important;color:#7bdfff!important;border-color:rgba(18,201,255,.55)!important;box-shadow:inset 0 0 20px rgba(47,124,255,.08),0 0 18px rgba(18,201,255,.07)!important}
