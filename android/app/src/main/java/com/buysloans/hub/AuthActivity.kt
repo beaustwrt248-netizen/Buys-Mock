@@ -2,18 +2,22 @@ package com.buysloans.hub
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Matrix
+import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Surface
+import android.view.TextureView
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.VideoView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,30 +58,66 @@ class AuthActivity:ComponentActivity(){
 
 private enum class AuthMode{SIGN_IN,SIGN_UP,RESET}
 
+private class LoginVideoTextureView(context:Context):TextureView(context),TextureView.SurfaceTextureListener{
+ private var player:MediaPlayer?=null
+ private var videoWidth=0
+ private var videoHeight=0
+
+ init{
+  surfaceTextureListener=this
+  isOpaque=true
+ }
+
+ private fun prepare(surfaceTexture:SurfaceTexture){
+  releasePlayer()
+  val resId=resources.getIdentifier(LOGIN_VIDEO_RESOURCE,"raw",context.packageName)
+  if(resId==0)return
+  val surface=Surface(surfaceTexture)
+  player=MediaPlayer().apply{
+   setSurface(surface)
+   surface.release()
+   setDataSource(context,Uri.parse("android.resource://${context.packageName}/$resId"))
+   isLooping=true
+   setVolume(0f,0f)
+   setOnVideoSizeChangedListener{_,w,h->videoWidth=w;videoHeight=h;applyCenterCrop()}
+   setOnPreparedListener{mp->
+    videoWidth=mp.videoWidth
+    videoHeight=mp.videoHeight
+    applyCenterCrop()
+    mp.start()
+   }
+   setOnErrorListener{mp,_,_->runCatching{mp.reset()};true}
+   prepareAsync()
+  }
+ }
+
+ private fun applyCenterCrop(){
+  if(width<=0||height<=0||videoWidth<=0||videoHeight<=0)return
+  val viewW=width.toFloat();val viewH=height.toFloat()
+  val videoW=videoWidth.toFloat();val videoH=videoHeight.toFloat()
+  val scale=maxOf(viewW/videoW,viewH/videoH)
+  val scaledW=videoW*scale;val scaledH=videoH*scale
+  val matrix=Matrix()
+  matrix.setScale(scaledW/viewW,scaledH/viewH,viewW/2f,viewH/2f)
+  setTransform(matrix)
+ }
+
+ override fun onSizeChanged(w:Int,h:Int,oldw:Int,oldh:Int){super.onSizeChanged(w,h,oldw,oldh);applyCenterCrop()}
+ override fun onSurfaceTextureAvailable(surface:SurfaceTexture,width:Int,height:Int){prepare(surface)}
+ override fun onSurfaceTextureSizeChanged(surface:SurfaceTexture,width:Int,height:Int){applyCenterCrop()}
+ override fun onSurfaceTextureDestroyed(surface:SurfaceTexture):Boolean{releasePlayer();return true}
+ override fun onSurfaceTextureUpdated(surface:SurfaceTexture){}
+ fun resumePlayback(){player?.let{if(!it.isPlaying)runCatching{it.start()}}}
+ fun releasePlayer(){player?.let{runCatching{it.stop()};runCatching{it.release()}};player=null}
+}
+
 @Composable
 private fun LoginVideoBackground(){
- val context=androidx.compose.ui.platform.LocalContext.current
  AndroidView(
   modifier=Modifier.fillMaxSize(),
-  factory={ctx->
-   VideoView(ctx).apply{
-    setBackgroundColor(android.graphics.Color.BLACK)
-    val resId=ctx.resources.getIdentifier(LOGIN_VIDEO_RESOURCE,"raw",ctx.packageName)
-    if(resId!=0){
-     setVideoURI(Uri.parse("android.resource://${ctx.packageName}/$resId"))
-     setOnPreparedListener{player->
-      player.isLooping=true
-      player.setVolume(0f,0f)
-      if(Build.VERSION.SDK_INT>=16)player.setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING)
-      start()
-     }
-     setOnCompletionListener{start()}
-     setOnErrorListener{_,_,_->true}
-    }
-   }
-  },
-  update={video->if(!video.isPlaying)runCatching{video.start()}},
-  onRelease={video->runCatching{video.stopPlayback()}}
+  factory={ctx->LoginVideoTextureView(ctx)},
+  update={it.resumePlayback()},
+  onRelease={it.releasePlayer()}
  )
 }
 
@@ -137,7 +177,7 @@ private fun TurnstileChallenge(refreshKey:Int,onToken:(String)->Unit,onExpired:(
  MaterialTheme(colorScheme=darkColorScheme(primary=AuthYellow,background=AuthBg,surface=AuthCard)){
   Box(Modifier.fillMaxSize().background(AuthBg)){
    LoginVideoBackground()
-   Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.58f)))
+   Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.48f)))
    Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center){
     Text("B&L Morley",fontSize=34.sp,fontWeight=FontWeight.Black,color=Color.White)
     Spacer(Modifier.height(8.dp))
