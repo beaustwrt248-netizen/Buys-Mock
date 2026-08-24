@@ -2,8 +2,10 @@
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const ROUTE_KEY='morley_desktop_route';
+  const VALID=['home','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
+  let handlingPop=false;
 
-  function go(page){
+  function renderPage(page){
     if(typeof window.show==='function') window.show(page);
     else {
       $$('.section').forEach(x=>x.classList.toggle('active',x.id===page));
@@ -11,8 +13,17 @@
     }
     $$('.desktop-side-nav [data-target]').forEach(x=>x.classList.toggle('active',x.dataset.target===page || (x.dataset.target==='settings' && ['deals','inventory','sales','scanner'].includes(page))));
     try{localStorage.setItem(ROUTE_KEY,page)}catch{}
-    if(location.hash!==`#${page}`) history.replaceState(null,'',`#${page}`);
     window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function go(page,opts={}){
+    if(!VALID.includes(page)) return;
+    renderPage(page);
+    const hash=`#${page}`;
+    if(!handlingPop && location.hash!==hash){
+      if(opts.replace) history.replaceState({morleyPage:page},'',hash);
+      else history.pushState({morleyPage:page},'',hash);
+    }
   }
   window.morleyDesktopGo=go;
 
@@ -91,6 +102,16 @@
     $$('[data-go]',sec).forEach(b=>b.onclick=()=>go(b.dataset.go));
   }
 
+  function addMoreBackButtons(){
+    if(!$('#morleyBackStyle')){
+      const s=document.createElement('style');s.id='morleyBackStyle';s.textContent=`.morley-section-back{display:inline-flex!important;align-items:center!important;gap:8px!important;width:auto!important;margin:0 0 12px!important;padding:9px 13px!important;border:1px solid #5f531a!important;border-radius:999px!important;background:#211e10!important;color:#ffd400!important;font-weight:900!important;box-shadow:none!important}.morley-section-back:hover{background:#302a10!important}@media(max-width:600px){.morley-section-back{margin-bottom:10px!important;padding:8px 12px!important;font-size:12px!important}}`;document.head.appendChild(s);
+    }
+    ['deals','inventory','sales','scanner'].forEach(id=>{
+      const sec=$('#'+id); if(!sec||$('.morley-section-back',sec)) return;
+      const b=document.createElement('button');b.type='button';b.className='morley-section-back';b.innerHTML='← Back to More';b.onclick=()=>go('settings');sec.prepend(b);
+    });
+  }
+
   function enrichPageTitles(){
     const map={laptop:['💻','Laptop / MacBook','Whole-device Google + eBay AU valuation'],desktop:['🖥️','Desktop / Gaming PC','Component-based live pricing'],general:['$','GP Calculator','A / B / C / Luxury buying targets'],deals:['◷','Valuations & Deals','Saved opportunities and deal tracking'],inventory:['▣','Inventory','Stock, cost, resale and profit'],sales:['↗','Sales History','Revenue and realised profit'],scanner:['⌗','Barcode Scanner','Find or add stock quickly']};
     Object.entries(map).forEach(([id,[icon,title,sub]])=>{
@@ -117,15 +138,24 @@
   }
 
   function restoreRoute(){
-    const valid=['home','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
     let page=(location.hash||'').replace('#','');
-    if(!valid.includes(page)){try{page=localStorage.getItem(ROUTE_KEY)||''}catch{}}
-    if(valid.includes(page)) setTimeout(()=>go(page),0);
+    if(!VALID.includes(page)){try{page=localStorage.getItem(ROUTE_KEY)||''}catch{}}
+    if(!VALID.includes(page)) page='home';
+    renderPage(page);
+    history.replaceState({morleyPage:page},'',`#${page}`);
+  }
+
+  function enableBrowserBack(){
+    addEventListener('popstate',()=>{
+      const page=(location.hash||'').replace('#','');
+      if(!VALID.includes(page)) return;
+      handlingPop=true;renderPage(page);handlingPop=false;
+    });
   }
 
   function init(){
     document.documentElement.classList.add('morley-web-parity');
-    addDesktopShell(); addDesktopHeader(); addQuickDeal(); buildMoreHub(); enrichPageTitles(); addKeyboardShortcuts(); monitorConnectivity(); restoreRoute();
+    addDesktopShell(); addDesktopHeader(); addQuickDeal(); buildMoreHub(); enrichPageTitles(); addMoreBackButtons(); addKeyboardShortcuts(); monitorConnectivity(); enableBrowserBack(); restoreRoute();
     const originalShow=window.show;
     if(typeof originalShow==='function') window.show=function(page){originalShow(page); $$('.desktop-side-nav [data-target]').forEach(x=>x.classList.toggle('active',x.dataset.target===page || (x.dataset.target==='settings'&&['deals','inventory','sales','scanner'].includes(page))));};
   }
