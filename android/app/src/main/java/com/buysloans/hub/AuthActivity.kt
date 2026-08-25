@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
@@ -51,13 +52,23 @@ class AuthActivity:ComponentActivity(){
   window.statusBarColor=android.graphics.Color.rgb(3,7,18)
   window.navigationBarColor=android.graphics.Color.rgb(3,7,18)
   NotificationHelper.createChannels(this)
-  if(AuthManager.isSignedIn(this)){continueToApp();return}
+  if(AuthManager.isSignedIn(this)){
+   setContent{SessionCheckScreen()}
+   lifecycleScope.launch{
+    runCatching{AuthManager.validAccessToken(this@AuthActivity)}
+     .onSuccess{continueToApp()}
+     .onFailure{AuthManager.signOut(this@AuthActivity);setContent{AuthRoot{continueToApp()}}}
+   }
+   return
+  }
   setContent{AuthRoot{continueToApp()}}
  }
  private fun continueToApp(){requestNotificationsAndRegister();startActivity(Intent(this,DashboardActivity::class.java));finish()}
  private fun requestNotificationsAndRegister(){if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) else registerDevice()}
  private fun registerDevice(){FirebaseMessaging.getInstance().token.addOnSuccessListener{DeviceRegistrar.register(this,it)}}
 }
+
+@Composable private fun SessionCheckScreen(){MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){Surface(color=AuthBg,modifier=Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center){CircularProgressIndicator(color=AuthAccent);Spacer(Modifier.height(18.dp));Text("B&L Morley",fontSize=30.sp,fontWeight=FontWeight.Black);Spacer(Modifier.height(6.dp));Text("Verifying your secure session…",color=Color(0xFFA7BAD3))}}}}
 
 private enum class AuthMode{SIGN_IN,SIGN_UP,RESET}
 
