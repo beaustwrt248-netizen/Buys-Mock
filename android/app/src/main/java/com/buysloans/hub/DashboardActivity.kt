@@ -24,9 +24,10 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
-private val DashYellow = Color(0xFFFFD400)
-private val DashBg = Color(0xFF111111)
-private val DashCard = Color(0xFF222222)
+private val DashAccent = Color(0xFF16C7FF)
+private val DashAccentStrong = Color(0xFF2684FF)
+private val DashBg = Color(0xFF030712)
+private val DashCard = Color(0xFF0B1528)
 
 class DashboardActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -35,8 +36,8 @@ class DashboardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(17,17,17)
-        window.navigationBarColor = android.graphics.Color.rgb(17,17,17)
+        window.statusBarColor = android.graphics.Color.rgb(3,7,18)
+        window.navigationBarColor = android.graphics.Color.rgb(3,7,18)
         NotificationHelper.createChannels(this)
         val prefs=getSharedPreferences("app_state",MODE_PRIVATE)
         val previous=prefs.getInt("last_seen_version_code",0)
@@ -58,7 +59,7 @@ class DashboardActivity : ComponentActivity() {
 private fun RootApp(showUpdatedInitially:Boolean) {
     val activity = androidx.compose.ui.platform.LocalContext.current as DashboardActivity
     var signedIn by remember { mutableStateOf(AuthManager.isSignedIn(activity)) }
-    MaterialTheme(colorScheme = darkColorScheme(primary = DashYellow, background = DashBg, surface = DashCard)) {
+    MaterialTheme(colorScheme = darkColorScheme(primary = DashAccent, secondary = DashAccentStrong, background = DashBg, surface = DashCard)) {
         if (!signedIn) LoginScreen {
             signedIn = true
             activity.enableNotificationsAndRegister()
@@ -76,7 +77,7 @@ private fun LoginScreen(onSignedIn: () -> Unit) {
     var error by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
         Text("B&L Morley", fontSize=34.sp, fontWeight=FontWeight.Black)
-        Spacer(Modifier.height(8.dp)); Text("Sign in", color=DashYellow, fontSize=26.sp, fontWeight=FontWeight.Bold)
+        Spacer(Modifier.height(8.dp)); Text("Sign in", color=DashAccent, fontSize=26.sp, fontWeight=FontWeight.Bold)
         Spacer(Modifier.height(22.dp))
         OutlinedTextField(email,{email=it},label={Text("Email")},singleLine=true,modifier=Modifier.fillMaxWidth())
         Spacer(Modifier.height(12.dp))
@@ -91,7 +92,7 @@ private fun LoginScreen(onSignedIn: () -> Unit) {
                     .onFailure { error=it.message?:"Sign in failed" }
                 busy=false
             }
-        },enabled=!busy&&email.isNotBlank()&&password.isNotBlank(),modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)) { Text(if(busy)"Signing in…" else "Sign in",fontWeight=FontWeight.Black) }
+        },enabled=!busy&&email.isNotBlank()&&password.isNotBlank(),modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White)) { Text(if(busy)"Signing in…" else "Sign in",fontWeight=FontWeight.Black) }
         Spacer(Modifier.height(14.dp));Text("Use your authorised B&L Morley account. Notification permission is requested after a successful sign-in.",color=Color.LightGray)
     }
 }
@@ -112,12 +113,12 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             AuthManager.signOut(context)
             val intent=Intent(context,AuthActivity::class.java).apply{addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)}
             context.startActivity(intent)
-        },colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)){Text("Sign out",fontWeight=FontWeight.Black)}}
+        },colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White)){Text("Sign out",fontWeight=FontWeight.Black)}}
     )
     Scaffold(
         containerColor=DashBg,
-        bottomBar={NavigationBar(containerColor=Color(0xFF101010)){Page.entries.forEach{p->NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashYellow.copy(alpha=.25f),selectedTextColor=DashYellow))}}},
-        floatingActionButton={if(page==Page.More) ExtendedFloatingActionButton(onClick={confirmSignOut=true},containerColor=DashYellow,contentColor=Color.Black,text={Text("Sign out",fontWeight=FontWeight.Black)},icon={Text("↪")})}
+        bottomBar={NavigationBar(containerColor=Color(0xFF07101F)){Page.entries.forEach{p->NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashAccent.copy(alpha=.18f),selectedIconColor=DashAccent,selectedTextColor=DashAccent,unselectedTextColor=Color(0xFF8EA6C4)))}}},
+        floatingActionButton={if(page==Page.More) ExtendedFloatingActionButton(onClick={confirmSignOut=true},containerColor=DashAccentStrong,contentColor=Color.White,text={Text("Sign out",fontWeight=FontWeight.Black)},icon={Text("↪")})}
     ){pad->Box(Modifier.padding(pad).fillMaxSize()){when(page){Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP});Page.Laptop->Laptop();Page.Desktop->Desktop();Page.GP->GPFix();Page.More->MoreHub()}}}
 }
 
@@ -125,14 +126,14 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
     var quickText by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var type by remember{mutableStateOf("Auto detect")}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("B&L Morley",fontSize=25.sp,fontWeight=FontWeight.Black);Surface(color=DashYellow.copy(alpha=.14f),border=BorderStroke(1.dp,DashYellow.copy(alpha=.45f)),shape=RoundedCornerShape(999.dp)){Text("PRODUCTION",Modifier.padding(horizontal=12.dp,vertical=7.dp),color=DashYellow,fontSize=11.sp,fontWeight=FontWeight.Black)}}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("B&L Morley",fontSize=25.sp,fontWeight=FontWeight.Black);Surface(color=DashAccent.copy(alpha=.10f),border=BorderStroke(1.dp,DashAccent.copy(alpha=.40f)),shape=RoundedCornerShape(999.dp)){Text("PRODUCTION",Modifier.padding(horizontal=12.dp,vertical=7.dp),color=DashAccent,fontSize=11.sp,fontWeight=FontWeight.Black)}}
         DashboardCard("WELCOME","Buys and Loans Calculator","Live valuation, buying targets and native pricing tools in one workspace.")
-        Card(colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(2.dp,DashYellow),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
+        Card(colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.55f)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
             Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
                 Text("⚡ Quick Deal Capture",fontSize=24.sp,fontWeight=FontWeight.Black);Text("Paste a seller listing, specs or product details. We'll route it to the right valuation tool.",color=Color.LightGray)
                 OutlinedTextField(quickText,{quickText=it},label={Text("Listing / specs / URL")},modifier=Modifier.fillMaxWidth(),minLines=4);OutlinedTextField(ask,{ask=it},label={Text("Seller asking price")},modifier=Modifier.fillMaxWidth(),singleLine=true)
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Auto detect","Laptop","Desktop").forEach{option->FilterChip(selected=type==option,onClick={type=option},label={Text(option,fontSize=11.sp)})}}
-                Button(onClick={val text=quickText.lowercase();if(type=="Laptop"||(type=="Auto detect"&&listOf("laptop","macbook","notebook").any{text.contains(it)}))onLaptop() else onDesktop()},enabled=quickText.isNotBlank(),colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().height(56.dp)){Text("Analyse Now",fontWeight=FontWeight.Black,fontSize=17.sp)}
+                Button(onClick={val text=quickText.lowercase();if(type=="Laptop"||(type=="Auto detect"&&listOf("laptop","macbook","notebook").any{text.contains(it)}))onLaptop() else onDesktop()},enabled=quickText.isNotBlank(),colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().height(56.dp)){Text("Analyse Now",fontWeight=FontWeight.Black,fontSize=17.sp)}
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onLaptop,modifier=Modifier.weight(1f)){Text("💻 Laptop")};OutlinedButton(onDesktop,modifier=Modifier.weight(1f)){Text("🖥 Desktop")}}
             }
         }
@@ -156,7 +157,7 @@ private fun MoreHub(){
         }
         Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
             Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                Text("APP UPDATES",color=DashYellow,fontSize=12.sp,fontWeight=FontWeight.Black)
+                Text("APP UPDATES",color=DashAccent,fontSize=12.sp,fontWeight=FontWeight.Black)
                 Text("OTA Updates",fontSize=24.sp,fontWeight=FontWeight.Black)
                 Text(updateStatus,color=Color.LightGray,lineHeight=20.sp)
                 Button(onClick={
@@ -168,7 +169,7 @@ private fun MoreHub(){
                         }.onFailure{updateStatus="Update check failed: ${it.message?:"network error"}"}
                         checking=false
                     }
-                },enabled=!checking,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=DashYellow,contentColor=Color.Black)){
+                },enabled=!checking,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White)){
                     Text(if(checking)"Checking…" else "Check for Updates",fontWeight=FontWeight.Black)
                 }
                 availableUpdate?.let{u->
@@ -185,6 +186,6 @@ private fun MoreHub(){
     }
 }
 
-@Composable private fun DashboardCard(kicker:String,title:String,body:String){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(kicker,color=DashYellow,fontSize=12.sp,fontWeight=FontWeight.Black);Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)}}}
+@Composable private fun DashboardCard(kicker:String,title:String,body:String){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(kicker,color=DashAccent,fontSize=12.sp,fontWeight=FontWeight.Black);Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)}}}
 @Composable private fun StatusTile(label:String,value:String,modifier:Modifier=Modifier){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(18.dp),modifier=modifier){Column(Modifier.padding(14.dp)){Text(label,color=Color.Gray,fontSize=10.sp,fontWeight=FontWeight.Bold);Text(value,color=Color(0xFF57E389),fontSize=18.sp,fontWeight=FontWeight.Black)}}}
-@Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp);HorizontalDivider(color=DashYellow,thickness=3.dp)}}}
+@Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.18f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp);HorizontalDivider(color=DashAccent.copy(alpha=.70f),thickness=2.dp)}}}
