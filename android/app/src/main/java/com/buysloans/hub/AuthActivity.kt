@@ -6,8 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Matrix
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
@@ -34,6 +32,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
@@ -49,8 +48,9 @@ class AuthActivity:ComponentActivity(){
  private val notificationPermissionLauncher=registerForActivityResult(ActivityResultContracts.RequestPermission()){registerDevice()}
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
-  window.statusBarColor=android.graphics.Color.rgb(3,7,18)
-  window.navigationBarColor=android.graphics.Color.rgb(3,7,18)
+  WindowCompat.setDecorFitsSystemWindows(window,false)
+  window.statusBarColor=android.graphics.Color.TRANSPARENT
+  window.navigationBarColor=android.graphics.Color.TRANSPARENT
   NotificationHelper.createChannels(this)
   if(AuthManager.isSignedIn(this)){
    setContent{SessionCheckScreen()}
@@ -68,7 +68,7 @@ class AuthActivity:ComponentActivity(){
  private fun registerDevice(){FirebaseMessaging.getInstance().token.addOnSuccessListener{DeviceRegistrar.register(this,it)}}
 }
 
-@Composable private fun SessionCheckScreen(){MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){Surface(color=AuthBg,modifier=Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.Center){CircularProgressIndicator(color=AuthAccent);Spacer(Modifier.height(18.dp));Text("B&L Morley",fontSize=30.sp,fontWeight=FontWeight.Black);Spacer(Modifier.height(6.dp));Text("Verifying your secure session…",color=Color(0xFFA7BAD3))}}}}
+@Composable private fun SessionCheckScreen(){MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){Surface(color=AuthBg,modifier=Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(28.dp),verticalArrangement=Arrangement.Center){CircularProgressIndicator(color=AuthAccent);Spacer(Modifier.height(18.dp));Text("B&L Morley",fontSize=30.sp,fontWeight=FontWeight.Black);Spacer(Modifier.height(6.dp));Text("Verifying your secure session…",color=Color(0xFFA7BAD3))}}}}
 
 private enum class AuthMode{SIGN_IN,SIGN_UP,RESET}
 
@@ -76,7 +76,7 @@ private class LoginVideoTextureView(context:Context):TextureView(context),Textur
  private var player:MediaPlayer?=null
  private var videoWidth=0
  private var videoHeight=0
- init{surfaceTextureListener=this;isOpaque=true;if(Build.VERSION.SDK_INT>=31)setRenderEffect(RenderEffect.createBlurEffect(5f,5f,Shader.TileMode.CLAMP))}
+ init{surfaceTextureListener=this;isOpaque=true}
  private fun prepare(surfaceTexture:SurfaceTexture){
   releasePlayer();val resId=resources.getIdentifier(LOGIN_VIDEO_RESOURCE,"raw",context.packageName);if(resId==0)return
   val owner=this@LoginVideoTextureView;val surface=Surface(surfaceTexture);val mediaPlayer=MediaPlayer();player=mediaPlayer
@@ -85,7 +85,7 @@ private class LoginVideoTextureView(context:Context):TextureView(context),Textur
   mediaPlayer.setOnPreparedListener{mp->owner.videoWidth=mp.videoWidth;owner.videoHeight=mp.videoHeight;owner.applyCenterCrop();mp.start()}
   mediaPlayer.setOnErrorListener{mp,_,_->runCatching{mp.reset()};true};mediaPlayer.prepareAsync()
  }
- private fun applyCenterCrop(){if(width<=0||height<=0||videoWidth<=0||videoHeight<=0)return;val viewW=width.toFloat();val viewH=height.toFloat();val videoW=videoWidth.toFloat();val videoH=videoHeight.toFloat();val coverScale=maxOf(viewW/videoW,viewH/videoH);val framingScale=coverScale*0.94f;val scaledW=videoW*framingScale;val scaledH=videoH*framingScale;val matrix=Matrix();matrix.setScale(scaledW/viewW,scaledH/viewH,viewW/2f,viewH/2f);setTransform(matrix)}
+ private fun applyCenterCrop(){if(width<=0||height<=0||videoWidth<=0||videoHeight<=0)return;val viewW=width.toFloat();val viewH=height.toFloat();val videoW=videoWidth.toFloat();val videoH=videoHeight.toFloat();val coverScale=maxOf(viewW/videoW,viewH/videoH);val scaledW=videoW*coverScale;val scaledH=videoH*coverScale;val matrix=Matrix();matrix.setScale(scaledW/viewW,scaledH/viewH,viewW/2f,viewH/2f);setTransform(matrix)}
  override fun onSizeChanged(w:Int,h:Int,oldw:Int,oldh:Int){super.onSizeChanged(w,h,oldw,oldh);applyCenterCrop()}
  override fun onSurfaceTextureAvailable(surface:SurfaceTexture,width:Int,height:Int){prepare(surface)}
  override fun onSurfaceTextureSizeChanged(surface:SurfaceTexture,width:Int,height:Int){applyCenterCrop()}
@@ -110,8 +110,8 @@ private class TurnstileBridge(private val onToken:(String)->Unit,private val onE
  fun resetCaptcha(){captchaToken="";captchaRefresh++};fun changeMode(next:AuthMode){mode=next;message="";isError=false;resetCaptcha()}
  MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){
   Box(Modifier.fillMaxSize().background(AuthBg)){
-   LoginVideoBackground();Box(Modifier.fillMaxSize().background(Color(0xFF020611).copy(alpha=0.66f)))
-   Column(Modifier.fillMaxSize().background(Color(0xFF030712).copy(alpha=0.10f)).padding(28.dp),verticalArrangement=Arrangement.Center){
+   LoginVideoBackground();Box(Modifier.fillMaxSize().background(Color(0xFF020611).copy(alpha=0.58f)))
+   Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).background(Color(0xFF030712).copy(alpha=0.06f)).padding(28.dp),verticalArrangement=Arrangement.Center){
     Text("B&L Morley",fontSize=34.sp,fontWeight=FontWeight.Black,color=Color.White);Spacer(Modifier.height(8.dp))
     Text(when(mode){AuthMode.SIGN_IN->"Sign in";AuthMode.SIGN_UP->"Private sign up";AuthMode.RESET->"Forgot password"},color=AuthAccent,fontSize=26.sp,fontWeight=FontWeight.Bold)
     if(mode==AuthMode.SIGN_UP)Text("Invite only — contact an administrator for access.",color=Color(0xFFA7BAD3))
