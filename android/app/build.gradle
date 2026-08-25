@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 32
-        versionName '2.12.1-marketplace-match'
+        versionCode 33
+        versionName '2.12.2-pricing-auth'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -60,15 +60,17 @@ tasks.register('verifyReleaseSigning') {
     }
 }
 
-// Apply only the two idempotent marketplace migrations needed by this patch.
-// The unrelated UI/palette source rewriter remains detached from preBuild so it
-// cannot reorder or invalidate the pricing source before these migrations run.
+// Apply only idempotent pricing migrations. The UI/palette source rewriter stays
+// detached from preBuild so it cannot invalidate pricing source patterns.
 tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'improve_exact_matching.py' }
 tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
+tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
 tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
+tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }
 tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('improveExactMatching')
     dependsOn tasks.named('integrateMarketplaceValuation')
+    dependsOn tasks.named('securePricingAuth')
 }
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
