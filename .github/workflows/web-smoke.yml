@@ -82,13 +82,14 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           checks={
-            'web-auth.js':['morley-web-signout','clearSession()','verifyAuthorised'],
+            'web-auth.js':['morley-web-signout','clearSession()','verifyAuthorised','redeem-app-invite'],
             'signed-in-user.js':['display_name','morley-web-user'],
             'desktop-parity.js':['morleyDesktopGo','morley-section-back'],
             'secure-pricing.js':["localStorage.getItem(STORE)","'Authorization':'Bearer '+token",'window.market=secureMarket'],
             'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
+            'admin/index.html':['id="inviteName"','First and last name','invites.js?v=3'],
             'admin/app.js':['admin-user-control',"secureUserAction('set_role'",'secureUserAction'],
-            'admin/invites.js':['crypto.getRandomValues','sha256Hex'],
+            'admin/invites.js':['crypto.getRandomValues','sha256Hex','display_name:name','inviteName'],
             'admin/turnstile.html':['postMessage(payload,parentOrigin)'],
           }
           for file,needles in checks.items():
@@ -96,5 +97,5 @@ jobs:
               if missing: raise SystemExit(f'{file} missing expected production hooks: {missing}')
           if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
               raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
-          print('Auth/navigation/pricing/admin hooks OK')
+          print('Auth/navigation/pricing/admin/full-name hooks OK')
           PY
