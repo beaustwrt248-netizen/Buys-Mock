@@ -190,6 +190,7 @@ private fun MoreHub(onSignOut:()->Unit){
             }
             if(checking) LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
             availableUpdate?.let{u->OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=26&&!context.packageManager.canRequestPackageInstalls())UpdateManager.openInstallerPermission(context) else UpdateManager.openDownload(context,u)},modifier=Modifier.fillMaxWidth()){Text("Download ${u.versionName}")}}
+            MenuRow("◇","System Diagnostics","Check app, account, network, notification and OTA readiness."){context.startActivity(Intent(context,DiagnosticsActivity::class.java))}
             MenuRow("⚑","Report an Issue","Record an app problem for follow-up."){open("report")}
             MenuRow("§","Legal & Privacy","Privacy and application information."){open("legal")}
             MenuRow("ⓘ","About B&L Morley","Version ${BuildConfig.VERSION_NAME}"){open("about")}
