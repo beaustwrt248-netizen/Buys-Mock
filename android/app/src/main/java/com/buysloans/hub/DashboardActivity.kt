@@ -136,6 +136,7 @@ private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
     var quickText by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var type by remember{mutableStateOf("Auto detect")}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         DashboardCard("WELCOME","Buys and Loans Calculator","Live valuation, buying targets and native pricing tools in one workspace.")
+        SmartWorkspaceSection()
         Card(colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.55f)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
             Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
                 Text("⚡ Quick Deal Capture",fontSize=24.sp,fontWeight=FontWeight.Black)
