@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +39,7 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = android.graphics.Color.rgb(3,7,18)
         window.navigationBarColor = android.graphics.Color.rgb(3,7,18)
+        if(getSharedPreferences("display_settings",MODE_PRIVATE).getBoolean("keep_awake",false)) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         NotificationHelper.createChannels(this)
         if (!AuthManager.isSignedIn(this)) {
             startActivity(Intent(this, AuthActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK) })
@@ -159,24 +161,25 @@ private fun MoreHub(onSignOut:()->Unit){
     var checking by remember{mutableStateOf(false)}
     var updateStatus by remember{mutableStateOf("Check app version and update status.")}
     var availableUpdate by remember{mutableStateOf<AppUpdate?>(null)}
-    var dialog by remember{mutableStateOf<Pair<String,String>?>(null)}
+
+    fun open(feature:String){context.startActivity(Intent(context,MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE,feature))}
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=14.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
         Text("Menu",fontSize=30.sp,fontWeight=FontWeight.Black)
         MenuSection("Workspace"){
             MenuRow("◷","Valuations & Deals","Saved valuations and deal history."){context.startActivity(Intent(context,ValuationHistoryActivity::class.java))}
-            MenuRow("▣","Inventory","Stock, costs and resale values."){dialog="Inventory" to "Inventory remains available in the shared B&L Morley workspace."}
-            MenuRow("↗","Sales History","Revenue and realised profit."){dialog="Sales History" to "Sales history remains part of the B&L Morley workflow."}
-            MenuRow("⌗","Barcode Scanner","Find or add stock quickly."){dialog="Barcode Scanner" to "Barcode scanning remains part of the B&L Morley stock workflow."}
+            MenuRow("▣","Inventory","Stock, costs and resale values."){open("inventory")}
+            MenuRow("↗","Sales History","Revenue and realised profit."){open("sales")}
+            MenuRow("⌗","Barcode Scanner","Find or add stock quickly."){open("scanner")}
         }
         MenuSection("Your account"){
-            MenuRow("●","Account & Profile",AuthManager.accountLabel(context)){dialog="Account & Profile" to AuthManager.accountLabel(context)}
-            MenuRow("⌁","Privacy & Security","Account privacy and session security."){dialog="Privacy & Security" to "Access is restricted to authorised B&L Morley accounts."}
+            MenuRow("●","Account & Profile",AuthManager.accountLabel(context)){open("account")}
+            MenuRow("⌁","Privacy & Security","Account privacy and session security."){open("privacy")}
         }
         MenuSection("Data & preferences"){
-            MenuRow("☁","Backup & Data","Export, import and local app data."){dialog="Backup & Data" to "Keep important business records backed up before major device changes."}
-            MenuRow("♢","Notifications","Update and app notification preferences."){dialog="Notifications" to "Android notification permissions control B&L Morley update alerts."}
-            MenuRow("◐","Display","Interface and display preferences."){dialog="Display" to "B&L Morley uses the shared cyber dark interface."}
+            MenuRow("☁","Backup & Data","Export, import and local app data."){open("backup")}
+            MenuRow("♢","Notifications","Update and app notification preferences."){open("notifications")}
+            MenuRow("◐","Display","Interface and display preferences."){open("display")}
         }
         MenuSection("App"){
             MenuRow("↻","Updates",updateStatus){
@@ -187,14 +190,13 @@ private fun MoreHub(onSignOut:()->Unit){
             }
             if(checking) LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
             availableUpdate?.let{u->OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=26&&!context.packageManager.canRequestPackageInstalls())UpdateManager.openInstallerPermission(context) else UpdateManager.openDownload(context,u)},modifier=Modifier.fillMaxWidth()){Text("Download ${u.versionName}")}}
-            MenuRow("⚑","Report an Issue","Record an app problem for follow-up."){dialog="Report an Issue" to "Include what happened, which screen you were using, and any visible error message."}
-            MenuRow("§","Legal & Privacy","Privacy and application information."){dialog="Legal & Privacy" to "Private B&L Morley business system. Access is limited to authorised accounts."}
-            MenuRow("ⓘ","About B&L Morley","Version ${BuildConfig.VERSION_NAME}"){dialog="About B&L Morley" to "Buys & Loans Hub — valuation, inventory, deals and sales workspace.\nVersion ${BuildConfig.VERSION_NAME}"}
+            MenuRow("⚑","Report an Issue","Record an app problem for follow-up."){open("report")}
+            MenuRow("§","Legal & Privacy","Privacy and application information."){open("legal")}
+            MenuRow("ⓘ","About B&L Morley","Version ${BuildConfig.VERSION_NAME}"){open("about")}
         }
         Button(onClick=onSignOut,modifier=Modifier.fillMaxWidth().height(54.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF57202A),contentColor=Color(0xFFFFC0C8)),shape=RoundedCornerShape(16.dp)){Text("↪  Sign out",fontWeight=FontWeight.Black)}
         Spacer(Modifier.height(8.dp))
     }
-    dialog?.let{info->AlertDialog(onDismissRequest={dialog=null},confirmButton={TextButton(onClick={dialog=null}){Text("OK")}},title={Text(info.first)},text={Text(info.second)})}
 }
 
 @Composable private fun MenuSection(title:String,content:@Composable ColumnScope.()->Unit){
