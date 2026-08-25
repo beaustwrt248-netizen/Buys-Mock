@@ -56,9 +56,6 @@ object IntegratedMarketValueEngine {
             return IntegratedMarketValue(0.0, emptyList(), emptyList(), marketplace, "UNAVAILABLE")
         }
 
-        // Strong exact-used evidence is the safest anchor. A marketplace or retail
-        // source with only one listing is useful corroboration, but must never be
-        // allowed to pull the protected value away from a multi-listing used set.
         val strongUsed = candidates.filter { it.kind == "used" && it.sampleSize >= 3 }
         val strongAny = candidates.filter { it.sampleSize >= 2 }
         val anchorPool = when {
@@ -80,9 +77,6 @@ object IntegratedMarketValueEngine {
 
         val effective = if (kept.isNotEmpty()) kept else anchorPool
         val excluded = candidates.filterNot { it in effective }.map { it.source }
-
-        // Weight strong exact-used evidence more than derived/new or thin sources
-        // without letting any one source create dozens of artificial votes.
         val weighted = effective.flatMap { source ->
             val weight = when {
                 source.kind == "used" && source.sampleSize >= 3 -> 3
@@ -112,7 +106,9 @@ object IntegratedMarketValueEngine {
         googleNew: List<Double>,
         newToUsedRate: Double
     ): IntegratedMarketValue {
-        val marketplace = runCatching { searchMarketplaceEvidence(context, query) }.getOrNull()
+        val resolved = runCatching { LaptopModelCatalog.resolve(context, query) }.getOrNull()
+        val marketQuery = resolved?.canonicalQuery?.takeIf { it.isNotBlank() } ?: query
+        val marketplace = runCatching { searchMarketplaceEvidence(context, marketQuery) }.getOrNull()
         return calculate(ebayUsed, googleNew, marketplace, newToUsedRate)
     }
 }
