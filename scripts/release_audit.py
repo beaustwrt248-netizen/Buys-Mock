@@ -19,7 +19,7 @@ required = [
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
-    "admin/index.html", "admin/app.js", "admin/styles.css", "admin/turnstile.html",
+    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
     "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt",
@@ -49,8 +49,6 @@ for rel in [
         if token in text:
             errors.append(f"Retired gold token {token} still present in active UI layer: {rel}")
 
-# The pinned legacy calculator core must be intercepted by this authenticated
-# transport before any user can trigger the paid eBay / Google pricing backend.
 secure_pricing = (ROOT / "secure-pricing.js").read_text(encoding="utf-8")
 for token in ("morley_web_auth", "Authorization", "Bearer", "window.market=secureMarket"):
     if token not in secure_pricing:
@@ -123,6 +121,19 @@ if "secureUserAction('set_role'" not in admin_app or "admin-user-control" not in
     errors.append("Admin role changes are not routed through the hardened user-control function")
 if "sb.rpc('admin_set_user_role'" in admin_app:
     errors.append("Admin UI still calls the retired role-change SECURITY DEFININER RPC")
+
+admin_index = (ROOT / "admin/index.html").read_text(encoding="utf-8")
+admin_invites = (ROOT / "admin/invites.js").read_text(encoding="utf-8")
+for token in ('id="inviteName"', 'placeholder="First and last name"', 'invites.js?v=3'):
+    if token not in admin_index:
+        errors.append(f"Admin invite UI is missing approved full-name control: {token}")
+for token in ("inviteName", "display_name:name", "crypto.getRandomValues", "sha256Hex"):
+    if token not in admin_invites:
+        errors.append(f"Admin invite logic is missing secure full-name handling: {token}")
+
+signed_user = (ROOT / "signed-in-user.js").read_text(encoding="utf-8")
+if "display_name" not in signed_user or "morley-web-user" not in signed_user:
+    errors.append("Signed-in web identity does not use the approved profile display name")
 
 update_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt").read_text(encoding="utf-8")
 update_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt").read_text(encoding="utf-8")
