@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,14 +68,60 @@ class DiagnosticsActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DiagnosticsScreen() {
+        val scope = rememberCoroutineScope()
         var refresh by remember { mutableIntStateOf(0) }
         var lastChecked by remember { mutableStateOf(checkedTime()) }
+        var liveBusy by remember { mutableStateOf(false) }
+        var sessionLive by remember { mutableStateOf<Boolean?>(null) }
+        var sessionDetail by remember { mutableStateOf("Not checked yet") }
+        var otaLive by remember { mutableStateOf<Boolean?>(null) }
+        var otaDetail by remember { mutableStateOf("Not checked yet") }
 
         val online = remember(refresh) { isOnline() }
         val signedIn = remember(refresh) { AuthManager.isSignedIn(this) }
         val notifications = remember(refresh) { notificationsAllowed() }
         val installer = remember(refresh) { installerAllowed() }
         val accountLabel = remember(refresh) { AuthManager.accountLabel(this) }
+
+        fun runLiveChecks() {
+            refresh += 1
+            lastChecked = checkedTime()
+            if (!isOnline()) {
+                sessionLive = false
+                sessionDetail = "Live session validation skipped because the device is offline"
+                otaLive = false
+                otaDetail = "OTA service check skipped because the device is offline"
+                return
+            }
+            liveBusy = true
+            scope.launch {
+                runCatching { AuthManager.validAccessToken(this@DiagnosticsActivity) }
+                    .onSuccess {
+                        sessionLive = true
+                        sessionDetail = "Authorised session validated with the account service"
+                    }
+                    .onFailure {
+                        sessionLive = false
+                        sessionDetail = "Live session validation failed: ${it.message ?: "unknown error"}"
+                    }
+
+                runCatching { UpdateManager.check() }
+                    .onSuccess { update ->
+                        otaLive = true
+                        otaDetail = if (update == null) {
+                            "OTA metadata is reachable and this build is current"
+                        } else {
+                            "OTA metadata is reachable; ${update.versionName} is available"
+                        }
+                    }
+                    .onFailure {
+                        otaLive = false
+                        otaDetail = "OTA service check failed: ${it.message ?: "unknown error"}"
+                    }
+                liveBusy = false
+                lastChecked = checkedTime()
+            }
+        }
 
         Scaffold(
             containerColor = DiagBg,
@@ -93,10 +140,12 @@ class DiagnosticsActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DiagnosticCard("App", "B&L Morley ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", true)
-                DiagnosticCard("Account session", if (signedIn) "Authenticated as $accountLabel" else "No active authorised session", signedIn)
+                DiagnosticCard("Account session", if (signedIn) "Authenticated locally as $accountLabel" else "No active authorised session", signedIn)
                 DiagnosticCard("Internet connection", if (online) "Validated network connection is available" else "No validated internet connection", online)
                 DiagnosticCard("Notifications", if (notifications) "Android notification permission is available" else "Notification permission is disabled", notifications)
                 DiagnosticCard("OTA installer", if (installer) "APK installer permission is ready" else "Install unknown apps permission is not enabled", installer)
+                DiagnosticCard("Live account service", sessionDetail, sessionLive != false)
+                DiagnosticCard("Live OTA service", otaDetail, otaLive != false)
                 DiagnosticCard("Device", "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}", true)
 
                 Text(
@@ -106,13 +155,13 @@ class DiagnosticsActivity : ComponentActivity() {
                 )
 
                 Button(
-                    onClick = {
-                        refresh += 1
-                        lastChecked = checkedTime()
-                    },
+                    onClick = { runLiveChecks() },
+                    enabled = !liveBusy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2684FF))
-                ) { Text("Refresh Diagnostics", fontWeight = FontWeight.Black) }
+                ) { Text(if (liveBusy) "Running Live Checks…" else "Refresh Diagnostics", fontWeight = FontWeight.Black) }
+
+                if (liveBusy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
                 OutlinedButton(
                     onClick = { startActivity(Intent(this@DiagnosticsActivity, UpdateActivity::class.java)) },
