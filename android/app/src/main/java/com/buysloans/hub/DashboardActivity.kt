@@ -95,7 +95,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             TopAppBar(
                 colors=TopAppBarDefaults.topAppBarColors(containerColor=Color(0xFF050B16),titleContentColor=Color.White),
                 navigationIcon={
-                    IconButton(onClick={if(showMenu){{closeMenu()}} else {{openMenu()}}}){
+                    IconButton(onClick={ if(showMenu) closeMenu() else openMenu() }){
                         Text(if(showMenu)"×" else "☰",fontSize=28.sp,color=DashAccent,fontWeight=FontWeight.Black)
                     }
                 },
@@ -117,7 +117,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
         }
     ){pad->
         Box(Modifier.padding(pad).fillMaxSize()){
-            if(showMenu) MoreHub(onClose={closeMenu()},onSignOut={confirmSignOut=true})
+            if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
                 Page.Laptop->Laptop()
@@ -153,7 +153,7 @@ private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
 }
 
 @Composable
-private fun MoreHub(onClose:()->Unit,onSignOut:()->Unit){
+private fun MoreHub(onSignOut:()->Unit){
     val context=androidx.compose.ui.platform.LocalContext.current
     val scope=rememberCoroutineScope()
     var checking by remember{mutableStateOf(false)}
