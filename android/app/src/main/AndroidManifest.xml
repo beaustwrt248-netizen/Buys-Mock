@@ -33,6 +33,7 @@
         <activity android:name=".ValuationHistoryActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".UpdateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MenuFeatureActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".DiagnosticsActivity" android:exported="false" android:screenOrientation="portrait" />
 
         <service
             android:name=".MorleyFirebaseMessagingService"
