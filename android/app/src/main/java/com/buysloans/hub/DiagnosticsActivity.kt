@@ -21,6 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -64,17 +68,44 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun checkedTime(): String =
         SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date())
 
+    private suspend fun backendStatus(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val connection = (URL("${BuildConfig.SUPABASE_URL}/rest/v1/").openConnection() as HttpURLConnection).apply {
+                requestMethod = "HEAD"
+                connectTimeout = 5000
+                readTimeout = 5000
+                setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                useCaches = false
+            }
+            val code = connection.responseCode
+            connection.disconnect()
+            val reachable = code in 200..499
+            reachable to "Supabase responded with HTTP $code"
+        }.getOrElse { false to "Backend check failed: ${it.message ?: "network error"}" }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DiagnosticsScreen() {
         var refresh by remember { mutableIntStateOf(0) }
         var lastChecked by remember { mutableStateOf(checkedTime()) }
+        var backendOk by remember { mutableStateOf<Boolean?>(null) }
+        var backendDetail by remember { mutableStateOf("Checking live service reachability…") }
 
         val online = remember(refresh) { isOnline() }
         val signedIn = remember(refresh) { AuthManager.isSignedIn(this) }
         val notifications = remember(refresh) { notificationsAllowed() }
         val installer = remember(refresh) { installerAllowed() }
         val accountLabel = remember(refresh) { AuthManager.accountLabel(this) }
+
+        LaunchedEffect(refresh) {
+            backendOk = null
+            backendDetail = "Checking live service reachability…"
+            val result = backendStatus()
+            backendOk = result.first
+            backendDetail = result.second
+            lastChecked = checkedTime()
+        }
 
         Scaffold(
             containerColor = DiagBg,
@@ -95,6 +126,7 @@ class DiagnosticsActivity : ComponentActivity() {
                 DiagnosticCard("App", "B&L Morley ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", true)
                 DiagnosticCard("Account session", if (signedIn) "Authenticated as $accountLabel" else "No active authorised session", signedIn)
                 DiagnosticCard("Internet connection", if (online) "Validated network connection is available" else "No validated internet connection", online)
+                DiagnosticCard("Pricing/backend service", backendDetail, backendOk, backendOk == null)
                 DiagnosticCard("Notifications", if (notifications) "Android notification permission is available" else "Notification permission is disabled", notifications)
                 DiagnosticCard("OTA installer", if (installer) "APK installer permission is ready" else "Install unknown apps permission is not enabled", installer)
                 DiagnosticCard("Device", "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}", true)
@@ -106,10 +138,7 @@ class DiagnosticsActivity : ComponentActivity() {
                 )
 
                 Button(
-                    onClick = {
-                        refresh += 1
-                        lastChecked = checkedTime()
-                    },
+                    onClick = { refresh += 1 },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2684FF))
                 ) { Text("Refresh Diagnostics", fontWeight = FontWeight.Black) }
@@ -131,15 +160,20 @@ class DiagnosticsActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun DiagnosticCard(title: String, detail: String, ok: Boolean) {
+    private fun DiagnosticCard(title: String, detail: String, ok: Boolean?, pending: Boolean = false) {
+        val stateColor = when {
+            pending -> DiagAccent
+            ok == true -> DiagOk
+            else -> Color(0xFFFF8A9B)
+        }
         Card(
             colors = CardDefaults.cardColors(containerColor = DiagCard),
-            border = BorderStroke(1.dp, if (ok) DiagOk.copy(alpha = .30f) else Color(0xFFFF8A9B).copy(alpha = .35f)),
+            border = BorderStroke(1.dp, stateColor.copy(alpha = .30f)),
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(Modifier.fillMaxWidth().padding(15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (ok) "●" else "!", color = if (ok) DiagOk else Color(0xFFFF8A9B), fontWeight = FontWeight.Black)
+                Text(if (pending) "…" else if (ok == true) "●" else "!", color = stateColor, fontWeight = FontWeight.Black)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 16.sp)
                     Text(detail, color = DiagMuted, fontSize = 12.sp, lineHeight = 18.sp)
