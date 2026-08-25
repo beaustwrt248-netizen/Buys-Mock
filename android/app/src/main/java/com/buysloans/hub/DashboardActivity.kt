@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.messaging.FirebaseMessaging
@@ -39,6 +38,15 @@ class DashboardActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.rgb(3,7,18)
         window.navigationBarColor = android.graphics.Color.rgb(3,7,18)
         NotificationHelper.createChannels(this)
+
+        if (!AuthManager.isSignedIn(this)) {
+            startActivity(Intent(this, AuthActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            })
+            finish()
+            return
+        }
+
         val prefs=getSharedPreferences("app_state",MODE_PRIVATE)
         val previous=prefs.getInt("last_seen_version_code",0)
         val updated=previous>0 && previous<BuildConfig.VERSION_CODE
@@ -57,43 +65,8 @@ class DashboardActivity : ComponentActivity() {
 
 @Composable
 private fun RootApp(showUpdatedInitially:Boolean) {
-    val activity = androidx.compose.ui.platform.LocalContext.current as DashboardActivity
-    var signedIn by remember { mutableStateOf(AuthManager.isSignedIn(activity)) }
     MaterialTheme(colorScheme = darkColorScheme(primary = DashAccent, secondary = DashAccentStrong, background = DashBg, surface = DashCard)) {
-        if (!signedIn) LoginScreen {
-            signedIn = true
-            activity.enableNotificationsAndRegister()
-        } else DashboardApp(showUpdatedInitially)
-    }
-}
-
-@Composable
-private fun LoginScreen(onSignedIn: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val scope = rememberCoroutineScope()
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
-        Text("B&L Morley", fontSize=34.sp, fontWeight=FontWeight.Black)
-        Spacer(Modifier.height(8.dp)); Text("Sign in", color=DashAccent, fontSize=26.sp, fontWeight=FontWeight.Bold)
-        Spacer(Modifier.height(22.dp))
-        OutlinedTextField(email,{email=it},label={Text("Email")},singleLine=true,modifier=Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(password,{password=it},label={Text("Password")},singleLine=true,visualTransformation=PasswordVisualTransformation(),modifier=Modifier.fillMaxWidth())
-        if(error.isNotBlank()){Spacer(Modifier.height(10.dp));Text(error,color=MaterialTheme.colorScheme.error)}
-        Spacer(Modifier.height(18.dp))
-        Button(onClick={
-            busy=true;error=""
-            scope.launch {
-                runCatching { AuthManager.signIn(context,email,password) }
-                    .onSuccess { onSignedIn() }
-                    .onFailure { error=it.message?:"Sign in failed" }
-                busy=false
-            }
-        },enabled=!busy&&email.isNotBlank()&&password.isNotBlank(),modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White)) { Text(if(busy)"Signing in…" else "Sign in",fontWeight=FontWeight.Black) }
-        Spacer(Modifier.height(14.dp));Text("Use your authorised B&L Morley account. Notification permission is requested after a successful sign-in.",color=Color.LightGray)
+        DashboardApp(showUpdatedInitially)
     }
 }
 
@@ -107,7 +80,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
     if(confirmSignOut) AlertDialog(
         onDismissRequest={confirmSignOut=false},
         title={Text("Sign out?")},
-        text={Text("You are signed in as ${AuthManager.email(context)}. You will need to sign in again to use B&L Morley.")},
+        text={Text("You are signed in as ${AuthManager.accountLabel(context)}. You will need to sign in again to use B&L Morley.")},
         dismissButton={TextButton(onClick={confirmSignOut=false}){Text("Cancel")}},
         confirmButton={Button(onClick={
             AuthManager.signOut(context)
@@ -149,6 +122,8 @@ private fun MoreHub(){
     var checking by remember{mutableStateOf(false)}
     var updateStatus by remember{mutableStateOf("Tap below to check for the latest secure B&L Morley build.")}
     var availableUpdate by remember{mutableStateOf<AppUpdate?>(null)}
+    val accountName=AuthManager.accountLabel(context)
+    val accountEmail=AuthManager.email(context)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         Text("More",fontSize=27.sp,fontWeight=FontWeight.Black)
         Text("Less-used tools and account options live here to keep the main workspace clean.",color=Color.LightGray)
@@ -180,7 +155,7 @@ private fun MoreHub(){
                 }
             }
         }
-        DashboardCard("ACCOUNT","Signed in",AuthManager.email(context).ifBlank{"Authorised B&L Morley account"})
+        DashboardCard("ACCOUNT",accountName,accountEmail.ifBlank{"Signed in to an authorised B&L Morley account"})
         DashboardCard("APP VERSION",BuildConfig.VERSION_NAME,"Secure private build • notifications • OTA updates")
         Spacer(Modifier.height(80.dp))
     }
