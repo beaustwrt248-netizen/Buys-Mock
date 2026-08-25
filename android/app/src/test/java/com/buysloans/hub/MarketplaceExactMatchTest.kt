@@ -38,4 +38,39 @@ class MarketplaceExactMatchTest {
         )
         assertTrue(exact)
     }
+
+    @Test fun `macbook brand is inferred when apple is omitted`() {
+        val (exact, _, _) = classifyMarketplace(
+            "MacBook Air 2019 i5 256GB",
+            "Apple MacBook Air 2019 13-inch Intel Core i5 8GB 256GB SSD"
+        )
+        assertTrue(exact)
+    }
+
+    @Test fun `generic macbook cannot mix air and pro into exact value`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "MacBook i5 2019 256GB",
+            "Apple MacBook Pro 2019 13-inch Intel Core i5 8GB 256GB SSD"
+        )
+        assertFalse(exact)
+        assertTrue(reasons.contains("Specify MacBook Air or Pro"))
+    }
+
+    @Test fun `wrong macbook year is not exact`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "MacBook Air 2019 i5 256GB",
+            "Apple MacBook Air 2020 Intel Core i5 8GB 256GB SSD"
+        )
+        assertFalse(exact)
+        assertTrue(reasons.contains("Year mismatch"))
+    }
+
+    @Test fun `wrong macbook storage is not exact`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "MacBook Air 2019 i5 256GB",
+            "Apple MacBook Air 2019 Intel Core i5 8GB 512GB SSD"
+        )
+        assertFalse(exact)
+        assertTrue(reasons.contains("Storage mismatch"))
+    }
 }
