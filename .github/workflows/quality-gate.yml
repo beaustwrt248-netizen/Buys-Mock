@@ -44,7 +44,10 @@ jobs:
             web-auth.js \
             signed-in-user.js \
             premium-motion.js \
-            web-a11y.js; do
+            web-a11y.js \
+            admin/app.js \
+            admin/invites.js \
+            admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -64,6 +67,8 @@ jobs:
           grep -q '0xFF12C9FF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'AuthManager.accessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'fun accountLabel' android/app/src/main/java/com/buysloans/hub/AuthManager.kt
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-before.sha"
           python3 android/apply_cyber_palette.py
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
@@ -87,6 +92,7 @@ jobs:
           assert_protected ebay-search '{"query":"RTX 4070","limit":5}'
           assert_protected oem-search '{"query":"Dell OptiPlex 7090"}'
           assert_protected send-admin-notification '{"job_id":"00000000-0000-0000-0000-000000000000"}'
+          assert_protected admin-user-control '{"action":"set_display_name","target_user_id":"00000000-0000-0000-0000-000000000000","display_name":"Test User"}'
 
       - name: Validate OTA JSON
         run: python3 -m json.tool ota/latest.json >/dev/null
