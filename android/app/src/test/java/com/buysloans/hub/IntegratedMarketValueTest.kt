@@ -46,6 +46,22 @@ class IntegratedMarketValueTest {
         assertEquals(790.0, result.usedValue, 10.0)
     }
 
+    @Test fun `single cheap marketplace listing cannot drag strong ebay anchor`() {
+        val marketplace = MarketplaceEvidence(
+            gumtree = emptyList(),
+            facebook = listOf(listing("Facebook Marketplace", 20.0))
+        )
+        val result = IntegratedMarketValueEngine.calculate(
+            ebayUsed = listOf(360.0, 399.0, 420.0, 435.0, 443.0, 449.0, 465.0, 490.0),
+            googleNew = listOf(260.0),
+            marketplace = marketplace,
+            newToUsedRate = 0.58
+        )
+        assertFalse(result.sources.any { it.source == "Facebook Marketplace" })
+        assertFalse(result.sources.any { it.source == "Google Shopping AU" })
+        assertEquals(439.0, result.usedValue, 5.0)
+    }
+
     @Test fun `non exact marketplace evidence is ignored`() {
         val marketplace = MarketplaceEvidence(
             gumtree = listOf(listing("Gumtree", 1600.0, false)),
