@@ -217,7 +217,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
-        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
+        if: success() && github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ota]')))
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.APP_RELEASE_TAG }}
@@ -238,7 +238,7 @@ jobs:
           make_latest: true
 
       - name: Publish OTA metadata
-        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
+        if: success() && github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[ota]')))
         shell: bash
         run: |
           python3 - <<'PY'
@@ -255,7 +255,7 @@ jobs:
               'versionName': name,
               'apkUrl': f'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/{tag}/B-and-L-Morley-{safe}.apk',
               'sha256': sha256,
-              'notes': f'B&L Morley {name} production release with the unified navy/blue/cyan cyber interface and current valuation workflow.'
+              'notes': f'B&L Morley {name} production release with sharper full-screen login video and current valuation workflow.'
           }
           Path('ota').mkdir(parents=True, exist_ok=True)
           Path('ota/latest.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
