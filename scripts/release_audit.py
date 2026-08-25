@@ -174,6 +174,9 @@ if ota_path.exists():
             errors.append("OTA versionCode is ahead of the Android build")
         if not str(ota.get("apkUrl", "")).startswith("https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/"):
             errors.append("OTA apkUrl is not a trusted B&L Morley GitHub release URL")
+        checksum = str(ota.get("sha256", "")).strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", checksum):
+            errors.append("OTA metadata is missing a valid SHA-256 checksum")
     except Exception as exc:
         errors.append(f"Invalid ota/latest.json: {exc}")
 
