@@ -11,8 +11,8 @@ class MarketplaceConsensusTest {
         source = source,
         url = "https://example.invalid/item",
         condition = "Used",
-        matchScore = if (exact) 100 else 50,
         exact = exact,
+        score = if (exact) 100 else 50,
         reasons = if (exact) "Exact model" else "Model mismatch"
     )
 
