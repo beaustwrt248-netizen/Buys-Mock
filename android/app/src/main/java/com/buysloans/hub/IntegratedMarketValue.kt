@@ -26,6 +26,9 @@ object IntegratedMarketValueEngine {
         return if (sorted.size % 2 == 1) sorted[middle] else (sorted[middle - 1] + sorted[middle]) / 2.0
     }
 
+    private fun relativeDistance(value: Double, centre: Double): Double =
+        if (value <= 0.0 || centre <= 0.0) Double.POSITIVE_INFINITY else abs(value - centre) / centre
+
     fun calculate(
         ebayUsed: List<Double>,
         googleNew: List<Double>,
@@ -35,10 +38,12 @@ object IntegratedMarketValueEngine {
         val candidates = mutableListOf<IntegratedSourceValue>()
 
         val ebay = median(ebayUsed)
-        if (ebay > 0.0) candidates += IntegratedSourceValue("eBay AU", ebay, ebayUsed.count { it > 0.0 }, "used")
+        val ebayCount = ebayUsed.count { it > 0.0 }
+        if (ebay > 0.0) candidates += IntegratedSourceValue("eBay AU", ebay, ebayCount, "used")
 
         val google = median(googleNew)
-        if (google > 0.0) candidates += IntegratedSourceValue("Google Shopping AU", google * newToUsedRate, googleNew.count { it > 0.0 }, "new-derived")
+        val googleCount = googleNew.count { it > 0.0 }
+        if (google > 0.0) candidates += IntegratedSourceValue("Google Shopping AU", google * newToUsedRate, googleCount, "new-derived")
 
         marketplace?.let { evidence ->
             val consensus = MarketplaceConsensusEngine.calculate(evidence.gumtree + evidence.facebook)
@@ -50,21 +55,54 @@ object IntegratedMarketValueEngine {
         if (candidates.isEmpty()) {
             return IntegratedMarketValue(0.0, emptyList(), emptyList(), marketplace, "UNAVAILABLE")
         }
-        if (candidates.size == 1) {
-            return IntegratedMarketValue(candidates.first().value, candidates, emptyList(), marketplace, "LOW")
+
+        // Strong exact-used evidence is the safest anchor. A marketplace or retail
+        // source with only one listing is useful corroboration, but must never be
+        // allowed to pull the protected value away from a multi-listing used set.
+        val strongUsed = candidates.filter { it.kind == "used" && it.sampleSize >= 3 }
+        val strongAny = candidates.filter { it.sampleSize >= 2 }
+        val anchorPool = when {
+            strongUsed.isNotEmpty() -> strongUsed
+            strongAny.isNotEmpty() -> strongAny
+            else -> candidates
+        }
+        val anchor = median(anchorPool.map { it.value })
+
+        val kept = candidates.filter { source ->
+            when {
+                source.value <= 0.0 -> false
+                source in anchorPool -> true
+                source.sampleSize <= 1 && anchor > 0.0 -> relativeDistance(source.value, anchor) <= 0.25
+                anchor > 0.0 -> relativeDistance(source.value, anchor) <= 0.35
+                else -> true
+            }
         }
 
-        val centre = median(candidates.map { it.value })
-        val kept = candidates.filter { centre <= 0.0 || abs(it.value - centre) / centre <= 0.35 }
-        val excluded = candidates.filterNot { it in kept }.map { it.source }
-        val value = median(kept.map { it.value })
+        val effective = if (kept.isNotEmpty()) kept else anchorPool
+        val excluded = candidates.filterNot { it in effective }.map { it.source }
+
+        // Weight strong exact-used evidence more than derived/new or thin sources
+        // without letting any one source create dozens of artificial votes.
+        val weighted = effective.flatMap { source ->
+            val weight = when {
+                source.kind == "used" && source.sampleSize >= 3 -> 3
+                source.sampleSize >= 2 -> 2
+                else -> 1
+            }
+            List(weight) { source.value }
+        }
+        val value = median(weighted)
+
+        val strongSourceCount = effective.count { it.sampleSize >= 2 }
         val confidence = when {
-            kept.size >= 4 -> "HIGH"
-            kept.size >= 2 -> "MEDIUM"
-            kept.size == 1 -> "LOW"
+            strongSourceCount >= 3 -> "HIGH"
+            strongSourceCount >= 2 -> "MEDIUM"
+            strongSourceCount == 1 && effective.any { it.kind == "used" && it.sampleSize >= 3 } -> "MEDIUM"
+            effective.isNotEmpty() -> "LOW"
             else -> "UNAVAILABLE"
         }
-        return IntegratedMarketValue(value, kept, excluded, marketplace, confidence)
+
+        return IntegratedMarketValue(value, effective, excluded, marketplace, confidence)
     }
 
     suspend fun calculateLive(
