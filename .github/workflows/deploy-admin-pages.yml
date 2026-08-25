@@ -63,6 +63,7 @@ jobs:
           test -s site/web-a11y.js
           test -s site/admin/index.html
           test -s site/admin/app.js
+          test -s site/admin/invites.js
           test -s site/admin/styles.css
           test -s site/admin/turnstile.html
           test -s site/web-assets/morley_buys_login_bg_app.mp4
@@ -121,6 +122,12 @@ jobs:
           grep -q 'postMessage(payload,parentOrigin)' "$RUNNER_TEMP/turnstile.html"
           fetch_with_retry "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html"
           grep -q 'app.js?v=3' "$RUNNER_TEMP/admin-index.html"
+          grep -q 'id="inviteName"' "$RUNNER_TEMP/admin-index.html"
+          grep -q 'First and last name' "$RUNNER_TEMP/admin-index.html"
+          grep -q 'invites.js?v=3' "$RUNNER_TEMP/admin-index.html"
+          fetch_with_retry "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js"
+          grep -q 'display_name:name' "$RUNNER_TEMP/admin-invites.js"
+          grep -q 'inviteName' "$RUNNER_TEMP/admin-invites.js"
           fetch_with_retry "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js"
           grep -q "secureUserAction('set_role'" "$RUNNER_TEMP/admin-app.js"
           grep -q 'admin-user-control' "$RUNNER_TEMP/admin-app.js"
