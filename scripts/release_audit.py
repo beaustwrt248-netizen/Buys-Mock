@@ -22,6 +22,7 @@ required = [
     "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/java/com/buysloans/hub/AuthManager.kt",
     "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt",
@@ -61,9 +62,13 @@ for rel in ("app.js", "desktop-oem.js"):
             errors.append(f"Web pricing client {rel} is missing authenticated API control: {token}")
 
 palette = (ROOT / "android/apply_cyber_palette.py").read_text(encoding="utf-8")
-for token in ("AuthManager.accessToken", "MorleyApplication.instance", 'setRequestProperty(\"Authorization\",\"Bearer $token\")'):
+for token in ("AuthManager.accessToken", "MorleyApplication.instance", 'setRequestProperty(\"Authorization\",\"Bearer $token\")', "AuthManager.accountLabel(context)"):
     if token not in palette:
-        errors.append(f"Android pricing transform is missing authenticated API control: {token}")
+        errors.append(f"Android production transform is missing authenticated/account control: {token}")
+auth_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/AuthManager.kt").read_text(encoding="utf-8")
+for token in ("DISPLAY_NAME", "fun displayName", "fun accountLabel", "verifyAndCacheProfile", "display_name,email"):
+    if token not in auth_manager:
+        errors.append(f"Android session manager is missing approved profile-name support: {token}")
 application = (ROOT / "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt").read_text(encoding="utf-8")
 if "lateinit var instance: MorleyApplication" not in application or "instance = this" not in application:
     errors.append("MorleyApplication does not expose the application context required by authenticated pricing")
@@ -106,7 +111,7 @@ pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(e
 for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
-for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'"):
+for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'", "secureUserAction('set_display_name'"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages post-deploy verification is missing production control: {token}")
 
@@ -117,16 +122,17 @@ if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turn
     errors.append("Turnstile bridge must not broadcast tokens with a wildcard target origin")
 
 admin_app = (ROOT / "admin/app.js").read_text(encoding="utf-8")
-if "secureUserAction('set_role'" not in admin_app or "admin-user-control" not in admin_app:
-    errors.append("Admin role changes are not routed through the hardened user-control function")
+for token in ("secureUserAction('set_role'", "secureUserAction('set_display_name'", "data-name-save", "admin-user-control"):
+    if token not in admin_app:
+        errors.append(f"Admin account management is missing hardened control: {token}")
 if "sb.rpc('admin_set_user_role'" in admin_app:
     errors.append("Admin UI still calls the retired role-change SECURITY DEFININER RPC")
 
 admin_index = (ROOT / "admin/index.html").read_text(encoding="utf-8")
 admin_invites = (ROOT / "admin/invites.js").read_text(encoding="utf-8")
-for token in ('id="inviteName"', 'placeholder="First and last name"', 'invites.js?v=3'):
+for token in ('id="inviteName"', 'placeholder="First and last name"', 'app.js?v=4', 'invites.js?v=3'):
     if token not in admin_index:
-        errors.append(f"Admin invite UI is missing approved full-name control: {token}")
+        errors.append(f"Admin account/invite UI is missing approved full-name control: {token}")
 for token in ("inviteName", "display_name:name", "crypto.getRandomValues", "sha256Hex"):
     if token not in admin_invites:
         errors.append(f"Admin invite logic is missing secure full-name handling: {token}")
