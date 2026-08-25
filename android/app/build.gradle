@@ -50,7 +50,24 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+def releaseStoreFileForCheck = System.getenv('B_AND_L_KEYSTORE_PATH')
+def releaseStorePasswordForCheck = System.getenv('B_AND_L_STORE_PASSWORD')
+def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
+
+tasks.register('verifyReleaseSigning') {
+    doLast {
+        if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) {
+            throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.')
+        }
+        if (!file(releaseStoreFileForCheck).exists()) {
+            throw new GradleException('Configured B&L Morley release keystore does not exist.')
         }
     }
 }
@@ -62,6 +79,10 @@ tasks.register('applyCyberPalette', Exec) {
 
 tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('applyCyberPalette')
+}
+
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
+    dependsOn tasks.named('verifyReleaseSigning')
 }
 
 dependencies {
