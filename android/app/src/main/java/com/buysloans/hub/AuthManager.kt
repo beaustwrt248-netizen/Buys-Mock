@@ -31,20 +31,24 @@ object AuthManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
-    private suspend fun postAbsolute(url: String, payload: JSONObject, bearer: String? = null): Pair<Int,String> = withContext(Dispatchers.IO) {
+    private suspend fun requestAbsolute(url: String, method: String, payload: JSONObject? = null, bearer: String? = null): Pair<Int,String> = withContext(Dispatchers.IO) {
         val c = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"; connectTimeout = 10_000; readTimeout = 10_000; doOutput = true
+            requestMethod = method; connectTimeout = 10_000; readTimeout = 10_000
+            doOutput = payload != null
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             if (!bearer.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $bearer")
         }
         try {
-            c.outputStream.use { it.write(payload.toString().toByteArray()) }
+            if (payload != null) c.outputStream.use { it.write(payload.toString().toByteArray()) }
             val code = c.responseCode
             val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
             code to body
         } finally { c.disconnect() }
     }
+
+    private suspend fun postAbsolute(url: String, payload: JSONObject, bearer: String? = null): Pair<Int,String> =
+        requestAbsolute(url, "POST", payload, bearer)
 
     private suspend fun post(path: String, payload: JSONObject, bearer: String? = null) = postAbsolute("${BuildConfig.SUPABASE_URL}$path", payload, bearer)
 
@@ -91,6 +95,27 @@ object AuthManager {
             if (profileEmail.isNotBlank()) putString(USER_EMAIL, profileEmail)
         }.apply()
         return true
+    }
+
+    suspend fun updateDisplayName(context: Context, newName: String) {
+        val name = newName.trim().replace(Regex("\\s+"), " ")
+        require(name.length >= 3 && name.contains(' ')) { "Enter your first and last name." }
+        val token = validAccessToken(context)
+        val userId = extractUserId(token)
+        require(userId.isNotBlank()) { "Could not identify the signed-in account." }
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles?id=eq.${URLEncoder.encode(userId, "UTF-8")}"
+        val (code, body) = requestAbsolute(url, "PATCH", JSONObject().put("display_name", name), token)
+        if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Profile update failed ($code)."))
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(DISPLAY_NAME, name).apply()
+    }
+
+    suspend fun signOutEverywhere(context: Context) {
+        val token = runCatching { validAccessToken(context) }.getOrNull()
+        if (!token.isNullOrBlank()) {
+            val (code, body) = requestAbsolute("${BuildConfig.SUPABASE_URL}/auth/v1/logout?scope=global", "POST", JSONObject(), token)
+            if (code !in 200..299 && code != 401) throw IllegalStateException(errorMessage(code, body, "Could not sign out all sessions ($code)."))
+        }
+        signOut(context)
     }
 
     private fun extractUserId(jwt: String): String = runCatching {
