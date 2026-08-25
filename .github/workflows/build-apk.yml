@@ -7,6 +7,7 @@ on:
       - 'android/**'
       - 'morley_buys_login_bg_app.zip'
       - 'morley_buys_login_bg_app_hq.zip'
+      - 'morley_buys_login_bg_app_hq_new.zip'
       - 'scripts/release_audit.py'
       - '.github/workflows/build-apk.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'android/**'
       - 'morley_buys_login_bg_app.zip'
       - 'morley_buys_login_bg_app_hq.zip'
+      - 'morley_buys_login_bg_app_hq_new.zip'
       - 'scripts/release_audit.py'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -66,10 +68,12 @@ jobs:
           print(f'Resolved Android release: {version_name} ({version_code})')
           PY
 
-      - name: Bundle Morley login background video
+      - name: Bundle and verify Morley login background video
         shell: bash
         run: |
-          ZIP=morley_buys_login_bg_app_hq.zip
+          set -euo pipefail
+          ZIP=morley_buys_login_bg_app_hq_new.zip
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app_hq.zip; fi
           if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
           test -f "$ZIP" || { echo 'Missing Morley login video ZIP'; exit 1; }
           rm -rf "$RUNNER_TEMP/morley-login-video"
@@ -77,21 +81,41 @@ jobs:
           unzip -q -o "$ZIP" -d "$RUNNER_TEMP/morley-login-video"
           VIDEO_PATH="$(find "$RUNNER_TEMP/morley-login-video" -type f -iname '*.mp4' | head -n 1)"
           test -n "$VIDEO_PATH" && test -s "$VIDEO_PATH" || { echo 'No MP4 found inside Morley login video ZIP'; exit 1; }
+
+          EXPECTED_BYTES=22004826
+          EXPECTED_SHA256=2bdeb6b7add8fda997144483534d3e8b3257079c2d3932ee5c8ff5d70720b897
+          ACTUAL_BYTES="$(stat -c%s "$VIDEO_PATH")"
+          ACTUAL_SHA256="$(sha256sum "$VIDEO_PATH" | awk '{print $1}')"
+          test "$ACTUAL_BYTES" = "$EXPECTED_BYTES" || {
+            echo "Wrong login video size: $ACTUAL_BYTES bytes (expected $EXPECTED_BYTES)"
+            exit 1
+          }
+          test "$ACTUAL_SHA256" = "$EXPECTED_SHA256" || {
+            echo "Wrong login video SHA-256: $ACTUAL_SHA256"
+            exit 1
+          }
+          echo "Verified NEW login video: $ACTUAL_BYTES bytes, SHA-256 $ACTUAL_SHA256"
+
           cp "$VIDEO_PATH" android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
           cp "$VIDEO_PATH" web-assets/morley_buys_login_bg_app.mp4
           test -s android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
           test -s web-assets/morley_buys_login_bg_app.mp4
           echo "Bundled login video: $(du -h android/app/src/main/res/raw/morley_buys_login_bg_app.mp4 | cut -f1)"
 
-      - name: Publish desktop web login video
+      - name: Publish desktop web login video and promote canonical ZIP
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web-assets/morley_buys_login_bg_app.mp4
+          if [ -f morley_buys_login_bg_app_hq_new.zip ]; then
+            rm -f morley_buys_login_bg_app_hq.zip
+            git mv morley_buys_login_bg_app_hq_new.zip morley_buys_login_bg_app_hq.zip
+          fi
+          git add -A web-assets morley_buys_login_bg_app_hq.zip morley_buys_login_bg_app_hq_new.zip
           if ! git diff --cached --quiet; then
-            git commit -m "Publish desktop login video [skip ci]"
+            git commit -m "Promote verified new login video [skip ci]"
             git push
           fi
 
@@ -151,21 +175,31 @@ jobs:
           }
           echo "Verified trusted B&L Morley signing certificate: $ACTUAL_CERT_SHA256"
 
-      - name: Verify login video packaged in APK
+      - name: Verify exact new login video packaged in APK
         shell: bash
         run: |
+          set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
           SOURCE=android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+          EXPECTED_BYTES=22004826
+          EXPECTED_SHA256=2bdeb6b7add8fda997144483534d3e8b3257079c2d3932ee5c8ff5d70720b897
           test -s "$APK"
           test -s "$SOURCE"
-          EXPECTED_BYTES="$(stat -c%s "$SOURCE")"
+          test "$(stat -c%s "$SOURCE")" = "$EXPECTED_BYTES"
+          test "$(sha256sum "$SOURCE" | awk '{print $1}')" = "$EXPECTED_SHA256"
           unzip -l "$APK" | tee "$RUNNER_TEMP/apk-contents.txt"
           PACKAGED_PATH="$(awk -v size="$EXPECTED_BYTES" '$1 == size && $4 ~ /^res\/.*\.mp4$/ {print $4; exit}' "$RUNNER_TEMP/apk-contents.txt")"
           test -n "$PACKAGED_PATH" || {
-            echo "Login background video was not packaged in the APK (expected $EXPECTED_BYTES bytes)"
+            echo "NEW login background video was not packaged in the APK (expected $EXPECTED_BYTES bytes)"
             exit 1
           }
-          echo "Verified login background video in APK as $PACKAGED_PATH ($EXPECTED_BYTES bytes)"
+          unzip -p "$APK" "$PACKAGED_PATH" > "$RUNNER_TEMP/packaged-login.mp4"
+          PACKAGED_SHA256="$(sha256sum "$RUNNER_TEMP/packaged-login.mp4" | awk '{print $1}')"
+          test "$PACKAGED_SHA256" = "$EXPECTED_SHA256" || {
+            echo "APK contains wrong login video SHA-256: $PACKAGED_SHA256"
+            exit 1
+          }
+          echo "Verified EXACT new login video in APK as $PACKAGED_PATH ($EXPECTED_BYTES bytes, $PACKAGED_SHA256)"
 
       - name: Rename APK
         shell: bash
