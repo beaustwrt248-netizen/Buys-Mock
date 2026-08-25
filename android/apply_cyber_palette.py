@@ -32,6 +32,26 @@ for path in root.glob('*.kt'):
         path.write_text(updated, encoding='utf-8')
         print(f'Applied blue/cyan cyber palette: {path.name}')
 
+# Keep the Android account surfaces aligned with the web identity chip: show the
+# administrator-approved profile display name first and use email only as fallback.
+dashboard = root / 'DashboardActivity.kt'
+if dashboard.exists():
+    text = dashboard.read_text(encoding='utf-8')
+    updated = text.replace(
+        'You are signed in as ${AuthManager.email(context)}. You will need to sign in again to use B&L Morley.',
+        'You are signed in as ${AuthManager.accountLabel(context)}. You will need to sign in again to use B&L Morley.'
+    ).replace(
+        'AuthManager.email(context).ifBlank{"Authorised B&L Morley account"}',
+        'AuthManager.accountLabel(context)'
+    )
+    if updated != text:
+        dashboard.write_text(updated, encoding='utf-8')
+        print('Applied approved profile name to Android account UI')
+    elif 'AuthManager.accountLabel(context)' in text:
+        print('Android account UI already uses approved profile name')
+    else:
+        raise SystemExit('Could not locate Android account identity surfaces')
+
 # Upgrade the simple Laptop screen into the same layered cyber dashboard style as the web app.
 main = root / 'MainActivity.kt'
 if main.exists():
