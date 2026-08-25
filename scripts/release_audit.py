@@ -22,6 +22,7 @@ required = [
     "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
+    "android/app/src/main/java/com/buysloans/hub/AuthActivity.kt",
     "android/app/src/main/java/com/buysloans/hub/AuthManager.kt",
     "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt",
     "android/app/src/main/java/com/buysloans/hub/UpdateManager.kt",
@@ -69,6 +70,15 @@ auth_manager = (ROOT / "android/app/src/main/java/com/buysloans/hub/AuthManager.
 for token in ("DISPLAY_NAME", "fun displayName", "fun accountLabel", "verifyAndCacheProfile", "display_name,email"):
     if token not in auth_manager:
         errors.append(f"Android session manager is missing approved profile-name support: {token}")
+
+auth_activity = (ROOT / "android/app/src/main/java/com/buysloans/hub/AuthActivity.kt").read_text(encoding="utf-8")
+for token in ("AuthManager.validAccessToken(this@AuthActivity)", "SessionCheckScreen", "AuthManager.signOut(this@AuthActivity)", "AuthAccent", "AuthPrimary"):
+    if token not in auth_activity:
+        errors.append(f"Android auth entry point is missing secure startup control: {token}")
+for token in ("0xFFFFD400", "0xFFC99A27", "0xFFDDB347", "android.graphics.Color.BLACK"):
+    if token in auth_activity:
+        errors.append(f"Android auth entry point still contains retired visual token: {token}")
+
 application = (ROOT / "android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt").read_text(encoding="utf-8")
 if "lateinit var instance: MorleyApplication" not in application or "instance = this" not in application:
     errors.append("MorleyApplication does not expose the application context required by authenticated pricing")
