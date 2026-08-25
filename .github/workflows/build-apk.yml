@@ -196,8 +196,8 @@ jobs:
             - Regression tests, Android lint and signature verification passed
             - OTA download protected with SHA-256 integrity verification
           files: |
-            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk
-            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256
+            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
+            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
           fail_on_unmatched_files: true
           make_latest: true
 
