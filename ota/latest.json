@@ -1,7 +1,7 @@
 {
-  "versionCode": 30,
-  "versionName": "2.11.1-fullscreen-video",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.11.1-fullscreen-video/B-and-L-Morley-2.11.1-fullscreen-video.apk",
-  "sha256": "cbc8f900ff2e96f73b40092c5496b2bceef028b2133cac8e7f46f2ec20b49270",
-  "notes": "B&L Morley 2.11.1-fullscreen-video: sharper full-screen login video."
+  "versionCode": 31,
+  "versionName": "2.12.0-marketplace",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.12.0-marketplace/B-and-L-Morley-2.12.0-marketplace.apk",
+  "sha256": "706d7608e52c6108e313627c8e66ed921a5d322b55f2d36e9ded267c76eeeaab",
+  "notes": "B&L Morley 2.12.0-marketplace: sharper full-screen login video."
 }
