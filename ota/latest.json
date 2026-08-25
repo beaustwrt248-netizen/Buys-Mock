@@ -1,7 +1,7 @@
 {
-  "versionCode": 29,
-  "versionName": "2.11.0-smart-workspace",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.11.0-smart-workspace/B-and-L-Morley-2.11.0-smart-workspace.apk",
-  "sha256": "f47e58682ff4c26b02cfdf1c300bba9923b19c388a392343a28759e97704407c",
-  "notes": "B&L Morley 2.11.0-smart-workspace production release with the unified navy/blue/cyan cyber interface and current valuation workflow."
+  "versionCode": 30,
+  "versionName": "2.11.1-fullscreen-video",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.11.1-fullscreen-video/B-and-L-Morley-2.11.1-fullscreen-video.apk",
+  "sha256": "cbc8f900ff2e96f73b40092c5496b2bceef028b2133cac8e7f46f2ec20b49270",
+  "notes": "B&L Morley 2.11.1-fullscreen-video: sharper full-screen login video."
 }
