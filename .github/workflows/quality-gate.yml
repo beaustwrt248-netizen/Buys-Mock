@@ -89,6 +89,22 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Android release signing policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "tasks.register('verifyReleaseSigning')" android/app/build.gradle
+          grep -q "preReleaseBuild" android/app/build.gradle
+          grep -q "B_AND_L_KEYSTORE_PATH" android/app/build.gradle
+          grep -q "B_AND_L_STORE_PASSWORD" android/app/build.gradle
+          grep -q "B_AND_L_KEY_ALIAS" android/app/build.gradle
+          if grep -q 'signingConfigs\.debug' android/app/build.gradle; then
+            echo 'Release build must never fall back to the Android debug signing key'
+            exit 1
+          fi
+          grep -q 'EXPECTED_CERT_SHA256=' .github/workflows/build-apk.yml
+          grep -q 'Verify release APK signature and signer' .github/workflows/build-apk.yml
+
       - name: Verify protected backend endpoints
         shell: bash
         run: |
