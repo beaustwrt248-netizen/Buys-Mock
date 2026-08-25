@@ -149,6 +149,7 @@ What happened:
             "backup" -> "Backup & Data"
             "notifications" -> "Notifications"
             "display" -> "Display"
+            "updates" -> "Updates"
             "report" -> "Report an Issue"
             "legal" -> "Legal & Privacy"
             "about" -> "About B&L Morley"
@@ -198,6 +199,7 @@ What happened:
                     "backup" -> BackupFeature()
                     "notifications" -> NotificationsFeature()
                     "display" -> DisplayFeature()
+                    "updates" -> UpdatesFeature()
                     "report" -> ReportFeature()
                     "legal" -> LegalFeature()
                     "about" -> AboutFeature()
@@ -359,26 +361,57 @@ What happened:
     private fun AccountFeature() {
         val activity = this@MenuFeatureActivity
         val scope = rememberCoroutineScope()
-        var refreshing by remember { mutableStateOf(false) }
-        InfoCard("Signed-in account", AuthManager.accountLabel(activity))
+        var name by remember { mutableStateOf(AuthManager.displayName(activity)) }
+        var busy by remember { mutableStateOf(false) }
+        var refreshKey by remember { mutableIntStateOf(0) }
+        val accountLabel = remember(refreshKey) { AuthManager.accountLabel(activity) }
+        val email = remember(refreshKey) { AuthManager.email(activity) }
+
+        InfoCard("Signed-in account", accountLabel)
         CardBlock {
             Text("Email", color = MFMuted, fontSize = 12.sp)
-            Text(AuthManager.email(activity).ifBlank { "Not available" })
-            Text("Display name", color = MFMuted, fontSize = 12.sp)
-            Text(AuthManager.displayName(activity).ifBlank { "Not set" })
+            Text(email.ifBlank { "Not available" })
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("First and last name") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !busy
+            )
             Button(
                 onClick = {
-                    refreshing = true
+                    busy = true
                     scope.launch {
-                        runCatching { AuthManager.validAccessToken(activity) }
-                            .onSuccess { notice = "Account profile refreshed." }
+                        runCatching { AuthManager.updateDisplayName(activity, name) }
+                            .onSuccess {
+                                refreshKey++
+                                name = AuthManager.displayName(activity)
+                                notice = "Profile name updated."
+                            }
                             .onFailure { error -> notice = error.message.orEmpty() }
-                        refreshing = false
+                        busy = false
                     }
                 },
-                enabled = !refreshing,
+                enabled = !busy && name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text(if (refreshing) "Refreshing…" else "Refresh Account") }
+            ) { Text(if (busy) "Saving…" else "Save Profile") }
+            OutlinedButton(
+                onClick = {
+                    busy = true
+                    scope.launch {
+                        runCatching { AuthManager.validAccessToken(activity) }
+                            .onSuccess {
+                                refreshKey++
+                                name = AuthManager.displayName(activity)
+                                notice = "Account profile refreshed."
+                            }
+                            .onFailure { error -> notice = error.message.orEmpty() }
+                        busy = false
+                    }
+                },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Refresh Account") }
         }
     }
 
@@ -386,34 +419,52 @@ What happened:
     private fun PrivacyFeature() {
         val activity = this@MenuFeatureActivity
         val scope = rememberCoroutineScope()
-        var checking by remember { mutableStateOf(false) }
-        InfoCard("Session security", "B&L Morley uses an authorised Supabase session. Authentication tokens are not included in workspace backups.")
+        var busy by remember { mutableStateOf(false) }
+        InfoCard("Session security", "B&L Morley uses an authorised Supabase session. Authentication tokens are excluded from workspace backups, and you can revoke every active session from this device.")
         Button(
             onClick = {
-                checking = true
+                busy = true
                 scope.launch {
                     runCatching { AuthManager.validAccessToken(activity) }
                         .onSuccess { notice = "Secure session is valid." }
                         .onFailure { error -> notice = error.message.orEmpty() }
-                    checking = false
+                    busy = false
                 }
             },
-            enabled = !checking,
+            enabled = !busy,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (checking) "Checking…" else "Check Secure Session") }
+        ) { Text(if (busy) "Checking…" else "Check Secure Session") }
         OutlinedButton(
             onClick = {
                 AuthManager.signOut(activity)
                 startActivity(Intent(activity, AuthActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
                 finish()
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !busy
         ) { Text("Sign out this device") }
+        OutlinedButton(
+            onClick = {
+                busy = true
+                scope.launch {
+                    runCatching { AuthManager.signOutEverywhere(activity) }
+                        .onSuccess {
+                            startActivity(Intent(activity, AuthActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+                            finish()
+                        }
+                        .onFailure { error -> notice = error.message.orEmpty() }
+                    busy = false
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !busy
+        ) { Text("Sign out all devices") }
     }
 
     @Composable
     private fun BackupFeature() {
         val activity = this@MenuFeatureActivity
+        var confirmClear by remember { mutableStateOf(false) }
         InfoCard("Workspace backup", "Export inventory and sales data to a JSON backup. Login credentials and authentication tokens are deliberately excluded.")
         Button(
             onClick = { createBackup.launch("BL-Morley-backup-${SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())}.json") },
@@ -424,15 +475,49 @@ What happened:
             modifier = Modifier.fillMaxWidth()
         ) { Text("Import Backup") }
         OutlinedButton(
-            onClick = { WorkspaceStore.clearWorkspace(activity); notice = "Local workspace data cleared." },
+            onClick = { confirmClear = true },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Clear Local Workspace Data") }
+        if (confirmClear) {
+            AlertDialog(
+                onDismissRequest = { confirmClear = false },
+                title = { Text("Clear local data?") },
+                text = { Text("This removes the local workspace from this device. Export a backup first if you may need it later.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        WorkspaceStore.clearWorkspace(activity)
+                        confirmClear = false
+                        notice = "Local workspace data cleared."
+                    }) { Text("Clear") }
+                },
+                dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } }
+            )
+        }
     }
 
     @Composable
     private fun NotificationsFeature() {
-        InfoCard("Notifications", "Use Android's notification permission for update alerts and registered-device notifications.")
-        Button(onClick = { requestNotifications() }, modifier = Modifier.fillMaxWidth()) { Text("Enable Notifications") }
+        val activity = this@MenuFeatureActivity
+        val prefs = activity.getSharedPreferences("notification_settings", MODE_PRIVATE)
+        var updateAlerts by remember { mutableStateOf(prefs.getBoolean("update_alerts", true)) }
+        InfoCard("Notifications", "Control B&L Morley update alerts and Android notification permission from one place.")
+        CardBlock {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Update alerts", fontWeight = FontWeight.Black)
+                    Text("Allow B&L Morley to surface new app version notifications.", color = MFMuted, fontSize = 12.sp)
+                }
+                Switch(
+                    checked = updateAlerts,
+                    onCheckedChange = {
+                        updateAlerts = it
+                        prefs.edit().putBoolean("update_alerts", it).apply()
+                        notice = if (it) "Update alerts enabled." else "Update alerts disabled."
+                    }
+                )
+            }
+        }
+        Button(onClick = { requestNotifications() }, modifier = Modifier.fillMaxWidth()) { Text("Enable Android Notifications") }
         OutlinedButton(onClick = { openNotificationSettings() }, modifier = Modifier.fillMaxWidth()) { Text("Open Android Notification Settings") }
     }
 
@@ -441,30 +526,44 @@ What happened:
         val activity = this@MenuFeatureActivity
         val prefs = activity.getSharedPreferences("display_settings", MODE_PRIVATE)
         var keepAwake by remember { mutableStateOf(prefs.getBoolean("keep_awake", false)) }
-        InfoCard("Display preferences", "Choose whether B&L Morley should keep the screen awake while you're actively pricing or managing stock.")
+        var reducedMotion by remember { mutableStateOf(prefs.getBoolean("reduced_motion", false)) }
+        var compact by remember { mutableStateOf(prefs.getBoolean("compact_interface", false)) }
+        InfoCard("Display preferences", "Save interface preferences for the native app. Keep-awake applies immediately; accessibility preferences are retained for screens that support them.")
         CardBlock {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) {
-                    Text("Keep screen awake", fontWeight = FontWeight.Black)
-                    Text("Useful during valuation and stock entry.", color = MFMuted, fontSize = 12.sp)
-                }
-                Switch(
-                    checked = keepAwake,
-                    onCheckedChange = { enabled ->
-                        keepAwake = enabled
-                        prefs.edit().putBoolean("keep_awake", enabled).apply()
-                        if (enabled) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        notice = if (enabled) "Keep-awake enabled." else "Keep-awake disabled."
-                    }
-                )
+            SettingToggle("Keep screen awake", "Useful during valuation and stock entry.", keepAwake) { enabled ->
+                keepAwake = enabled
+                prefs.edit().putBoolean("keep_awake", enabled).apply()
+                if (enabled) activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                notice = if (enabled) "Keep-awake enabled." else "Keep-awake disabled."
+            }
+            SettingToggle("Reduced motion", "Prefer fewer interface animations where supported.", reducedMotion) { enabled ->
+                reducedMotion = enabled
+                prefs.edit().putBoolean("reduced_motion", enabled).apply()
+                notice = if (enabled) "Reduced motion enabled." else "Reduced motion disabled."
+            }
+            SettingToggle("Compact interface", "Prefer denser controls where supported.", compact) { enabled ->
+                compact = enabled
+                prefs.edit().putBoolean("compact_interface", enabled).apply()
+                notice = if (enabled) "Compact interface enabled." else "Compact interface disabled."
             }
         }
     }
 
     @Composable
+    private fun UpdatesFeature() {
+        val activity = this@MenuFeatureActivity
+        InfoCard("Installed version", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+        InfoCard("OTA updates", "Use the built-in update screen to check the signed release manifest, view release notes and install an available APK update.")
+        Button(
+            onClick = { startActivity(Intent(activity, UpdateActivity::class.java)) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Check for Updates") }
+    }
+
+    @Composable
     private fun ReportFeature() {
-        InfoCard("Report an issue", "Create a pre-filled issue email containing the app version and device details. Add what happened before sending it.")
+        InfoCard("Report an issue", "Create a pre-filled issue email containing app version, device, Android version and signed-in account details. Add what happened before sending it.")
         Button(onClick = { emailIssue() }, modifier = Modifier.fillMaxWidth()) { Text("Create Issue Report") }
     }
 
@@ -472,11 +571,24 @@ What happened:
     private fun LegalFeature() {
         InfoCard("Privacy", "B&L Morley is a private business system for authorised accounts. Workspace backups exclude authentication tokens. Pricing requests may use configured external pricing services to return market evidence.")
         InfoCard("Local data", "Inventory and sales created in the native workspace are stored locally on this device unless you explicitly export them.")
+        InfoCard("Account security", "Authentication is handled by Supabase. Session validation can revoke access when an account is disabled, and global sign-out can revoke active sessions across devices.")
     }
 
     @Composable
     private fun AboutFeature() {
-        InfoCard("B&L Morley", "Buys & Loans Hub\nVersion ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n\nNative valuation, inventory, barcode, sales and account workspace.")
+        InfoCard("B&L Morley", "Buys & Loans Hub\nVersion ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n\nNative valuation, inventory, barcode, sales, account, backup and secure update workspace.")
+        InfoCard("Release channel", "Signed production APK with OTA update support and a shared desktop web companion.")
+    }
+
+    @Composable
+    private fun SettingToggle(title: String, subtitle: String, checked: Boolean, onChanged: (Boolean) -> Unit) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.Black)
+                Text(subtitle, color = MFMuted, fontSize = 12.sp)
+            }
+            Switch(checked = checked, onCheckedChange = onChanged)
+        }
     }
 
     @Composable
