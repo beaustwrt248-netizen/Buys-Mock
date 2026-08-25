@@ -3,6 +3,7 @@ package com.buysloans.hub
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,108 +19,40 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
-class ValuationHistoryActivity:ComponentActivity(){
-    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{HistoryScreen{finish()}}}
-}
+class ValuationHistoryActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{HistoryScreen{finish()}}}}
 
-private val HistYellow=Color(0xFFFFD400);private val HistBg=Color(0xFF111111);private val HistCard=Color(0xFF222222)
+private val HistAccent=Color(0xFF16C7FF);private val HistStrong=Color(0xFF2684FF);private val HistBg=Color(0xFF030712);private val HistCard=Color(0xFF0B1528);private val HistMuted=Color(0xFF8EA6C4);private val HistGood=Color(0xFF57E389);private val HistWarn=Color(0xFFFFC857);private val HistBad=Color(0xFFFF6B7A)
 private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyInstance(Locale("en","AU")).apply{maximumFractionDigits=0}.format(v)
 
 @Composable private fun HistoryScreen(onBack:()->Unit){
-    val context=androidx.compose.ui.platform.LocalContext.current
-    val scope=rememberCoroutineScope()
-    var items by remember{mutableStateOf<List<SavedValuation>>(emptyList())}
-    var loading by remember{mutableStateOf(true)}
-    var error by remember{mutableStateOf("")}
-    var filter by remember{mutableStateOf("all")}
-    var search by remember{mutableStateOf("")}
-    var showAdd by remember{mutableStateOf(false)}
-    fun reload(){scope.launch{loading=true;error="";runCatching{ValuationHistoryManager.list(context)}.onSuccess{items=it}.onFailure{error=it.message?:"Could not load history"};loading=false}}
-    LaunchedEffect(Unit){reload()}
-    if(showAdd) AddValuationDialog(onDismiss={showAdd=false},onSaved={showAdd=false;reload()})
-    MaterialTheme(colorScheme=darkColorScheme(primary=HistYellow,background=HistBg,surface=HistCard)){
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Valuations & Deals",fontSize=26.sp,fontWeight=FontWeight.Black);TextButton(onClick=onBack){Text("Back")}}
-            Text("Saved quotes and less-used deal tracking live here so the main calculator stays uncluttered.",color=Color.LightGray)
-            if(items.isNotEmpty()) DealSummary(items)
-            Button(onClick={showAdd=true},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=HistYellow,contentColor=Color.Black)){Text("+ Save valuation / deal",fontWeight=FontWeight.Black)}
-            OutlinedTextField(value=search,onValueChange={search=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Search valuations")},placeholder={Text("Model, specs, notes…")})
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},label={Text(s.replaceFirstChar{it.uppercase()},fontSize=11.sp)})}}
-            if(loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if(error.isNotBlank()) Text(error,color=MaterialTheme.colorScheme.error)
-            val needle=search.trim().lowercase()
-            val shown=items.filter{item->
-                val filterMatch=filter=="all"||item.status==filter
-                val searchMatch=needle.isBlank()||listOf(item.itemSummary,item.specs,item.notes,item.itemType,item.status,item.confidence).any{it.lowercase().contains(needle)}
-                filterMatch&&searchMatch
-            }
-            Text("${shown.size} result${if(shown.size==1)"" else "s"}",color=Color.Gray,fontSize=12.sp)
-            if(!loading&&shown.isEmpty()) Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this filter.",Modifier.padding(18.dp),color=Color.LightGray)}
-            shown.forEach{item->HistoryCard(item){reload()}}
-            Spacer(Modifier.height(40.dp))
-        }
-    }
+ val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var items by remember{mutableStateOf<List<SavedValuation>>(emptyList())};var loading by remember{mutableStateOf(true)};var error by remember{mutableStateOf("")};var filter by remember{mutableStateOf("all")};var search by remember{mutableStateOf("")};var showAdd by remember{mutableStateOf(false)}
+ val favouritePrefs=context.getSharedPreferences("valuation_favourites",android.content.Context.MODE_PRIVATE);var favourites by remember{mutableStateOf(favouritePrefs.getStringSet("ids",emptySet())?.toSet()?:emptySet())}
+ fun toggleFavourite(id:String){favourites=if(id in favourites)favourites-id else favourites+id;favouritePrefs.edit().putStringSet("ids",favourites).apply()}
+ fun reload(){scope.launch{loading=true;error="";runCatching{ValuationHistoryManager.list(context)}.onSuccess{items=it}.onFailure{error=it.message?:"Could not load history"};loading=false}}
+ LaunchedEffect(Unit){reload()};if(showAdd)AddValuationDialog(onDismiss={showAdd=false},onSaved={showAdd=false;reload()})
+ MaterialTheme(colorScheme=darkColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=HistCard)){
+  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("SMART WORKSPACE",color=HistAccent,fontSize=11.sp,fontWeight=FontWeight.Black);Text("Valuations & Deals",fontSize=28.sp,fontWeight=FontWeight.Black)};TextButton(onClick=onBack){Text("Back")}}
+   Text("Review recent valuations, identify buy-zone deals and keep important opportunities on your watchlist.",color=HistMuted,lineHeight=20.sp)
+   if(items.isNotEmpty())SmartSummary(items,favourites.size)
+   Button(onClick={showAdd=true},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=HistStrong),shape=RoundedCornerShape(16.dp)){Text("+ Save valuation / deal",fontWeight=FontWeight.Black)}
+   OutlinedTextField(search,{search=it},modifier=Modifier.fillMaxWidth(),singleLine=true,label={Text("Search valuations")},placeholder={Text("Model, specs, notes…")})
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(5.dp)){listOf("all","watch","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},label={Text(s.replaceFirstChar{it.uppercase()},fontSize=9.sp)})}}
+   if(loading)LinearProgressIndicator(Modifier.fillMaxWidth());if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error)
+   val needle=search.trim().lowercase();val shown=items.filter{item->val fm=when(filter){"watch"->item.id in favourites;"all"->true;else->item.status==filter};val sm=needle.isBlank()||listOf(item.itemSummary,item.specs,item.notes,item.itemType,item.status,item.confidence).any{it.lowercase().contains(needle)};fm&&sm}
+   Text("${shown.size} result${if(shown.size==1)"" else "s"}",color=HistMuted,fontSize=12.sp)
+   if(!loading&&shown.isEmpty())Card(colors=CardDefaults.cardColors(containerColor=HistCard),border=BorderStroke(1.dp,HistAccent.copy(alpha=.18f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this view.",Modifier.padding(18.dp),color=HistMuted)}
+   shown.forEach{item->HistoryCard(item,item.id in favourites,{toggleFavourite(item.id)}){reload()}};Spacer(Modifier.height(40.dp))
+  }
+ }
 }
 
-@Composable private fun DealSummary(items:List<SavedValuation>){
-    val bought=items.filter{it.status=="bought"||it.status=="sold"}
-    val sold=items.filter{it.status=="sold"}
-    val totalSpend=bought.sumOf{it.boughtPrice?:0.0}
-    val revenue=sold.sumOf{it.soldPrice?:0.0}
-    val profit=sold.sumOf{it.actualProfit?:((it.soldPrice?:0.0)-(it.boughtPrice?:0.0))}
-    Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
-        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text("DEAL SNAPSHOT",color=HistYellow,fontSize=11.sp,fontWeight=FontWeight.Black)
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Records",items.size.toString());Metric("Bought",bought.size.toString());Metric("Sold",sold.size.toString())}
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Spend",moneyHist(totalSpend));Metric("Revenue",moneyHist(revenue));Metric("Profit",moneyHist(profit))}
-        }
-    }
-}
+@Composable private fun SmartSummary(items:List<SavedValuation>,watchCount:Int){val bought=items.filter{it.status=="bought"||it.status=="sold"};val sold=items.filter{it.status=="sold"};val profit=sold.sumOf{it.actualProfit?:((it.soldPrice?:0.0)-(it.boughtPrice?:0.0))};val buyZone=items.count{dealVerdict(it).first=="BUY ZONE"};Card(colors=CardDefaults.cardColors(containerColor=HistCard),border=BorderStroke(1.dp,HistAccent.copy(alpha=.28f)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("WORKSPACE SNAPSHOT",color=HistAccent,fontSize=11.sp,fontWeight=FontWeight.Black);Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Records",items.size.toString());Metric("Watchlist",watchCount.toString());Metric("Buy zone",buyZone.toString())};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Bought",bought.size.toString());Metric("Sold",sold.size.toString());Metric("Real profit",moneyHist(profit))}}}}
+private fun dealVerdict(item:SavedValuation):Pair<String,Color>{val ask=item.askingPrice?:return"NO ASK" to HistMuted;val max=item.maxBuy;val market=item.marketValue;return when{max!=null&&ask<=max->"BUY ZONE" to HistGood;market!=null&&ask<=market*.78->"NEGOTIATE" to HistWarn;market!=null&&ask<market->"MARGINAL" to HistWarn;market!=null&&ask>=market->"PASS" to HistBad;else->"REVIEW" to HistMuted}}
 
-@Composable private fun AddValuationDialog(onDismiss:()->Unit,onSaved:()->Unit){
-    val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope()
-    var type by remember{mutableStateOf("laptop")};var summary by remember{mutableStateOf("")};var specs by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var market by remember{mutableStateOf("")};var maxBuy by remember{mutableStateOf("")};var confidence by remember{mutableStateOf("manual")};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")}
-    AlertDialog(onDismissRequest=onDismiss,title={Text("Save valuation")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
-        Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("laptop","desktop","gp","other").forEach{x->FilterChip(selected=type==x,onClick={type=x},label={Text(x.uppercase(),fontSize=10.sp)})}}
-        OutlinedTextField(summary,{summary=it},label={Text("Item / model")},singleLine=true)
-        OutlinedTextField(specs,{specs=it},label={Text("Specs / notes")},minLines=2)
-        OutlinedTextField(ask,{ask=it},label={Text("Seller asking price")},singleLine=true)
-        OutlinedTextField(market,{market=it},label={Text("Market value")},singleLine=true)
-        OutlinedTextField(maxBuy,{maxBuy=it},label={Text("Max buy")},singleLine=true)
-        OutlinedTextField(confidence,{confidence=it},label={Text("Confidence")},singleLine=true)
-        if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error,fontSize=12.sp)
-        if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
-    }},dismissButton={TextButton(onClick=onDismiss,enabled=!busy){Text("Cancel")}},confirmButton={Button(onClick={busy=true;error="";scope.launch{runCatching{val a=ask.toDoubleOrNull();val m=market.toDoubleOrNull();val mx=maxBuy.toDoubleOrNull();ValuationHistoryManager.save(context,type,summary.trim(),specs.trim(),a,m,mx,if(m!=null&&mx!=null)m-mx else null,confidence.trim())}.onSuccess{onSaved()}.onFailure{error=it.message?:"Could not save"};busy=false}},enabled=!busy&&summary.isNotBlank()){Text("Save")}})
-}
+@Composable private fun AddValuationDialog(onDismiss:()->Unit,onSaved:()->Unit){val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var type by remember{mutableStateOf("laptop")};var summary by remember{mutableStateOf("")};var specs by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var market by remember{mutableStateOf("")};var maxBuy by remember{mutableStateOf("")};var confidence by remember{mutableStateOf("manual")};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")};AlertDialog(onDismissRequest=onDismiss,title={Text("Save valuation")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("laptop","desktop","gp","other").forEach{x->FilterChip(selected=type==x,onClick={type=x},label={Text(x.uppercase(),fontSize=10.sp)})}};OutlinedTextField(summary,{summary=it},label={Text("Item / model")},singleLine=true);OutlinedTextField(specs,{specs=it},label={Text("Specs / notes")},minLines=2);OutlinedTextField(ask,{ask=it},label={Text("Seller asking price")},singleLine=true);OutlinedTextField(market,{market=it},label={Text("Market value")},singleLine=true);OutlinedTextField(maxBuy,{maxBuy=it},label={Text("Max buy")},singleLine=true);OutlinedTextField(confidence,{confidence=it},label={Text("Confidence")},singleLine=true);if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error,fontSize=12.sp);if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())}},dismissButton={TextButton(onClick=onDismiss,enabled=!busy){Text("Cancel")}},confirmButton={Button(onClick={busy=true;error="";scope.launch{runCatching{val a=ask.toDoubleOrNull();val m=market.toDoubleOrNull();val mx=maxBuy.toDoubleOrNull();ValuationHistoryManager.save(context,type,summary.trim(),specs.trim(),a,m,mx,if(m!=null&&mx!=null)m-mx else null,confidence.trim())}.onSuccess{onSaved()}.onFailure{error=it.message?:"Could not save"};busy=false}},enabled=!busy&&summary.isNotBlank()){Text("Save")}})}
 
-@Composable private fun HistoryCard(item:SavedValuation,reload:()->Unit){
-    val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var menu by remember{mutableStateOf(false)};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")};var priceAction by remember{mutableStateOf<String?>(null)}
-    priceAction?.let{action->PriceDialog(action,item,onDismiss={priceAction=null},onSaved={priceAction=null;reload()})}
-    Card(colors=CardDefaults.cardColors(containerColor=HistCard),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
-        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column(Modifier.weight(1f)){Text(item.itemSummary,fontSize=18.sp,fontWeight=FontWeight.Black);Text("${item.itemType.uppercase()} • ${item.status.uppercase()}",color=HistYellow,fontSize=11.sp,fontWeight=FontWeight.Bold)};Box{TextButton(onClick={menu=true}){Text("Manage")};DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
-                DropdownMenuItem(text={Text("Mark Quoted")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,"quoted")}.onFailure{error=it.message?:"Update failed"};busy=false;reload()}})
-                DropdownMenuItem(text={Text("Mark Bought…")},onClick={menu=false;priceAction="bought"})
-                DropdownMenuItem(text={Text("Mark Sold…")},onClick={menu=false;priceAction="sold"})
-                DropdownMenuItem(text={Text("Mark Passed")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,"passed")}.onFailure{error=it.message?:"Update failed"};busy=false;reload()}})
-                HorizontalDivider();DropdownMenuItem(text={Text("Delete")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.delete(context,item.id)}.onFailure{error=it.message?:"Delete failed"};busy=false;reload()}})
-            }}}
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Ask",moneyHist(item.askingPrice));Metric("Market",moneyHist(item.marketValue));Metric("Max buy",moneyHist(item.maxBuy))}
-            if(item.boughtPrice!=null)Text("Bought: ${moneyHist(item.boughtPrice)}",fontWeight=FontWeight.Bold)
-            if(item.soldPrice!=null)Text("Sold: ${moneyHist(item.soldPrice)}",fontWeight=FontWeight.Bold)
-            if(item.actualProfit!=null) Text("Actual profit ${moneyHist(item.actualProfit)}",color=if(item.actualProfit>=0)Color(0xFF57E389) else Color(0xFFFF6B6B),fontWeight=FontWeight.Black)
-            if(item.expectedProfit!=null)Text("Expected profit ${moneyHist(item.expectedProfit)}",color=Color.LightGray,fontSize=12.sp)
-            if(item.confidence.isNotBlank())Text("Confidence: ${item.confidence}",color=Color.LightGray,fontSize=12.sp)
-            if(item.specs.isNotBlank())Text(item.specs,color=Color.Gray,fontSize=12.sp,maxLines=3)
-            if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error,fontSize=12.sp)
-            if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-    }
-}
+@Composable private fun HistoryCard(item:SavedValuation,isFavourite:Boolean,toggleFavourite:()->Unit,reload:()->Unit){val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var menu by remember{mutableStateOf(false)};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")};var priceAction by remember{mutableStateOf<String?>(null)};val verdict=dealVerdict(item);priceAction?.let{action->PriceDialog(action,item,onDismiss={priceAction=null},onSaved={priceAction=null;reload()})};Card(colors=CardDefaults.cardColors(containerColor=HistCard),border=BorderStroke(1.dp,if(isFavourite)HistAccent.copy(alpha=.55f) else HistAccent.copy(alpha=.16f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column(Modifier.weight(1f)){Text(item.itemSummary,fontSize=18.sp,fontWeight=FontWeight.Black);Text("${item.itemType.uppercase()} • ${item.status.uppercase()}",color=HistAccent,fontSize=11.sp,fontWeight=FontWeight.Bold)};Row{TextButton(onClick=toggleFavourite){Text(if(isFavourite)"★" else "☆",fontSize=23.sp,color=if(isFavourite)HistAccent else HistMuted)};Box{TextButton(onClick={menu=true}){Text("Manage")};DropdownMenu(expanded=menu,onDismissRequest={menu=false}){DropdownMenuItem(text={Text("Mark Quoted")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,"quoted")}.onFailure{error=it.message?:"Update failed"};busy=false;reload()}});DropdownMenuItem(text={Text("Mark Bought…")},onClick={menu=false;priceAction="bought"});DropdownMenuItem(text={Text("Mark Sold…")},onClick={menu=false;priceAction="sold"});DropdownMenuItem(text={Text("Mark Passed")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,"passed")}.onFailure{error=it.message?:"Update failed"};busy=false;reload()}});HorizontalDivider();DropdownMenuItem(text={Text("Delete")},onClick={menu=false;busy=true;scope.launch{runCatching{ValuationHistoryManager.delete(context,item.id)}.onFailure{error=it.message?:"Delete failed"};busy=false;reload()}})}}}};Surface(color=verdict.second.copy(alpha=.10f),border=BorderStroke(1.dp,verdict.second.copy(alpha=.35f)),shape=RoundedCornerShape(999.dp)){Text(verdict.first,Modifier.padding(horizontal=11.dp,vertical=6.dp),color=verdict.second,fontSize=11.sp,fontWeight=FontWeight.Black)};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Metric("Ask",moneyHist(item.askingPrice));Metric("Market",moneyHist(item.marketValue));Metric("Max buy",moneyHist(item.maxBuy))};if(item.askingPrice!=null&&item.maxBuy!=null){val gap=item.maxBuy-item.askingPrice;Text(if(gap>=0)"${moneyHist(gap)} room below max buy" else "${moneyHist(-gap)} above max buy",color=if(gap>=0)HistGood else HistWarn,fontWeight=FontWeight.Bold,fontSize=12.sp)};if(item.boughtPrice!=null)Text("Bought: ${moneyHist(item.boughtPrice)}",fontWeight=FontWeight.Bold);if(item.soldPrice!=null)Text("Sold: ${moneyHist(item.soldPrice)}",fontWeight=FontWeight.Bold);if(item.actualProfit!=null)Text("Actual profit ${moneyHist(item.actualProfit)}",color=if(item.actualProfit>=0)HistGood else HistBad,fontWeight=FontWeight.Black);if(item.expectedProfit!=null)Text("Expected profit ${moneyHist(item.expectedProfit)}",color=HistMuted,fontSize=12.sp);if(item.confidence.isNotBlank())Text("Confidence: ${item.confidence}",color=HistMuted,fontSize=12.sp);if(item.specs.isNotBlank())Text(item.specs,color=HistMuted,fontSize=12.sp,maxLines=3);if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error,fontSize=12.sp);if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())}}}
 
-@Composable private fun PriceDialog(action:String,item:SavedValuation,onDismiss:()->Unit,onSaved:()->Unit){
-    val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var price by remember{mutableStateOf(if(action=="bought")item.askingPrice?.toString().orEmpty() else "")};var notes by remember{mutableStateOf(item.notes)};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")}
-    AlertDialog(onDismissRequest=onDismiss,title={Text(if(action=="bought")"Mark as bought" else "Mark as sold")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(price,{price=it},label={Text(if(action=="bought")"Actual buy price" else "Actual sold price")},singleLine=true);OutlinedTextField(notes,{notes=it},label={Text("Notes")},minLines=2);if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error);if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())}},dismissButton={TextButton(onClick=onDismiss,enabled=!busy){Text("Cancel")}},confirmButton={Button(onClick={val p=price.toDoubleOrNull();if(p==null){error="Enter a valid price"}else{busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,action,boughtPrice=if(action=="bought")p else null,soldPrice=if(action=="sold")p else null,notes=notes)}.onSuccess{onSaved()}.onFailure{error=it.message?:"Update failed"};busy=false}}}){Text("Save")}})
-}
-
-@Composable private fun Metric(label:String,value:String){Column{Text(label,color=Color.Gray,fontSize=10.sp);Text(value,fontWeight=FontWeight.Bold)}}
+@Composable private fun PriceDialog(action:String,item:SavedValuation,onDismiss:()->Unit,onSaved:()->Unit){val context=androidx.compose.ui.platform.LocalContext.current;val scope=rememberCoroutineScope();var price by remember{mutableStateOf(if(action=="bought")item.askingPrice?.toString().orEmpty() else "")};var notes by remember{mutableStateOf(item.notes)};var busy by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")};AlertDialog(onDismissRequest=onDismiss,title={Text(if(action=="bought")"Mark as bought" else "Mark as sold")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(price,{price=it},label={Text(if(action=="bought")"Actual buy price" else "Actual sold price")},singleLine=true);OutlinedTextField(notes,{notes=it},label={Text("Notes")},minLines=2);if(error.isNotBlank())Text(error,color=MaterialTheme.colorScheme.error);if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())}},dismissButton={TextButton(onClick=onDismiss,enabled=!busy){Text("Cancel")}},confirmButton={Button(onClick={val p=price.toDoubleOrNull();if(p==null){error="Enter a valid price"}else{busy=true;scope.launch{runCatching{ValuationHistoryManager.updateStatus(context,item.id,action,boughtPrice=if(action=="bought")p else null,soldPrice=if(action=="sold")p else null,notes=notes)}.onSuccess{onSaved()}.onFailure{error=it.message?:"Update failed"};busy=false}}}){Text("Save")}})}
+@Composable private fun Metric(label:String,value:String){Column{Text(label,color=HistMuted,fontSize=10.sp);Text(value,fontWeight=FontWeight.Bold)}}
