@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val DiagAccent = Color(0xFF16C7FF)
 private val DiagBg = Color(0xFF030712)
@@ -58,14 +61,20 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun installerAllowed(): Boolean =
         Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()
 
+    private fun checkedTime(): String =
+        SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date())
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DiagnosticsScreen() {
         var refresh by remember { mutableIntStateOf(0) }
+        var lastChecked by remember { mutableStateOf(checkedTime()) }
+
         val online = remember(refresh) { isOnline() }
         val signedIn = remember(refresh) { AuthManager.isSignedIn(this) }
         val notifications = remember(refresh) { notificationsAllowed() }
         val installer = remember(refresh) { installerAllowed() }
+        val accountLabel = remember(refresh) { AuthManager.accountLabel(this) }
 
         Scaffold(
             containerColor = DiagBg,
@@ -84,14 +93,23 @@ class DiagnosticsActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DiagnosticCard("App", "B&L Morley ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", true)
-                DiagnosticCard("Account session", if (signedIn) "Authenticated as ${AuthManager.accountLabel(this@DiagnosticsActivity)}" else "No active authorised session", signedIn)
+                DiagnosticCard("Account session", if (signedIn) "Authenticated as $accountLabel" else "No active authorised session", signedIn)
                 DiagnosticCard("Internet connection", if (online) "Validated network connection is available" else "No validated internet connection", online)
                 DiagnosticCard("Notifications", if (notifications) "Android notification permission is available" else "Notification permission is disabled", notifications)
                 DiagnosticCard("OTA installer", if (installer) "APK installer permission is ready" else "Install unknown apps permission is not enabled", installer)
                 DiagnosticCard("Device", "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}", true)
 
+                Text(
+                    "Last checked: $lastChecked",
+                    color = DiagMuted,
+                    fontSize = 12.sp
+                )
+
                 Button(
-                    onClick = { refresh++ },
+                    onClick = {
+                        refresh += 1
+                        lastChecked = checkedTime()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2684FF))
                 ) { Text("Refresh Diagnostics", fontWeight = FontWeight.Black) }
