@@ -79,7 +79,7 @@ private fun consensus(values: List<Double>): Pair<Double, String> {
 }
 
 @Composable
-fun MultiSourceEvidence(result: MarketResult, googleUsedRate: Double) {
+fun CrossSourceEvidence(result: MarketResult, googleUsedRate: Double) {
     val ebay = statsFor(
         name = "eBay",
         listings = result.exactEbay,
