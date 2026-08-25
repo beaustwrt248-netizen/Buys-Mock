@@ -15,11 +15,14 @@ object AuthManager {
     private const val REFRESH_TOKEN = "refresh_token"
     private const val EXPIRES_AT = "expires_at"
     private const val USER_EMAIL = "user_email"
+    private const val DISPLAY_NAME = "display_name"
     const val AUTH_CALLBACK = "bnlmorley://auth/callback"
 
     fun accessToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACCESS_TOKEN, "").orEmpty()
     fun refreshToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(REFRESH_TOKEN, "").orEmpty()
     fun email(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_EMAIL, "").orEmpty()
+    fun displayName(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(DISPLAY_NAME, "").orEmpty()
+    fun accountLabel(context: Context): String = displayName(context).ifBlank { email(context) }.ifBlank { "Authorised B&L Morley account" }
     private fun expiresAt(context: Context): Long = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(EXPIRES_AT, 0L)
 
     fun isSignedIn(context: Context): Boolean = accessToken(context).isNotBlank() || refreshToken(context).isNotBlank()
@@ -65,18 +68,29 @@ object AuthManager {
         }
     }
 
-    private suspend fun verifyAuthorised(token: String): Boolean = withContext(Dispatchers.IO) {
-        val userId = extractUserId(token); if (userId.isBlank()) return@withContext false
-        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
+    private suspend fun authorisedProfile(token: String): JSONObject? = withContext(Dispatchers.IO) {
+        val userId = extractUserId(token); if (userId.isBlank()) return@withContext null
+        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled,display_name,email&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
         val c = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); setRequestProperty("Authorization", "Bearer $token")
         }
         try {
-            if (c.responseCode !in 200..299) return@withContext false
+            if (c.responseCode !in 200..299) return@withContext null
             val arr = JSONArray(c.inputStream.bufferedReader().use { it.readText() })
-            arr.length() > 0 && arr.getJSONObject(0).optBoolean("is_enabled", false)
+            if (arr.length() == 0) null else arr.getJSONObject(0).takeIf { it.optBoolean("is_enabled", false) }
         } finally { c.disconnect() }
+    }
+
+    private suspend fun verifyAndCacheProfile(context: Context, token: String): Boolean {
+        val profile = authorisedProfile(token) ?: return false
+        val name = profile.optString("display_name").trim()
+        val profileEmail = profile.optString("email").trim().lowercase()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
+            if (name.isNotBlank()) putString(DISPLAY_NAME, name)
+            if (profileEmail.isNotBlank()) putString(USER_EMAIL, profileEmail)
+        }.apply()
+        return true
     }
 
     private fun extractUserId(jwt: String): String = runCatching {
@@ -103,7 +117,13 @@ object AuthManager {
         val access = accessToken(context)
         val expiry = expiresAt(context)
         val now = System.currentTimeMillis() / 1000L
-        if (access.isNotBlank() && (expiry == 0L || expiry > now + 60L)) return access
+        if (access.isNotBlank() && (expiry == 0L || expiry > now + 60L)) {
+            if (!verifyAndCacheProfile(context, access)) {
+                signOut(context)
+                throw IllegalStateException("This account is no longer authorised for B&L Morley.")
+            }
+            return access
+        }
         val refresh = refreshToken(context)
         if (refresh.isBlank()) {
             signOut(context)
@@ -116,7 +136,7 @@ object AuthManager {
         }
         saveSession(context, body)
         val token = accessToken(context)
-        if (!verifyAuthorised(token)) {
+        if (!verifyAndCacheProfile(context, token)) {
             signOut(context)
             throw IllegalStateException("This account is no longer authorised for B&L Morley.")
         }
@@ -135,8 +155,11 @@ object AuthManager {
         if (code !in 200..299) throw IllegalStateException(errorMessage(code, body, "Sign in failed ($code)."))
         val token = JSONObject(body).optString("access_token")
         if (token.isBlank()) throw IllegalStateException("Sign in did not return a session.")
-        if (!verifyAuthorised(token)) throw IllegalStateException("This account is not authorised for B&L Morley. Contact an administrator.")
         saveSession(context, body, email)
+        if (!verifyAndCacheProfile(context, token)) {
+            signOut(context)
+            throw IllegalStateException("This account is not authorised for B&L Morley. Contact an administrator.")
+        }
     }
 
     suspend fun signUp(email: String, password: String, inviteCode: String, captchaToken: String) {
