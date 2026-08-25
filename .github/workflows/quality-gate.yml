@@ -17,6 +17,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,6 +74,20 @@ jobs:
           python3 android/apply_cyber_palette.py
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
           diff -u "$RUNNER_TEMP/palette-before.sha" "$RUNNER_TEMP/palette-after.sha"
+
+      - name: Verify Android auth routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'AuthActivity' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.category.LAUNCHER' android/app/src/main/AndroidManifest.xml
+          grep -q 'AuthManager.validAccessToken(this@AuthActivity)' android/app/src/main/java/com/buysloans/hub/AuthActivity.kt
+          grep -q 'AuthManager.isSignedIn(this)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          if grep -RInE 'AuthManager\.signIn\([^,]+,[^,]+,[^,]+\)' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
+            echo 'Legacy non-CAPTCHA Android sign-in call remains in production code'
+            exit 1
+          fi
 
       - name: Verify protected backend endpoints
         shell: bash
