@@ -64,11 +64,12 @@ private fun marketplaceFeatures(s: String): MarketplaceFeatures {
     val family = marketplaceFamilies.firstOrNull { x.contains(it) }.orEmpty()
     val brand = if (explicitBrand.isBlank() && family.startsWith("macbook")) "apple" else explicitBrand
     val appleCpu = Regex("\\bm[1-4](?:\\s*(?:pro|max|ultra))?\\b").find(x)?.value.orEmpty()
-    val fullIntelAmdCpu = Regex("\\b(?:i[3579][ -]?)?(\\d{4,5}[a-z]{0,3})\\b").find(x)?.groupValues?.get(1).orEmpty()
+    val intelCpuMatch = Regex("\\bi([3579])\\s*[- ]?\\s*(\\d{4,5}[a-z]{0,3})\\b").find(x)
+    val intelCpu = intelCpuMatch?.let { "i${it.groupValues[1]} ${it.groupValues[2]}" }.orEmpty()
     val cpuTier = Regex("\\bi[3579]\\b").find(x)?.value.orEmpty()
     val cpu = when {
         appleCpu.isNotBlank() -> appleCpu
-        fullIntelAmdCpu.isNotBlank() -> fullIntelAmdCpu
+        intelCpu.isNotBlank() -> intelCpu
         else -> cpuTier
     }
     val gpu = Regex("\\b((?:rtx|gtx|rx|arc)\\s*\\d{3,4}(?:\\s*(?:ti|super|xt|xtx))?)\\b").find(x)?.groupValues?.get(1).orEmpty()
@@ -78,7 +79,7 @@ private fun marketplaceFeatures(s: String): MarketplaceFeatures {
     val year = Regex("\\b(20(?:0[8-9]|[12]\\d|3[0-5]))\\b").find(x)?.value.orEmpty()
     val alphaNum = x.split(" ").filter {
         it.length >= 3 && it.any(Char::isLetter) && it.any(Char::isDigit) &&
-            it != cpu && !it.startsWith("gen") && it != storage.replace(" ", "")
+            !it.startsWith("gen") && !Regex("^20\\d{2}$").matches(it) && it != storage.replace(" ", "")
     }
     return MarketplaceFeatures(brand, family, cpu, gpu, ram, storage, generation, year, alphaNum.distinct())
 }
@@ -87,6 +88,13 @@ private fun familyCompatible(queryFamily: String, titleFamily: String): Boolean 
     queryFamily.isBlank() -> false
     queryFamily == "macbook" -> titleFamily.startsWith("macbook")
     else -> queryFamily == titleFamily
+}
+
+private fun isAccessoryListing(title: String, family: String): Boolean {
+    val explicitAccessory = Regex("\\b(replacement|box only|empty box|for parts|faulty|repair|spares only)\\b").containsMatchIn(title)
+    if (explicitAccessory) return true
+    val accessoryTerms = Regex("\\b(cable|adapter|charger|battery|keyboard|mouse|case|cover|stand|webcam|module|ssd|ram kit|memory|motherboard|heatsink|fan|screen|display|bezel|hinge|dock|docking|power supply|psu)\\b").containsMatchIn(title)
+    return family.isBlank() && accessoryTerms
 }
 
 internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, Int, String> {
@@ -101,7 +109,10 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
     val brandMismatch = q.brand.isNotBlank() && t.brand.isNotBlank() && q.brand != t.brand
     val familyMatched = familyCompatible(q.family, t.family)
     val genericMacbook = q.family == "macbook"
-    val cpuMatched = q.cpu.isBlank() || tx.contains(Regex("\\b${Regex.escape(marketplaceNorm(q.cpu))}\\b"))
+    val qCpuTier = Regex("\\bi[3579]\\b").find(q.cpu)?.value.orEmpty()
+    val cpuMatched = q.cpu.isBlank() ||
+        (qCpuTier.isNotBlank() && tx.contains(Regex("\\b${Regex.escape(qCpuTier)}\\b"))) ||
+        tx.contains(marketplaceNorm(q.cpu))
     val gpuMatched = q.gpu.isBlank() || tx.contains(marketplaceNorm(q.gpu))
     val yearMatched = q.year.isBlank() || q.year == t.year || tx.contains(Regex("\\b${Regex.escape(q.year)}\\b"))
     val storageMatched = q.storage.isBlank() || tx.contains(marketplaceNorm(q.storage))
@@ -121,7 +132,7 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
     if (hits > 0) { score += minOf(25, hits * 12); reasons += "Model" }
     score = score.coerceAtMost(100)
 
-    val accessory = Regex("\\b(cable|adapter|charger|battery|keyboard|mouse|case|cover|stand|webcam|module|ssd|ram kit|memory|motherboard|heatsink|fan|screen|display|replacement|part|parts|bezel|hinge|dock|docking|power supply|psu|box only|empty box|for parts|faulty|repair)\\b").containsMatchIn(tx)
+    val accessory = isAccessoryListing(tx, t.family)
     val generationMismatch = q.generation.isNotBlank() && t.generation.isNotBlank() && q.generation != t.generation
     val yearMismatch = q.year.isNotBlank() && t.year.isNotBlank() && q.year != t.year
     val cpuMismatch = q.cpu.isNotBlank() && t.cpu.isNotBlank() && !cpuMatched
