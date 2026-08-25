@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 23
-        versionName '2.7.2-cyber'
+        versionCode 24
+        versionName '2.8.0-menu'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -37,22 +37,14 @@ android {
         }
     }
 
-    buildFeatures {
-        compose true
-        buildConfig true
-    }
+    buildFeatures { compose true; buildConfig true }
     kotlinOptions { jvmTarget = '17' }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
-            }
+            if (hasReleaseSigning) { signingConfig signingConfigs.release }
         }
     }
 }
@@ -63,27 +55,14 @@ def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
 
 tasks.register('verifyReleaseSigning') {
     doLast {
-        if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) {
-            throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.')
-        }
-        if (!file(releaseStoreFileForCheck).exists()) {
-            throw new GradleException('Configured B&L Morley release keystore does not exist.')
-        }
+        if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.')
+        if (!file(releaseStoreFileForCheck).exists()) throw new GradleException('Configured B&L Morley release keystore does not exist.')
     }
 }
 
-tasks.register('applyCyberPalette', Exec) {
-    workingDir rootProject.projectDir
-    commandLine 'python3', 'apply_cyber_palette.py'
-}
-
-tasks.matching { it.name == 'preBuild' }.configureEach {
-    dependsOn tasks.named('applyCyberPalette')
-}
-
-tasks.matching { it.name == 'preReleaseBuild' }.configureEach {
-    dependsOn tasks.named('verifyReleaseSigning')
-}
+tasks.register('applyCyberPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_cyber_palette.py' }
+tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('applyCyberPalette') }
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
     implementation platform('androidx.compose:compose-bom:2024.10.01')
