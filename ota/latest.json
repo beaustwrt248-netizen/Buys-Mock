@@ -1,7 +1,7 @@
 {
-  "versionCode": 21,
-  "versionName": "2.7.0-cyber",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.7.0-cyber/B-and-L-Morley-v2.7.0-cyber.apk",
-  "sha256": "c497b3551e370a3554edea997af44939f80bb1a55d339d055efcb85e761d92c5",
-  "notes": "B&L Morley v2.7.0 Cyber aligns the Android interface with the deep navy/blue/cyan web palette and refreshes the Laptop/MacBook valuation workspace."
+  "versionCode": 22,
+  "versionName": "2.7.1-cyber",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.7.1-cyber/B-and-L-Morley-2.7.1-cyber.apk",
+  "sha256": "a55c055ca158f9c4985cbff9327d749c881cda9dabc6e2f08cbf02130c55d80a",
+  "notes": "B&L Morley 2.7.1-cyber production release with the unified navy/blue/cyan cyber interface and current valuation workflow."
 }
