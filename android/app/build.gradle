@@ -60,16 +60,10 @@ tasks.register('verifyReleaseSigning') {
     }
 }
 
-tasks.register('applyCyberPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_cyber_palette.py' }
-tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'improve_exact_matching.py' }
-tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
-tasks.named('improveExactMatching') { mustRunAfter tasks.named('applyCyberPalette') }
-tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
-tasks.matching { it.name == 'preBuild' }.configureEach {
-    dependsOn tasks.named('applyCyberPalette')
-    dependsOn tasks.named('improveExactMatching')
-    dependsOn tasks.named('integrateMarketplaceValuation')
-}
+// Source transformation scripts were previously attached to preBuild. That made
+// every test/build mutate Kotlin sources and caused CI to fail when one patcher
+// could no longer find an older source pattern. Source changes are now committed
+// normally and builds are deterministic.
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
