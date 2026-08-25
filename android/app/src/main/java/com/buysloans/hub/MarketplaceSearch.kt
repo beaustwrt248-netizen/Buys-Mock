@@ -121,12 +121,14 @@ private fun parseMarketplaceItems(query: String, obj: JSONObject?): List<Marketp
 
 suspend fun searchMarketplaceEvidence(context: Context, query: String): MarketplaceEvidence = withContext(Dispatchers.IO) {
     val token = AuthManager.validAccessToken(context)
+    require(token.isNotBlank()) { "Sign in again to search marketplace evidence." }
     val connection = (URL(MARKETPLACE_SEARCH_API).openConnection() as HttpURLConnection).apply {
         requestMethod = "POST"
         connectTimeout = 15_000
         readTimeout = 20_000
         doOutput = true
         setRequestProperty("Content-Type", "application/json")
+        setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
         setRequestProperty("Authorization", "Bearer $token")
     }
     try {
