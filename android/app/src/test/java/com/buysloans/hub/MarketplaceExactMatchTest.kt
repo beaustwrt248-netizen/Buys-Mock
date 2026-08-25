@@ -39,12 +39,12 @@ class MarketplaceExactMatchTest {
         assertTrue(exact)
     }
 
-    @Test fun `macbook brand is inferred when apple is omitted`() {
-        val (exact, _, _) = classifyMarketplace(
+    @Test fun `macbook brand is inferred and SSD spec is not an accessory`() {
+        val (exact, _, reasons) = classifyMarketplace(
             "MacBook Air 2019 i5 256GB",
             "Apple MacBook Air 2019 13-inch Intel Core i5 8GB 256GB SSD"
         )
-        assertTrue(exact)
+        assertTrue(reasons, exact)
     }
 
     @Test fun `generic macbook cannot mix air and pro into exact value`() {
@@ -72,5 +72,14 @@ class MarketplaceExactMatchTest {
         )
         assertFalse(exact)
         assertTrue(reasons.contains("Storage mismatch"))
+    }
+
+    @Test fun `wrong macbook cpu tier is not exact`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "MacBook Air 2019 i5 256GB",
+            "Apple MacBook Air 2019 Intel Core i7 8GB 256GB SSD"
+        )
+        assertFalse(exact)
+        assertTrue(reasons.contains("CPU mismatch"))
     }
 }
