@@ -1,7 +1,7 @@
 {
-  "versionCode": 28,
-  "versionName": "2.10.0-menu-settings",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.10.0-menu-settings/B-and-L-Morley-2.10.0-menu-settings.apk",
-  "sha256": "f33373fe4c17a6cbe5ee05f8e35879e5aef51b74db9f5c4daaa317f954a2f9a2",
-  "notes": "B&L Morley 2.10.0-menu-settings production release with the unified navy/blue/cyan cyber interface and current valuation workflow."
+  "versionCode": 29,
+  "versionName": "2.11.0-smart-workspace",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.11.0-smart-workspace/B-and-L-Morley-2.11.0-smart-workspace.apk",
+  "sha256": "f47e58682ff4c26b02cfdf1c300bba9923b19c388a392343a28759e97704407c",
+  "notes": "B&L Morley 2.11.0-smart-workspace production release with the unified navy/blue/cyan cyber interface and current valuation workflow."
 }
