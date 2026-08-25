@@ -1,1 +1,2 @@
 B&L Morley APK CI verification
+Force rebuild for updated login video: 2026-08-25
