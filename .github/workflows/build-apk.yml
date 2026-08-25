@@ -113,7 +113,7 @@ jobs:
             rm -f morley_buys_login_bg_app_hq.zip
             git mv morley_buys_login_bg_app_hq_new.zip morley_buys_login_bg_app_hq.zip
           fi
-          git add -A web-assets morley_buys_login_bg_app_hq.zip morley_buys_login_bg_app_hq_new.zip
+          git add -A web-assets
           if ! git diff --cached --quiet; then
             git commit -m "Promote verified new login video [skip ci]"
             git push
@@ -232,8 +232,8 @@ jobs:
             - Release APK passes regression tests, Android lint and signature verification
             - OTA downloads are protected with SHA-256 integrity verification
           files: |
-            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
-            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
+            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk
+            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256
           fail_on_unmatched_files: true
           make_latest: true
 
