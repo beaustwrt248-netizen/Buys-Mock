@@ -39,7 +39,7 @@ private val marketplaceBrands = listOf(
 )
 
 private val marketplaceFamilies = listOf(
-    "mpg trident as", "trident as", "trident", "macbook pro", "macbook air",
+    "mpg trident as", "trident as", "trident", "macbook pro", "macbook air", "macbook",
     "thinkcentre", "thinkstation", "thinkpad", "optiplex", "precision", "elitedesk",
     "prodesk", "legion", "loq", "omen", "victus", "predator", "nitro", "tuf",
     "rog", "zephyrus", "vivobook", "zenbook", "inspiron", "latitude", "xps",
@@ -54,24 +54,39 @@ private data class MarketplaceFeatures(
     val ram: String = "",
     val storage: String = "",
     val generation: String = "",
+    val year: String = "",
     val modelTokens: List<String> = emptyList()
 )
 
 private fun marketplaceFeatures(s: String): MarketplaceFeatures {
     val x = marketplaceNorm(s)
-    val brand = marketplaceBrands.firstOrNull { x.contains(Regex("\\b${Regex.escape(it)}\\b")) }.orEmpty()
+    val explicitBrand = marketplaceBrands.firstOrNull { x.contains(Regex("\\b${Regex.escape(it)}\\b")) }.orEmpty()
     val family = marketplaceFamilies.firstOrNull { x.contains(it) }.orEmpty()
-    val intelAmdCpu = Regex("\\b(?:i[3579][ -]?)?(\\d{4,5}[a-z]{0,3})\\b").find(x)?.groupValues?.get(1).orEmpty()
+    val brand = if (explicitBrand.isBlank() && family.startsWith("macbook")) "apple" else explicitBrand
     val appleCpu = Regex("\\bm[1-4](?:\\s*(?:pro|max|ultra))?\\b").find(x)?.value.orEmpty()
-    val cpu = if (appleCpu.isNotBlank()) appleCpu else intelAmdCpu
+    val fullIntelAmdCpu = Regex("\\b(?:i[3579][ -]?)?(\\d{4,5}[a-z]{0,3})\\b").find(x)?.groupValues?.get(1).orEmpty()
+    val cpuTier = Regex("\\bi[3579]\\b").find(x)?.value.orEmpty()
+    val cpu = when {
+        appleCpu.isNotBlank() -> appleCpu
+        fullIntelAmdCpu.isNotBlank() -> fullIntelAmdCpu
+        else -> cpuTier
+    }
     val gpu = Regex("\\b((?:rtx|gtx|rx|arc)\\s*\\d{3,4}(?:\\s*(?:ti|super|xt|xtx))?)\\b").find(x)?.groupValues?.get(1).orEmpty()
     val ram = Regex("\\b(8|12|16|18|24|32|36|48|64|96|128)\\s*gb\\b").find(x)?.groupValues?.get(1).orEmpty()
     val storage = Regex("\\b(?:128|256|512)\\s*gb\\b|\\b(?:1|2|4|8)\\s*tb\\b").find(x)?.value.orEmpty()
     val generation = Regex("\\bgen(?:eration)?\\s*(\\d+)\\b").find(x)?.groupValues?.get(1).orEmpty()
+    val year = Regex("\\b(20(?:0[8-9]|[12]\\d|3[0-5]))\\b").find(x)?.value.orEmpty()
     val alphaNum = x.split(" ").filter {
-        it.length >= 3 && it.any(Char::isLetter) && it.any(Char::isDigit) && it != cpu && !it.startsWith("gen")
+        it.length >= 3 && it.any(Char::isLetter) && it.any(Char::isDigit) &&
+            it != cpu && !it.startsWith("gen") && it != storage.replace(" ", "")
     }
-    return MarketplaceFeatures(brand, family, cpu, gpu, ram, storage, generation, alphaNum.distinct())
+    return MarketplaceFeatures(brand, family, cpu, gpu, ram, storage, generation, year, alphaNum.distinct())
+}
+
+private fun familyCompatible(queryFamily: String, titleFamily: String): Boolean = when {
+    queryFamily.isBlank() -> false
+    queryFamily == "macbook" -> titleFamily.startsWith("macbook")
+    else -> queryFamily == titleFamily
 }
 
 internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, Int, String> {
@@ -84,45 +99,63 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
 
     val brandMatched = q.brand.isNotBlank() && q.brand == t.brand
     val brandMismatch = q.brand.isNotBlank() && t.brand.isNotBlank() && q.brand != t.brand
-    val familyMatched = q.family.isNotBlank() && tx.contains(q.family)
-    val cpuMatched = q.cpu.isNotBlank() && tx.contains(marketplaceNorm(q.cpu))
-    val gpuMatched = q.gpu.isNotBlank() && tx.contains(marketplaceNorm(q.gpu))
+    val familyMatched = familyCompatible(q.family, t.family)
+    val genericMacbook = q.family == "macbook"
+    val cpuMatched = q.cpu.isBlank() || tx.contains(Regex("\\b${Regex.escape(marketplaceNorm(q.cpu))}\\b"))
+    val gpuMatched = q.gpu.isBlank() || tx.contains(marketplaceNorm(q.gpu))
+    val yearMatched = q.year.isBlank() || q.year == t.year || tx.contains(Regex("\\b${Regex.escape(q.year)}\\b"))
+    val storageMatched = q.storage.isBlank() || tx.contains(marketplaceNorm(q.storage))
+    val ramMatched = q.ram.isBlank() || tx.contains(Regex("\\b${q.ram}\\s*gb\\b"))
 
-    if (brandMatched) { score += 30; reasons += "Brand" }
-    if (familyMatched) { score += 28; reasons += "Family" }
+    if (brandMatched) { score += 25; reasons += "Brand" }
+    if (familyMatched) { score += 25; reasons += "Family" }
+    if (yearMatched && q.year.isNotBlank()) { score += 15; reasons += "Year" }
+    if (cpuMatched && q.cpu.isNotBlank()) { score += 15; reasons += "CPU" }
+    if (gpuMatched && q.gpu.isNotBlank()) { score += 15; reasons += "GPU" }
+    if (storageMatched && q.storage.isNotBlank()) { score += 10; reasons += "Storage" }
+    if (ramMatched && q.ram.isNotBlank()) { score += 5; reasons += "RAM" }
 
     val hits = q.modelTokens.count {
         compact.contains(it.replace(" ", "")) || tx.contains(Regex("\\b${Regex.escape(it)}\\b"))
     }
-    if (hits > 0) { score += minOf(32, hits * 16); reasons += "Model" }
-    if (cpuMatched) { score += 14; reasons += "CPU" }
-    if (gpuMatched) { score += 14; reasons += "GPU" }
-    if (q.ram.isNotBlank() && tx.contains(Regex("\\b${q.ram}\\s*gb\\b"))) { score += 5; reasons += "RAM" }
-    if (q.storage.isNotBlank() && tx.contains(marketplaceNorm(q.storage))) { score += 5; reasons += "Storage" }
+    if (hits > 0) { score += minOf(25, hits * 12); reasons += "Model" }
     score = score.coerceAtMost(100)
 
     val accessory = Regex("\\b(cable|adapter|charger|battery|keyboard|mouse|case|cover|stand|webcam|module|ssd|ram kit|memory|motherboard|heatsink|fan|screen|display|replacement|part|parts|bezel|hinge|dock|docking|power supply|psu|box only|empty box|for parts|faulty|repair)\\b").containsMatchIn(tx)
-
     val generationMismatch = q.generation.isNotBlank() && t.generation.isNotBlank() && q.generation != t.generation
+    val yearMismatch = q.year.isNotBlank() && t.year.isNotBlank() && q.year != t.year
+    val cpuMismatch = q.cpu.isNotBlank() && t.cpu.isNotBlank() && !cpuMatched
+    val storageMismatch = q.storage.isNotBlank() && t.storage.isNotBlank() && !storageMatched
+    val familyMismatch = q.family.isNotBlank() && t.family.isNotBlank() && !familyMatched
+
     val requiredModelHits = when {
         q.modelTokens.isEmpty() -> 0
         q.modelTokens.size <= 2 -> 1
         else -> (q.modelTokens.size + 1) / 2
     }
     val modelSatisfied = q.modelTokens.isEmpty() || hits >= requiredModelHits
-    val hasSpecificIdentity = when {
+    val macbookIdentity = q.family.startsWith("macbook") && !genericMacbook && yearMatched && cpuMatched && storageMatched
+    val generalIdentity = when {
         q.modelTokens.isNotEmpty() -> modelSatisfied
-        q.cpu.isNotBlank() || q.gpu.isNotBlank() -> cpuMatched || gpuMatched
+        q.gpu.isNotBlank() -> gpuMatched
+        q.cpu.isNotBlank() -> cpuMatched
         else -> false
     }
+    val hasSpecificIdentity = if (q.family.startsWith("macbook")) macbookIdentity else generalIdentity
 
-    val exact = !brandMismatch && !accessory && !generationMismatch && brandMatched && familyMatched && hasSpecificIdentity
+    val exact = !brandMismatch && !familyMismatch && !accessory && !generationMismatch &&
+        !yearMismatch && !cpuMismatch && !storageMismatch && brandMatched && familyMatched && hasSpecificIdentity
 
+    if (genericMacbook) reasons += "Specify MacBook Air or Pro"
     if (brandMismatch) reasons += "Different brand"
+    if (familyMismatch) reasons += "Different product family"
     if (accessory) reasons += "Part/accessory"
     if (generationMismatch) reasons += "Generation mismatch"
+    if (yearMismatch) reasons += "Year mismatch"
+    if (cpuMismatch) reasons += "CPU mismatch"
+    if (storageMismatch) reasons += "Storage mismatch"
     if (q.modelTokens.isNotEmpty() && !modelSatisfied) reasons += "Model mismatch"
-    if (!hasSpecificIdentity) reasons += "Insufficient model identity"
+    if (!hasSpecificIdentity && !genericMacbook) reasons += "Insufficient model identity"
 
     return Triple(exact, score, reasons.distinct().joinToString(" + "))
 }
@@ -167,7 +200,8 @@ suspend fun searchMarketplaceEvidence(context: Context, query: String): Marketpl
         connection.outputStream.use { it.write(JSONObject().put("query", query.trim()).toString().toByteArray()) }
         val code = connection.responseCode
         val body = (if (code in 200..299) connection.inputStream else connection.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
-        val root = JSONObject(body.ifBlank { "{}" })
+        val root = runCatching { JSONObject(body.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+        if (code == 401) throw IllegalStateException("Your session has expired. Please sign in again.")
         if (code !in 200..299 || !root.optBoolean("success")) {
             throw IllegalStateException(root.optString("error", "Marketplace search failed ($code)"))
         }
