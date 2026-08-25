@@ -87,8 +87,8 @@ jobs:
             'desktop-parity.js':['morleyDesktopGo','morley-section-back'],
             'secure-pricing.js':["localStorage.getItem(STORE)","'Authorization':'Bearer '+token",'window.market=secureMarket'],
             'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
-            'admin/index.html':['id="inviteName"','First and last name','invites.js?v=3'],
-            'admin/app.js':['admin-user-control',"secureUserAction('set_role'",'secureUserAction'],
+            'admin/index.html':['id="inviteName"','First and last name','app.js?v=4','invites.js?v=3'],
+            'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
             'admin/invites.js':['crypto.getRandomValues','sha256Hex','display_name:name','inviteName'],
             'admin/turnstile.html':['postMessage(payload,parentOrigin)'],
           }
