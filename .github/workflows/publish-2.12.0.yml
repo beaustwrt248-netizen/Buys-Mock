@@ -1,4 +1,4 @@
-name: Publish B&L Morley 2.12.1 marketplace match
+name: Publish B&L Morley 2.12.2 pricing auth
 
 on:
   push:
