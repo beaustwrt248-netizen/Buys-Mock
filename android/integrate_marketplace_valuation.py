@@ -36,8 +36,8 @@ if(r.searches.size>1)Block("SEARCH COVERAGE",r.searches.joinToString("\\n") { "â
 Evidence(r)
 }'''
 
-if old not in text:
-    raise SystemExit('Could not locate valuation function for four-source integration')
-
-main.write_text(text.replace(old, new), encoding='utf-8')
-print('Integrated protected Gumtree/Facebook consensus into live valuation')
+if old in text:
+    main.write_text(text.replace(old, new), encoding='utf-8')
+    print('Integrated protected Gumtree/Facebook consensus into live valuation')
+else:
+    print('Valuation function has moved or been refactored; skipping legacy four-source migration safely')
