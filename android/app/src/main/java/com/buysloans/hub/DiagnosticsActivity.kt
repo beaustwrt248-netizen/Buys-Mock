@@ -1,6 +1,9 @@
 package com.buysloans.hub
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -65,6 +68,11 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun checkedTime(): String =
         SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date())
 
+    private fun copyDiagnosticsSummary(text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("B&L Morley diagnostics", text))
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DiagnosticsScreen() {
@@ -76,6 +84,7 @@ class DiagnosticsActivity : ComponentActivity() {
         var sessionDetail by remember { mutableStateOf("Not checked yet") }
         var otaLive by remember { mutableStateOf<Boolean?>(null) }
         var otaDetail by remember { mutableStateOf("Not checked yet") }
+        var copied by remember { mutableStateOf(false) }
 
         val online = remember(refresh) { isOnline() }
         val signedIn = remember(refresh) { AuthManager.isSignedIn(this) }
@@ -83,9 +92,23 @@ class DiagnosticsActivity : ComponentActivity() {
         val installer = remember(refresh) { installerAllowed() }
         val accountLabel = remember(refresh) { AuthManager.accountLabel(this) }
 
+        fun diagnosticsSummary(): String = buildString {
+            appendLine("B&L Morley Android Diagnostics")
+            appendLine("Checked: $lastChecked")
+            appendLine("App: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+            appendLine("Account session: ${if (signedIn) "Authenticated locally as $accountLabel" else "No active authorised session"}")
+            appendLine("Internet connection: ${if (online) "Validated" else "Unavailable"}")
+            appendLine("Notifications: ${if (notifications) "Allowed" else "Disabled"}")
+            appendLine("OTA installer: ${if (installer) "Ready" else "Permission required"}")
+            appendLine("Live account service: $sessionDetail")
+            appendLine("Live OTA service: $otaDetail")
+            append("Device: ${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}")
+        }
+
         fun runLiveChecks() {
             refresh += 1
             lastChecked = checkedTime()
+            copied = false
             if (!isOnline()) {
                 sessionLive = false
                 sessionDetail = "Live session validation skipped because the device is offline"
@@ -162,6 +185,15 @@ class DiagnosticsActivity : ComponentActivity() {
                 ) { Text(if (liveBusy) "Running Live Checks…" else "Refresh Diagnostics", fontWeight = FontWeight.Black) }
 
                 if (liveBusy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+                OutlinedButton(
+                    onClick = {
+                        copyDiagnosticsSummary(diagnosticsSummary())
+                        copied = true
+                    },
+                    enabled = !liveBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (copied) "Diagnostics Copied" else "Copy Diagnostics Summary") }
 
                 OutlinedButton(
                     onClick = { startActivity(Intent(this@DiagnosticsActivity, UpdateActivity::class.java)) },
