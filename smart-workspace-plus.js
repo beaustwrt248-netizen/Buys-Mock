@@ -2,7 +2,7 @@
 const $=(s,r=document)=>r.querySelector(s),H='buysmock_valuation_history_v1',W='morley_watchlist_v1';
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}};
 const money=n=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(n)||0);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const key=x=>`${x.type}|${x.query}`;
 function verdict(x){const ask=Number(x.ask)||0,max=Number(x.maxBuy)||0,market=Number(x.usedValue)||0;if(!ask)return 'REVIEW';if(max&&ask<=max)return 'GREAT BUY';if(market&&ask<=market*.78)return 'GOOD BUY';if(market&&ask<market)return 'MARGINAL';return 'AVOID'}
 function profit(x){const ask=Number(x.ask)||0,market=Number(x.usedValue)||0;return ask&&market?Math.max(0,market-ask):0}
