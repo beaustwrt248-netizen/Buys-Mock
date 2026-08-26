@@ -108,7 +108,12 @@ object ValuationHistoryManager {
     suspend fun list(context:Context):List<SavedValuation>{
         return try {
             val (code,text)=request(context,"GET","valuation_history?select=*&order=created_at.desc&limit=100")
-            if(code !in 200..299) throw IllegalStateException("Could not load valuation history: $text")
+            if(code !in 200..299) {
+                if(code == 429 || code >= 500) {
+                    cachedList(context)?.let { return it }
+                }
+                throw IllegalStateException("Could not load valuation history: $text")
+            }
             val items=parseList(text)
             cache(context,text)
             items
