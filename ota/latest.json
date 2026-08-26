@@ -1,7 +1,7 @@
 {
-  "versionCode": 35,
-  "versionName": "2.13.0",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.13.0/B-and-L-Morley-2.13.0.apk",
-  "sha256": "5626f567d401cdaa1a205744dc342382a8d729723a27f59745158c71b77a0aae",
-  "notes": "B&L Morley 2.13.0: sharper full-screen login video."
+  "versionCode": 36,
+  "versionName": "2.14.0",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.0/B-and-L-Morley-2.14.0.apk",
+  "sha256": "be7549fa7cb2426b0241c3d98f73a221d6100522f7fa5c0df956fc61d10a9d55",
+  "notes": "B&L Morley 2.14.0: sharper full-screen login video."
 }
