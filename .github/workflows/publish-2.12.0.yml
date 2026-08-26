@@ -1,4 +1,4 @@
-name: Publish B&L Morley 2.14.0 production
+name: Publish B&L Morley 2.14.1 production
 
 on:
   push:
@@ -19,4 +19,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run build-apk.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish_release=true
       - name: Record publisher generation
-        run: echo "publisher=2.14.0-production"
+        run: echo "publisher=2.14.1-production"
