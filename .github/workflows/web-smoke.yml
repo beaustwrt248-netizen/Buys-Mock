@@ -43,12 +43,13 @@ jobs:
               path = root / ref.lstrip('./')
               if not path.exists(): missing.append(ref)
           if missing: raise SystemExit('Missing local assets referenced by index.html: ' + ', '.join(missing))
-          required = ['secure-pricing.js','web-auth.js','signed-in-user.js','desktop-parity.js','reference-theme.css','no-gold.css','premium-motion.css','admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html']
+          required = ['secure-pricing.js','web-auth.js','signed-in-user.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-workspace-insights.js','reference-theme.css','no-gold.css','premium-motion.css','admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html']
           absent = [p for p in required if not Path(p).is_file()]
           if absent: raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
           if 'no-gold.css' not in html: raise SystemExit('Final no-gold safeguard is not loaded by index.html')
           if html.rfind('no-gold.css') < html.rfind('reference-theme.css'): raise SystemExit('no-gold.css must load after the other theme layers')
           if 'secure-pricing.js' not in html: raise SystemExit('Production shell does not load authenticated pricing transport')
+          if 'smart-workspace-insights.js' not in html: raise SystemExit('Smart workspace opportunity insights are not loaded')
           print('Web asset graph OK')
           PY
 
@@ -56,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-workspace-insights.js more-menu-v2.js menu-parity-polish.js connection-status.js web-diagnostics.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
           done
