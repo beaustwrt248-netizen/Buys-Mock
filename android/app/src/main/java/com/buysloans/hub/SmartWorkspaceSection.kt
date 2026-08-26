@@ -84,6 +84,8 @@ fun SmartWorkspaceSection() {
     val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" || swVerdict(it).first == "GOOD BUY" }
     val potentialMargin = opportunities.sumOf(::swPotentialMargin)
     val latest = items.take(3)
+    val watched = items.filter { favouriteIds.contains(it.id) }.take(3)
+    val watchlistMargin = watched.sumOf(::swPotentialMargin)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SWCard),
@@ -121,20 +123,27 @@ fun SmartWorkspaceSection() {
                 Text("Run or save a valuation and it will appear here.", color = SWMuted, fontSize = 12.sp)
             }
             latest.forEach { item ->
-                val verdict = swVerdict(item)
-                Surface(color = Color(0xFF07101F), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(item.itemSummary, fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                            if (favouriteIds.contains(item.id)) Text("★", color = SWWarn, fontSize = 14.sp)
-                            Spacer(Modifier.width(6.dp))
-                            Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 10.sp)
-                        }
-                        Text("Market ${swMoney(item.marketValue)} • Max buy ${swMoney(item.maxBuy)}${item.askingPrice?.let { " • Ask ${swMoney(it)}" } ?: ""}", color = SWMuted, fontSize = 11.sp)
-                        if (swPotentialMargin(item) > 0.0) Text("${swMoney(swPotentialMargin(item))} potential gross margin", color = SWGood, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
+                SmartValuationRow(item = item, isFavourite = favouriteIds.contains(item.id))
+            }
+
+            if (!loading && favouriteIds.isNotEmpty()) {
+                HorizontalDivider(color = SWAccent.copy(alpha = .16f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("WATCHLIST", color = SWAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        if (watchlistMargin > 0.0) "${swMoney(watchlistMargin)} potential margin" else "${favouriteIds.size} saved",
+                        color = if (watchlistMargin > 0.0) SWGood else SWMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (watched.isEmpty()) {
+                    Text("Saved watchlist items will appear here when their valuation history is available on this device.", color = SWMuted, fontSize = 11.sp)
+                } else {
+                    watched.forEach { item -> SmartValuationRow(item = item, isFavourite = true, compact = true) }
                 }
             }
+
             Button(
                 onClick = { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -142,6 +151,23 @@ fun SmartWorkspaceSection() {
                 shape = RoundedCornerShape(14.dp)
             ) { Text("Open Valuations & Deals", fontWeight = FontWeight.Black) }
             OutlinedButton(onClick = { reload() }, modifier = Modifier.fillMaxWidth()) { Text("Refresh Smart Workspace") }
+        }
+    }
+}
+
+@Composable
+private fun SmartValuationRow(item: SavedValuation, isFavourite: Boolean, compact: Boolean = false) {
+    val verdict = swVerdict(item)
+    Surface(color = Color(0xFF07101F), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(if (compact) 10.dp else 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(item.itemSummary, fontWeight = FontWeight.Black, fontSize = if (compact) 13.sp else 14.sp, modifier = Modifier.weight(1f))
+                if (isFavourite) Text("★", color = SWWarn, fontSize = 14.sp)
+                Spacer(Modifier.width(6.dp))
+                Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 10.sp)
+            }
+            Text("Market ${swMoney(item.marketValue)} • Max buy ${swMoney(item.maxBuy)}${item.askingPrice?.let { " • Ask ${swMoney(it)}" } ?: ""}", color = SWMuted, fontSize = 11.sp)
+            if (swPotentialMargin(item) > 0.0) Text("${swMoney(swPotentialMargin(item))} potential gross margin", color = SWGood, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
