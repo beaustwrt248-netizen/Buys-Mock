@@ -10,6 +10,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -64,6 +65,13 @@ class DiagnosticsActivity : ComponentActivity() {
 
     private fun installerAllowed(): Boolean =
         Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()
+
+    private fun openNotificationSettings() {
+        startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        )
+    }
 
     private fun checkedTime(): String =
         SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date())
@@ -166,7 +174,19 @@ class DiagnosticsActivity : ComponentActivity() {
                 DiagnosticCard("Account session", if (signedIn) "Authenticated locally as $accountLabel" else "No active authorised session", signedIn)
                 DiagnosticCard("Internet connection", if (online) "Validated network connection is available" else "No validated internet connection", online)
                 DiagnosticCard("Notifications", if (notifications) "Android notification permission is available" else "Notification permission is disabled", notifications)
+                if (!notifications) {
+                    OutlinedButton(
+                        onClick = { openNotificationSettings() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Open Notification Settings") }
+                }
                 DiagnosticCard("OTA installer", if (installer) "APK installer permission is ready" else "Install unknown apps permission is not enabled", installer)
+                if (!installer) {
+                    OutlinedButton(
+                        onClick = { UpdateManager.openInstallerPermission(this@DiagnosticsActivity) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Enable OTA Installer Permission") }
+                }
                 DiagnosticCard("Live account service", sessionDetail, sessionLive != false)
                 DiagnosticCard("Live OTA service", otaDetail, otaLive != false)
                 DiagnosticCard("Device", "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}", true)
