@@ -17,6 +17,7 @@ class MorleyFirebaseMessagingService : FirebaseMessagingService() {
         val body = message.notification?.body
             ?: message.data["body"]
             ?: "You have a new message."
+        NotificationInboxStore.add(this, title, body, message.data["type"] ?: "admin")
         NotificationHelper.showRemoteMessage(this, title, body)
     }
 }
