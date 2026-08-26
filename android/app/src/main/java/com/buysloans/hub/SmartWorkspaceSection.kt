@@ -21,6 +21,7 @@ private val SWCard = Color(0xFF0B1528)
 private val SWMuted = Color(0xFF8EA6C4)
 private val SWGood = Color(0xFF57E389)
 private val SWWarn = Color(0xFFFFC857)
+private val SWBad = Color(0xFFFF6B7A)
 
 private fun swMoney(value: Double?): String = if (value == null) "—" else
     NumberFormat.getCurrencyInstance(Locale("en", "AU")).apply { maximumFractionDigits = 0 }.format(value)
@@ -33,7 +34,18 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
         max != null && ask <= max -> "GREAT BUY" to SWGood
         market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
         market != null && ask < market -> "MARGINAL" to SWWarn
-        else -> "AVOID" to Color(0xFFFF6B7A)
+        else -> "AVOID" to SWBad
+    }
+}
+
+private fun swDealVerdict(ask: Double?, market: Double?, maxBuy: Double?): Pair<String, Color> {
+    if (ask == null) return "ENTER ASK" to SWMuted
+    return when {
+        maxBuy != null && ask <= maxBuy -> "GREAT BUY" to SWGood
+        market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
+        market != null && ask < market -> "MARGINAL" to SWWarn
+        market != null -> "AVOID" to SWBad
+        else -> "REVIEW" to SWMuted
     }
 }
 
@@ -51,6 +63,7 @@ fun SmartWorkspaceSection() {
     var favouriteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
+    var showDealMode by remember { mutableStateOf(false) }
     val favPrefs = context.getSharedPreferences("valuation_favourites", android.content.Context.MODE_PRIVATE)
 
     fun reload() {
@@ -66,6 +79,8 @@ fun SmartWorkspaceSection() {
     }
 
     LaunchedEffect(Unit) { reload() }
+    if (showDealMode) DealModeDialog(onDismiss = { showDealMode = false }, onSaved = { showDealMode = false; reload() })
+
     val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" || swVerdict(it).first == "GOOD BUY" }
     val potentialMargin = opportunities.sumOf(::swPotentialMargin)
     val latest = items.take(3)
@@ -94,6 +109,12 @@ fun SmartWorkspaceSection() {
                     Text("${opportunities.size} live buy ${if (opportunities.size == 1) "opportunity" else "opportunities"}", color = SWMuted, fontSize = 10.sp)
                 }
             }
+            Button(
+                onClick = { showDealMode = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF168E61)),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("⚡ Quick Deal Mode", fontWeight = FontWeight.Black) }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (error.isNotBlank()) Text("Smart workspace will refresh when connected.", color = SWMuted, fontSize = 11.sp)
             if (!loading && latest.isEmpty()) {
@@ -123,6 +144,74 @@ fun SmartWorkspaceSection() {
             OutlinedButton(onClick = { reload() }, modifier = Modifier.fillMaxWidth()) { Text("Refresh Smart Workspace") }
         }
     }
+}
+
+@Composable
+private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var item by remember { mutableStateOf("") }
+    var askText by remember { mutableStateOf("") }
+    var marketText by remember { mutableStateOf("") }
+    var maxText by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    val ask = askText.toDoubleOrNull()
+    val market = marketText.toDoubleOrNull()
+    val maxBuy = maxText.toDoubleOrNull()
+    val verdict = swDealVerdict(ask, market, maxBuy)
+    val margin = if (ask != null && market != null) (market - ask).coerceAtLeast(0.0) else null
+    val headroom = if (ask != null && maxBuy != null) maxBuy - ask else null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Quick Deal Mode") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("Enter the seller ask and your current market/max-buy figures for an instant decision.", color = SWMuted, fontSize = 12.sp)
+                OutlinedTextField(item, { item = it }, label = { Text("Item / model") }, singleLine = true)
+                OutlinedTextField(askText, { askText = it }, label = { Text("Seller asking price") }, singleLine = true)
+                OutlinedTextField(marketText, { marketText = it }, label = { Text("Market value") }, singleLine = true)
+                OutlinedTextField(maxText, { maxText = it }, label = { Text("Max buy") }, singleLine = true)
+                Surface(color = verdict.second.copy(alpha = .10f), border = BorderStroke(1.dp, verdict.second.copy(alpha = .35f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        if (margin != null) Text("Potential gross margin ${swMoney(margin)}", color = SWGood, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        if (headroom != null) Text(if (headroom >= 0) "${swMoney(headroom)} below max buy" else "${swMoney(-headroom)} above max buy", color = if (headroom >= 0) SWGood else SWWarn, fontSize = 11.sp)
+                    }
+                }
+                if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (item.isBlank() || ask == null) { error = "Enter an item and valid asking price."; return@Button }
+                    busy = true; error = ""
+                    scope.launch {
+                        runCatching {
+                            ValuationHistoryManager.save(
+                                context = context,
+                                itemType = "other",
+                                itemSummary = item.trim(),
+                                specs = "Quick Deal Mode",
+                                askingPrice = ask,
+                                marketValue = market,
+                                maxBuy = maxBuy,
+                                expectedProfit = margin,
+                                confidence = if (market != null && maxBuy != null) "deal mode" else "manual review"
+                            )
+                        }.onSuccess { onSaved() }
+                            .onFailure { error = it.message ?: "Could not save deal" }
+                        busy = false
+                    }
+                },
+                enabled = !busy
+            ) { Text("Save Deal") }
+        }
+    )
 }
 
 @Composable
