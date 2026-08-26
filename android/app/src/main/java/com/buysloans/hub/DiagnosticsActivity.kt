@@ -25,7 +25,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -81,6 +85,22 @@ class DiagnosticsActivity : ComponentActivity() {
         clipboard.setPrimaryClip(ClipData.newPlainText("B&L Morley diagnostics", text))
     }
 
+    private suspend fun backendStatus(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val connection = (URL("${BuildConfig.SUPABASE_URL}/rest/v1/").openConnection() as HttpURLConnection).apply {
+                requestMethod = "HEAD"
+                connectTimeout = 5000
+                readTimeout = 5000
+                setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+                useCaches = false
+            }
+            val code = connection.responseCode
+            connection.disconnect()
+            val reachable = code in 200..499
+            reachable to "Pricing/backend service responded with HTTP $code"
+        }.getOrElse { false to "Backend check failed: ${it.message ?: "network error"}" }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun DiagnosticsScreen() {
@@ -90,6 +110,8 @@ class DiagnosticsActivity : ComponentActivity() {
         var liveBusy by remember { mutableStateOf(false) }
         var sessionLive by remember { mutableStateOf<Boolean?>(null) }
         var sessionDetail by remember { mutableStateOf("Not checked yet") }
+        var backendLive by remember { mutableStateOf<Boolean?>(null) }
+        var backendDetail by remember { mutableStateOf("Not checked yet") }
         var otaLive by remember { mutableStateOf<Boolean?>(null) }
         var otaDetail by remember { mutableStateOf("Not checked yet") }
         var copied by remember { mutableStateOf(false) }
@@ -109,6 +131,7 @@ class DiagnosticsActivity : ComponentActivity() {
             appendLine("Notifications: ${if (notifications) "Allowed" else "Disabled"}")
             appendLine("OTA installer: ${if (installer) "Ready" else "Permission required"}")
             appendLine("Live account service: $sessionDetail")
+            appendLine("Live pricing/backend service: $backendDetail")
             appendLine("Live OTA service: $otaDetail")
             append("Device: ${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}")
         }
@@ -120,6 +143,8 @@ class DiagnosticsActivity : ComponentActivity() {
             if (!isOnline()) {
                 sessionLive = false
                 sessionDetail = "Live session validation skipped because the device is offline"
+                backendLive = false
+                backendDetail = "Pricing/backend check skipped because the device is offline"
                 otaLive = false
                 otaDetail = "OTA service check skipped because the device is offline"
                 return
@@ -135,6 +160,10 @@ class DiagnosticsActivity : ComponentActivity() {
                         sessionLive = false
                         sessionDetail = "Live session validation failed: ${it.message ?: "unknown error"}"
                     }
+
+                val backend = backendStatus()
+                backendLive = backend.first
+                backendDetail = backend.second
 
                 runCatching { UpdateManager.check() }
                     .onSuccess { update ->
@@ -188,6 +217,7 @@ class DiagnosticsActivity : ComponentActivity() {
                     ) { Text("Enable OTA Installer Permission") }
                 }
                 DiagnosticCard("Live account service", sessionDetail, sessionLive != false)
+                DiagnosticCard("Live pricing/backend service", backendDetail, backendLive != false)
                 DiagnosticCard("Live OTA service", otaDetail, otaLive != false)
                 DiagnosticCard("Device", "${Build.MANUFACTURER} ${Build.MODEL} • Android ${Build.VERSION.RELEASE}", true)
 
