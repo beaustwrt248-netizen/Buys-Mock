@@ -20,6 +20,12 @@ data class LaptopCatalogResolution(
 )
 
 object LaptopModelCatalog {
+    internal fun preferredQuery(original: String, resolution: LaptopCatalogResolution): String {
+        val clean = original.trim()
+        val canonical = resolution.canonicalQuery.trim()
+        return if (resolution.score >= 0.42 && canonical.isNotBlank()) canonical else clean
+    }
+
     suspend fun resolve(context: Context, query: String): LaptopCatalogResolution = withContext(Dispatchers.IO) {
         val clean = query.trim()
         if (clean.isBlank()) return@withContext LaptopCatalogResolution(query, query)
