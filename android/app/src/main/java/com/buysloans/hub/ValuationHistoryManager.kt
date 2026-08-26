@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -29,6 +30,10 @@ data class SavedValuation(
 )
 
 object ValuationHistoryManager {
+    private const val CACHE_PREFS = "valuation_history_cache"
+    private const val CACHE_JSON = "last_successful_history"
+    private const val CACHE_AT = "last_successful_history_at"
+
     private fun userId(token:String):String = runCatching {
         val payload=token.split('.')[1].replace('-','+').replace('_','/')
         val padded=payload+"=".repeat((4-payload.length%4)%4)
@@ -55,6 +60,29 @@ object ValuationHistoryManager {
         }
     }
 
+    private fun parseList(text:String):List<SavedValuation>{
+        val a=JSONArray(text)
+        return List(a.length()){i-> val j=a.getJSONObject(i); SavedValuation(
+            id=j.optString("id"),itemType=j.optString("item_type"),itemSummary=j.optString("item_summary"),specs=j.optString("specs"),
+            askingPrice=j.optDoubleOrNull("asking_price"),marketValue=j.optDoubleOrNull("market_value"),maxBuy=j.optDoubleOrNull("max_buy"),expectedProfit=j.optDoubleOrNull("expected_profit"),
+            confidence=j.optString("confidence"),status=j.optString("status"),boughtPrice=j.optDoubleOrNull("bought_price"),soldPrice=j.optDoubleOrNull("sold_price"),actualProfit=j.optDoubleOrNull("actual_profit"),notes=j.optString("notes"),createdAt=j.optString("created_at")
+        )}
+    }
+
+    private fun cache(context:Context,text:String){
+        context.getSharedPreferences(CACHE_PREFS,Context.MODE_PRIVATE).edit()
+            .putString(CACHE_JSON,text)
+            .putLong(CACHE_AT,System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun cachedList(context:Context):List<SavedValuation>?{
+        val text=context.getSharedPreferences(CACHE_PREFS,Context.MODE_PRIVATE).getString(CACHE_JSON,null)?.takeIf{it.isNotBlank()} ?: return null
+        return runCatching{parseList(text)}.getOrNull()
+    }
+
+    fun cachedAt(context:Context):Long = context.getSharedPreferences(CACHE_PREFS,Context.MODE_PRIVATE).getLong(CACHE_AT,0L)
+
     suspend fun save(
         context:Context,
         itemType:String,
@@ -78,14 +106,15 @@ object ValuationHistoryManager {
     }
 
     suspend fun list(context:Context):List<SavedValuation>{
-        val (code,text)=request(context,"GET","valuation_history?select=*&order=created_at.desc&limit=100")
-        if(code !in 200..299) throw IllegalStateException("Could not load valuation history: $text")
-        val a=JSONArray(text)
-        return List(a.length()){i-> val j=a.getJSONObject(i); SavedValuation(
-            id=j.optString("id"),itemType=j.optString("item_type"),itemSummary=j.optString("item_summary"),specs=j.optString("specs"),
-            askingPrice=j.optDoubleOrNull("asking_price"),marketValue=j.optDoubleOrNull("market_value"),maxBuy=j.optDoubleOrNull("max_buy"),expectedProfit=j.optDoubleOrNull("expected_profit"),
-            confidence=j.optString("confidence"),status=j.optString("status"),boughtPrice=j.optDoubleOrNull("bought_price"),soldPrice=j.optDoubleOrNull("sold_price"),actualProfit=j.optDoubleOrNull("actual_profit"),notes=j.optString("notes"),createdAt=j.optString("created_at")
-        )}
+        return try {
+            val (code,text)=request(context,"GET","valuation_history?select=*&order=created_at.desc&limit=100")
+            if(code !in 200..299) throw IllegalStateException("Could not load valuation history: $text")
+            val items=parseList(text)
+            cache(context,text)
+            items
+        } catch(error: IOException) {
+            cachedList(context) ?: throw error
+        }
     }
 
     suspend fun updateStatus(context:Context,id:String,status:String,boughtPrice:Double?=null,soldPrice:Double?=null,notes:String?=null){
