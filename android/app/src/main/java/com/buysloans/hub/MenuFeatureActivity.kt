@@ -500,21 +500,18 @@ What happened:
         val activity = this@MenuFeatureActivity
         val prefs = activity.getSharedPreferences("notification_settings", MODE_PRIVATE)
         var updateAlerts by remember { mutableStateOf(prefs.getBoolean("update_alerts", true)) }
-        InfoCard("Notifications", "Control B&L Morley update alerts and Android notification permission from one place.")
+        var valuationAlerts by remember { mutableStateOf(prefs.getBoolean("valuation_alerts", false)) }
+        InfoCard("Notifications", "Control B&L Morley update and valuation/error alerts plus Android notification permission from one place.")
         CardBlock {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) {
-                    Text("Update alerts", fontWeight = FontWeight.Black)
-                    Text("Allow B&L Morley to surface new app version notifications.", color = MFMuted, fontSize = 12.sp)
-                }
-                Switch(
-                    checked = updateAlerts,
-                    onCheckedChange = {
-                        updateAlerts = it
-                        prefs.edit().putBoolean("update_alerts", it).apply()
-                        notice = if (it) "Update alerts enabled." else "Update alerts disabled."
-                    }
-                )
+            SettingToggle("Update alerts", "Allow B&L Morley to surface new app version notifications.", updateAlerts) { enabled ->
+                updateAlerts = enabled
+                prefs.edit().putBoolean("update_alerts", enabled).apply()
+                notice = if (enabled) "Update alerts enabled." else "Update alerts disabled."
+            }
+            SettingToggle("Valuation / error alerts", "Keep a preference for important valuation and pricing error notifications as support is expanded.", valuationAlerts) { enabled ->
+                valuationAlerts = enabled
+                prefs.edit().putBoolean("valuation_alerts", enabled).apply()
+                notice = if (enabled) "Valuation/error alerts enabled." else "Valuation/error alerts disabled."
             }
         }
         Button(onClick = { requestNotifications() }, modifier = Modifier.fillMaxWidth()) { Text("Enable Android Notifications") }
@@ -576,8 +573,13 @@ What happened:
 
     @Composable
     private fun AboutFeature() {
+        val activity = this@MenuFeatureActivity
         InfoCard("B&L Morley", "Buys & Loans Hub\nVersion ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n\nNative valuation, inventory, barcode, sales, account, backup and secure update workspace.")
         InfoCard("Release channel", "Signed production APK with OTA update support and a shared desktop web companion.")
+        OutlinedButton(
+            onClick = { startActivity(Intent(activity, DiagnosticsActivity::class.java)) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Open System Diagnostics") }
     }
 
     @Composable

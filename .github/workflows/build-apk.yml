@@ -122,6 +122,10 @@ jobs:
       - name: Run Android lint
         run: gradle -p android lintDebug --stacktrace --console=plain
 
+      - name: Build PR APK
+        if: github.event_name == 'pull_request'
+        run: gradle -p android assembleDebug --stacktrace --console=plain
+
       - name: Prepare production signing key
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
@@ -142,9 +146,11 @@ jobs:
           echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
 
       - name: Build release APK
+        if: github.event_name != 'pull_request'
         run: gradle -p android assembleRelease --stacktrace --console=plain
 
       - name: Verify release APK signature and signer
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -156,6 +162,7 @@ jobs:
           test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
 
       - name: Verify exact new login video packaged in APK
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -169,6 +176,7 @@ jobs:
           test "$(sha256sum "$RUNNER_TEMP/packaged-login.mp4" | awk '{print $1}')" = "$EXPECTED_SHA256"
 
       - name: Rename APK
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           mkdir -p dist
@@ -176,6 +184,7 @@ jobs:
           sha256sum "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk" | tee "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256"
 
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
           name: B-and-L-Morley-${{ env.APP_VERSION_SAFE }}
           path: |
