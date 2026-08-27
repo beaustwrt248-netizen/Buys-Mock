@@ -12,7 +12,8 @@ data class StockItem(
     val cost:Double,
     val resale:Double,
     val quantity:Int,
-    val createdAt:Long
+    val createdAt:Long,
+    val lifecycle:InventoryLifecycle = InventoryLifecycle.PURCHASED
 )
 
 data class SaleRecord(
@@ -32,10 +33,22 @@ object WorkspaceStore {
 
     private fun prefs(context:Context)=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE)
 
+    private fun lifecycleFrom(raw:String):InventoryLifecycle =
+        runCatching { InventoryLifecycle.valueOf(raw) }.getOrDefault(InventoryLifecycle.PURCHASED)
+
     fun inventory(context:Context):List<StockItem>{
         val arr=runCatching{JSONArray(prefs(context).getString(INVENTORY,"[]")?:"[]")}.getOrElse{JSONArray()}
         return (0 until arr.length()).mapNotNull{i->arr.optJSONObject(i)?.let{j->
-            StockItem(j.optString("id"),j.optString("name"),j.optString("barcode"),j.optDouble("cost"),j.optDouble("resale"),j.optInt("quantity",1),j.optLong("createdAt"))
+            StockItem(
+                j.optString("id"),
+                j.optString("name"),
+                j.optString("barcode"),
+                j.optDouble("cost"),
+                j.optDouble("resale"),
+                j.optInt("quantity",1),
+                j.optLong("createdAt"),
+                lifecycleFrom(j.optString("lifecycle",InventoryLifecycle.PURCHASED.name))
+            )
         }}
     }
 
@@ -47,7 +60,16 @@ object WorkspaceStore {
     }
 
     private fun saveInventory(context:Context,items:List<StockItem>){
-        val arr=JSONArray();items.forEach{x->arr.put(JSONObject().apply{put("id",x.id);put("name",x.name);put("barcode",x.barcode);put("cost",x.cost);put("resale",x.resale);put("quantity",x.quantity);put("createdAt",x.createdAt)})}
+        val arr=JSONArray();items.forEach{x->arr.put(JSONObject().apply{
+            put("id",x.id)
+            put("name",x.name)
+            put("barcode",x.barcode)
+            put("cost",x.cost)
+            put("resale",x.resale)
+            put("quantity",x.quantity)
+            put("createdAt",x.createdAt)
+            put("lifecycle",x.lifecycle.name)
+        })}
         prefs(context).edit().putString(INVENTORY,arr.toString()).apply()
     }
 
@@ -61,6 +83,34 @@ object WorkspaceStore {
         require(quantity>0){ "Quantity must be at least 1." }
         val items=inventory(context).toMutableList()
         items.add(0,StockItem(UUID.randomUUID().toString(),name.trim(),barcode.trim(),cost.coerceAtLeast(0.0),resale.coerceAtLeast(0.0),quantity,System.currentTimeMillis()))
+        saveInventory(context,items)
+    }
+
+    fun addInventoryFromTestBuy(context:Context,draft:TestBuyDraft):String {
+        require(recommendedOutcome(draft)==BuyOutcome.SEND_TO_INVENTORY){ "Test & Buy item is not ready for inventory." }
+        val id=UUID.randomUUID().toString()
+        val items=inventory(context).toMutableList()
+        items.add(0,StockItem(
+            id=id,
+            name=draft.itemName.trim(),
+            barcode=draft.scanValue.trim(),
+            cost=draft.askingPrice.coerceAtLeast(0.0),
+            resale=draft.currentValuation.coerceAtLeast(0.0),
+            quantity=1,
+            createdAt=System.currentTimeMillis(),
+            lifecycle=InventoryLifecycle.READY_FOR_SALE
+        ))
+        saveInventory(context,items)
+        return id
+    }
+
+    fun updateInventoryLifecycle(context:Context,id:String,to:InventoryLifecycle){
+        val items=inventory(context).toMutableList()
+        val index=items.indexOfFirst{it.id==id}
+        require(index>=0){ "Inventory item was not found." }
+        val current=items[index]
+        requireLifecycleTransition(current.lifecycle,to)
+        items[index]=current.copy(lifecycle=to)
         saveInventory(context,items)
     }
 

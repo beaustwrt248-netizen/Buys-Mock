@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,7 @@ class TestBuyActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TestBuyScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     var itemName by remember { mutableStateOf("") }
     var scanValue by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(DeviceCategory.OTHER) }
@@ -46,6 +48,9 @@ private fun TestBuyScreen(onBack: () -> Unit) {
     var maxBuyText by remember { mutableStateOf("") }
     var faults by remember { mutableStateOf("") }
     var checks by remember(category) { mutableStateOf(checklistFor(category)) }
+    var showInventoryConfirm by remember { mutableStateOf(false) }
+    var savedInventoryId by remember { mutableStateOf<String?>(null) }
+    var saveError by remember { mutableStateOf("") }
 
     val draft = TestBuyDraft(
         itemName = itemName.trim(),
@@ -67,6 +72,30 @@ private fun TestBuyScreen(onBack: () -> Unit) {
         BuyOutcome.SEND_TO_INVENTORY -> "SEND TO INVENTORY"
         BuyOutcome.BUY -> "BUY — FAULTS RECORDED"
         BuyOutcome.REJECT -> "REJECT / NOT READY"
+    }
+
+    if (showInventoryConfirm) {
+        AlertDialog(
+            onDismissRequest = { showInventoryConfirm = false },
+            title = { Text("Send to Inventory?") },
+            text = {
+                Text(
+                    "Add ${draft.itemName} to inventory at ${draft.askingPrice} cost and ${draft.currentValuation} resale value. " +
+                        "The item will start as Ready for Sale because all required Test & Buy checks have passed."
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showInventoryConfirm = false }) { Text("Cancel") }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    saveError = ""
+                    runCatching { WorkspaceStore.addInventoryFromTestBuy(context, draft) }
+                        .onSuccess { id -> savedInventoryId = id; showInventoryConfirm = false }
+                        .onFailure { error -> saveError = error.message ?: "Could not add item to inventory." }
+                }) { Text("Confirm & Add") }
+            }
+        )
     }
 
     Scaffold(
@@ -150,12 +179,30 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                     if (outcome == BuyOutcome.REJECT) {
                         Text("Complete every applicable check, resolve failures, enter a max-buy price and keep the seller ask at or below that limit.", color = TBMuted, fontSize = 11.sp)
                     } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
-                        Text("Item passed testing and is within max-buy. Inventory creation is intentionally handled as a separate confirmed step.", color = TBMuted, fontSize = 11.sp)
+                        Text("Item passed testing and is within max-buy. Confirm below before any inventory record is created.", color = TBMuted, fontSize = 11.sp)
                     } else {
                         Text("The item is within max-buy but has recorded faults. Review repair risk before completing the purchase.", color = TBMuted, fontSize = 11.sp)
                     }
                 }
             }
+
+            if (savedInventoryId != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = TBGood.copy(alpha = .10f)),
+                    border = BorderStroke(1.dp, TBGood.copy(alpha = .45f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Added to Inventory · Ready for Sale", Modifier.padding(14.dp), color = TBGood, fontWeight = FontWeight.Black)
+                }
+            } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
+                Button(
+                    onClick = { showInventoryConfirm = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = TBGood, contentColor = Color(0xFF04120A))
+                ) { Text("Send to Inventory", fontWeight = FontWeight.Black) }
+            }
+
+            if (saveError.isNotBlank()) Text(saveError, color = TBBad, fontSize = 12.sp)
 
             Text("NFC checks remain scan/read-only. This workflow does not assign NFC tags or modify inventory from an NFC scan.", color = TBMuted, fontSize = 10.sp)
             Spacer(Modifier.height(18.dp))
