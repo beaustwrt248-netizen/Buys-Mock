@@ -37,7 +37,7 @@ internal object AdminTelemetry {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val current = parse(prefs.getString(KEY_EVENTS, null)).toMutableList()
         current.add(event)
-        val bounded = current.takeLast(MAX_EVENTS)
+        val bounded = bound(current)
         prefs.edit().putString(KEY_EVENTS, JSONArray(bounded.map { it.toJson() }).toString()).apply()
     }
 
@@ -50,10 +50,12 @@ internal object AdminTelemetry {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_EVENTS).apply()
     }
 
+    internal fun bound(events: List<AdminErrorEvent>): List<AdminErrorEvent> = events.takeLast(MAX_EVENTS)
+
     internal fun parse(raw: String?): List<AdminErrorEvent> = runCatching {
         if (raw.isNullOrBlank()) return emptyList()
         val array = JSONArray(raw)
-        buildList {
+        bound(buildList {
             for (i in 0 until array.length()) {
                 val j = array.optJSONObject(i) ?: continue
                 val appVersion = clean(j.optString("app_version"), 40, "unknown")
@@ -64,7 +66,7 @@ internal object AdminTelemetry {
                 if (runCatching { Instant.parse(occurredAt) }.isFailure) continue
                 add(AdminErrorEvent(appVersion, deviceModel, screen, errorClass, occurredAt))
             }
-        }.takeLast(MAX_EVENTS)
+        })
     }.getOrDefault(emptyList())
 
     private fun clean(value: String, max: Int, fallback: String): String {
