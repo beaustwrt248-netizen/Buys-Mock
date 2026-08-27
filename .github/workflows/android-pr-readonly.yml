@@ -1,0 +1,46 @@
+name: Android PR Read-Only Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - 'morley_buys_login_bg_app.zip'
+      - 'morley_buys_login_bg_app_hq.zip'
+      - 'morley_buys_login_bg_app_hq_new.zip'
+      - 'scripts/release_audit.py'
+      - '.github/workflows/android-pr-readonly.yml'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '8.11.1'
+      - name: Release readiness audit
+        run: python3 scripts/release_audit.py
+      - name: Prepare Firebase Android config
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_GOOGLE_SERVICES_JSON"
+          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          python3 -m json.tool android/app/google-services.json >/dev/null
+      - name: Run regression tests
+        run: gradle -p android testDebugUnitTest --stacktrace --console=plain
+      - name: Run Android lint
+        run: gradle -p android lintDebug --stacktrace --console=plain
+      - name: Build PR APK
+        run: gradle -p android assembleDebug --stacktrace --console=plain
