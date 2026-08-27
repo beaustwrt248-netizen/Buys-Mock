@@ -75,18 +75,14 @@ object NotificationHelper {
     }
 
     fun showUpdateAvailable(context: Context, update: AppUpdate): Boolean {
-        NotificationInboxStore.add(
-            context,
-            "B&L Morley update available",
-            "Version ${update.versionName} is ready to download and install.",
-            "update"
-        )
+        NotificationInboxStore.addUpdate(context, update)
         if (!canNotify(context)) return false
         val launchIntent = Intent(context, UpdateActivity::class.java).apply {
             putExtra("versionCode", update.versionCode)
             putExtra("versionName", update.versionName)
             putExtra("apkUrl", update.apkUrl)
             putExtra("notes", update.notes)
+            putExtra("sha256", update.sha256)
         }
         val pendingIntent = PendingIntent.getActivity(context, 2001, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(context, CHANNEL_UPDATES)

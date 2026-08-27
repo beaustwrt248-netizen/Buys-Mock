@@ -19,15 +19,19 @@ object NotificationInboxStore {
         val body: String,
         val type: String,
         val createdAt: Long,
-        val read: Boolean
+        val read: Boolean,
+        val versionCode: Int = 0,
+        val versionName: String = "",
+        val apkUrl: String = "",
+        val notes: String = "",
+        val sha256: String = ""
     )
 
     fun add(context: Context, title: String, body: String, type: String) {
-        val existing = items(context).toMutableList()
-        existing.add(
-            0,
+        addItem(
+            context,
             InboxItem(
-                id = "${System.currentTimeMillis()}-${title.hashCode()}",
+                id = newId(title),
                 title = title.trim().ifBlank { "B&L Morley" },
                 body = body.trim(),
                 type = type.ifBlank { "message" },
@@ -35,7 +39,25 @@ object NotificationInboxStore {
                 read = false
             )
         )
-        save(context, existing.take(MAX_ITEMS))
+    }
+
+    fun addUpdate(context: Context, update: AppUpdate) {
+        addItem(
+            context,
+            InboxItem(
+                id = newId("update-${update.versionCode}"),
+                title = "B&L Morley update available",
+                body = "Version ${update.versionName} is ready to download and install.",
+                type = "update",
+                createdAt = System.currentTimeMillis(),
+                read = false,
+                versionCode = update.versionCode,
+                versionName = update.versionName,
+                apkUrl = update.apkUrl,
+                notes = update.notes,
+                sha256 = update.sha256.lowercase()
+            )
+        )
     }
 
     fun items(context: Context): List<InboxItem> {
@@ -54,7 +76,12 @@ object NotificationInboxStore {
                             body = item.optString("body"),
                             type = item.optString("type", "message"),
                             createdAt = item.optLong("createdAt"),
-                            read = item.optBoolean("read")
+                            read = item.optBoolean("read"),
+                            versionCode = item.optInt("versionCode"),
+                            versionName = item.optString("versionName"),
+                            apkUrl = item.optString("apkUrl"),
+                            notes = item.optString("notes"),
+                            sha256 = item.optString("sha256").lowercase()
                         )
                     )
                 }
@@ -82,6 +109,14 @@ object NotificationInboxStore {
             .apply()
     }
 
+    private fun addItem(context: Context, item: InboxItem) {
+        val existing = items(context).toMutableList()
+        existing.add(0, item)
+        save(context, existing.take(MAX_ITEMS))
+    }
+
+    private fun newId(seed: String): String = "${System.currentTimeMillis()}-${seed.hashCode()}"
+
     private fun save(context: Context, items: List<InboxItem>) {
         val json = JSONArray()
         items.take(MAX_ITEMS).forEach { item ->
@@ -93,6 +128,11 @@ object NotificationInboxStore {
                     .put("type", item.type)
                     .put("createdAt", item.createdAt)
                     .put("read", item.read)
+                    .put("versionCode", item.versionCode)
+                    .put("versionName", item.versionName)
+                    .put("apkUrl", item.apkUrl)
+                    .put("notes", item.notes)
+                    .put("sha256", item.sha256)
             )
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
