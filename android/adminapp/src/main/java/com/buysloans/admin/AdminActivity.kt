@@ -30,6 +30,7 @@ private val Warn = Color(0xFFFFC857)
 class AdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AdminTelemetry.installCrashHandler(applicationContext)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = Accent, background = Bg, surface = CardBg)) {
                 AdminRoot()
