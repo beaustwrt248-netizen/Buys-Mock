@@ -1,0 +1,62 @@
+name: Admin Support Governance
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'admin/**'
+      - 'supabase/migrations/*support*'
+      - '.github/workflows/admin-support-governance.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'admin/**'
+      - 'supabase/migrations/*support*'
+      - '.github/workflows/admin-support-governance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate admin support JavaScript
+        run: node --check admin/support-tickets.js
+      - name: Verify support ownership and SLA contracts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base = Path('supabase/migrations/20260827173000_support_ticket_system.sql').read_text()
+          sla = Path('supabase/migrations/20260827212500_support_assignment_sla.sql').read_text()
+          admin = Path('admin/support-tickets.js').read_text()
+          required_base = [
+              'user_id = auth.uid() or private.is_admin_or_manager()',
+              "user_id = auth.uid() and status = 'open' and priority = 'normal' and assigned_to is null",
+              'private.is_admin_or_manager()) with check (private.is_admin_or_manager())',
+              "file_size_limit,allowed_mime_types",
+              "10485760,array['image/jpeg','image/png','image/webp','application/pdf']",
+          ]
+          for needle in required_base:
+              if needle not in base:
+                  raise SystemExit(f'Existing support ownership/attachment contract missing: {needle}')
+          required_sla = [
+              'add column if not exists sla_due_at timestamptz',
+              'add column if not exists first_response_at timestamptz',
+              "when 'urgent' then interval '2 hours'",
+              "when 'high' then interval '8 hours'",
+              "else interval '24 hours'",
+              'support_mark_first_response',
+          ]
+          for needle in required_sla:
+              if needle not in sla:
+                  raise SystemExit(f'SLA migration contract missing: {needle}')
+          if 'drop policy' in sla.lower() or 'disable row level security' in sla.lower():
+              raise SystemExit('SLA increment must not replace or disable existing support RLS policies')
+          for needle in ['ticketAssignee','assigned_to','sla_due_at','first_response_at',".in('role',['admin','manager'])"]:
+              if needle not in admin:
+                  raise SystemExit(f'Admin support UI contract missing: {needle}')
+          print('Support ownership, attachment, assignment and SLA contracts OK')
+          PY
