@@ -128,6 +128,12 @@ fun SmartWorkspaceSection() {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF168E61)),
                 shape = RoundedCornerShape(14.dp)
             ) { Text("⚡ Quick Deal Mode", fontWeight = FontWeight.Black) }
+            OutlinedButton(
+                onClick = { context.startActivity(Intent(context, NfcScannerActivity::class.java)) },
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, SWAccent.copy(alpha = .55f)),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("⌁ NFC Scanner", color = SWAccent, fontWeight = FontWeight.Black) }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (error.isNotBlank()) Text("Smart workspace will refresh when connected.", color = SWMuted, fontSize = 11.sp)
             if (!loading && latest.isEmpty()) {
