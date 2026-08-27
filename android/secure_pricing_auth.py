@@ -8,12 +8,23 @@ new_activity = 'class MainActivity:ComponentActivity(){override fun onCreate(sav
 if old_activity in text:
     text = text.replace(old_activity, new_activity)
 
-new_request = 'private suspend fun request(query:String,limit:Int=40):JSONObject=withContext(Dispatchers.IO){val token=AuthManager.validAccessToken(AppRuntime.context);val resolved=runCatching{LaptopModelCatalog.resolve(AppRuntime.context,query)}.getOrNull();val searchQuery=resolved?.canonicalQuery?.takeIf{it.isNotBlank()}?:query;val c=(URL(API).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=15000;readTimeout=20000;doOutput=true;setRequestProperty("Content-Type","application/json");setRequestProperty("apikey",BuildConfig.SUPABASE_PUBLISHABLE_KEY);setRequestProperty("Authorization","Bearer $token")};try{val body=JSONObject().put("query",searchQuery).put("limit",limit).put("australiaOnly",true).put("mode","device").toString();c.outputStream.use{it.write(body.toByteArray())};val code=c.responseCode;val stream=if(code in 200..299)c.inputStream else c.errorStream;val responseText=stream?.bufferedReader()?.use{it.readText()}.orEmpty();val root=runCatching{JSONObject(responseText.ifBlank{"{}"})}.getOrElse{JSONObject()};if(resolved!=null&&resolved.canonicalQuery!=query){root.put("catalogOriginalQuery",query);root.put("catalogCanonicalQuery",resolved.canonicalQuery);root.put("catalogModel",resolved.modelName?:"");root.put("catalogModelNumber",resolved.modelNumber?:"")};if(code==401){throw IllegalStateException("Your session has expired. Please sign in again.")};if(code !in 200..299||!root.optBoolean("success"))throw IllegalStateException(root.optString("error","Pricing search failed ($code)"));root}finally{c.disconnect()}}'
+# Keep this task deterministic and idempotent. Newer source may already contain
+# a refreshed-token implementation; in that case validate it instead of trying
+# to match only the original one-line request body.
+secure_request = 'private suspend fun request(query:String,limit:Int=40):JSONObject{val token=AuthManager.validAccessToken(MorleyApplication.instance);if(token.isBlank())throw IllegalStateException("Your secure session has expired. Sign in again.");return withContext(Dispatchers.IO){val c=(URL(API).openConnection() as HttpURLConnection).apply{requestMethod="POST";connectTimeout=15000;readTimeout=20000;doOutput=true;setRequestProperty("Content-Type","application/json");setRequestProperty("apikey",BuildConfig.SUPABASE_PUBLISHABLE_KEY);setRequestProperty("Authorization","Bearer $token")};val body=JSONObject().put("query",query).put("limit",limit).put("australiaOnly",true).put("mode","device").toString();c.outputStream.use{it.write(body.toByteArray())};val code=c.responseCode;val stream=if(code in 200..299)c.inputStream else c.errorStream;val text=stream?.bufferedReader()?.use{it.readText()}.orEmpty();val root=runCatching{JSONObject(text)}.getOrElse{JSONObject().put("error",if(code==401)"Your secure session has expired. Sign in again." else "HTTP $code")};if(code !in 200..299||!root.optBoolean("success"))throw IllegalStateException(root.optString("error","HTTP $code"));root}}'
 
 lines = text.splitlines()
-indices = [i for i, line in enumerate(lines) if line.startswith('private suspend fun request(query:String,limit:Int=40):JSONObject=withContext(Dispatchers.IO)')]
+indices = [i for i, line in enumerate(lines) if line.startswith('private suspend fun request(query:String,limit:Int=40):JSONObject')]
 if len(indices) != 1:
     raise SystemExit(f'Expected exactly one primary pricing request, found {len(indices)}')
-lines[indices[0]] = new_request
+idx = indices[0]
+line = lines[idx]
+if ('AuthManager.validAccessToken' in line and
+    'setRequestProperty("Authorization","Bearer $token")' in line and
+    'BuildConfig.SUPABASE_PUBLISHABLE_KEY' in line):
+    print('Primary pricing API request already secured')
+else:
+    lines[idx] = secure_request
+    print('Secured primary pricing API request with refreshed authenticated session')
+
 main.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-print('Secured primary pricing API request and enabled laptop catalogue resolution')
