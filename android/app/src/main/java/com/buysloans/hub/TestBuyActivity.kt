@@ -81,7 +81,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             text = {
                 Text(
                     "Add ${draft.itemName} to inventory at ${draft.askingPrice} cost and ${draft.currentValuation} resale value. " +
-                        "The item will start as Ready for Sale because all required Test & Buy checks have passed."
+                        "The item will start as Purchased and must move through Testing before Ready for Sale."
                 )
             },
             dismissButton = {
@@ -192,7 +192,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                     border = BorderStroke(1.dp, TBGood.copy(alpha = .45f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Added to Inventory · Ready for Sale", Modifier.padding(14.dp), color = TBGood, fontWeight = FontWeight.Black)
+                    Text("Added to Inventory · Purchased", Modifier.padding(14.dp), color = TBGood, fontWeight = FontWeight.Black)
                 }
             } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
                 Button(
