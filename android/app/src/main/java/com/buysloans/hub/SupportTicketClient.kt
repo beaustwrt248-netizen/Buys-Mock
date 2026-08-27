@@ -13,9 +13,6 @@ import java.net.URL
 
 object SupportTicketClient {
     private const val ATTACHMENT_BUCKET = "support-ticket-attachments"
-    private const val MAX_ATTACHMENT_BYTES = 10L * 1024L * 1024L
-    private val allowedTypes = setOf("image/jpeg", "image/png", "image/webp", "application/pdf")
-    private val allowedCategories = setOf("valuation", "pricing", "inventory", "scanner", "account", "update", "other")
 
     data class SubmitResult(val ticketId: String, val attachmentWarning: String? = null)
 
@@ -27,12 +24,7 @@ object SupportTicketClient {
         includeDiagnostics: Boolean,
         attachment: Uri? = null
     ): SubmitResult {
-        val cleanCategory = category.trim().lowercase()
-        val cleanSubject = subject.trim()
-        val cleanDescription = description.trim()
-        require(cleanCategory in allowedCategories) { "Choose a valid support category." }
-        require(cleanSubject.length in 3..160) { "Subject must be between 3 and 160 characters." }
-        require(cleanDescription.length in 5..5000) { "Description must be between 5 and 5000 characters." }
+        val draft = SupportTicketLogic.validateDraft(category, subject, description)
 
         val token = AuthManager.validAccessToken(context)
         val userId = jwtSubject(token)
@@ -46,9 +38,9 @@ object SupportTicketClient {
         } else JSONObject()
         val payload = JSONObject().apply {
             put("user_id", userId)
-            put("category", cleanCategory)
-            put("subject", cleanSubject)
-            put("description", cleanDescription)
+            put("category", draft.category)
+            put("subject", draft.subject)
+            put("description", draft.description)
             put("status", "open")
             put("priority", "normal")
             put("assigned_to", JSONObject.NULL)
@@ -80,7 +72,6 @@ object SupportTicketClient {
     private suspend fun uploadAttachment(context: Context, token: String, userId: String, ticketId: String, uri: Uri) {
         val resolver = context.contentResolver
         val mime = resolver.getType(uri).orEmpty().lowercase()
-        require(mime in allowedTypes) { "Attachment must be a JPG, PNG, WebP or PDF." }
         var name = "attachment"
         var size = -1L
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -91,10 +82,10 @@ object SupportTicketClient {
                 if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
             }
         }
-        if (size >= 0) require(size <= MAX_ATTACHMENT_BYTES) { "Attachment must be 10 MB or smaller." }
+        SupportTicketLogic.validateAttachment(mime, size.takeIf { it >= 0 })
         val bytes = withContext(Dispatchers.IO) { resolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Could not read attachment.") }
-        require(bytes.size.toLong() <= MAX_ATTACHMENT_BYTES) { "Attachment must be 10 MB or smaller." }
-        val safeName = name.replace(Regex("[^A-Za-z0-9._-]+"), "-").trim('-').take(120).ifBlank { "attachment" }
+        SupportTicketLogic.validateAttachment(mime, bytes.size.toLong())
+        val safeName = SupportTicketLogic.safeFileName(name)
         val storagePath = "$userId/$ticketId/${System.currentTimeMillis()}-$safeName"
         val (uploadCode, uploadBody) = request(
             path = "/storage/v1/object/$ATTACHMENT_BUCKET/$storagePath",
