@@ -1,7 +1,7 @@
 {
-  "versionCode": 37,
-  "versionName": "2.14.1",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.1/B-and-L-Morley-2.14.1.apk",
-  "sha256": "87f2cc5deba57311b77f73cf6c18ba6afeeb5c22e190df5c4f61e494e0c7f20e",
-  "notes": "Laptop catalogue integration: Apple A-number, Dell model-number and Lenovo generation searches now resolve to canonical laptop identities before pricing. Includes marketplace outlier protection and regression-tested matching."
+  "versionCode": 38,
+  "versionName": "2.14.2",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.2/B-and-L-Morley-2.14.2.apk",
+  "sha256": "8eb6e21f3a8c086f93eda9796b982580ca218218603e37c173d519cc9b92deb7",
+  "notes": "Show pending Android releases in Admin Control"
 }
