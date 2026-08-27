@@ -14,7 +14,8 @@ internal data class AdminSnapshot(
     val announcements: JSONArray,
     val profiles: JSONArray,
     val devices: JSONArray,
-    val config: JSONArray
+    val config: JSONArray,
+    val errorEvents: JSONArray
 )
 
 internal object AdminApi {
@@ -43,8 +44,16 @@ internal object AdminApi {
             announcements = getArray("/rest/v1/announcements?select=id,title,body,audience,is_active,created_at&order=created_at.desc&limit=25", session.accessToken),
             profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
             devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
-            config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(current_release,minimum_supported_version)&order=key", session.accessToken)
+            config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(current_release,minimum_supported_version)&order=key", session.accessToken),
+            errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken)
         )
+    }
+
+    suspend fun submitTelemetry(session: AdminSession, events: List<AdminErrorEvent>) = withContext(Dispatchers.IO) {
+        if (events.isEmpty()) return@withContext
+        val payload = JSONArray(events.map { it.toJson() }).toString()
+        val response = request("/rest/v1/admin_error_events", "POST", session.accessToken, payload, preferMinimal = true)
+        if (response.first !in 200..299) error(message(response.second, "Admin health telemetry could not be submitted."))
     }
 
     private fun getArray(path: String, token: String): JSONArray {
@@ -53,13 +62,14 @@ internal object AdminApi {
         return JSONArray(response.second)
     }
 
-    private fun request(path: String, method: String, token: String?, body: String?): Pair<Int, String> {
+    private fun request(path: String, method: String, token: String?, body: String?, preferMinimal: Boolean = false): Pair<Int, String> {
         val connection = (URL("${BuildConfig.SUPABASE_URL}$path").openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 15_000
             readTimeout = 20_000
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             setRequestProperty("Accept", "application/json")
+            if (preferMinimal) setRequestProperty("Prefer", "return=minimal")
             if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
             if (body != null) {
                 doOutput = true
