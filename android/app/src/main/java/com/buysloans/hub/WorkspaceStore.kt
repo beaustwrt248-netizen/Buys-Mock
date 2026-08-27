@@ -77,27 +77,11 @@ object WorkspaceStore {
 
     fun findByBarcode(context:Context,barcode:String):StockItem?=inventory(context).firstOrNull{it.barcode.isNotBlank()&&it.barcode.equals(barcode.trim(),true)}
 
-    fun findByNfcTag(context:Context,tagId:String):StockItem? {
-        val clean=tagId.trim().uppercase()
-        return inventory(context).firstOrNull{it.nfcTagId.isNotBlank()&&it.nfcTagId.uppercase()==clean}
-    }
+    fun findByNfcTag(context:Context,tagId:String):StockItem?=NfcInventoryLogic.find(inventory(context),tagId)
 
-    fun linkNfcTag(context:Context,itemId:String,tagId:String){
-        val clean=tagId.trim().uppercase()
-        require(clean.isNotBlank()){ "Scan a valid NFC tag first." }
-        val items=inventory(context).toMutableList()
-        val idx=items.indexOfFirst{it.id==itemId}
-        require(idx>=0){ "Inventory item no longer exists." }
-        val conflict=items.firstOrNull{it.id!=itemId&&it.nfcTagId.equals(clean,true)}
-        require(conflict==null){ "This NFC tag is already linked to ${conflict?.name}." }
-        items[idx]=items[idx].copy(nfcTagId=clean)
-        saveInventory(context,items)
-    }
+    fun linkNfcTag(context:Context,itemId:String,tagId:String){saveInventory(context,NfcInventoryLogic.link(inventory(context),itemId,tagId))}
 
-    fun unlinkNfcTag(context:Context,itemId:String){
-        val items=inventory(context).toMutableList();val idx=items.indexOfFirst{it.id==itemId};if(idx<0)return
-        items[idx]=items[idx].copy(nfcTagId="");saveInventory(context,items)
-    }
+    fun unlinkNfcTag(context:Context,itemId:String){saveInventory(context,NfcInventoryLogic.unlink(inventory(context),itemId))}
 
     fun deleteSale(context:Context,id:String){saveSales(context,sales(context).filterNot{it.id==id})}
 
