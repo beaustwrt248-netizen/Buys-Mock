@@ -170,6 +170,7 @@ private fun MoreHub(onSignOut:()->Unit){
         Text("Menu",fontSize=30.sp,fontWeight=FontWeight.Black)
         MenuSection("Workspace"){
             MenuRow("◷","Valuations & Deals","Saved valuations and deal history."){context.startActivity(Intent(context,ValuationHistoryActivity::class.java))}
+            MenuRow("✓","Test & Buy","Run a hardware checklist and compare the seller ask with max-buy guidance."){context.startActivity(Intent(context,TestBuyActivity::class.java))}
             MenuRow("▣","Inventory","Stock, costs and resale values."){open("inventory")}
             MenuRow("↗","Sales History","Revenue and realised profit."){open("sales")}
             MenuRow("⌗","Barcode Scanner","Find or add stock quickly."){open("scanner")}
