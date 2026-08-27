@@ -1,8 +1,8 @@
 package com.buysloans.hub
 
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.UUID
 
 enum class DeviceTestHistorySource { BARCODE, NFC, TEST_BUY }
@@ -22,11 +22,12 @@ object DeviceTestHistoryStore {
     private const val PREFS = "morley_device_test_history"
     private const val HISTORY = "entries_json"
     private const val MAX_ENTRIES = 100
+    private const val FIELD_COUNT = 8
 
     private fun prefs(context:Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun entries(context:Context):List<DeviceTestHistoryEntry> = decode(
-        prefs(context).getString(HISTORY, "[]") ?: "[]"
+        prefs(context).getString(HISTORY, "") ?: ""
     )
 
     fun record(
@@ -59,39 +60,48 @@ object DeviceTestHistoryStore {
         prefs(context).edit().remove(HISTORY).apply()
     }
 
-    internal fun encode(entries:List<DeviceTestHistoryEntry>):String {
-        val array = JSONArray()
-        entries.forEach { entry ->
-            array.put(JSONObject().apply {
-                put("id", entry.id)
-                put("source", entry.source.name)
-                put("reference", entry.reference)
-                put("itemName", entry.itemName)
-                put("category", entry.category)
-                put("result", entry.result)
-                put("summary", entry.summary)
-                put("recordedAt", entry.recordedAt)
-            })
+    private fun pack(value:String):String = Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(value.toByteArray(StandardCharsets.UTF_8))
+
+    private fun unpack(value:String):String = String(
+        Base64.getUrlDecoder().decode(value),
+        StandardCharsets.UTF_8
+    )
+
+    internal fun encode(entries:List<DeviceTestHistoryEntry>):String = entries
+        .take(MAX_ENTRIES)
+        .joinToString("\n") { entry ->
+            listOf(
+                pack(entry.id),
+                entry.source.name,
+                pack(entry.reference),
+                pack(entry.itemName),
+                pack(entry.category),
+                pack(entry.result),
+                pack(entry.summary),
+                entry.recordedAt.toString()
+            ).joinToString("|")
         }
-        return array.toString()
-    }
 
     internal fun decode(text:String):List<DeviceTestHistoryEntry> {
-        val array = runCatching { JSONArray(text) }.getOrElse { JSONArray() }
-        return (0 until array.length()).mapNotNull { index ->
-            val json = array.optJSONObject(index) ?: return@mapNotNull null
-            val source = runCatching { DeviceTestHistorySource.valueOf(json.optString("source")) }.getOrNull()
-                ?: return@mapNotNull null
-            DeviceTestHistoryEntry(
-                id = json.optString("id"),
-                source = source,
-                reference = json.optString("reference"),
-                itemName = json.optString("itemName"),
-                category = json.optString("category"),
-                result = json.optString("result"),
-                summary = json.optString("summary"),
-                recordedAt = json.optLong("recordedAt")
-            )
-        }
+        if (text.isBlank()) return emptyList()
+        return text.lineSequence().take(MAX_ENTRIES).mapNotNull { line ->
+            runCatching {
+                val fields = line.split('|')
+                if (fields.size != FIELD_COUNT) return@runCatching null
+                val source = DeviceTestHistorySource.valueOf(fields[1])
+                val recordedAt = fields[7].toLong()
+                DeviceTestHistoryEntry(
+                    id = unpack(fields[0]),
+                    source = source,
+                    reference = unpack(fields[2]),
+                    itemName = unpack(fields[3]),
+                    category = unpack(fields[4]),
+                    result = unpack(fields[5]),
+                    summary = unpack(fields[6]),
+                    recordedAt = recordedAt
+                )
+            }.getOrNull()
+        }.filterNotNull().toList()
     }
 }
