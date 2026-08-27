@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class LaptopModelCatalogTest {
@@ -15,6 +16,20 @@ class LaptopModelCatalogTest {
             score = 1.0
         )
         assertEquals("Apple MacBook Air A1932", LaptopModelCatalog.preferredQuery("A1932", r))
+    }
+
+    @Test fun `A1932 has deterministic local fallback`() {
+        val r = LaptopModelCatalog.knownIdentifierResolution(" A1932 ")
+        assertNotNull(r)
+        assertEquals("Apple", r?.brand)
+        assertEquals("MacBook Air", r?.family)
+        assertEquals("A1932", r?.modelNumber)
+        assertEquals("Apple MacBook Air 13-inch 2018 A1932", r?.canonicalQuery)
+        assertEquals("Apple MacBook Air 13-inch 2018 A1932", LaptopModelCatalog.preferredQuery("A1932", r!!))
+    }
+
+    @Test fun `unknown model code is not invented locally`() {
+        assertEquals(null, LaptopModelCatalog.knownIdentifierResolution("A9999"))
     }
 
     @Test fun `Apple silicon A-number uses resolved identity`() {
