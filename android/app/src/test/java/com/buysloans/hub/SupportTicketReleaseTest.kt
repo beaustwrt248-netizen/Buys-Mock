@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SupportTicketReleaseTest {
@@ -15,5 +16,11 @@ class SupportTicketReleaseTest {
         val draft = SupportTicketLogic.validateDraft("valuation", "A1932 valuation issue", "Valuation result did not match the expected item.")
         assertEquals("valuation", draft.category)
         assertEquals("A1932 valuation issue", draft.subject)
+    }
+
+    @Test
+    fun attachmentLimitRemainsTenMegabytes() {
+        assertEquals(10L * 1024L * 1024L, SupportTicketLogic.MAX_ATTACHMENT_BYTES)
+        assertTrue("application/pdf" in SupportTicketLogic.allowedTypes)
     }
 }
