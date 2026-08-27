@@ -1,5 +1,6 @@
 package com.buysloans.hub
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -107,6 +108,11 @@ class NotificationCentreActivity : ComponentActivity() {
                     }
                 } else {
                     items.forEach { item ->
+                        val canOpenUpdate = item.type.equals("update", ignoreCase = true) &&
+                            item.versionCode > 0 &&
+                            item.versionName.isNotBlank() &&
+                            UpdateManager.isTrustedApkUrl(item.apkUrl) &&
+                            UpdateManager.isValidSha256(item.sha256)
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = if (item.read) NCCard else Color(0xFF0E2038)
@@ -129,7 +135,22 @@ class NotificationCentreActivity : ComponentActivity() {
                                     color = NCMuted,
                                     fontSize = 12.sp
                                 )
-                                if (!item.read) {
+                                if (canOpenUpdate) {
+                                    Button(
+                                        onClick = {
+                                            NotificationInboxStore.markRead(this@NotificationCentreActivity, item.id)
+                                            startActivity(Intent(this@NotificationCentreActivity, UpdateActivity::class.java).apply {
+                                                putExtra("versionCode", item.versionCode)
+                                                putExtra("versionName", item.versionName)
+                                                putExtra("apkUrl", item.apkUrl)
+                                                putExtra("notes", item.notes)
+                                                putExtra("sha256", item.sha256)
+                                            })
+                                            refresh++
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("Open update") }
+                                } else if (!item.read) {
                                     TextButton(
                                         onClick = {
                                             NotificationInboxStore.markRead(this@NotificationCentreActivity, item.id)
