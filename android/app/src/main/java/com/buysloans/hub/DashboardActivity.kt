@@ -162,6 +162,7 @@ private fun MoreHub(onSignOut:()->Unit){
     var checking by remember{mutableStateOf(false)}
     var updateStatus by remember{mutableStateOf("Check app version and update status.")}
     var availableUpdate by remember{mutableStateOf<AppUpdate?>(null)}
+    val notificationUnread=NotificationInboxStore.unreadCount(context)
 
     fun open(feature:String){context.startActivity(Intent(context,MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE,feature))}
 
@@ -179,6 +180,7 @@ private fun MoreHub(onSignOut:()->Unit){
         }
         MenuSection("Data & preferences"){
             MenuRow("☁","Backup & Data","Export, import and local app data."){open("backup")}
+            MenuRow("✦","Notification Centre",if(notificationUnread==0)"No unread notifications." else "$notificationUnread unread notification${if(notificationUnread==1)"" else "s"}."){context.startActivity(Intent(context,NotificationCentreActivity::class.java))}
             MenuRow("♢","Notifications","Update and app notification preferences."){open("notifications")}
             MenuRow("◐","Display","Interface and display preferences."){open("display")}
         }
