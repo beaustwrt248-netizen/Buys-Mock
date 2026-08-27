@@ -88,6 +88,7 @@ object WorkspaceStore {
 
     fun addInventoryFromTestBuy(context:Context,draft:TestBuyDraft):String {
         require(recommendedOutcome(draft)==BuyOutcome.SEND_TO_INVENTORY){ "Test & Buy item is not ready for inventory." }
+        val now=System.currentTimeMillis()
         val id=UUID.randomUUID().toString()
         val items=inventory(context).toMutableList()
         items.add(0,StockItem(
@@ -97,10 +98,20 @@ object WorkspaceStore {
             cost=draft.askingPrice.coerceAtLeast(0.0),
             resale=draft.currentValuation.coerceAtLeast(0.0),
             quantity=1,
-            createdAt=System.currentTimeMillis(),
+            createdAt=now,
             lifecycle=InventoryLifecycle.READY_FOR_SALE
         ))
         saveInventory(context,items)
+        DeviceTestHistoryStore.record(
+            context=context,
+            source=if(draft.scanValue.isBlank()) DeviceTestHistorySource.TEST_BUY else DeviceTestHistorySource.BARCODE,
+            reference=draft.scanValue,
+            itemName=draft.itemName,
+            category=draft.category.name,
+            result=BuyOutcome.SEND_TO_INVENTORY.name,
+            summary="${draft.completedChecks}/${draft.checks.size} checks completed; ${draft.failedChecks} failed; confirmed inventory handoff.",
+            recordedAt=now
+        )
         return id
     }
 
