@@ -1,0 +1,61 @@
+name: Admin Device Governance
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*device*'
+      - 'admin/**'
+      - '.github/workflows/admin-device-governance.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*device*'
+      - 'admin/**'
+      - '.github/workflows/admin-device-governance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  device-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify read-only Admin device governance
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          migration = Path('supabase/migrations/20260828013000_device_admin_readonly_governance.sql').read_text()
+          admin = Path('admin/app.js').read_text()
+          registrar = Path('android/app/src/main/java/com/buysloans/hub/DeviceRegistrar.kt').read_text()
+          required = [
+              'alter table public.devices enable row level security',
+              'create policy devices_owner_manage_own',
+              'for all',
+              'using ((select auth.uid()) = user_id)',
+              'with check ((select auth.uid()) = user_id)',
+              'create policy devices_admin_manager_read',
+              'for select',
+              'using (private.is_admin_or_manager())',
+          ]
+          for needle in required:
+              if needle not in migration:
+                  raise SystemExit(f'Device governance contract missing: {needle}')
+          forbidden = [
+              'grant all on public.devices',
+              'to anon',
+              'for update\nto authenticated\nusing (private.is_admin_or_manager())',
+              'for delete\nto authenticated\nusing (private.is_admin_or_manager())',
+          ]
+          low = migration.lower()
+          for needle in forbidden:
+              if needle.lower() in low:
+                  raise SystemExit(f'Unsafe device governance detected: {needle}')
+          if "sb.from('devices').select('*')" not in admin:
+              raise SystemExit('Admin device visibility must remain read-only')
+          if 'register_device_public' not in registrar:
+              raise SystemExit('Android registration must continue through the authenticated RPC')
+          print('Admin/Manager device access is read-only; owner registration contract preserved')
+          PY
