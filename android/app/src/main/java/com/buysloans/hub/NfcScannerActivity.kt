@@ -97,12 +97,27 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
             }
         }.getOrDefault(emptyList())
 
+        val technologies = tag.techList.map { it.substringAfterLast('.') }
         val scan = RecentNfcScan(
             tagId = tagId,
             payloads = payloads,
-            technologies = tag.techList.map { it.substringAfterLast('.') },
+            technologies = technologies,
             readAt = now
         )
+        runCatching {
+            DeviceTestHistoryStore.record(
+                context = this,
+                source = DeviceTestHistorySource.NFC,
+                reference = tagId,
+                result = "PASS",
+                summary = if (payloads.isEmpty()) {
+                    "NFC tag responded; technologies: ${technologies.joinToString(", ").ifBlank { "unknown" }}; no supported NDEF text/URI payload."
+                } else {
+                    "NFC tag responded; technologies: ${technologies.joinToString(", ").ifBlank { "unknown" }}; ${payloads.size} supported NDEF payload(s) read."
+                },
+                recordedAt = now
+            )
+        }
         runOnUiThread {
             latest = scan
             recent = (listOf(scan) + recent.filterNot { it.tagId == scan.tagId }).take(8)
@@ -158,7 +173,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Scan-test only: this tool checks that NFC hardware and supported tags respond correctly. It reads tag identifiers, detected technologies, and common NDEF text/URI records exposed by Android. It does not link tags to inventory, change stock, read payment credentials, access secure contactless-card data, or bypass protected tags.",
+                        "Scan-test only: this tool checks that NFC hardware and supported tags respond correctly. It reads tag identifiers, detected technologies, and common NDEF text/URI records exposed by Android. A lightweight local scan-test history records what responded and when. It does not look up or link tags to inventory, change stock, read payment credentials, access secure contactless-card data, or bypass protected tags.",
                         Modifier.padding(14.dp),
                         color = NfcMuted,
                         fontSize = 11.sp
