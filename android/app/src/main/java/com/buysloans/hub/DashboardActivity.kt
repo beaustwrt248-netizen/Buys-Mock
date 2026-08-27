@@ -184,6 +184,9 @@ private fun MoreHub(onSignOut:()->Unit){
             MenuRow("♢","Notifications","Update and app notification preferences."){open("notifications")}
             MenuRow("◐","Display","Interface and display preferences."){open("display")}
         }
+        MenuSection("Help & guidance"){
+            MenuRow("?","How-to Guide & FAQ","Quick start, feature breakdown and common questions."){context.startActivity(Intent(context,HelpGuideActivity::class.java))}
+        }
         MenuSection("App"){
             MenuRow("↻","Updates",updateStatus){
                 checking=true;availableUpdate=null;updateStatus="Checking for updates…"
