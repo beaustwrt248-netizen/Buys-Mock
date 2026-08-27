@@ -1,0 +1,59 @@
+name: Admin Support Audit Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*support*'
+      - '.github/workflows/admin-support-audit-check.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*support*'
+      - '.github/workflows/admin-support-audit-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify privileged support audit contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/20260828003000_support_privileged_audit.sql')
+          text = path.read_text(encoding='utf-8')
+          lower = text.lower()
+          required = [
+              'private.support_log_privileged_admin_audit()',
+              "p.role in ('admin','manager','staff')",
+              "'support_ticket_changed'",
+              "'support_ticket'",
+              "'status'",
+              "'priority'",
+              "'assigned_to'",
+              'revoke update, delete on table public.admin_audit_log from anon, authenticated',
+              'after update on public.support_tickets',
+          ]
+          for needle in required:
+              if needle not in text:
+                  raise SystemExit(f'Missing privileged support audit contract: {needle}')
+          forbidden = [
+              'disable row level security',
+              'new.description',
+              'old.description',
+              'new.message',
+              'old.message',
+              'support_ticket_messages',
+              'grant all',
+              'to anon',
+          ]
+          for needle in forbidden:
+              if needle in lower:
+                  raise SystemExit(f'Unsafe or content-bearing support audit change detected: {needle}')
+          print('Privileged support-ticket audit contract OK')
+          PY
