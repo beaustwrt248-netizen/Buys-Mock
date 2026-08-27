@@ -19,8 +19,9 @@ class SupportTicketReleaseTest {
     }
 
     @Test
-    fun attachmentLimitRemainsTenMegabytes() {
+    fun attachmentPolicyRemainsPrivateSupportSafe() {
         assertEquals(10L * 1024L * 1024L, SupportTicketLogic.MAX_ATTACHMENT_BYTES)
         assertTrue("application/pdf" in SupportTicketLogic.allowedTypes)
+        assertTrue("image/jpeg" in SupportTicketLogic.allowedTypes)
     }
 }
