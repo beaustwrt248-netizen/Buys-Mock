@@ -14,6 +14,7 @@ class MorleyApplication : Application() {
         instance = this
         NotificationHelper.createChannels(this)
         UpdateCheckScheduler.schedule(this)
+        ReleasePolicyCoordinator.register(this)
         if (AuthManager.isSignedIn(this)) {
             FirebaseMessaging.getInstance().token
                 .addOnSuccessListener { token -> DeviceRegistrar.register(this, token) }
