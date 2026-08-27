@@ -40,6 +40,16 @@
         <activity android:name=".HelpGuideActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NotificationCentreActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity
+            android:name=".SupportTicketActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:label="Morley Support Test">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".MorleyFirebaseMessagingService"
