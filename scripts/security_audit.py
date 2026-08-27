@@ -9,7 +9,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {'.git', '.gradle', 'build', 'node_modules'}
 TEXT_SUFFIXES = {'.kt', '.java', '.xml', '.gradle', '.kts', '.yml', '.yaml', '.json', '.js', '.html', '.css', '.sql', '.py', '.md', '.properties', '.txt'}
 FORBIDDEN_FILE_SUFFIXES = {'.jks', '.keystore', '.p12', '.pfx', '.pem', '.key'}
-CRITICAL_WORKFLOWS = {'security-audit.yml', 'deploy-admin-pages.yml', 'admin-release-check.yml'}
+CRITICAL_WORKFLOWS = {
+    'security-audit.yml',
+    'deploy-admin-pages.yml',
+    'admin-release-check.yml',
+    'admin-apk-build.yml',
+    'admin-android-check.yml',
+}
 
 # Only high-confidence privileged-secret indicators belong here. Public Supabase anon/publishable
 # keys are intentionally not treated as secrets because mobile/web clients necessarily contain them.
@@ -21,6 +27,8 @@ PATTERNS = [
 ]
 
 SAFE_SECRET_REFERENCE = re.compile(r'\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}')
+CHECKOUT_STEP = re.compile(r'(?m)^\s*-?(?:\s*name:\s*[^\n]+\n)?\s*uses:\s*actions/checkout@[^\n]+\n(?P<body>(?:\s{6,}[^\n]*\n){0,8})')
+PERSIST_CREDENTIALS_FALSE = re.compile(r'(?m)^\s*persist-credentials:\s*false\s*(?:#.*)?$')
 
 
 def iter_files():
@@ -81,6 +89,16 @@ def main() -> int:
                 else:
                     warnings.append(message)
 
+            for checkout in CHECKOUT_STEP.finditer(text):
+                body = checkout.group('body')
+                message = f'Checkout persists repository credentials: {rel}'
+                if PERSIST_CREDENTIALS_FALSE.search(body):
+                    continue
+                if critical:
+                    failures.append(message)
+                else:
+                    warnings.append(message)
+
     if warnings:
         print('SECURITY AUDIT WARNINGS')
         for warning in sorted(set(warnings)):
@@ -90,7 +108,7 @@ def main() -> int:
         for failure in sorted(set(failures)):
             print(f'- {failure}')
         return 1
-    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected.')
+    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected; critical checkouts do not persist credentials.')
     return 0
 
 
