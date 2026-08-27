@@ -8,9 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
@@ -58,6 +61,7 @@ private fun swPotentialMargin(item: SavedValuation): Double {
 @Composable
 fun SmartWorkspaceSection() {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf<List<SavedValuation>>(emptyList()) }
     var favouriteIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -79,6 +83,13 @@ fun SmartWorkspaceSection() {
     }
 
     LaunchedEffect(Unit) { reload() }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) reload()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     if (showDealMode) DealModeDialog(onDismiss = { showDealMode = false }, onSaved = { showDealMode = false; reload() })
 
     val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" || swVerdict(it).first == "GOOD BUY" }
