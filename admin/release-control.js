@@ -26,6 +26,45 @@ function releaseConfigMatchesOta(){
   return Number(saved.versionCode||0)===verifiedOtaRelease?.versionCode&&String(saved.versionName||'')===verifiedOtaRelease?.versionName&&String(saved.apkUrl||'')===verifiedOtaRelease?.apkUrl&&String(saved.sha256||'').toLowerCase()===verifiedOtaRelease?.sha256;
 }
 
+function versionParts(value){
+  const match=String(value||'').trim().match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  return match?match.slice(1).map(Number):null;
+}
+
+function compareVersions(left,right){
+  const a=versionParts(left),b=versionParts(right);
+  if(!a||!b)return null;
+  for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]>b[i]?1:-1}
+  return 0;
+}
+
+async function loadReleaseRollout(){
+  if(!verifiedOtaRelease)return;
+  const {data,error}=await sb.from('devices').select('app_version,last_seen_at');
+  if(error){$('rolloutStatus').textContent=`Rollout health unavailable: ${error.message}`;return}
+  let current=0,outdated=0,ahead=0,unknown=0;
+  let latestSeen=0;
+  (data||[]).forEach(device=>{
+    const version=String(device.app_version||'').trim();
+    const seen=Date.parse(device.last_seen_at||'')||0;
+    latestSeen=Math.max(latestSeen,seen);
+    if(!version){unknown++;return}
+    if(version===verifiedOtaRelease.versionName){current++;return}
+    const comparison=compareVersions(version,verifiedOtaRelease.versionName);
+    if(comparison===null){unknown++}
+    else if(comparison<0){outdated++}
+    else if(comparison>0){ahead++}
+    else{current++}
+  });
+  $('rolloutCurrent').textContent=current;
+  $('rolloutOutdated').textContent=outdated;
+  $('rolloutAhead').textContent=ahead;
+  $('rolloutUnknown').textContent=unknown;
+  const total=(data||[]).length;
+  const seenText=latestSeen?` Latest device contact ${new Date(latestSeen).toLocaleString()}.`:'';
+  $('rolloutStatus').textContent=`${total} registered device${total===1?'':'s'} checked against OTA ${verifiedOtaRelease.versionName}.${seenText}`;
+}
+
 function renderVerifiedOtaRelease(){
   if(!verifiedOtaRelease)return;
   $('releaseName').value=verifiedOtaRelease.versionName;
@@ -38,6 +77,7 @@ function renderVerifiedOtaRelease(){
   $('releaseStatus').textContent=releaseConfigMatchesOta()
     ?'Signed OTA metadata verified. Admin release state is in sync.'
     :'Signed OTA metadata verified. Admin release state is out of sync; publishing support policy will safely sync it.';
+  loadReleaseRollout().catch(error=>{$('rolloutStatus').textContent=`Rollout health unavailable: ${error.message||'unknown error'}`});
 }
 
 async function refreshVerifiedOtaRelease(force=false){
@@ -53,6 +93,7 @@ async function refreshVerifiedOtaRelease(force=false){
       verifiedOtaRelease=null;
       $('saveReleaseBtn').disabled=true;
       $('releaseStatus').textContent=`Release controls locked: ${error.message||'OTA verification failed'}.`;
+      $('rolloutStatus').textContent='Rollout health is locked until OTA metadata verifies.';
       throw error;
     }finally{
       otaLoadPromise=null;
@@ -70,7 +111,7 @@ loadConfig=async function(){
 const originalLoadMetrics=loadMetrics;
 loadMetrics=async function(){
   await originalLoadMetrics();
-  if(verifiedOtaRelease)$('metricVersion').textContent=verifiedOtaRelease.versionName;
+  if(verifiedOtaRelease){$('metricVersion').textContent=verifiedOtaRelease.versionName;await loadReleaseRollout()}
   else try{await refreshVerifiedOtaRelease()}catch{}
 };
 
@@ -100,7 +141,7 @@ $('saveReleaseBtn').onclick=async()=>{
   await sb.from('admin_audit_log').insert({actor_user_id:me.id,action:'release_policy_updated',target_type:'release',target_id:String(current.versionCode),details:{current_release:current.versionName,minimum_supported_version:minimum.versionName,minimum_supported_code:minimum.versionCode,force_update:minimum.forceUpdate}});
   $('releaseStatus').textContent=`Release policy published against verified OTA ${current.versionName} (${current.versionCode}).`;
   $('saveReleaseBtn').disabled=false;
-  await Promise.all([loadAudit(),loadMetrics()]);
+  await Promise.all([loadAudit(),loadMetrics(),loadReleaseRollout()]);
 };
 
 refreshVerifiedOtaRelease().catch(()=>{});

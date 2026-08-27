@@ -34,11 +34,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'release-control.js?v=1' admin/index.html
+          grep -q 'release-control.js?v=2' admin/index.html
           grep -q 'id="releaseName" readonly' admin/index.html
           grep -q 'id="releaseCode" type="number" readonly' admin/index.html
+          grep -q 'id="rolloutCurrent"' admin/index.html
+          grep -q 'id="rolloutOutdated"' admin/index.html
           grep -q 'OTA_METADATA_URL' admin/release-control.js
           grep -q 'isVerifiedOtaShape' admin/release-control.js
+          grep -q 'loadReleaseRollout' admin/release-control.js
           grep -q "config_key:'minimum_supported_version'" admin/release-control.js
           grep -q "config_key:'current_release'" admin/release-control.js
           grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
