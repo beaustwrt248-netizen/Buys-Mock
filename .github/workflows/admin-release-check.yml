@@ -1,0 +1,57 @@
+name: Admin OTA Release Safety
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'admin/**'
+      - 'ota/latest.json'
+      - '.github/workflows/admin-release-check.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'admin/**'
+      - 'ota/latest.json'
+      - '.github/workflows/admin-release-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Admin JavaScript
+        run: |
+          node --check admin/app.js
+          node --check admin/release-control.js
+          node --check admin/invites.js
+          node --check admin/targeted-notifications.js
+      - name: Validate OTA authority safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'release-control.js?v=1' admin/index.html
+          grep -q 'id="releaseName" readonly' admin/index.html
+          grep -q 'id="releaseCode" type="number" readonly' admin/index.html
+          grep -q 'OTA_METADATA_URL' admin/release-control.js
+          grep -q 'isVerifiedOtaShape' admin/release-control.js
+          grep -q "config_key:'minimum_supported_version'" admin/release-control.js
+          grep -q "config_key:'current_release'" admin/release-control.js
+          grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
+      - name: Validate checked-in OTA manifest
+        run: |
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          data=json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+          assert isinstance(data.get('versionCode'), int) and data['versionCode'] > 0
+          assert str(data.get('versionName','')).strip()
+          url=str(data.get('apkUrl',''))
+          assert url.startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/')
+          assert re.fullmatch(r'[0-9a-fA-F]{64}', str(data.get('sha256','')))
+          print(f"Verified OTA manifest {data['versionName']} ({data['versionCode']})")
+          PY
