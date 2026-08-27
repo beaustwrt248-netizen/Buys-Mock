@@ -34,6 +34,7 @@
         <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".ValuationHistoryActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NfcScannerActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".TestBuyActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".UpdateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MandatoryUpdateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MenuFeatureActivity" android:exported="false" android:screenOrientation="portrait" />
