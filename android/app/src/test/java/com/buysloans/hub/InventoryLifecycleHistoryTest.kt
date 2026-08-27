@@ -13,15 +13,51 @@ class InventoryLifecycleHistoryTest {
             InventoryLifecycleHistory.transition("stock-1", InventoryLifecycle.LISTED, InventoryLifecycle.SOLD, occurredAt = "2026-08-27T15:33:00Z"))
         assertEquals(InventoryLifecycle.SOLD, InventoryLifecycleHistory.currentState(InventoryLifecycle.PURCHASED, events))
     }
-    @Test fun unsafeDirectSaleIsRejected() { assertTrue(runCatching { InventoryLifecycleHistory.transition("stock-2", InventoryLifecycle.PURCHASED, InventoryLifecycle.SOLD, occurredAt = "2026-08-27T15:34:00Z") }.isFailure) }
+
+    @Test fun unsafeDirectSaleIsRejected() {
+        assertTrue(runCatching {
+            InventoryLifecycleHistory.transition("stock-2", InventoryLifecycle.PURCHASED, InventoryLifecycle.SOLD, occurredAt = "2026-08-27T15:34:00Z")
+        }.isFailure)
+    }
+
     @Test fun returnedRepairRequiresReasonAndCanReenterTesting() {
-        assertTrue(runCatching { InventoryLifecycleHistory.transition("stock-3", InventoryLifecycle.READY_FOR_SALE, InventoryLifecycle.RETURNED_REPAIR, occurredAt = "2026-08-27T15:35:00Z") }.isFailure)
+        assertTrue(runCatching {
+            InventoryLifecycleHistory.transition("stock-3", InventoryLifecycle.READY_FOR_SALE, InventoryLifecycle.RETURNED_REPAIR, occurredAt = "2026-08-27T15:35:00Z")
+        }.isFailure)
         val repair = InventoryLifecycleHistory.transition("stock-3", InventoryLifecycle.READY_FOR_SALE, InventoryLifecycle.RETURNED_REPAIR, reason = "Charging port intermittent", occurredAt = "2026-08-27T15:36:00Z")
         val retest = InventoryLifecycleHistory.transition("stock-3", InventoryLifecycle.RETURNED_REPAIR, InventoryLifecycle.TESTING, occurredAt = "2026-08-27T15:37:00Z")
         assertEquals(InventoryLifecycle.TESTING, InventoryLifecycleHistory.currentState(InventoryLifecycle.READY_FOR_SALE, listOf(repair, retest)))
     }
+
     @Test fun nonContiguousHistoryIsRejected() {
         val event = InventoryLifecycleHistory.transition("stock-4", InventoryLifecycle.TESTING, InventoryLifecycle.READY_FOR_SALE, occurredAt = "2026-08-27T15:38:00Z")
+        assertTrue(runCatching { InventoryLifecycleHistory.currentState(InventoryLifecycle.PURCHASED, listOf(event)) }.isFailure)
+    }
+
+    @Test fun mixedInventoryIdsAreRejected() {
+        val events = listOf(
+            InventoryLifecycleHistory.transition("stock-5", InventoryLifecycle.PURCHASED, InventoryLifecycle.TESTING, occurredAt = "2026-08-27T15:39:00Z"),
+            InventoryLifecycleHistory.transition("stock-6", InventoryLifecycle.TESTING, InventoryLifecycle.READY_FOR_SALE, occurredAt = "2026-08-27T15:40:00Z")
+        )
+        assertTrue(runCatching { InventoryLifecycleHistory.currentState(InventoryLifecycle.PURCHASED, events) }.isFailure)
+    }
+
+    @Test fun backwardsTimestampsAreRejected() {
+        val events = listOf(
+            InventoryLifecycleHistory.transition("stock-7", InventoryLifecycle.PURCHASED, InventoryLifecycle.TESTING, occurredAt = "2026-08-27T15:42:00Z"),
+            InventoryLifecycleHistory.transition("stock-7", InventoryLifecycle.TESTING, InventoryLifecycle.READY_FOR_SALE, occurredAt = "2026-08-27T15:41:00Z")
+        )
+        assertTrue(runCatching { InventoryLifecycleHistory.currentState(InventoryLifecycle.PURCHASED, events) }.isFailure)
+    }
+
+    @Test fun directlyConstructedInvalidTimestampIsRejectedOnReplay() {
+        val event = InventoryLifecycleEvent(
+            inventoryId = "stock-8",
+            from = InventoryLifecycle.PURCHASED,
+            to = InventoryLifecycle.TESTING,
+            reason = "",
+            occurredAt = "not-a-timestamp"
+        )
         assertTrue(runCatching { InventoryLifecycleHistory.currentState(InventoryLifecycle.PURCHASED, listOf(event)) }.isFailure)
     }
 }
