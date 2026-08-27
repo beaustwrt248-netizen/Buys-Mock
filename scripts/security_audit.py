@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {'.git', '.gradle', 'build', 'node_modules'}
 TEXT_SUFFIXES = {'.kt', '.java', '.xml', '.gradle', '.kts', '.yml', '.yaml', '.json', '.js', '.html', '.css', '.sql', '.py', '.md', '.properties', '.txt'}
 FORBIDDEN_FILE_SUFFIXES = {'.jks', '.keystore', '.p12', '.pfx', '.pem', '.key'}
+CRITICAL_WORKFLOWS = {'security-audit.yml', 'deploy-admin-pages.yml', 'admin-release-check.yml'}
 
 # Only high-confidence privileged-secret indicators belong here. Public Supabase anon/publishable
 # keys are intentionally not treated as secrets because mobile/web clients necessarily contain them.
@@ -60,18 +61,25 @@ def main() -> int:
     if workflows.is_dir():
         for path in workflows.glob('*.y*ml'):
             text = path.read_text(encoding='utf-8')
+            rel = path.relative_to(ROOT)
+            critical = path.name in CRITICAL_WORKFLOWS
             if re.search(r'(?m)^\s*permissions:\s*\n\s*contents:\s*write\s*$', text):
-                warnings.append(f'Workflow-wide contents:write should be split/narrowed: {path.relative_to(ROOT)}')
+                warnings.append(f'Workflow-wide contents:write should be split/narrowed: {rel}')
             for m in re.finditer(r'(?m)^\s*-?\s*uses:\s*([^\s#]+)\s*$', text):
                 ref = m.group(1)
                 if ref.startswith('./'):
                     continue
-                if '@' not in ref:
-                    warnings.append(f'Action reference lacks immutable ref: {path.relative_to(ROOT)} -> {ref}')
+                immutable = False
+                if '@' in ref:
+                    version = ref.rsplit('@', 1)[1]
+                    immutable = re.fullmatch(r'[0-9a-fA-F]{40}', version) is not None
+                if immutable:
                     continue
-                version = ref.rsplit('@', 1)[1]
-                if not re.fullmatch(r'[0-9a-fA-F]{40}', version):
-                    warnings.append(f'Action is not pinned to full commit SHA: {path.relative_to(ROOT)} -> {ref}')
+                message = f'Action is not pinned to full commit SHA: {rel} -> {ref}'
+                if critical:
+                    failures.append(message)
+                else:
+                    warnings.append(message)
 
     if warnings:
         print('SECURITY AUDIT WARNINGS')
@@ -82,7 +90,7 @@ def main() -> int:
         for failure in sorted(set(failures)):
             print(f'- {failure}')
         return 1
-    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or key files detected.')
+    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected.')
     return 0
 
 
