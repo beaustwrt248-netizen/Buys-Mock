@@ -167,6 +167,7 @@ private fun SmartValuationRow(item: SavedValuation, isFavourite: Boolean, compac
                 Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 10.sp)
             }
             Text("Market ${swMoney(item.marketValue)} • Max buy ${swMoney(item.maxBuy)}${item.askingPrice?.let { " • Ask ${swMoney(it)}" } ?: ""}", color = SWMuted, fontSize = 11.sp)
+            item.itemGrade?.let { Text("$it Grade", color = SWAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
             if (swPotentialMargin(item) > 0.0) Text("${swMoney(swPotentialMargin(item))} potential gross margin", color = SWGood, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -177,6 +178,7 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var item by remember { mutableStateOf("") }
+    var grade by remember { mutableStateOf("B") }
     var askText by remember { mutableStateOf("") }
     var marketText by remember { mutableStateOf("") }
     var maxText by remember { mutableStateOf("") }
@@ -196,12 +198,26 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("Enter the seller ask and your current market/max-buy figures for an instant decision.", color = SWMuted, fontSize = 12.sp)
                 OutlinedTextField(item, { item = it }, label = { Text("Item / model") }, singleLine = true)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Item grade", color = SWMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        listOf("A", "B", "C").forEach { value ->
+                            FilterChip(
+                                selected = grade == value,
+                                onClick = { grade = value },
+                                label = { Text("$value Grade", fontSize = 10.sp) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(askText, { askText = it }, label = { Text("Seller asking price") }, singleLine = true)
                 OutlinedTextField(marketText, { marketText = it }, label = { Text("Market value") }, singleLine = true)
                 OutlinedTextField(maxText, { maxText = it }, label = { Text("Max buy") }, singleLine = true)
                 Surface(color = verdict.second.copy(alpha = .10f), border = BorderStroke(1.dp, verdict.second.copy(alpha = .35f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("$grade Grade", color = SWAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         if (margin != null) Text("Potential gross margin ${swMoney(margin)}", color = SWGood, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         if (headroom != null) Text(if (headroom >= 0) "${swMoney(headroom)} below max buy" else "${swMoney(-headroom)} above max buy", color = if (headroom >= 0) SWGood else SWWarn, fontSize = 11.sp)
                     }
@@ -227,7 +243,8 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 marketValue = market,
                                 maxBuy = maxBuy,
                                 expectedProfit = margin,
-                                confidence = if (market != null && maxBuy != null) "deal mode" else "manual review"
+                                confidence = if (market != null && maxBuy != null) "deal mode" else "manual review",
+                                itemGrade = grade
                             )
                         }.onSuccess { onSaved() }
                             .onFailure { error = it.message ?: "Could not save deal" }
