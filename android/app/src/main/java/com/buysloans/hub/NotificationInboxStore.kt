@@ -64,6 +64,13 @@ object NotificationInboxStore {
 
     fun unreadCount(context: Context): Int = items(context).count { !it.read }
 
+    fun markRead(context: Context, id: String) {
+        if (id.isBlank()) return
+        save(context, items(context).map { item ->
+            if (item.id == id) item.copy(read = true) else item
+        })
+    }
+
     fun markAllRead(context: Context) {
         save(context, items(context).map { it.copy(read = true) })
     }

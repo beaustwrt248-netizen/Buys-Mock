@@ -42,8 +42,6 @@ object NotificationHelper {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannels(listOf(updates, valuations, admin))
-        // The old channel is no longer used. Removing it prevents confusing duplicate
-        // notification settings while preserving the new high-importance channel.
         if (manager.getNotificationChannel(LEGACY_CHANNEL_ADMIN) != null) {
             manager.deleteNotificationChannel(LEGACY_CHANNEL_ADMIN)
         }
@@ -55,7 +53,7 @@ object NotificationHelper {
     fun showRemoteMessage(context: Context, title: String, body: String): Boolean {
         if (!canNotify(context)) return false
         createChannels(context)
-        val launchIntent = Intent(context, DashboardActivity::class.java).apply {
+        val launchIntent = Intent(context, NotificationCentreActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pendingIntent = PendingIntent.getActivity(context, 3001, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
