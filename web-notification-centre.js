@@ -126,7 +126,7 @@
     row.dataset.webNotificationCentre='1';
     row.innerHTML='<span class="morley-menu-icon">✦</span><span class="morley-menu-copy"><b>Notification Centre</b><small>Recent updates and important messages.</small></span><span class="morley-notification-badge" aria-label="Unread notifications"></span><span class="morley-menu-chevron">›</span>';
     row.onclick=openCentre;
-    notifications.insertAdjacentElement('afterend',row);
+    notifications.insertAdjacentElement('beforebegin',row);
     syncBadge();
   }
 
