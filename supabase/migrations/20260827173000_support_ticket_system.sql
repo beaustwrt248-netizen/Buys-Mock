@@ -1,6 +1,6 @@
 create table if not exists public.support_tickets (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   category text not null check (category in ('valuation','pricing','inventory','scanner','account','update','other')),
   subject text not null check (char_length(subject) between 3 and 160),
   description text not null check (char_length(description) between 5 and 5000),
@@ -22,7 +22,7 @@ create table if not exists public.support_tickets (
 create table if not exists public.support_ticket_messages (
   id uuid primary key default gen_random_uuid(),
   ticket_id uuid not null references public.support_tickets(id) on delete cascade,
-  author_user_id uuid not null references auth.users(id) on delete cascade,
+  author_user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   author_role text not null check (author_role in ('user','admin')),
   body text not null check (char_length(body) between 1 and 5000),
   created_at timestamptz not null default now()
@@ -40,7 +40,7 @@ create table if not exists public.support_ticket_events (
 create table if not exists public.support_ticket_attachments (
   id uuid primary key default gen_random_uuid(),
   ticket_id uuid not null references public.support_tickets(id) on delete cascade,
-  uploader_user_id uuid not null references auth.users(id) on delete cascade,
+  uploader_user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   storage_path text not null unique,
   file_name text not null,
   content_type text,
