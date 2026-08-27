@@ -9,7 +9,9 @@ import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -30,8 +32,9 @@ class UpdateActivity : ComponentActivity() {
         window.navigationBarColor = android.graphics.Color.rgb(3,7,18)
         val versionName = intent.getStringExtra("versionName").orEmpty()
         val apkUrl = intent.getStringExtra("apkUrl").orEmpty()
+        val notes = intent.getStringExtra("notes").orEmpty().trim()
         val sha256 = intent.getStringExtra("sha256").orEmpty().lowercase()
-        setContent { UpdateScreen(versionName, apkUrl, sha256) { finish() } }
+        setContent { UpdateScreen(versionName, apkUrl, notes, sha256) { finish() } }
     }
 }
 
@@ -49,7 +52,7 @@ private suspend fun sha256OfUri(context:Context, uri:Uri):String = withContext(D
 }
 
 @Composable
-private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:String, close:()->Unit) {
+private fun UpdateScreen(versionName:String, apkUrl:String, releaseNotes:String, expectedSha256:String, close:()->Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var progress by remember { mutableFloatStateOf(0f) }
@@ -152,9 +155,23 @@ private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:Strin
 
     MaterialTheme(colorScheme = darkColorScheme(primary=Color(0xFF2F7CFF),background=Color(0xFF030712),surface=Color(0xFF07172C))) {
         Surface(color=Color(0xFF030712),modifier=Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement=Arrangement.spacedBy(18.dp)
+            ) {
                 Text("B&L Morley Update",fontSize=28.sp,fontWeight=FontWeight.Black)
                 Text(if(versionName.isBlank()) "New version" else versionName,color=Color(0xFF70DFFF),fontSize=20.sp,fontWeight=FontWeight.Bold)
+                if(releaseNotes.isNotBlank()) {
+                    Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                            Text("What’s new",fontWeight=FontWeight.Black,fontSize=18.sp)
+                            Text(releaseNotes,color=Color(0xFFA7BAD3),fontSize=14.sp,lineHeight=20.sp)
+                        }
+                    }
+                }
                 Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                         Text(status,fontWeight=FontWeight.Black,fontSize=20.sp)
@@ -185,6 +202,7 @@ private fun UpdateScreen(versionName:String, apkUrl:String, expectedSha256:Strin
                     },modifier=Modifier.fillMaxWidth()) { Text("Retry") }
                 }
                 OutlinedButton(onClick=close,modifier=Modifier.fillMaxWidth()) { Text("Close") }
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
