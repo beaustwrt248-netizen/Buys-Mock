@@ -57,13 +57,14 @@ main = root / 'MainActivity.kt'
 if main.exists():
     text = main.read_text(encoding='utf-8')
     old = '''@Composable fun Laptop()=Screen("💻 Laptop / MacBook"){var q by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)};var result by remember{mutableStateOf<MarketResult?>(null)};var status by remember{mutableStateOf("Ready")};val scope=rememberCoroutineScope();Field("Exact model / clean search",q,{q=it});Field("Seller asking price",ask,{ask=it},true);Btn(if(busy)"Searching…" else "Analyse Laptop",{result=null;status="Searching exact model and safe fallbacks…";busy=true;scope.launch{runCatching{market(q)}.onSuccess{result=it;status=summary(it)}.onFailure{status=it.message?:"Search failed"};busy=false}},!busy&&q.isNotBlank());Text(status,color=Color.LightGray);if(!busy)result?.let{Valuation(it,ask,0.30,0.58)}}'''
+    old_catalog = '''@Composable fun Laptop()=Screen("💻 Laptop / MacBook"){var q by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)};var result by remember{mutableStateOf<MarketResult?>(null)};var status by remember{mutableStateOf("Ready")};val scope=rememberCoroutineScope();val context=LocalContext.current;Field("Exact model / clean search",q,{q=it});Field("Seller asking price",ask,{ask=it},true);Btn(if(busy)"Searching…" else "Analyse Laptop",{result=null;status="Resolving model and searching exact market evidence…";busy=true;scope.launch{runCatching{val resolved=LaptopModelCatalog.resolve(context,q);val searchQuery=LaptopModelCatalog.preferredQuery(q,resolved);market(searchQuery)}.onSuccess{result=it;status=summary(it)}.onFailure{status=it.message?:"Search failed"};busy=false}},!busy&&q.isNotBlank());Text(status,color=Color.LightGray);if(!busy)result?.let{Valuation(it,ask,0.30,0.58)}}'''
     new = '''@Composable fun Laptop()=Screen("💻 Laptop Intelligence"){
-var q by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)};var result by remember{mutableStateOf<MarketResult?>(null)};var status by remember{mutableStateOf("Ready for a model")};val scope=rememberCoroutineScope()
+var q by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)};var result by remember{mutableStateOf<MarketResult?>(null)};var status by remember{mutableStateOf("Ready for a model")};val scope=rememberCoroutineScope();val context=LocalContext.current
 Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),border=BorderStroke(1.dp,Color(0xFF235A91)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
  Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   Text("DEVICE LOOKUP",fontSize=11.sp,fontWeight=FontWeight.Black,color=Color(0xFF12C9FF));Text("Find the exact laptop",fontSize=22.sp,fontWeight=FontWeight.Black);Text("Enter the clean model first, then add the seller's asking price for a live buying decision.",color=Color(0xFF8FA6C6),fontSize=13.sp)
   Field("Exact model / clean search",q,{q=it});Field("Seller asking price",ask,{ask=it},true)
-  Button(onClick={result=null;status="Searching live Australian pricing…";busy=true;scope.launch{runCatching{market(q)}.onSuccess{result=it;status=summary(it)}.onFailure{status=it.message?:"Search failed"};busy=false}},enabled=!busy&&q.isNotBlank(),modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF2F7CFF),contentColor=Color.White)){Text(if(busy)"Searching market…" else "Analyse Laptop",fontWeight=FontWeight.Black,fontSize=16.sp)}
+  Button(onClick={result=null;status="Resolving model and searching live Australian pricing…";busy=true;scope.launch{runCatching{val resolved=LaptopModelCatalog.resolve(context,q);val searchQuery=LaptopModelCatalog.preferredQuery(q,resolved);market(searchQuery)}.onSuccess{result=it;status=summary(it)}.onFailure{status=it.message?:"Search failed"};busy=false}},enabled=!busy&&q.isNotBlank(),modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF2F7CFF),contentColor=Color.White)){Text(if(busy)"Searching market…" else "Analyse Laptop",fontWeight=FontWeight.Black,fontSize=16.sp)}
  }
 }
 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
@@ -78,8 +79,12 @@ if(!busy)result?.let{Valuation(it,ask,0.30,0.58)}
         text = text.replace(old, new)
         main.write_text(text, encoding='utf-8')
         print('Applied cyber Laptop layout redesign')
-    elif 'Laptop Intelligence' in text:
-        print('Laptop layout redesign already applied')
+    elif old_catalog in text:
+        text = text.replace(old_catalog, new)
+        main.write_text(text, encoding='utf-8')
+        print('Applied cyber Laptop layout redesign with model-catalog resolution')
+    elif 'Laptop Intelligence' in text and 'LaptopModelCatalog.resolve(context,q)' in text:
+        print('Laptop layout redesign with model-catalog resolution already applied')
     else:
         print('WARNING: Laptop layout source pattern not found; leaving screen unchanged')
 
