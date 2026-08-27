@@ -1,0 +1,59 @@
+name: Admin Support Production Reconcile
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*reconcile_support*'
+      - '.github/workflows/admin-support-reconcile-check.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'supabase/migrations/*reconcile_support*'
+      - '.github/workflows/admin-support-reconcile-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify safe support reconciliation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/20260828004500_reconcile_support_production.sql')
+          text = path.read_text(encoding='utf-8')
+          lower = text.lower()
+          required = [
+              'add column if not exists sla_due_at timestamptz',
+              'add column if not exists first_response_at timestamptz',
+              'private.support_touch_ticket()',
+              'private.support_mark_first_response()',
+              'private.is_support_staff()',
+              'private.can_work_support_ticket(ticket_uuid uuid)',
+              "p.role = 'staff'",
+              'private.is_support_staff() and assigned_to = auth.uid()',
+              "bucket_id = 'support-ticket-attachments'",
+              'drop function if exists public.support_touch_ticket()',
+              'drop function if exists public.support_mark_first_response()',
+          ]
+          for needle in required:
+              if needle not in text:
+                  raise SystemExit(f'Missing reconciliation contract: {needle}')
+          forbidden = [
+              'alter table public.support_tickets disable row level security',
+              'grant all on public.support_tickets',
+              'to anon',
+              'service_role',
+              'create or replace function public.support_touch_ticket()',
+              'create or replace function public.support_mark_first_response()',
+          ]
+          for needle in forbidden:
+              if needle in lower:
+                  raise SystemExit(f'Unsafe reconciliation change detected: {needle}')
+          print('Support production reconciliation contract OK')
+          PY
