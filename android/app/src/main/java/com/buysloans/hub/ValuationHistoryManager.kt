@@ -26,7 +26,8 @@ data class SavedValuation(
     val soldPrice: Double?,
     val actualProfit: Double?,
     val notes: String,
-    val createdAt: String
+    val createdAt: String,
+    val itemGrade: String? = null
 )
 
 object ValuationHistoryManager {
@@ -65,7 +66,8 @@ object ValuationHistoryManager {
         return List(a.length()){i-> val j=a.getJSONObject(i); SavedValuation(
             id=j.optString("id"),itemType=j.optString("item_type"),itemSummary=j.optString("item_summary"),specs=j.optString("specs"),
             askingPrice=j.optDoubleOrNull("asking_price"),marketValue=j.optDoubleOrNull("market_value"),maxBuy=j.optDoubleOrNull("max_buy"),expectedProfit=j.optDoubleOrNull("expected_profit"),
-            confidence=j.optString("confidence"),status=j.optString("status"),boughtPrice=j.optDoubleOrNull("bought_price"),soldPrice=j.optDoubleOrNull("sold_price"),actualProfit=j.optDoubleOrNull("actual_profit"),notes=j.optString("notes"),createdAt=j.optString("created_at")
+            confidence=j.optString("confidence"),status=j.optString("status"),boughtPrice=j.optDoubleOrNull("bought_price"),soldPrice=j.optDoubleOrNull("sold_price"),actualProfit=j.optDoubleOrNull("actual_profit"),notes=j.optString("notes"),createdAt=j.optString("created_at"),
+            itemGrade=j.optString("item_grade").takeIf{it in setOf("A","B","C")}
         )}
     }
 
@@ -92,13 +94,16 @@ object ValuationHistoryManager {
         marketValue:Double?,
         maxBuy:Double?,
         expectedProfit:Double?,
-        confidence:String
+        confidence:String,
+        itemGrade:String?=null
     ) {
         val token=AuthManager.validAccessToken(context); val uid=userId(token)
         require(uid.isNotBlank()){ "Your session is invalid. Sign in again." }
+        val grade=itemGrade?.uppercase()?.takeIf{it in setOf("A","B","C")}
         val body=JSONObject().apply {
             put("user_id",uid);put("item_type",itemType);put("item_summary",itemSummary.take(180));put("specs",specs)
             askingPrice?.let{put("asking_price",it)};marketValue?.let{put("market_value",it)};maxBuy?.let{put("max_buy",it)};expectedProfit?.let{put("expected_profit",it)}
+            grade?.let{put("item_grade",it)}
             put("confidence",confidence);put("status","quoted")
         }
         val (code,text)=request(context,"POST","valuation_history",body,"return=minimal")

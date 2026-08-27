@@ -40,6 +40,7 @@ jobs:
             desktop-results.js \
             deal-workflow.js \
             dashboard-cleanup.js \
+            quick-deal-grade.js \
             reliability-polish.js \
             desktop-parity.js \
             web-auth.js \
@@ -66,10 +67,13 @@ jobs:
           grep -q 'Laptop Intelligence' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q '0xFF2F7CFF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q '0xFF12C9FF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
-          grep -q 'AuthManager.accessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q 'AuthManager.validAccessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'fun accountLabel' android/app/src/main/java/com/buysloans/hub/AuthManager.kt
+          grep -q 'itemGrade = grade' android/app/src/main/java/com/buysloans/hub/SmartWorkspaceSection.kt
+          grep -q 'put("item_grade",it)' android/app/src/main/java/com/buysloans/hub/ValuationHistoryManager.kt
+          grep -q 'surface laptop studio' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-before.sha"
           python3 android/apply_cyber_palette.py
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
@@ -147,3 +151,4 @@ jobs:
           grep -q 'signed-in-user.js' index.html
           grep -q 'premium-motion.js' index.html
           grep -q 'web-a11y.js' index.html
+          grep -q 'quick-deal-grade.js' index.html
