@@ -106,7 +106,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         runOnUiThread {
             latest = scan
             recent = (listOf(scan) + recent.filterNot { it.tagId == scan.tagId }).take(8)
-            status = if (payloads.isEmpty()) "Tag detected. No supported NDEF text or URI payload was exposed." else "NFC tag read successfully."
+            status = if (payloads.isEmpty()) "Tag detected successfully. No supported NDEF text or URI payload was exposed." else "NFC tag read successfully."
         }
     }
 
@@ -115,23 +115,20 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         status = when (capability) {
             NfcCapability.UNAVAILABLE -> "This device does not expose NFC hardware to the app."
             NfcCapability.DISABLED -> "NFC is available but currently switched off."
-            NfcCapability.READY -> "NFC is ready."
+            NfcCapability.READY -> "NFC is ready for scan testing."
         }
     }
 
     @Composable
     private fun NfcScannerScreen() {
         val scan = latest
-        var inventoryRefresh by remember { mutableIntStateOf(0) }
-        val inventory = remember(inventoryRefresh, scan?.tagId) { WorkspaceStore.inventory(this) }
-        val linked = remember(inventoryRefresh, scan?.tagId) { scan?.let { NfcLinkStore.linkedStock(this, it.tagId) } }
 
         Scaffold(containerColor = NfcBg, topBar = {
             Surface(color = Color(0xFF050B16)) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("NFC Scanner", fontSize = 24.sp, fontWeight = FontWeight.Black)
-                        Text("Workspace", color = NfcAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("SCAN TEST", color = NfcAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                     TextButton(onClick = { finish() }) { Text("Close") }
                 }
@@ -148,33 +145,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Open NFC Settings", fontWeight = FontWeight.Black) }
                 }
-                scan?.let {
-                    ScanCard(it, linked)
-                    if (inventory.isEmpty()) {
-                        Text("Add inventory first to link this tag to a stock item.", color = NfcMuted, fontSize = 12.sp)
-                    } else {
-                        Text("LINK TAG TO INVENTORY", color = NfcAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                        inventory.take(12).forEach { item ->
-                            OutlinedButton(
-                                onClick = {
-                                    NfcLinkStore.link(this, it.tagId, item.id)
-                                    inventoryRefresh++
-                                    status = "Linked NFC tag to ${item.name}."
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(if (linked?.id == item.id) "✓ ${item.name}" else "Link to ${item.name}")
-                            }
-                        }
-                        if (linked != null) {
-                            TextButton(onClick = {
-                                NfcLinkStore.unlink(this, it.tagId)
-                                inventoryRefresh++
-                                status = "NFC link removed."
-                            }) { Text("Remove tag link") }
-                        }
-                    }
-                }
+                scan?.let { ScanCard(it) }
                 if (recent.isNotEmpty()) {
                     HorizontalDivider(color = NfcAccent.copy(alpha = .15f))
                     Text("RECENT NFC SCANS", color = NfcAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
@@ -187,7 +158,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "This scanner reads tag identifiers and common NDEF text/URI records that Android exposes. It does not read payment credentials, secure contactless-card data, or bypass protected tags.",
+                        "Scan-test only: this tool checks that NFC hardware and supported tags respond correctly. It reads tag identifiers, detected technologies, and common NDEF text/URI records exposed by Android. It does not link tags to inventory, change stock, read payment credentials, access secure contactless-card data, or bypass protected tags.",
                         Modifier.padding(14.dp),
                         color = NfcMuted,
                         fontSize = 11.sp
@@ -227,16 +198,19 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
     }
 
     @Composable
-    private fun ScanCard(scan: RecentNfcScan, linked: StockItem?) {
+    private fun ScanCard(scan: RecentNfcScan) {
         Surface(color = NfcCard, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("LAST SCAN", color = NfcAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Text("LAST SCAN — PASS", color = NfcGood, fontSize = 10.sp, fontWeight = FontWeight.Black)
                 Text(scan.tagId, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text(scan.technologies.joinToString(" • ").ifBlank { "Unknown tag technology" }, color = NfcMuted, fontSize = 11.sp)
-                scan.payloads.forEach { payload ->
-                    Text("${payload.kind}: ${payload.value}", color = Color.White, fontSize = 12.sp)
+                if (scan.payloads.isEmpty()) {
+                    Text("Tag responded correctly; no supported NDEF text/URI payload found.", color = NfcMuted, fontSize = 12.sp)
+                } else {
+                    scan.payloads.forEach { payload ->
+                        Text("${payload.kind}: ${payload.value}", color = Color.White, fontSize = 12.sp)
+                    }
                 }
-                if (linked != null) Text("Linked stock: ${linked.name}", color = NfcGood, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -247,7 +221,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
             Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(scan.tagId, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(scan.payloads.firstOrNull()?.value ?: "No readable NDEF payload", color = NfcMuted, fontSize = 10.sp, maxLines = 1)
+                    Text(scan.payloads.firstOrNull()?.value ?: "Tag detected — no readable NDEF payload", color = NfcMuted, fontSize = 10.sp, maxLines = 1)
                 }
                 Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(scan.readAt)), color = NfcMuted, fontSize = 10.sp)
             }
