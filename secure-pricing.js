@@ -2,6 +2,7 @@
   const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
   const API_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
   const API=`${SUPABASE_URL}/functions/v1/ebay-search`;
+  const CATALOG_API=`${SUPABASE_URL}/functions/v1/model-catalog-search`;
   const STORE='morley_web_auth';
   let refreshPromise=null;
 
@@ -45,19 +46,36 @@
     return data;
   }
 
+  function looksLikeDeviceIdentifier(q){
+    const x=String(q||'').trim().toLowerCase().replace(/[^a-z0-9-]+/g,' ');
+    return /^(?:a\d{4}|mac\d{1,2}\s*\d{1,2}|[a-z]{1,8}\d[a-z0-9-]{2,})$/.test(x);
+  }
+
+  async function resolveDeviceQuery(q){
+    const clean=String(q||'').trim();
+    if(!looksLikeDeviceIdentifier(clean))return {query:clean,resolved:false};
+    try{
+      const d=await secureJsonFetch(CATALOG_API,{query:clean});
+      const canonical=String(d?.canonicalQuery||'').trim();
+      const score=Number(d?.best?.similarity_score||0);
+      if(d?.success&&score>=0.42&&canonical)return {query:canonical,resolved:true,original:clean,best:d.best};
+    }catch{}
+    return {query:clean,resolved:false};
+  }
+
   async function secureMarket(q,limit=30,mode='component'){
     const status=document.getElementById('apiStatus');if(status)status.textContent='...';
     try{
-      const d=await secureJsonFetch(API,{query:q,limit,australiaOnly:true,mode});
+      const resolved=mode==='device'?await resolveDeviceQuery(q):{query:q,resolved:false};
+      const d=await secureJsonFetch(API,{query:resolved.query,limit,australiaOnly:true,mode});
       if(!d.success)throw new Error(d?.error||'Pricing request failed');
+      if(resolved.resolved){d.originalQuery=resolved.original;d.resolvedQuery=resolved.query;d.catalogMatch=resolved.best||null}
       if(status)status.textContent='READY';
       return d;
     }catch(e){if(status)status.textContent='ERROR';throw e}
   }
 
-  // Shared authenticated transport for additional pricing tools loaded after this file.
   window.morleySecureJsonFetch=secureJsonFetch;
-  // Replace the pinned calculator core's anonymous pricing transport without changing
-  // its mature valuation/inventory workflow.
+  window.morleyResolveDeviceQuery=resolveDeviceQuery;
   window.market=secureMarket;
 })();
