@@ -32,7 +32,7 @@ class TestBuyCompletionHistoryTest {
         assertEquals(BuyOutcome.REJECT.name, history.result)
         assertEquals(DeviceTestHistorySource.BARCODE, history.source)
         assertEquals("9312345678901", history.reference)
-        assertEquals(1756339200000L, history.recordedAt)
+        assertEquals(1787875200000L, history.recordedAt)
         assertTrue(history.summary.contains("explicit REJECT outcome"))
         assertTrue(history.summary.contains("HDMI port intermittent"))
     }
