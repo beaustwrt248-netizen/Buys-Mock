@@ -44,9 +44,15 @@ internal object AdminApi {
             announcements = getArray("/rest/v1/announcements?select=id,title,body,audience,is_active,created_at&order=created_at.desc&limit=25", session.accessToken),
             profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
             devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
-            config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(current_release,minimum_supported_version)&order=key", session.accessToken),
+            config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(feature_flags,current_release,minimum_supported_version)&order=key", session.accessToken),
             errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken)
         )
+    }
+
+    suspend fun updateMaintenanceConfig(session: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) = withContext(Dispatchers.IO) {
+        val payload = maintenanceUpdatePayload(current, enabled, message).toString()
+        val response = request("/rest/v1/rpc/admin_set_config", "POST", session.accessToken, payload, preferMinimal = true)
+        if (response.first !in 200..299) error(message(response.second, "Maintenance configuration could not be updated."))
     }
 
     suspend fun submitTelemetry(session: AdminSession, events: List<AdminErrorEvent>) = withContext(Dispatchers.IO) {

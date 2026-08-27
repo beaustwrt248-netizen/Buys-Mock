@@ -61,6 +61,19 @@ private fun AdminRoot() {
         }
     }
 
+    fun updateMaintenance(s: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) {
+        busy = true; error = ""
+        scope.launch {
+            runCatching { AdminApi.updateMaintenanceConfig(s, current, enabled, message) }
+                .onSuccess { refresh(s) }
+                .onFailure {
+                    AdminTelemetry.record(context, "Controls/Maintenance", it)
+                    error = it.message ?: "Maintenance configuration could not be updated."
+                    busy = false
+                }
+        }
+    }
+
     if (session == null) {
         LoginScreen(busy, error) { email, password ->
             busy = true; error = ""
@@ -83,7 +96,15 @@ private fun AdminRoot() {
             }
         }
     } else {
-        Dashboard(session!!, snapshot, busy, error, onRefresh = { refresh(session!!) }, onSignOut = { session = null; snapshot = null })
+        Dashboard(
+            session = session!!,
+            snapshot = snapshot,
+            busy = busy,
+            error = error,
+            onRefresh = { refresh(session!!) },
+            onUpdateMaintenance = { current, enabled, message -> updateMaintenance(session!!, current, enabled, message) },
+            onSignOut = { session = null; snapshot = null }
+        )
     }
 }
 
@@ -94,7 +115,7 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String) 
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
-        Text("Authenticated read-only operational access. Remote actions are intentionally disabled in this stage.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
+        Text("Authenticated operational access. Only the allowlisted, audited maintenance control is writable in this stage.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(email, { email = it }, label = { Text("Admin email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -105,17 +126,25 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String) 
 }
 
 @Composable
-private fun Dashboard(session: AdminSession, snapshot: AdminSnapshot?, busy: Boolean, error: String, onRefresh: () -> Unit, onSignOut: () -> Unit) {
+private fun Dashboard(
+    session: AdminSession,
+    snapshot: AdminSnapshot?,
+    busy: Boolean,
+    error: String,
+    onRefresh: () -> Unit,
+    onUpdateMaintenance: (MaintenanceConfig, Boolean, String) -> Unit,
+    onSignOut: () -> Unit
+) {
     var tab by remember { mutableStateOf("Health") }
-    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Release")
+    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Release")
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column { Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black); Text(session.displayName, fontSize = 22.sp, fontWeight = FontWeight.Black); Text(session.role.uppercase(), color = Muted, fontSize = 11.sp) }
             TextButton(onClick = onSignOut) { Text("Sign out") }
         }
-        Text("READ-ONLY MODE", color = Good, fontWeight = FontWeight.Black)
+        Text("CONTROLLED ADMIN MODE", color = Good, fontWeight = FontWeight.Black)
         tabs.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) { row.forEach { name -> FilterChip(selected = tab == name, onClick = { tab = name }, label = { Text(name, fontSize = 10.sp) }, modifier = Modifier.weight(1f)) }; repeat(3-row.size) { Spacer(Modifier.weight(1f)) } } }
-        OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh read-only data") }
+        OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh Admin data") }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         when (tab) {
@@ -123,6 +152,7 @@ private fun Dashboard(session: AdminSession, snapshot: AdminSnapshot?, busy: Boo
             "Tickets" -> ListPanel("Support ticket queue", snapshot?.tickets, ::ticketLine)
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
             "Users & devices" -> UsersDevicesPanel(snapshot)
+            "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)
             "Release" -> ReleasePanel(snapshot?.config)
         }
         Spacer(Modifier.height(20.dp))
@@ -150,7 +180,7 @@ private fun HealthPanel(s: AdminSnapshot?) {
             InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
         }
     }
-    Text("Health is intentionally read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. No restart, disable, force-update or account-control actions are available in this Admin app stage.", color = Muted, fontSize = 12.sp)
+    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. The only remote write exposed in this stage is the separately allowlisted, audited maintenance control.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
@@ -171,10 +201,34 @@ private fun UsersDevicesPanel(s: AdminSnapshot?) {
 }
 
 @Composable
+private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (MaintenanceConfig, Boolean, String) -> Unit) {
+    val current = maintenanceConfig(config)
+    Text("Safe remote configuration", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    Text("Only maintenance mode and its short notice are writable here. Pricing, scanner, valuation-history, release and minimum-version fields are preserved and rejected if changed.", color = Muted, fontSize = 12.sp)
+    if (current == null) {
+        Text("Feature flags are not available to this Admin session.", color = Warn)
+        return
+    }
+    var enabled by remember(current.enabled, current.message) { mutableStateOf(current.enabled) }
+    var message by remember(current.enabled, current.message) { mutableStateOf(current.message) }
+    Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Text(if (enabled) "Users may be shown the configured maintenance state by clients that consume this flag." else "Normal configured state.", color = Muted, fontSize = 11.sp) }
+                Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
+            }
+            OutlinedTextField(value = message, onValueChange = { message = it.take(160) }, label = { Text("Maintenance notice") }, supportingText = { Text("${message.length}/160") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
+            Button(onClick = { onUpdate(current, enabled, message) }, enabled = !busy && (enabled != current.enabled || message.trim() != current.message), modifier = Modifier.fillMaxWidth()) { Text("Save audited maintenance control", fontWeight = FontWeight.Black) }
+        }
+    }
+    Text("Every successful change is written through the existing Admin/Manager RPC and recorded in the durable admin audit log. This screen cannot publish a release, change OTA metadata, alter pricing/scanner flags, or modify accounts.", color = Muted, fontSize = 12.sp)
+}
+
+@Composable
 private fun ReleasePanel(config: JSONArray?) {
     Text("Release status", fontSize = 21.sp, fontWeight = FontWeight.Black)
     if (config == null || config.length() == 0) Text("No release configuration returned.", color = Muted)
-    else for (i in 0 until config.length()) { val j = config.optJSONObject(i) ?: continue; val v = j.optJSONObject("value") ?: JSONObject(); InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})${if (v.has("forceUpdate")) " • forceUpdate ${v.optBoolean("forceUpdate")}" else ""}") }
+    else for (i in 0 until config.length()) { val j = config.optJSONObject(i) ?: continue; if (j.optString("key") == "feature_flags") continue; val v = j.optJSONObject("value") ?: JSONObject(); InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})${if (v.has("forceUpdate")) " • forceUpdate ${v.optBoolean("forceUpdate")}" else ""}") }
     Text("This screen does not publish releases, change minimum versions, or modify OTA metadata.", color = Muted, fontSize = 12.sp)
 }
 
