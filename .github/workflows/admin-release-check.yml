@@ -7,6 +7,7 @@ on:
       - 'admin/**'
       - 'ota/latest.json'
       - 'android/app/build.gradle'
+      - 'supabase/migrations/*admin*config*'
       - '.github/workflows/admin-release-check.yml'
   push:
     branches: [ main ]
@@ -14,6 +15,7 @@ on:
       - 'admin/**'
       - 'ota/latest.json'
       - 'android/app/build.gradle'
+      - 'supabase/migrations/*admin*config*'
       - '.github/workflows/admin-release-check.yml'
   workflow_dispatch:
 
@@ -51,6 +53,21 @@ jobs:
           grep -q "config_key:'minimum_supported_version'" admin/release-control.js
           grep -q "config_key:'current_release'" admin/release-control.js
           grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
+      - name: Validate Admin config migration least privilege
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration='supabase/migrations/20260827225000_isolate_admin_set_config.sql'
+          if [ -f "$migration" ]; then
+            grep -q 'private.admin_set_config_impl' "$migration"
+            grep -q 'security definer' "$migration"
+            grep -q "set search_path = ''" "$migration"
+            grep -q 'security invoker' "$migration"
+            grep -q 'private.is_admin_or_manager()' "$migration"
+            grep -q "'config_updated'" "$migration"
+            grep -q 'revoke all on function public.admin_set_config(text,jsonb) from public, anon' "$migration"
+            ! grep -Eqi 'disable[[:space:]]+row[[:space:]]+level[[:space:]]+security|drop[[:space:]]+table|drop[[:space:]]+policy' "$migration"
+          fi
       - name: Validate checked-in OTA manifest and source version
         run: |
           python3 - <<'PY'
