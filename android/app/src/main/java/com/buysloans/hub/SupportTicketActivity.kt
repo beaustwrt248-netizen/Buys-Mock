@@ -87,7 +87,7 @@ class SupportTicketActivity : ComponentActivity() {
             topBar = {
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF050B16)),
-                    title = { Text("Support Ticket Test", fontWeight = FontWeight.Black) },
+                    title = { Text("B&L Morley Support", fontWeight = FontWeight.Black) },
                     navigationIcon = {
                         TextButton(onClick = { finish() }) { Text("Close") }
                     }
@@ -109,8 +109,8 @@ class SupportTicketActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("LIVE SUPPORT BACKEND", color = SupportAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        Text("Submit a real authenticated support ticket for testing. Production OTA/versioning is not changed by this test screen.", color = SupportMuted, fontSize = 12.sp)
+                        Text("SUPPORT TICKETS", color = SupportAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        Text("Submit an authenticated support ticket directly to B&L Morley Admin Control.", color = SupportMuted, fontSize = 12.sp)
                     }
                 }
 
@@ -229,7 +229,7 @@ class SupportTicketActivity : ComponentActivity() {
                     }
                 }
 
-                Text("Attachments: JPG, PNG, WebP or PDF up to 10 MB. This test uses your current authorised B&L Morley session.", color = SupportMuted, fontSize = 11.sp)
+                Text("Attachments: JPG, PNG, WebP or PDF up to 10 MB. Submissions use your current authorised B&L Morley session.", color = SupportMuted, fontSize = 11.sp)
                 Spacer(Modifier.height(24.dp))
             }
         }
