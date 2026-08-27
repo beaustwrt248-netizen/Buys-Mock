@@ -1,7 +1,7 @@
 {
-  "versionCode": 39,
-  "versionName": "2.14.3",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.3/B-and-L-Morley-2.14.3.apk",
-  "sha256": "6328175083165a5ba1c9f7e7399393f4e9575de6280f12a2392282feab8cf44d",
-  "notes": "Merge pull request #47 from beaustwrt248-netizen/automation/admin-backend-hardening-record"
+  "versionCode": 40,
+  "versionName": "2.14.4",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.4/B-and-L-Morley-2.14.4.apk",
+  "sha256": "5bb05496c24119df128855276263c7c7273558f7b34e35170d0ad6a320a35706",
+  "notes": "Release B&L Morley 2.14.4"
 }
