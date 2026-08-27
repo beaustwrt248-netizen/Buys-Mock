@@ -102,6 +102,10 @@ object NotificationInboxStore {
         save(context, items(context).map { it.copy(read = true) })
     }
 
+    fun clearRead(context: Context) {
+        save(context, items(context).filterNot { it.read })
+    }
+
     fun clear(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
