@@ -50,6 +50,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
     var checks by remember(category) { mutableStateOf(checklistFor(category)) }
     var showInventoryConfirm by remember { mutableStateOf(false) }
     var savedInventoryId by remember { mutableStateOf<String?>(null) }
+    var completedOutcome by remember { mutableStateOf<BuyOutcome?>(null) }
     var saveError by remember { mutableStateOf("") }
 
     val draft = TestBuyDraft(
@@ -74,6 +75,18 @@ private fun TestBuyScreen(onBack: () -> Unit) {
         BuyOutcome.REJECT -> "REJECT / NOT READY"
     }
 
+    fun recordExplicitOutcome() {
+        saveError = ""
+        val evidenceSource = if (draft.scanValue.isBlank()) TestEvidenceSource.MANUAL_ENTRY else TestEvidenceSource.BARCODE
+        runCatching {
+            val session = TestBuySessionFinalizer.finalize(draft, evidenceSource)
+            require(session.outcome != BuyOutcome.SEND_TO_INVENTORY) { "Use Send to Inventory for a passed item." }
+            TestBuyCompletionHistoryRecorder.record(context, session)
+            session.outcome
+        }.onSuccess { completedOutcome = it }
+            .onFailure { error -> saveError = error.message ?: "Could not record Test & Buy outcome." }
+    }
+
     if (showInventoryConfirm) {
         AlertDialog(
             onDismissRequest = { showInventoryConfirm = false },
@@ -91,7 +104,11 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                 Button(onClick = {
                     saveError = ""
                     runCatching { WorkspaceStore.addInventoryFromTestBuy(context, draft) }
-                        .onSuccess { id -> savedInventoryId = id; showInventoryConfirm = false }
+                        .onSuccess { id ->
+                            savedInventoryId = id
+                            completedOutcome = BuyOutcome.SEND_TO_INVENTORY
+                            showInventoryConfirm = false
+                        }
                         .onFailure { error -> saveError = error.message ?: "Could not add item to inventory." }
                 }) { Text("Confirm & Add") }
             }
@@ -186,13 +203,29 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                 }
             }
 
-            if (savedInventoryId != null) {
+            if (completedOutcome != null) {
+                val completedColor = when (completedOutcome) {
+                    BuyOutcome.SEND_TO_INVENTORY -> TBGood
+                    BuyOutcome.BUY -> TBWarn
+                    BuyOutcome.REJECT -> TBBad
+                    null -> TBMuted
+                }
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = TBGood.copy(alpha = .10f)),
-                    border = BorderStroke(1.dp, TBGood.copy(alpha = .45f)),
+                    colors = CardDefaults.cardColors(containerColor = completedColor.copy(alpha = .10f)),
+                    border = BorderStroke(1.dp, completedColor.copy(alpha = .45f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Added to Inventory · Purchased", Modifier.padding(14.dp), color = TBGood, fontWeight = FontWeight.Black)
+                    Text(
+                        when (completedOutcome) {
+                            BuyOutcome.SEND_TO_INVENTORY -> "Completed · Sent to Inventory · Purchased"
+                            BuyOutcome.BUY -> "Completed · Buy recorded · No inventory created"
+                            BuyOutcome.REJECT -> "Completed · Reject recorded · No inventory created"
+                            null -> ""
+                        },
+                        Modifier.padding(14.dp),
+                        color = completedColor,
+                        fontWeight = FontWeight.Black
+                    )
                 }
             } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
                 Button(
@@ -200,8 +233,23 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = TBGood, contentColor = Color(0xFF04120A))
                 ) { Text("Send to Inventory", fontWeight = FontWeight.Black) }
+            } else {
+                Button(
+                    onClick = { recordExplicitOutcome() },
+                    enabled = draft.itemName.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (outcome == BuyOutcome.REJECT) TBBad else TBWarn,
+                        contentColor = Color(0xFF150507)
+                    )
+                ) {
+                    Text(if (outcome == BuyOutcome.REJECT) "Record Reject" else "Record Buy", fontWeight = FontWeight.Black)
+                }
             }
 
+            if (savedInventoryId != null) {
+                Text("Inventory handoff ID: ${savedInventoryId!!.take(8)}…", color = TBMuted, fontSize = 10.sp)
+            }
             if (saveError.isNotBlank()) Text(saveError, color = TBBad, fontSize = 12.sp)
 
             Text("NFC checks remain scan/read-only. This workflow does not assign NFC tags or modify inventory from an NFC scan.", color = TBMuted, fontSize = 10.sp)
