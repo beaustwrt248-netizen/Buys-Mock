@@ -1,0 +1,7 @@
+# Security-sensitive areas require repository-owner review.
+/.github/ @beaustwrt248-netizen
+/supabase/ @beaustwrt248-netizen
+/android/app/build.gradle @beaustwrt248-netizen
+/android/app/src/main/AndroidManifest.xml @beaustwrt248-netizen
+/ota/ @beaustwrt248-netizen
+/admin/ @beaustwrt248-netizen
