@@ -44,6 +44,13 @@
     save(load().map(item=>({...item,read:true})));
   }
 
+  function clearRead(){
+    const items=load();
+    const kept=items.filter(item=>!item.read);
+    save(kept);
+    return items.length-kept.length;
+  }
+
   function unread(){return load().filter(item=>!item.read).length}
 
   function formatTime(value){
@@ -63,6 +70,8 @@
       .morley-notification-badge{display:none;min-width:18px;height:18px;padding:0 5px;border-radius:999px;align-items:center;justify-content:center;background:#ff4e78;color:#fff;font-size:10px;font-weight:900;margin-left:auto;box-sizing:border-box}
       .morley-notification-badge.show{display:inline-flex}
       .morley-notification-list{display:grid;gap:10px;margin-top:14px}
+      .morley-notification-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:4px}
+      .morley-notification-action{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(47,124,255,.35);background:#0a1b33;color:#fff;font-weight:900;cursor:pointer}
       .morley-notification-item{border:1px solid rgba(47,124,255,.24);background:#07162b;border-radius:14px;padding:12px;text-align:left;color:#fff;cursor:pointer}
       .morley-notification-item.unread{border-color:rgba(18,201,255,.58);box-shadow:inset 3px 0 0 #12c9ff}
       .morley-notification-item h4{margin:0 0 5px;font-size:14px}
@@ -85,13 +94,17 @@
       document.body.appendChild(dialog);
     }
     const items=load();
+    const hasUnread=items.some(x=>!x.read);
+    const hasRead=items.some(x=>x.read);
     const list=items.length?items.map(item=>`<button class="morley-notification-item ${item.read?'':'unread'}" data-notification-id="${esc(item.id)}"><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p><small>${esc(formatTime(item.createdAt))}</small></button>`).join(''):'<div class="morley-notification-empty">No notifications yet.</div>';
-    dialog.innerHTML=`<div class="morley-menu-dialog-card" style="max-height:82vh;overflow:auto"><button class="morley-menu-dialog-close" aria-label="Close">×</button><h2>Notification Centre</h2><p style="color:#9db0c9;line-height:1.5">Updates and important B&L Morley messages retained on this browser.</p>${items.some(x=>!x.read)?'<button id="morleyMarkAllRead" style="width:100%;margin-top:4px;padding:10px;border-radius:12px;border:1px solid rgba(47,124,255,.35);background:#0a1b33;color:#fff;font-weight:900;cursor:pointer">Mark all as read</button>':''}<div class="morley-notification-list">${list}</div></div>`;
+    const actions=(hasUnread||hasRead)?`<div class="morley-notification-actions">${hasUnread?'<button id="morleyMarkAllRead" class="morley-notification-action">Mark all as read</button>':''}${hasRead?'<button id="morleyClearRead" class="morley-notification-action">Clear read notifications</button>':''}</div>`:'';
+    dialog.innerHTML=`<div class="morley-menu-dialog-card" style="max-height:82vh;overflow:auto"><button class="morley-menu-dialog-close" aria-label="Close">×</button><h2>Notification Centre</h2><p style="color:#9db0c9;line-height:1.5">Updates and important B&L Morley messages retained on this browser.</p>${actions}<div class="morley-notification-list">${list}</div></div>`;
     dialog.classList.add('open');
     const close=()=>dialog.classList.remove('open');
     $('.morley-menu-dialog-close',dialog).onclick=close;
     dialog.onclick=e=>{if(e.target===dialog)close()};
     $('#morleyMarkAllRead',dialog)?.addEventListener('click',()=>{markAllRead();openCentre()});
+    $('#morleyClearRead',dialog)?.addEventListener('click',()=>{clearRead();openCentre()});
     $$('[data-notification-id]',dialog).forEach(button=>button.onclick=()=>{
       markRead(button.dataset.notificationId);
       const item=load().find(x=>x.id===button.dataset.notificationId);
@@ -142,6 +155,6 @@
     }).observe(document.body,{childList:true,subtree:true});
   }
 
-  window.MorleyNotifications={push,load,markRead,markAllRead,unread,open:openCentre};
+  window.MorleyNotifications={push,load,markRead,markAllRead,clearRead,unread,open:openCentre};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
