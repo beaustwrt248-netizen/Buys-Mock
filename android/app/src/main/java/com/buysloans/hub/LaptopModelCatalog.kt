@@ -62,7 +62,16 @@ object LaptopModelCatalog {
         val brand = matching?.brand ?: resolution.brand
         val model = matching?.modelName ?: resolution.modelName ?: resolution.family
         val number = matching?.modelNumber ?: resolution.modelNumber
-        return listOf(brand, model, year.toString(), number)
+        val yearToken = year.toString()
+        val modelAlreadyIncludesYear = model
+            ?.lowercase()
+            ?.contains(Regex("\\b${Regex.escape(yearToken)}\\b")) == true
+        return listOf(
+            brand,
+            model,
+            yearToken.takeUnless { modelAlreadyIncludesYear },
+            number
+        )
             .filterNotNull()
             .map { it.trim() }
             .filter { it.isNotBlank() }
