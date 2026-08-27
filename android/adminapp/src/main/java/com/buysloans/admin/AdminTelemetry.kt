@@ -5,6 +5,7 @@ import android.os.Build
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal data class AdminErrorEvent(
     val appVersion: String,
@@ -25,6 +26,18 @@ internal object AdminTelemetry {
     private const val PREFS = "admin_health_telemetry"
     private const val KEY_EVENTS = "pending_events"
     private const val MAX_EVENTS = 20
+    internal const val UNCAUGHT_SCREEN = "Uncaught/Admin"
+    private val crashHandlerInstalled = AtomicBoolean(false)
+
+    fun installCrashHandler(context: Context) {
+        if (!crashHandlerInstalled.compareAndSet(false, true)) return
+        val appContext = context.applicationContext
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching { record(appContext, UNCAUGHT_SCREEN, throwable) }
+            previous?.uncaughtException(thread, throwable)
+        }
+    }
 
     fun record(context: Context, screen: String, throwable: Throwable) {
         val event = AdminErrorEvent(
