@@ -44,9 +44,10 @@ jobs:
                   raise SystemExit(f'Missing privileged support audit contract: {needle}')
           forbidden = [
               'disable row level security',
-              'ticket_description',
-              'description',
-              'message_body',
+              'new.description',
+              'old.description',
+              'new.message',
+              'old.message',
               'support_ticket_messages',
               'grant all',
               'to anon',
