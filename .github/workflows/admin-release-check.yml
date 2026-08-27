@@ -6,12 +6,14 @@ on:
     paths:
       - 'admin/**'
       - 'ota/latest.json'
+      - 'android/app/build.gradle'
       - '.github/workflows/admin-release-check.yml'
   push:
     branches: [ main ]
     paths:
       - 'admin/**'
       - 'ota/latest.json'
+      - 'android/app/build.gradle'
       - '.github/workflows/admin-release-check.yml'
   workflow_dispatch:
 
@@ -40,12 +42,16 @@ jobs:
           grep -q 'id="rolloutCurrent"' admin/index.html
           grep -q 'id="rolloutOutdated"' admin/index.html
           grep -q 'OTA_METADATA_URL' admin/release-control.js
+          grep -q 'SOURCE_BUILD_URL' admin/release-control.js
           grep -q 'isVerifiedOtaShape' admin/release-control.js
           grep -q 'loadReleaseRollout' admin/release-control.js
+          grep -q 'loadSourceBuild' admin/release-control.js
+          grep -q 'PENDING RELEASE' admin/release-control.js
+          grep -q 'RELEASE DRIFT WARNING' admin/release-control.js
           grep -q "config_key:'minimum_supported_version'" admin/release-control.js
           grep -q "config_key:'current_release'" admin/release-control.js
           grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
-      - name: Validate checked-in OTA manifest
+      - name: Validate checked-in OTA manifest and source version
         run: |
           python3 - <<'PY'
           import json, re
@@ -56,5 +62,10 @@ jobs:
           url=str(data.get('apkUrl',''))
           assert url.startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/')
           assert re.fullmatch(r'[0-9a-fA-F]{64}', str(data.get('sha256','')))
-          print(f"Verified OTA manifest {data['versionName']} ({data['versionCode']})")
+          gradle=Path('android/app/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)',gradle)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]",gradle)
+          assert code and int(code.group(1)) > 0
+          assert name and name.group(1).strip()
+          print(f"Verified OTA {data['versionName']} ({data['versionCode']}); source {name.group(1)} ({code.group(1)})")
           PY
