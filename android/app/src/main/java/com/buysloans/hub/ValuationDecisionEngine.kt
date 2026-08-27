@@ -16,7 +16,8 @@ data class ValuationDecisionInput(
     val modelConfidence: Double = 1.0,
     val sourceCount: Int = 1,
     val staleDays: Int = 0,
-    val priceChangePct: Double = 0.0
+    val priceChangePct: Double = 0.0,
+    val identityResolved: Boolean = true
 )
 
 data class ValuationDecisionResult(
@@ -53,6 +54,7 @@ object ValuationDecisionEngine {
 
         val reasons = mutableListOf<String>()
         if (confidence < 0.60) reasons += "Low valuation confidence"
+        if (!input.identityResolved) reasons += "Model, year, or generation still requires confirmation"
         if (input.staleDays > 45) reasons += "Valuation evidence is stale"
         if (abs(input.priceChangePct) > 20.0) reasons += "Market price moved materially"
         if (input.repairRiskAllowance > 0.0) reasons += "Repair-risk allowance applied"
@@ -62,7 +64,7 @@ object ValuationDecisionEngine {
         val decision = when {
             netBeforeBuy <= 0.0 || maxBuy <= 0.0 -> ValuationDecision.PASS
             ask > maxBuy * 1.15 -> ValuationDecision.PASS
-            confidence < 0.60 || input.staleDays > 45 || abs(input.priceChangePct) > 20.0 || ask > maxBuy -> ValuationDecision.CAUTION
+            !input.identityResolved || confidence < 0.60 || input.staleDays > 45 || abs(input.priceChangePct) > 20.0 || ask > maxBuy -> ValuationDecision.CAUTION
             else -> ValuationDecision.BUY
         }
 
