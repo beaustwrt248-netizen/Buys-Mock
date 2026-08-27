@@ -99,7 +99,7 @@ object WorkspaceStore {
             resale=draft.currentValuation.coerceAtLeast(0.0),
             quantity=1,
             createdAt=now,
-            lifecycle=InventoryLifecycle.READY_FOR_SALE
+            lifecycle=InventoryLifecycle.PURCHASED
         ))
         saveInventory(context,items)
         DeviceTestHistoryStore.record(
@@ -109,7 +109,7 @@ object WorkspaceStore {
             itemName=draft.itemName,
             category=draft.category.name,
             result=BuyOutcome.SEND_TO_INVENTORY.name,
-            summary="${draft.completedChecks}/${draft.checks.size} checks completed; ${draft.failedChecks} failed; confirmed inventory handoff.",
+            summary="${draft.completedChecks}/${draft.checks.size} checks completed; ${draft.failedChecks} failed; confirmed inventory handoff; lifecycle Purchased.",
             recordedAt=now
         )
         return id
