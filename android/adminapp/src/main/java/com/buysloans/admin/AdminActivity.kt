@@ -153,7 +153,22 @@ private fun HealthPanel(s: AdminSnapshot?) {
     Text("Health is intentionally read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. No restart, disable, force-update or account-control actions are available in this Admin app stage.", color = Muted, fontSize = 12.sp)
 }
 
-@Composable private fun UsersDevicesPanel(s: AdminSnapshot?) { ListPanel("Users", s?.profiles) { j -> "${j.optString("display_name").ifBlank { "Unnamed" }} • ${j.optString("role")} • ${if (j.optBoolean("is_enabled")) "enabled" else "disabled"}" }; ListPanel("Devices", s?.devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" } }
+@Composable
+private fun UsersDevicesPanel(s: AdminSnapshot?) {
+    val devices = s?.devices
+    val versions = if (devices == null) emptyList() else (0 until devices.length()).map { devices.optJSONObject(it)?.optString("app_version")?.takeIf(String::isNotBlank) }
+    val currentVersion = currentReleaseVersion(s?.config)
+    val adoption = summarizeVersionAdoption(versions, currentVersion)
+
+    Text("App-version adoption", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    Text("Current release ${currentVersion ?: "unknown"}. Counts are derived from registered-device app versions only.", color = Muted, fontSize = 12.sp)
+    Metric("On current release", adoption.current.toString(), Good)
+    Metric("Outdated", adoption.outdated.toString(), if (adoption.outdated > 0) Warn else Good)
+    Metric("Ahead / test", adoption.aheadOrTest.toString(), Muted)
+    Metric("Unknown version", adoption.unknown.toString(), if (adoption.unknown > 0) Warn else Muted)
+    ListPanel("Users", s?.profiles) { j -> "${j.optString("display_name").ifBlank { "Unnamed" }} • ${j.optString("role")} • ${if (j.optBoolean("is_enabled")) "enabled" else "disabled"}" }
+    ListPanel("Devices", devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" }
+}
 
 @Composable
 private fun ReleasePanel(config: JSONArray?) {
@@ -166,6 +181,7 @@ private fun ReleasePanel(config: JSONArray?) {
 @Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { Text(title, fontSize = 21.sp, fontWeight = FontWeight.Black); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) { data.optJSONObject(i)?.let { InfoCard(line(it), if (it.has("created_at")) it.optString("created_at") else "") } } }
 @Composable private fun InfoCard(title: String, detail: String) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(title, fontWeight = FontWeight.Bold); if (detail.isNotBlank()) Text(detail, color = Muted, fontSize = 11.sp) } } }
 @Composable private fun Metric(label: String, value: String, color: Color) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Muted); Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 19.sp) } } }
+private fun currentReleaseVersion(config: JSONArray?): String? { if (config == null) return null; for (i in 0 until config.length()) { val row = config.optJSONObject(i) ?: continue; if (row.optString("key") == "current_release") return row.optJSONObject("value")?.optString("versionName")?.takeIf(String::isNotBlank) }; return null }
 private fun ticketLine(j: JSONObject) = "${j.optString("priority").uppercase()} • ${j.optString("status")} • ${j.optString("subject")}" 
 private fun announcementLine(j: JSONObject) = "${if (j.optBoolean("is_active")) "ACTIVE" else "INACTIVE"} • ${j.optString("audience")} • ${j.optString("title")}" 
 private fun countWhere(a: JSONArray?, key: String, values: Set<String>): Int = if (a == null) 0 else (0 until a.length()).count { values.contains(a.optJSONObject(it)?.optString(key)) }
