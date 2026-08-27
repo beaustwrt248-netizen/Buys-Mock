@@ -1,5 +1,6 @@
 (()=>{
   const PREF='morley_menu_prefs';
+  const STYLE_ID='morleyDisplayPreferenceStyles';
   let wakeLock=null;
 
   function readPrefs(){
@@ -8,6 +9,42 @@
 
   function writePrefs(next){
     localStorage.setItem(PREF,JSON.stringify(next));
+  }
+
+  function ensurePreferenceStyles(){
+    if(document.getElementById(STYLE_ID))return;
+    const style=document.createElement('style');
+    style.id=STYLE_ID;
+    style.textContent=`
+      html.morley-reduced-motion *,
+      html.morley-reduced-motion *::before,
+      html.morley-reduced-motion *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+      html.morley-compact-interface #morleyMenuDialog .mm-card,
+      html.morley-compact-interface #morleyMenuDialog .menu-card,
+      html.morley-compact-interface #morleyMenuDialog .card {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
+      html.morley-compact-interface #morleyMenuDialog button,
+      html.morley-compact-interface #morleyMenuDialog input,
+      html.morley-compact-interface #morleyMenuDialog select,
+      html.morley-compact-interface #morleyMenuDialog textarea {
+        min-height: 40px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function syncVisualPrefs(){
+    ensurePreferenceStyles();
+    const prefs=readPrefs();
+    document.documentElement.classList.toggle('morley-reduced-motion',!!prefs.reducedMotion);
+    document.documentElement.classList.toggle('morley-compact-interface',!!prefs.compactInterface);
   }
 
   async function releaseWakeLock(){
@@ -42,22 +79,38 @@
     return dialog.querySelector('h2')?.textContent?.trim()==='Display'?dialog:null;
   }
 
-  function ensureControl(){
+  function preferenceRow(id,title,detail,checked){
+    const wrap=document.createElement('label');
+    wrap.style.cssText='display:flex;gap:10px;align-items:flex-start;margin:14px 0';
+    wrap.innerHTML=`<input id="${id}" type="checkbox" ${checked?'checked':''}><span><b style="display:block;color:#fff">${title}</b><small style="display:block;margin-top:3px;color:#9db0c9;line-height:1.4">${detail}</small></span>`;
+    return wrap;
+  }
+
+  function ensureControls(){
     const dialog=findDisplayDialog();
     if(!dialog||dialog.querySelector('#mmKeepAwake'))return;
     const save=dialog.querySelector('#mmSaveD');
     if(!save)return;
 
     const prefs=readPrefs();
-    const wrap=document.createElement('label');
-    wrap.id='morleyWebKeepAwakeRow';
-    wrap.style.cssText='display:flex;gap:10px;align-items:flex-start;margin:14px 0';
-    wrap.innerHTML=`<input id="mmKeepAwake" type="checkbox" ${prefs.keepAwake?'checked':''}><span><b style="display:block;color:#fff">Keep screen awake</b><small id="mmKeepAwakeStatus" style="display:block;margin-top:3px;color:#9db0c9;line-height:1.4">Useful during valuations and stock entry.</small></span>`;
-    save.insertAdjacentElement('beforebegin',wrap);
+    const keepAwake=preferenceRow('mmKeepAwake','Keep screen awake','Useful during valuations and stock entry.',!!prefs.keepAwake);
+    keepAwake.id='morleyWebKeepAwakeRow';
+    keepAwake.querySelector('small').id='mmKeepAwakeStatus';
+    const reducedMotion=preferenceRow('mmReducedMotion','Reduced motion','Minimise interface animation and animated transitions.',!!prefs.reducedMotion);
+    const compact=preferenceRow('mmCompactInterface','Compact interface','Use denser controls inside B&L Morley menu panels.',!!prefs.compactInterface);
+    save.insertAdjacentElement('beforebegin',keepAwake);
+    save.insertAdjacentElement('beforebegin',reducedMotion);
+    save.insertAdjacentElement('beforebegin',compact);
 
     save.addEventListener('click',async()=>{
-      const checked=!!dialog.querySelector('#mmKeepAwake')?.checked;
-      writePrefs({...readPrefs(),keepAwake:checked});
+      const next={
+        ...readPrefs(),
+        keepAwake:!!dialog.querySelector('#mmKeepAwake')?.checked,
+        reducedMotion:!!dialog.querySelector('#mmReducedMotion')?.checked,
+        compactInterface:!!dialog.querySelector('#mmCompactInterface')?.checked
+      };
+      writePrefs(next);
+      syncVisualPrefs();
       const state=await syncWakeLock();
       const status=dialog.querySelector('#mmKeepAwakeStatus');
       if(status){
@@ -65,7 +118,7 @@
           ? 'Saved. This browser does not support the Screen Wake Lock API.'
           : state.active
             ? 'Screen wake lock is active while this tab is visible.'
-            : checked
+            : next.keepAwake
               ? 'Saved. Wake lock will retry when this tab becomes active.'
               : 'Keep-awake is off.';
       }
@@ -80,13 +133,17 @@
   }
 
   document.addEventListener('visibilitychange',()=>{syncWakeLock().catch(()=>{})});
+  window.addEventListener('storage',event=>{
+    if(event.key===PREF){syncVisualPrefs();syncWakeLock().catch(()=>{})}
+  });
   window.addEventListener('pagehide',()=>{releaseWakeLock().catch(()=>{})});
-  new MutationObserver(()=>ensureControl()).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  new MutationObserver(()=>ensureControls()).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 
+  syncVisualPrefs();
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',()=>{syncWakeLock().catch(()=>{});ensureControl()},{once:true});
+    document.addEventListener('DOMContentLoaded',()=>{syncVisualPrefs();syncWakeLock().catch(()=>{});ensureControls()},{once:true});
   }else{
     syncWakeLock().catch(()=>{});
-    ensureControl();
+    ensureControls();
   }
 })();
