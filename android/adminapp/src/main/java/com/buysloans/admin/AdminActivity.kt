@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,13 +45,17 @@ private fun AdminRoot() {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current.applicationContext
 
     fun refresh(s: AdminSession) {
         busy = true; error = ""
         scope.launch {
             runCatching { AdminApi.load(s) }
                 .onSuccess { snapshot = it }
-                .onFailure { error = it.message ?: "Admin data could not be loaded." }
+                .onFailure {
+                    AdminTelemetry.record(context, "Dashboard/Refresh", it)
+                    error = it.message ?: "Admin data could not be loaded."
+                }
             busy = false
         }
     }
@@ -60,8 +65,20 @@ private fun AdminRoot() {
             busy = true; error = ""
             scope.launch {
                 runCatching { AdminApi.signIn(email, password) }
-                    .onSuccess { s -> session = s; refresh(s) }
-                    .onFailure { error = it.message ?: "Sign-in failed."; busy = false }
+                    .onSuccess { s ->
+                        session = s
+                        val pending = AdminTelemetry.pending(context)
+                        if (pending.isNotEmpty()) {
+                            runCatching { AdminApi.submitTelemetry(s, pending) }
+                                .onSuccess { AdminTelemetry.clear(context) }
+                        }
+                        refresh(s)
+                    }
+                    .onFailure {
+                        AdminTelemetry.record(context, "Login", it)
+                        error = it.message ?: "Sign-in failed."
+                        busy = false
+                    }
             }
         }
     } else {
@@ -115,14 +132,24 @@ private fun Dashboard(session: AdminSession, snapshot: AdminSnapshot?, busy: Boo
 private fun HealthPanel(s: AdminSnapshot?) {
     val devices = s?.devices
     val tickets = s?.tickets
+    val errors = s?.errorEvents
     val openTickets = countWhere(tickets, "status", setOf("open", "in_progress", "waiting_on_user"))
     val staleDevices = countOlderThan(devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000)
     val disabledUsers = countBoolean(s?.profiles, "is_enabled", false)
+    val recentErrors = countRecent(errors, "occurred_at", 24L * 60 * 60 * 1000)
     Text("Production health", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Metric("Open support tickets", openTickets.toString(), if (openTickets > 0) Warn else Good)
     Metric("Devices not seen in 7 days", staleDevices.toString(), if (staleDevices > 0) Warn else Good)
     Metric("Disabled staff/user accounts", disabledUsers.toString(), Muted)
-    Text("Health is intentionally read-only. No restart, disable, force-update or account-control actions are available in this Admin app stage.", color = Muted, fontSize = 12.sp)
+    Metric("Admin app errors in 24 hours", recentErrors.toString(), if (recentErrors > 0) Warn else Good)
+    if (errors != null && errors.length() > 0) {
+        Text("Recent privacy-minimal Admin errors", fontWeight = FontWeight.Bold)
+        for (i in 0 until minOf(errors.length(), 8)) {
+            val j = errors.optJSONObject(i) ?: continue
+            InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
+        }
+    }
+    Text("Health is intentionally read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. No restart, disable, force-update or account-control actions are available in this Admin app stage.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable private fun UsersDevicesPanel(s: AdminSnapshot?) { ListPanel("Users", s?.profiles) { j -> "${j.optString("display_name").ifBlank { "Unnamed" }} • ${j.optString("role")} • ${if (j.optBoolean("is_enabled")) "enabled" else "disabled"}" }; ListPanel("Devices", s?.devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" } }
@@ -143,3 +170,4 @@ private fun announcementLine(j: JSONObject) = "${if (j.optBoolean("is_active")) 
 private fun countWhere(a: JSONArray?, key: String, values: Set<String>): Int = if (a == null) 0 else (0 until a.length()).count { values.contains(a.optJSONObject(it)?.optString(key)) }
 private fun countBoolean(a: JSONArray?, key: String, value: Boolean): Int = if (a == null) 0 else (0 until a.length()).count { a.optJSONObject(it)?.optBoolean(key) == value }
 private fun countOlderThan(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { val raw = a.optJSONObject(it)?.optString(key).orEmpty(); runCatching { java.time.Instant.parse(raw).toEpochMilli() < cutoff }.getOrDefault(false) } }
+private fun countRecent(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { val raw = a.optJSONObject(it)?.optString(key).orEmpty(); runCatching { java.time.Instant.parse(raw).toEpochMilli() >= cutoff }.getOrDefault(false) } }
