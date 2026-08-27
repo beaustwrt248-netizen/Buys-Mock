@@ -229,7 +229,7 @@ class SupportTicketActivity : ComponentActivity() {
                     }
                 }
 
-                Text("Attachments: JPG, PNG, WebP or PDF up to 10 MB. Submissions use your current authorised B&L Morley session.", color = SupportMuted, fontSize = 11.sp)
+                Text("Attachments: JPG, PNG, WebP or PDF up to 10 MB. Submissions use your current authorised B&L Morley session. Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}).", color = SupportMuted, fontSize = 11.sp)
                 Spacer(Modifier.height(24.dp))
             }
         }
