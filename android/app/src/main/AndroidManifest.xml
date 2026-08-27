@@ -44,7 +44,7 @@
             android:name=".SupportTicketActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:label="Morley Support Test">
+            android:label="B&amp;L Morley Support">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
