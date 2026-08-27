@@ -126,4 +126,29 @@ class ValuationDecisionEngineTest {
         assertTrue(result.reasons.any { it.contains("stale", ignoreCase = true) })
         assertTrue(result.reasons.any { it.contains("moved", ignoreCase = true) })
     }
+
+    @Test
+    fun unresolvedModelIdentityForcesCautionWithoutChangingPriceMath() {
+        val resolved = ValuationDecisionEngine.evaluate(
+            ValuationDecisionInput(
+                marketValue = 1000.0,
+                sellerAsk = 400.0,
+                targetMarginPct = 0.30,
+                sourceCount = 5
+            )
+        )
+        val unresolved = ValuationDecisionEngine.evaluate(
+            ValuationDecisionInput(
+                marketValue = 1000.0,
+                sellerAsk = 400.0,
+                targetMarginPct = 0.30,
+                sourceCount = 5,
+                identityResolved = false
+            )
+        )
+        assertEquals(ValuationDecision.BUY, resolved.decision)
+        assertEquals(ValuationDecision.CAUTION, unresolved.decision)
+        assertEquals(resolved.maxBuyPrice, unresolved.maxBuyPrice, 0.001)
+        assertTrue(unresolved.reasons.any { it.contains("generation", ignoreCase = true) })
+    }
 }
