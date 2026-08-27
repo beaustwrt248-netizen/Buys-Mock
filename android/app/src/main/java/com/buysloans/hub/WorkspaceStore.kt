@@ -12,7 +12,8 @@ data class StockItem(
     val cost:Double,
     val resale:Double,
     val quantity:Int,
-    val createdAt:Long
+    val createdAt:Long,
+    val nfcTagId:String=""
 )
 
 data class SaleRecord(
@@ -35,7 +36,7 @@ object WorkspaceStore {
     fun inventory(context:Context):List<StockItem>{
         val arr=runCatching{JSONArray(prefs(context).getString(INVENTORY,"[]")?:"[]")}.getOrElse{JSONArray()}
         return (0 until arr.length()).mapNotNull{i->arr.optJSONObject(i)?.let{j->
-            StockItem(j.optString("id"),j.optString("name"),j.optString("barcode"),j.optDouble("cost"),j.optDouble("resale"),j.optInt("quantity",1),j.optLong("createdAt"))
+            StockItem(j.optString("id"),j.optString("name"),j.optString("barcode"),j.optDouble("cost"),j.optDouble("resale"),j.optInt("quantity",1),j.optLong("createdAt"),j.optString("nfcTagId"))
         }}
     }
 
@@ -47,7 +48,7 @@ object WorkspaceStore {
     }
 
     private fun saveInventory(context:Context,items:List<StockItem>){
-        val arr=JSONArray();items.forEach{x->arr.put(JSONObject().apply{put("id",x.id);put("name",x.name);put("barcode",x.barcode);put("cost",x.cost);put("resale",x.resale);put("quantity",x.quantity);put("createdAt",x.createdAt)})}
+        val arr=JSONArray();items.forEach{x->arr.put(JSONObject().apply{put("id",x.id);put("name",x.name);put("barcode",x.barcode);put("cost",x.cost);put("resale",x.resale);put("quantity",x.quantity);put("createdAt",x.createdAt);put("nfcTagId",x.nfcTagId)})}
         prefs(context).edit().putString(INVENTORY,arr.toString()).apply()
     }
 
@@ -75,6 +76,28 @@ object WorkspaceStore {
     }
 
     fun findByBarcode(context:Context,barcode:String):StockItem?=inventory(context).firstOrNull{it.barcode.isNotBlank()&&it.barcode.equals(barcode.trim(),true)}
+
+    fun findByNfcTag(context:Context,tagId:String):StockItem? {
+        val clean=tagId.trim().uppercase()
+        return inventory(context).firstOrNull{it.nfcTagId.isNotBlank()&&it.nfcTagId.uppercase()==clean}
+    }
+
+    fun linkNfcTag(context:Context,itemId:String,tagId:String){
+        val clean=tagId.trim().uppercase()
+        require(clean.isNotBlank()){ "Scan a valid NFC tag first." }
+        val items=inventory(context).toMutableList()
+        val idx=items.indexOfFirst{it.id==itemId}
+        require(idx>=0){ "Inventory item no longer exists." }
+        val conflict=items.firstOrNull{it.id!=itemId&&it.nfcTagId.equals(clean,true)}
+        require(conflict==null){ "This NFC tag is already linked to ${conflict?.name}." }
+        items[idx]=items[idx].copy(nfcTagId=clean)
+        saveInventory(context,items)
+    }
+
+    fun unlinkNfcTag(context:Context,itemId:String){
+        val items=inventory(context).toMutableList();val idx=items.indexOfFirst{it.id==itemId};if(idx<0)return
+        items[idx]=items[idx].copy(nfcTagId="");saveInventory(context,items)
+    }
 
     fun deleteSale(context:Context,id:String){saveSales(context,sales(context).filterNot{it.id==id})}
 
