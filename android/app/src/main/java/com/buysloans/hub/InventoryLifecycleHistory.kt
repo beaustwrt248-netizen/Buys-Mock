@@ -28,10 +28,25 @@ object InventoryLifecycleHistory {
 
     fun currentState(initial: InventoryLifecycle, events: List<InventoryLifecycleEvent>): InventoryLifecycle {
         var state = initial
+        var inventoryId: String? = null
+        var previousTimestamp: Instant? = null
+
         events.forEach { event ->
+            val cleanInventoryId = event.inventoryId.trim()
+            require(cleanInventoryId.isNotBlank()) { "Lifecycle history inventory id is required." }
+            if (inventoryId == null) inventoryId = cleanInventoryId
+            require(cleanInventoryId == inventoryId) { "Lifecycle history cannot mix inventory items." }
+
+            val timestamp = runCatching { Instant.parse(event.occurredAt) }.getOrNull()
+            require(timestamp != null) { "Lifecycle history contains an invalid timestamp." }
+            require(previousTimestamp == null || !timestamp.isBefore(previousTimestamp)) {
+                "Lifecycle history timestamps must be chronological."
+            }
+
             require(event.from == state) { "Lifecycle history is not contiguous." }
             requireLifecycleTransition(event.from, event.to)
             state = event.to
+            previousTimestamp = timestamp
         }
         return state
     }
