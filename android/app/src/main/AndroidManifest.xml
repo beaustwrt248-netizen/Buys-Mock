@@ -34,6 +34,7 @@
         <activity android:name=".UpdateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MandatoryUpdateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MenuFeatureActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".HelpGuideActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NotificationCentreActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:screenOrientation="portrait" />
 
