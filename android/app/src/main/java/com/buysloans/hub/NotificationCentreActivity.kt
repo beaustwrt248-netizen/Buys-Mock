@@ -45,6 +45,7 @@ class NotificationCentreActivity : ComponentActivity() {
         var refresh by remember { mutableIntStateOf(0) }
         val items = remember(refresh) { NotificationInboxStore.items(this) }
         val unread = items.count { !it.read }
+        val readCount = items.size - unread
 
         Scaffold(
             containerColor = NCBg,
@@ -91,6 +92,15 @@ class NotificationCentreActivity : ComponentActivity() {
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) { Text("Mark all as read") }
+                        }
+                        if (readCount > 0) {
+                            TextButton(
+                                onClick = {
+                                    NotificationInboxStore.clearRead(this@NotificationCentreActivity)
+                                    refresh++
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Clear $readCount read notification${if (readCount == 1) "" else "s"}") }
                         }
                     }
                 }
