@@ -23,7 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate admin support JavaScript
-        run: node --check admin/support-tickets.js
+        run: |
+          node --check admin/support-tickets.js
+          node --check admin/staff-support.js
       - name: Verify support ownership, SLA and staff-role contracts
         shell: bash
         run: |
@@ -33,6 +35,8 @@ jobs:
           sla = Path('supabase/migrations/20260827212500_support_assignment_sla.sql').read_text()
           staff = Path('supabase/migrations/20260827231000_support_staff_assigned_access.sql').read_text()
           admin = Path('admin/support-tickets.js').read_text()
+          staff_ui = Path('admin/staff-support.js').read_text()
+          staff_html = Path('admin/staff.html').read_text()
           required_base = [
               'user_id = auth.uid() or private.is_admin_or_manager()',
               "user_id = auth.uid() and status = 'open' and priority = 'normal' and assigned_to is null",
@@ -79,5 +83,23 @@ jobs:
           for needle in ['ticketAssignee','assigned_to','sla_due_at','first_response_at',".in('role',['admin','manager'])"]:
               if needle not in admin:
                   raise SystemExit(f'Admin support UI contract missing: {needle}')
-          print('Support ownership, attachments, assignment, SLA and assigned-staff RLS contracts OK')
+          required_staff_ui = [
+              "p.role!=='staff'",
+              ".eq('assigned_to',me.id)",
+              "author_user_id:me.id",
+              "author_role:'admin'",
+              "updates={status:$('ticketStatus').value,priority:$('ticketPriority').value}",
+              'No tickets are currently assigned to you.',
+          ]
+          for needle in required_staff_ui:
+              if needle not in staff_ui:
+                  raise SystemExit(f'Staff support UI contract missing: {needle}')
+          forbidden_staff_ui = ['assigned_to:', "from('profiles').select('*')", 'admin_set_config', 'admin-user-control', 'notification_jobs']
+          for needle in forbidden_staff_ui:
+              if needle in staff_ui:
+                  raise SystemExit(f'Staff support UI must not expose privileged Admin controls: {needle}')
+          for needle in ['ASSIGNED TICKETS ONLY','My assigned tickets','staff-support.js?v=1','login-security.js?v=1']:
+              if needle not in staff_html:
+                  raise SystemExit(f'Staff support page contract missing: {needle}')
+          print('Support ownership, attachments, assignment, SLA and assigned-staff UI/RLS contracts OK')
           PY
