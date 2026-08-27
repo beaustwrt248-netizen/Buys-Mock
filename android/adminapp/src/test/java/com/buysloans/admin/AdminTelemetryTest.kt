@@ -9,12 +9,21 @@ class AdminTelemetryTest {
     @Test
     fun eventSchemaContainsOnlyApprovedOperationalFields() {
         val names = AdminErrorEvent::class.java.declaredFields.map { it.name }.toSet()
-        assertTrue(names.containsAll(setOf("appVersion", "deviceModel", "failingScreen", "errorClass", "occurredAt")))
+        assertEquals(setOf("appVersion", "deviceModel", "failingScreen", "errorClass", "occurredAt"), names)
         assertFalse(names.any { it.contains("email", ignoreCase = true) })
         assertFalse(names.any { it.contains("token", ignoreCase = true) })
         assertFalse(names.any { it.contains("message", ignoreCase = true) })
         assertFalse(names.any { it.contains("stack", ignoreCase = true) })
         assertFalse(names.any { it.contains("user", ignoreCase = true) })
+    }
+
+    @Test
+    fun uncaughtCrashLabelDoesNotAddThreadOrIdentityData() {
+        val label = AdminTelemetry.UNCAUGHT_SCREEN
+        assertEquals("Uncaught/Admin", label)
+        assertFalse(label.contains("thread", ignoreCase = true))
+        assertFalse(label.contains("user", ignoreCase = true))
+        assertFalse(label.contains("email", ignoreCase = true))
     }
 
     @Test
