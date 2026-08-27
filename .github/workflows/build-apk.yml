@@ -26,6 +26,11 @@ on:
         required: true
         type: boolean
         default: false
+      release_notes:
+        description: 'Release notes for GitHub Release and OTA metadata (optional; defaults to the current commit subject)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -67,6 +72,63 @@ jobs:
               fh.write(f'APP_RELEASE_TAG=v{safe_name}\n')
           print(f'Resolved Android release: {version_name} ({version_code})')
           PY
+
+      - name: Resolve release notes
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES="$(printf '%s' "$INPUT_RELEASE_NOTES" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          if [ -z "$NOTES" ]; then
+            NOTES="$(git log -1 --pretty=%s)"
+          fi
+          test -n "$NOTES"
+          {
+            echo 'RELEASE_NOTES<<__BL_RELEASE_NOTES__'
+            printf '%s\n' "$NOTES"
+            echo '__BL_RELEASE_NOTES__'
+          } >> "$GITHUB_ENV"
+
+      - name: Production release preflight
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          path = Path('ota/latest.json')
+          if not path.is_file():
+              raise SystemExit('Cannot publish: ota/latest.json is missing.')
+          current = json.loads(path.read_text(encoding='utf-8'))
+          old_code = current.get('versionCode')
+          old_name = str(current.get('versionName') or '').strip()
+          old_url = str(current.get('apkUrl') or '').strip()
+          old_sha = str(current.get('sha256') or '').strip()
+          new_code = int(os.environ['APP_VERSION_CODE'])
+          if not isinstance(old_code, int) or old_code <= 0 or not old_name:
+              raise SystemExit('Cannot publish: existing OTA manifest has invalid version identity.')
+          if not old_url.startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/'):
+              raise SystemExit('Cannot publish: existing OTA manifest has an untrusted APK URL.')
+          if not re.fullmatch(r'[0-9a-fA-F]{64}', old_sha):
+              raise SystemExit('Cannot publish: existing OTA manifest has an invalid SHA-256 checksum.')
+          if new_code <= old_code:
+              raise SystemExit(f'Cannot publish versionCode {new_code}: OTA already advertises versionCode {old_code}. Bump Android versionCode first.')
+          print(f'OTA monotonicity verified: {old_name} ({old_code}) -> {os.environ["APP_VERSION_NAME"]} ({new_code})')
+          PY
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Cannot publish: Git tag ${APP_RELEASE_TAG} already exists." >&2
+            exit 1
+          fi
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Cannot publish: GitHub Release ${APP_RELEASE_TAG} already exists." >&2
+            exit 1
+          fi
+          test -n "${RELEASE_NOTES:-}"
 
       - name: Bundle and verify Morley login background video
         shell: bash
@@ -200,10 +262,10 @@ jobs:
           name: B&L Morley ${{ env.APP_VERSION_NAME }}
           body: |
             B&L Morley production Android release.
-            - Full-screen sharper Morley login video
-            - Signed production APK
-            - Regression tests, Android lint and signature verification passed
-            - OTA download protected with SHA-256 integrity verification
+
+            ${{ env.RELEASE_NOTES }}
+
+            Verification: regression tests, Android lint, production signing and SHA-256 OTA integrity checks passed.
           files: |
             dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
             dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
@@ -218,8 +280,15 @@ jobs:
           import hashlib, json, os
           from pathlib import Path
           name = os.environ['APP_VERSION_NAME']; safe = os.environ['APP_VERSION_SAFE']; code = int(os.environ['APP_VERSION_CODE']); tag = os.environ['APP_RELEASE_TAG']
+          notes = os.environ['RELEASE_NOTES'].strip()
           apk_path = Path(f'dist/B-and-L-Morley-{safe}.apk')
-          data = {'versionCode': code, 'versionName': name, 'apkUrl': f'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/{tag}/B-and-L-Morley-{safe}.apk', 'sha256': hashlib.sha256(apk_path.read_bytes()).hexdigest(), 'notes': f'B&L Morley {name}: sharper full-screen login video.'}
+          data = {
+              'versionCode': code,
+              'versionName': name,
+              'apkUrl': f'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/{tag}/B-and-L-Morley-{safe}.apk',
+              'sha256': hashlib.sha256(apk_path.read_bytes()).hexdigest(),
+              'notes': notes,
+          }
           Path('ota').mkdir(parents=True, exist_ok=True)
           Path('ota/latest.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
           PY
