@@ -31,7 +31,7 @@ private val NfcMuted = Color(0xFF8EA6C4)
 private val NfcGood = Color(0xFF57E389)
 private val NfcWarn = Color(0xFFFFC857)
 
-data class RecentNfcScan(
+internal data class RecentNfcScan(
     val tagId: String,
     val payloads: List<NfcPayload>,
     val technologies: List<String>,
