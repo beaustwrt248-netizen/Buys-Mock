@@ -1,0 +1,58 @@
+name: Admin APK Build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/adminapp/**'
+      - 'android/settings.gradle'
+      - '.github/workflows/admin-apk-build.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/adminapp/**'
+      - 'android/settings.gradle'
+      - '.github/workflows/admin-apk-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-admin-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Java 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '8.11.1'
+      - name: Test, lint and assemble Admin APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :adminapp:testDebugUnitTest :adminapp:lintDebug :adminapp:assembleDebug
+      - name: Stage Admin APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android/adminapp/build/outputs/apk/debug/adminapp-debug.apk dist/Morley-Admin-readonly.apk
+          sha256sum dist/Morley-Admin-readonly.apk > dist/Morley-Admin-readonly.apk.sha256
+      - name: Upload Admin APK artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: morley-admin-readonly-apk
+          path: |
+            dist/Morley-Admin-readonly.apk
+            dist/Morley-Admin-readonly.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
