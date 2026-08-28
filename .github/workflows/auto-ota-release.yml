@@ -38,28 +38,26 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Resolve next OTA version
+      - name: Resolve next OTA version from latest main
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin main
+          git show origin/main:ota/latest.json > "$RUNNER_TEMP/latest-ota.json"
           python3 - <<'PY'
           import json, os, re
           from pathlib import Path
-
-          manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+          manifest = json.loads((Path(os.environ['RUNNER_TEMP']) / 'latest-ota.json').read_text(encoding='utf-8'))
           old_code = int(manifest.get('versionCode') or 0)
-          old_name = str(manifest.get('versionName') or '2.14.6').strip()
+          old_name = str(manifest.get('versionName') or '').strip()
           match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', old_name)
-          if not match:
-              raise SystemExit(f'OTA versionName must use x.y.z format, got {old_name!r}')
-
+          if old_code <= 0 or not match:
+              raise SystemExit('Current OTA manifest must contain a positive versionCode and x.y.z versionName.')
           major, minor, patch = map(int, match.groups())
           version_code = old_code + 1
           version_name = f'{major}.{minor}.{patch + 1}'
           safe_name = re.sub(r'[^A-Za-z0-9._-]+', '-', version_name).strip('-')
-
-          env = Path(os.environ['GITHUB_ENV'])
-          with env.open('a', encoding='utf-8') as fh:
+          with Path(os.environ['GITHUB_ENV']).open('a', encoding='utf-8') as fh:
               fh.write(f'BL_VERSION_CODE={version_code}\n')
               fh.write(f'BL_VERSION_NAME={version_name}\n')
               fh.write(f'APP_VERSION_CODE={version_code}\n')
@@ -79,7 +77,7 @@ jobs:
           ZIP=morley_buys_login_bg_app_hq_new.zip
           if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app_hq.zip; fi
           if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
-          test -f "$ZIP" || { echo 'Missing Morley login video ZIP'; exit 1; }
+          test -f "$ZIP"
           rm -rf "$RUNNER_TEMP/morley-login-video"
           mkdir -p "$RUNNER_TEMP/morley-login-video" android/app/src/main/res/raw
           unzip -q -o "$ZIP" -d "$RUNNER_TEMP/morley-login-video"
@@ -162,10 +160,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -z "$(gh release view "$APP_RELEASE_TAG" --json tagName 2>/dev/null || true)" || {
+          if gh release view "$APP_RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release $APP_RELEASE_TAG already exists; refusing to overwrite it."
             exit 1
-          }
+          fi
           NOTES="$(git log -1 --pretty=%s '${{ github.event.workflow_run.head_sha }}')"
           gh release create "$APP_RELEASE_TAG" "$APK_PATH" "$APK_PATH.sha256" \
             --target '${{ github.event.workflow_run.head_sha }}' \
@@ -175,11 +173,12 @@ jobs:
       - name: Advance OTA manifest on latest main
         env:
           GH_TOKEN: ${{ github.token }}
+          WORKFLOW_TITLE: ${{ github.event.workflow_run.display_title }}
         shell: bash
         run: |
           set -euo pipefail
-          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${APP_RELEASE_TAG}/B-and-L-Morley-${APP_VERSION_SAFE}.apk"
-          NOTES="$(git log -1 --pretty=%s '${{ github.event.workflow_run.head_sha }}')"
+          export RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${APP_RELEASE_TAG}/B-and-L-Morley-${APP_VERSION_SAFE}.apk"
+          export RELEASE_NOTES="$WORKFLOW_TITLE"
           git fetch origin main
           git checkout -B ota-publish origin/main
           python3 - <<'PY'
@@ -201,10 +200,3 @@ jobs:
           git commit -m "OTA: publish $APP_VERSION_NAME [skip ci]"
           gh auth setup-git
           git push origin HEAD:main
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ env.APP_RELEASE_TAG }}/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
-          RELEASE_NOTES: ${{ github.event.workflow_run.display_title }}
-          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
-          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
-          APK_SHA256: ${{ env.APK_SHA256 }}
