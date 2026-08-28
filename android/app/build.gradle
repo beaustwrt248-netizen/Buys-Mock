@@ -5,6 +5,9 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+def ciVersionCode = System.getenv('BL_VERSION_CODE')?.trim()
+def ciVersionName = System.getenv('BL_VERSION_NAME')?.trim()
+
 android {
     namespace 'com.buysloans.hub'
     compileSdk 35
@@ -13,8 +16,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 42
-        versionName '2.14.6'
+        versionCode ciVersionCode ? ciVersionCode.toInteger() : 42
+        versionName ciVersionName ?: '2.14.6'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
