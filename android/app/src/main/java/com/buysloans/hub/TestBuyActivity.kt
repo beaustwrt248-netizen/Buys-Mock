@@ -118,12 +118,16 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                 Button(onClick = {
                     saveError = ""
                     runCatching {
-                        TestBuySessionFinalizer.finalize(
+                        val session = TestBuySessionFinalizer.finalize(
                             draft = draft,
                             evidenceSource = evidenceSource(),
                             explicitOutcome = BuyOutcome.SEND_TO_INVENTORY
                         )
-                        WorkspaceStore.addInventoryFromTestBuy(context, draft)
+                        WorkspaceStore.addInventoryFromTestBuy(
+                            context = context,
+                            draft = draft,
+                            completedSession = session
+                        )
                     }.onSuccess { id ->
                         savedInventoryId = id
                         completedOutcome = BuyOutcome.SEND_TO_INVENTORY
