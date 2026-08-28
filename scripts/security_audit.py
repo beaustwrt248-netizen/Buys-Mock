@@ -19,6 +19,9 @@ CRITICAL_WORKFLOWS = {
     'admin-support-governance.yml',
     'admin-support-audit-check.yml',
     'admin-support-reconcile-check.yml',
+    'android-pr-permissions-guard.yml',
+    'android-pr-readonly.yml',
+    'private-distribution-readiness.yml',
     'build-apk.yml',
 }
 
@@ -63,7 +66,6 @@ def main() -> int:
         for label, pattern in PATTERNS:
             for match in pattern.finditer(text):
                 line = text.count('\n', 0, match.start()) + 1
-                # GitHub Actions secret references are names, not secret values.
                 snippet_start = max(0, match.start() - 80)
                 snippet_end = min(len(text), match.end() + 80)
                 if SAFE_SECRET_REFERENCE.search(text[snippet_start:snippet_end]):
