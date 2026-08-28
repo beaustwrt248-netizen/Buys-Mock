@@ -6,16 +6,36 @@ import org.junit.Test
 
 class AdminTelemetryTest {
     @Test
-    fun eventSchemaContainsOnlyApprovedOperationalFields() {
+    fun eventJsonContainsOnlyApprovedOperationalFields() {
         val event = AdminErrorEvent("0.1.0", "Phone", "Health", "IOException", "2026-08-27T14:30:00Z")
-        val approved = listOf(event.appVersion, event.deviceModel, event.failingScreen, event.errorClass, event.occurredAt)
-        assertEquals(listOf("0.1.0", "Phone", "Health", "IOException", "2026-08-27T14:30:00Z"), approved)
-        val schema = setOf("appVersion", "deviceModel", "failingScreen", "errorClass", "occurredAt")
-        assertFalse(schema.any { it.contains("email", ignoreCase = true) })
-        assertFalse(schema.any { it.contains("token", ignoreCase = true) })
-        assertFalse(schema.any { it.contains("message", ignoreCase = true) })
-        assertFalse(schema.any { it.contains("stack", ignoreCase = true) })
-        assertFalse(schema.any { it.contains("user", ignoreCase = true) })
+        val json = event.toJson()
+        val keys = json.keys().asSequence().toSet()
+
+        assertEquals(
+            setOf("app_version", "device_model", "failing_screen", "error_class", "occurred_at"),
+            keys
+        )
+        assertEquals("0.1.0", json.getString("app_version"))
+        assertEquals("Phone", json.getString("device_model"))
+        assertEquals("Health", json.getString("failing_screen"))
+        assertEquals("IOException", json.getString("error_class"))
+        assertEquals("2026-08-27T14:30:00Z", json.getString("occurred_at"))
+
+        val forbiddenKeys = setOf(
+            "email",
+            "user",
+            "user_id",
+            "token",
+            "access_token",
+            "refresh_token",
+            "message",
+            "stack",
+            "stack_trace",
+            "ticket",
+            "ticket_id",
+            "body"
+        )
+        assertFalse(keys.any { key -> forbiddenKeys.any { forbidden -> key.equals(forbidden, ignoreCase = true) } })
     }
 
     @Test
