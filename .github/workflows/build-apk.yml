@@ -33,18 +33,25 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
           gradle-version: '8.11.1'
 
@@ -73,63 +80,6 @@ jobs:
           print(f'Resolved Android release: {version_name} ({version_code})')
           PY
 
-      - name: Resolve release notes
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          NOTES="$(printf '%s' "$INPUT_RELEASE_NOTES" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-          if [ -z "$NOTES" ]; then
-            NOTES="$(git log -1 --pretty=%s)"
-          fi
-          test -n "$NOTES"
-          {
-            echo 'RELEASE_NOTES<<__BL_RELEASE_NOTES__'
-            printf '%s\n' "$NOTES"
-            echo '__BL_RELEASE_NOTES__'
-          } >> "$GITHUB_ENV"
-
-      - name: Production release preflight
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, os, re
-          from pathlib import Path
-          path = Path('ota/latest.json')
-          if not path.is_file():
-              raise SystemExit('Cannot publish: ota/latest.json is missing.')
-          current = json.loads(path.read_text(encoding='utf-8'))
-          old_code = current.get('versionCode')
-          old_name = str(current.get('versionName') or '').strip()
-          old_url = str(current.get('apkUrl') or '').strip()
-          old_sha = str(current.get('sha256') or '').strip()
-          new_code = int(os.environ['APP_VERSION_CODE'])
-          if not isinstance(old_code, int) or old_code <= 0 or not old_name:
-              raise SystemExit('Cannot publish: existing OTA manifest has invalid version identity.')
-          if not old_url.startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/'):
-              raise SystemExit('Cannot publish: existing OTA manifest has an untrusted APK URL.')
-          if not re.fullmatch(r'[0-9a-fA-F]{64}', old_sha):
-              raise SystemExit('Cannot publish: existing OTA manifest has an invalid SHA-256 checksum.')
-          if new_code <= old_code:
-              raise SystemExit(f'Cannot publish versionCode {new_code}: OTA already advertises versionCode {old_code}. Bump Android versionCode first.')
-          print(f'OTA monotonicity verified: {old_name} ({old_code}) -> {os.environ["APP_VERSION_NAME"]} ({new_code})')
-          PY
-          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "Cannot publish: Git tag ${APP_RELEASE_TAG} already exists." >&2
-            exit 1
-          fi
-          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "Cannot publish: GitHub Release ${APP_RELEASE_TAG} already exists." >&2
-            exit 1
-          fi
-          test -n "${RELEASE_NOTES:-}"
-
       - name: Bundle and verify Morley login background video
         shell: bash
         run: |
@@ -152,23 +102,6 @@ jobs:
           echo "Verified NEW login video: $ACTUAL_BYTES bytes, SHA-256 $ACTUAL_SHA256"
           cp "$VIDEO_PATH" android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
           cp "$VIDEO_PATH" web-assets/morley_buys_login_bg_app.mp4
-
-      - name: Publish desktop web login video and promote canonical ZIP
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -f morley_buys_login_bg_app_hq_new.zip ]; then
-            rm -f morley_buys_login_bg_app_hq.zip
-            git mv morley_buys_login_bg_app_hq_new.zip morley_buys_login_bg_app_hq.zip
-          fi
-          git add -A web-assets
-          if ! git diff --cached --quiet; then
-            git commit -m "Promote verified new login video [skip ci]"
-            git push
-          fi
 
       - name: Prepare Firebase Android config
         env:
@@ -245,7 +178,8 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk"
           sha256sum "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk" | tee "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload verified APK artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name != 'pull_request'
         with:
           name: B-and-L-Morley-${{ env.APP_VERSION_SAFE }}
@@ -254,28 +188,162 @@ jobs:
             dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
           if-no-files-found: error
 
-      - name: Publish GitHub release
-        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
-        uses: softprops/action-gh-release@v2
+  promote-login-video:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout publishing source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          tag_name: ${{ env.APP_RELEASE_TAG }}
-          name: B&L Morley ${{ env.APP_VERSION_NAME }}
-          body: |
-            B&L Morley production Android release.
-
-            ${{ env.RELEASE_NOTES }}
-
-            Verification: regression tests, Android lint, production signing and SHA-256 OTA integrity checks passed.
-          files: |
-            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
-            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
-          fail_on_unmatched_files: true
-          make_latest: true
-
-      - name: Publish OTA metadata
-        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify and promote canonical login video
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          set -euo pipefail
+          ZIP=morley_buys_login_bg_app_hq_new.zip
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app_hq.zip; fi
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
+          test -f "$ZIP" || { echo 'Missing Morley login video ZIP'; exit 1; }
+          rm -rf "$RUNNER_TEMP/morley-login-video"
+          mkdir -p "$RUNNER_TEMP/morley-login-video" web-assets
+          unzip -q -o "$ZIP" -d "$RUNNER_TEMP/morley-login-video"
+          VIDEO_PATH="$(find "$RUNNER_TEMP/morley-login-video" -type f -iname '*.mp4' | head -n 1)"
+          test -n "$VIDEO_PATH" && test -s "$VIDEO_PATH"
+          EXPECTED_BYTES=22004826
+          EXPECTED_SHA256=2bdeb6b7add8fda997144483534d3e8b3257079c2d3932ee5c8ff5d70720b897
+          test "$(stat -c%s "$VIDEO_PATH")" = "$EXPECTED_BYTES"
+          test "$(sha256sum "$VIDEO_PATH" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          cp "$VIDEO_PATH" web-assets/morley_buys_login_bg_app.mp4
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f morley_buys_login_bg_app_hq_new.zip ]; then
+            rm -f morley_buys_login_bg_app_hq.zip
+            git mv morley_buys_login_bg_app_hq_new.zip morley_buys_login_bg_app_hq.zip
+          fi
+          git add -A web-assets
+          if ! git diff --cached --quiet; then
+            git commit -m "Promote verified new login video [skip ci]"
+            gh auth setup-git
+            git push origin HEAD:main
+          fi
+
+  publish-release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish_release
+    needs: [build, promote-login-video]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Resolve Android release version and notes
+        env:
+          INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
+          code = re.search(r'\bversionCode\s+(\d+)', gradle)
+          name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          if not code or not name:
+              raise SystemExit('Could not resolve versionCode/versionName from android/app/build.gradle')
+          safe_name = re.sub(r'[^A-Za-z0-9._-]+', '-', name.group(1)).strip('-')
+          with open(Path(__import__('os').environ['GITHUB_ENV']), 'a', encoding='utf-8') as fh:
+              fh.write(f'APP_VERSION_CODE={code.group(1)}\n')
+              fh.write(f'APP_VERSION_NAME={name.group(1)}\n')
+              fh.write(f'APP_VERSION_SAFE={safe_name}\n')
+              fh.write(f'APP_RELEASE_TAG=v{safe_name}\n')
+          PY
+          NOTES="$(printf '%s' "$INPUT_RELEASE_NOTES" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          if [ -z "$NOTES" ]; then
+            NOTES="$(git log -1 --pretty=%s "$GITHUB_SHA")"
+          fi
+          test -n "$NOTES"
+          {
+            echo 'RELEASE_NOTES<<__BL_RELEASE_NOTES__'
+            printf '%s\n' "$NOTES"
+            echo '__BL_RELEASE_NOTES__'
+          } >> "$GITHUB_ENV"
+      - name: Production release preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          path = Path('ota/latest.json')
+          if not path.is_file():
+              raise SystemExit('Cannot publish: ota/latest.json is missing.')
+          current = json.loads(path.read_text(encoding='utf-8'))
+          old_code = current.get('versionCode')
+          old_name = str(current.get('versionName') or '').strip()
+          old_url = str(current.get('apkUrl') or '').strip()
+          old_sha = str(current.get('sha256') or '').strip()
+          new_code = int(os.environ['APP_VERSION_CODE'])
+          if not isinstance(old_code, int) or old_code <= 0 or not old_name:
+              raise SystemExit('Cannot publish: existing OTA manifest has invalid version identity.')
+          if not old_url.startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/'):
+              raise SystemExit('Cannot publish: existing OTA manifest has an untrusted APK URL.')
+          if not re.fullmatch(r'[0-9a-fA-F]{64}', old_sha):
+              raise SystemExit('Cannot publish: existing OTA manifest has an invalid SHA-256 checksum.')
+          if new_code <= old_code:
+              raise SystemExit(f'Cannot publish versionCode {new_code}: OTA already advertises versionCode {old_code}. Bump Android versionCode first.')
+          print(f'OTA monotonicity verified: {old_name} ({old_code}) -> {os.environ["APP_VERSION_NAME"]} ({new_code})')
+          PY
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Cannot publish: Git tag ${APP_RELEASE_TAG} already exists." >&2
+            exit 1
+          fi
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${APP_RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Cannot publish: GitHub Release ${APP_RELEASE_TAG} already exists." >&2
+            exit 1
+          fi
+      - name: Download verified APK artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: B-and-L-Morley-${{ env.APP_VERSION_SAFE }}
+          path: dist
+      - name: Verify downloaded checksum
+        shell: bash
+        run: sha256sum -c "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$APP_RELEASE_TAG" \
+            "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk" \
+            "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "B&L Morley $APP_VERSION_NAME" \
+            --notes "B&L Morley production Android release.
+
+$RELEASE_NOTES
+
+Verification: regression tests, Android lint, production signing and SHA-256 OTA integrity checks passed." \
+            --latest
+      - name: Publish OTA metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
           import hashlib, json, os
           from pathlib import Path
@@ -297,5 +365,6 @@ jobs:
           git add ota/latest.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish ${APP_VERSION_NAME} OTA metadata [skip ci]"
-            git push
+            gh auth setup-git
+            git push origin HEAD:main
           fi

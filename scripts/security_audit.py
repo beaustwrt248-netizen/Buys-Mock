@@ -19,6 +19,7 @@ CRITICAL_WORKFLOWS = {
     'admin-support-governance.yml',
     'admin-support-audit-check.yml',
     'admin-support-reconcile-check.yml',
+    'build-apk.yml',
 }
 
 # Only high-confidence privileged-secret indicators belong here. Public Supabase anon/publishable
