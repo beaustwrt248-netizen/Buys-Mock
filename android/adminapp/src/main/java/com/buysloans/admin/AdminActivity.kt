@@ -164,7 +164,7 @@ private fun Dashboard(
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         when (tab) {
             "Health" -> HealthPanel(snapshot)
-            "Tickets" -> ListPanel("Support ticket queue", snapshot?.tickets, ::ticketLine)
+            "Tickets" -> SupportOperationsPanel(snapshot?.tickets)
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
             "Users & devices" -> UsersDevicesPanel(session, snapshot, busy, onUserControl)
             "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)
