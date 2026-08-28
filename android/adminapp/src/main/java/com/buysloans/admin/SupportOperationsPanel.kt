@@ -3,15 +3,20 @@ package com.buysloans.admin
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,25 +31,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.json.JSONObject
 
 private val SupportMuted = Color(0xFF8EA6C4)
 private val SupportGood = Color(0xFF57E389)
 private val SupportWarn = Color(0xFFFFC857)
 
 @Composable
-internal fun SupportOperationsPanel(session: AdminSession, tickets: JSONArray?) {
+internal fun SupportOperationsPanel(
+    session: AdminSession,
+    tickets: JSONArray?,
+    profiles: JSONArray?,
+    busy: Boolean,
+    onUpdated: () -> Unit
+) {
     val health = summarizeSupportTicketHealth(tickets)
     val scope = rememberCoroutineScope()
     var selectedTicketId by remember { mutableStateOf("") }
     var conversation by remember { mutableStateOf<ProtectedConversationState?>(null) }
     var conversationError by remember { mutableStateOf("") }
     var loadingConversation by remember { mutableStateOf(false) }
+    var controlBusy by remember { mutableStateOf(false) }
+    var controlMessage by remember { mutableStateOf("") }
+    var controlError by remember { mutableStateOf("") }
 
     fun loadConversation(ticketId: String, ticketSubject: String) {
         if (ticketId.isBlank() || loadingConversation) return
         selectedTicketId = ticketId
         conversation = null
         conversationError = ""
+        controlMessage = ""
+        controlError = ""
         loadingConversation = true
         scope.launch {
             runCatching {
@@ -65,9 +82,27 @@ internal fun SupportOperationsPanel(session: AdminSession, tickets: JSONArray?) 
         }
     }
 
+    fun saveControls(command: SupportTicketUpdateCommand) {
+        if (controlBusy || busy) return
+        controlBusy = true
+        controlMessage = ""
+        controlError = ""
+        scope.launch {
+            runCatching { AdminApi.updateSupportTicket(session, command) }
+                .onSuccess {
+                    controlMessage = "Ticket triage updated and queued for durable audit refresh."
+                    onUpdated()
+                }
+                .onFailure {
+                    controlError = it.message ?: "Support ticket could not be updated."
+                }
+            controlBusy = false
+        }
+    }
+
     Text("Support operations", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
-        "Read-only assignment and SLA health. Select a ticket to load its protected conversation through the existing Admin/Manager-only reader.",
+        "Admin/Manager triage controls use the existing authenticated Supabase row policies and durable support audit triggers. Staff remain limited by server-side assigned-ticket RLS.",
         color = SupportMuted,
         fontSize = 12.sp
     )
@@ -91,10 +126,29 @@ internal fun SupportOperationsPanel(session: AdminSession, tickets: JSONArray?) 
             title = supportTicketOperationalLine(ticket),
             detail = supportTicketOperationalDetail(ticket),
             selected = ticketId.isNotBlank() && ticketId == selectedTicketId,
-            enabled = ticketId.isNotBlank() && !loadingConversation,
+            enabled = ticketId.isNotBlank() && !loadingConversation && !controlBusy,
             onSelect = { loadConversation(ticketId, ticketSubject) }
         )
     }
+
+    findSupportTicket(tickets, selectedTicketId)?.let { selected ->
+        SupportTicketControlsPanel(
+            session = session,
+            ticket = selected,
+            profiles = profiles,
+            busy = busy || controlBusy,
+            onSave = ::saveControls
+        )
+    }
+
+    if (controlBusy) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CircularProgressIndicator()
+            Text("Saving audited triage change…", color = SupportMuted)
+        }
+    }
+    if (controlMessage.isNotBlank()) Text(controlMessage, color = SupportGood, fontSize = 12.sp)
+    if (controlError.isNotBlank()) Text(controlError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
 
     if (loadingConversation) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,10 +167,119 @@ internal fun SupportOperationsPanel(session: AdminSession, tickets: JSONArray?) 
     }
 
     Text(
-        "Ticket selection only loads the selected ticket's existing protected messages. This view cannot assign tickets, change status or priority, write messages, modify attachments, or alter support ownership. Existing Supabase RLS remains authoritative.",
+        "Assignment is exposed only to authenticated Admin/Manager sessions in this app. Status and priority changes are field-limited by the client payload, while Supabase RLS remains authoritative. Priority changes recalculate the existing SLA target server-side. Protected messages remain selected-ticket-only; attachments are not modified here.",
         color = SupportMuted,
         fontSize = 12.sp
     )
+}
+
+@Composable
+private fun SupportTicketControlsPanel(
+    session: AdminSession,
+    ticket: JSONObject,
+    profiles: JSONArray?,
+    busy: Boolean,
+    onSave: (SupportTicketUpdateCommand) -> Unit
+) {
+    val ticketId = ticket.optString("id")
+    val currentStatus = ticket.optString("status")
+    val currentPriority = ticket.optString("priority")
+    val currentAssignee = ticket.optString("assigned_to")
+    val assignees = eligibleSupportAssignees(profiles)
+    var status by remember(ticketId, currentStatus) { mutableStateOf(currentStatus) }
+    var priority by remember(ticketId, currentPriority) { mutableStateOf(currentPriority) }
+    var assignedTo by remember(ticketId, currentAssignee) { mutableStateOf(currentAssignee) }
+    val authorised = canManageSupportTicketControls(session)
+    val changed = status != currentStatus || priority != currentPriority || assignedTo != currentAssignee
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .28f)),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Ticket controls", fontWeight = FontWeight.Black)
+            Text(ticket.optString("subject").ifBlank { "Support ticket" }, fontWeight = FontWeight.Bold)
+            ChoiceMenu(
+                label = "Status",
+                value = status,
+                options = SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) },
+                enabled = authorised && !busy,
+                onSelect = { status = it }
+            )
+            ChoiceMenu(
+                label = "Priority",
+                value = priority,
+                options = SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar(Char::uppercaseChar) },
+                enabled = authorised && !busy,
+                onSelect = { priority = it }
+            )
+            ChoiceMenu(
+                label = "Assigned to",
+                value = assignedTo,
+                options = listOf("" to "Unassigned") + assignees.map { it.id to "${it.label} · ${it.role}" },
+                enabled = authorised && !busy,
+                onSelect = { assignedTo = it }
+            )
+            Text(
+                "SLA target: ${ticket.optString("sla_due_at").ifBlank { "not set" }}. Changing priority recalculates this target through the existing database trigger.",
+                color = SupportMuted,
+                fontSize = 11.sp
+            )
+            Button(
+                onClick = {
+                    onSave(
+                        SupportTicketUpdateCommand(
+                            ticketId = ticketId,
+                            status = status,
+                            priority = priority,
+                            assignedTo = assignedTo.takeIf(String::isNotBlank)
+                        )
+                    )
+                },
+                enabled = authorised && !busy && changed && ticketId.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save audited triage change", fontWeight = FontWeight.Black)
+            }
+            if (!authorised) {
+                Text("These controls require an authenticated Admin or Manager session.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChoiceMenu(
+    label: String,
+    value: String,
+    options: List<Pair<String, String>>,
+    enabled: Boolean,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val display = options.firstOrNull { it.first == value }?.second ?: value.ifBlank { "Unassigned" }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("$label: $display")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.second) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option.first)
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -155,12 +318,30 @@ private fun SupportTicketCard(
                 when {
                     selected && enabled -> "Selected • tap another ticket to switch"
                     selected -> "Selected"
-                    enabled -> "Tap to view protected conversation"
-                    else -> "Conversation unavailable while another ticket is loading"
+                    enabled -> "Tap to manage ticket and view protected conversation"
+                    else -> "Ticket unavailable while another operation is running"
                 },
                 color = SupportMuted,
                 fontSize = 10.sp
             )
         }
     }
+}
+
+private fun findSupportTicket(tickets: JSONArray?, ticketId: String): JSONObject? {
+    if (tickets == null || ticketId.isBlank()) return null
+    for (i in 0 until tickets.length()) {
+        val ticket = tickets.optJSONObject(i) ?: continue
+        if (ticket.optString("id") == ticketId) return ticket
+    }
+    return null
+}
+
+private fun supportStatusLabel(status: String): String = when (status) {
+    "open" -> "Open"
+    "in_progress" -> "In progress"
+    "waiting_on_user" -> "Waiting on user"
+    "resolved" -> "Resolved"
+    "closed" -> "Closed"
+    else -> status
 }
