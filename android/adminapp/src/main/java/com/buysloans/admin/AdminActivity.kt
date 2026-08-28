@@ -7,13 +7,20 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -133,9 +140,24 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
         Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
-        OutlinedTextField(email, { email = it }, label = { Text("Admin email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Admin email") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.EmailAddress }
+        )
         Spacer(Modifier.height(10.dp))
-        OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
+        )
         Spacer(Modifier.height(12.dp))
         Text("Security check", fontWeight = FontWeight.Bold)
         key(captchaEpoch) {
@@ -154,9 +176,9 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
                 val token = captchaToken
                 captchaToken = ""
                 captchaEpoch += 1
-                onLogin(email, password, token)
+                onLogin(email.trim(), password, token)
             },
-            enabled = !busy && captchaToken.isNotBlank(),
+            enabled = isAdminLoginReady(email, password, captchaToken, busy),
             modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
         ) { Text("Sign in", fontWeight = FontWeight.Black) }
     }
@@ -265,7 +287,7 @@ private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (Maint
             Button(onClick = { onUpdate(current, enabled, message) }, enabled = !busy && (enabled != current.enabled || message.trim() != current.message), modifier = Modifier.fillMaxWidth()) { Text("Save audited maintenance control", fontWeight = FontWeight.Black) }
         }
     }
-    Text("Every successful change is written through the existing Admin/Manager RPC and recorded in the durable admin audit log. This screen cannot publish a release, change OTA metadata, alter pricing/scanner flags, or modify accounts.", color = Muted, fontSize = 12.sp)
+    Text("Every successful change is written through the existing Admin/Manager RPC and recorded in the durable admin audit log. This screen cannot publish a release, change minimum versions, or modify OTA metadata.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
