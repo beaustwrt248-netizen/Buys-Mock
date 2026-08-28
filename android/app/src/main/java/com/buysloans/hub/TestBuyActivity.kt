@@ -25,6 +25,13 @@ private val TBGood = Color(0xFF57E389)
 private val TBBad = Color(0xFFFF6B7A)
 private val TBWarn = Color(0xFFFFC857)
 
+private fun testResultColor(result: TestResult): Color = when (result) {
+    TestResult.PASS -> TBGood
+    TestResult.FAIL -> TBBad
+    TestResult.NOT_APPLICABLE -> TBWarn
+    TestResult.NOT_TESTED -> TBAccent
+}
+
 class TestBuyActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,9 +168,16 @@ private fun TestBuyScreen(onBack: () -> Unit) {
 
             Text("Hardware checklist", fontSize = 18.sp, fontWeight = FontWeight.Black)
             checks.forEachIndexed { index, check ->
+                val statusColor = testResultColor(check.result)
+                val isCompleted = check.result != TestResult.NOT_TESTED
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = TBCard),
-                    border = BorderStroke(1.dp, TBAccent.copy(alpha = .16f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isCompleted) statusColor.copy(alpha = .09f) else TBCard
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        statusColor.copy(alpha = if (isCompleted) .72f else .16f)
+                    ),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -171,11 +185,35 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                         Text(check.label, fontWeight = FontWeight.Bold)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(TestResult.PASS, TestResult.FAIL, TestResult.NOT_APPLICABLE).forEach { result ->
+                                val resultColor = testResultColor(result)
+                                val selected = check.result == result
                                 FilterChip(
-                                    selected = check.result == result,
+                                    selected = selected,
                                     onClick = { checks = checks.toMutableList().also { it[index] = check.copy(result = result) } },
-                                    label = { Text(when (result) { TestResult.PASS -> "Pass"; TestResult.FAIL -> "Fail"; else -> "N/A" }, fontSize = 10.sp) },
-                                    modifier = Modifier.weight(1f)
+                                    label = {
+                                        Text(
+                                            when (result) {
+                                                TestResult.PASS -> "Pass"
+                                                TestResult.FAIL -> "Fail"
+                                                else -> "N/A"
+                                            },
+                                            fontSize = 10.sp,
+                                            fontWeight = if (selected) FontWeight.Black else FontWeight.Medium
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = selected,
+                                        borderColor = resultColor.copy(alpha = .72f),
+                                        selectedBorderColor = resultColor
+                                    ),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        containerColor = resultColor.copy(alpha = .04f),
+                                        labelColor = Color.White.copy(alpha = .86f),
+                                        selectedContainerColor = resultColor.copy(alpha = .34f),
+                                        selectedLabelColor = Color.White
+                                    )
                                 )
                             }
                         }
