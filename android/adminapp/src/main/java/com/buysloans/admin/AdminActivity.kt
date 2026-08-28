@@ -74,6 +74,19 @@ private fun AdminRoot() {
         }
     }
 
+    fun updateUserAccess(s: AdminSession, command: UserControlCommand) {
+        busy = true; error = ""
+        scope.launch {
+            runCatching { UserControlCoordinator.execute(s, command, confirmed = true) }
+                .onSuccess { refresh(s) }
+                .onFailure {
+                    AdminTelemetry.record(context, "Users/AccessControl", it)
+                    error = it.message ?: "User access could not be updated."
+                    busy = false
+                }
+        }
+    }
+
     if (session == null) {
         LoginScreen(busy, error) { email, password ->
             busy = true; error = ""
@@ -103,6 +116,7 @@ private fun AdminRoot() {
             error = error,
             onRefresh = { refresh(session!!) },
             onUpdateMaintenance = { current, enabled, message -> updateMaintenance(session!!, current, enabled, message) },
+            onUserControl = { command -> updateUserAccess(session!!, command) },
             onSignOut = { session = null; snapshot = null }
         )
     }
@@ -115,7 +129,7 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String) 
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
-        Text("Authenticated operational access. Only the allowlisted, audited maintenance control is writable in this stage.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
+        Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(email, { email = it }, label = { Text("Admin email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -133,6 +147,7 @@ private fun Dashboard(
     error: String,
     onRefresh: () -> Unit,
     onUpdateMaintenance: (MaintenanceConfig, Boolean, String) -> Unit,
+    onUserControl: (UserControlCommand) -> Unit,
     onSignOut: () -> Unit
 ) {
     var tab by remember { mutableStateOf("Health") }
@@ -151,7 +166,7 @@ private fun Dashboard(
             "Health" -> HealthPanel(snapshot)
             "Tickets" -> ListPanel("Support ticket queue", snapshot?.tickets, ::ticketLine)
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
-            "Users & devices" -> UsersDevicesPanel(snapshot)
+            "Users & devices" -> UsersDevicesPanel(session, snapshot, busy, onUserControl)
             "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)
             "Release" -> ReleasePanel(snapshot?.config)
         }
@@ -180,11 +195,16 @@ private fun HealthPanel(s: AdminSnapshot?) {
             InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
         }
     }
-    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. The only remote write exposed in this stage is the separately allowlisted, audited maintenance control.", color = Muted, fontSize = 12.sp)
+    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. Writable actions remain isolated to audited maintenance and Admin-only user-access controls.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
-private fun UsersDevicesPanel(s: AdminSnapshot?) {
+private fun UsersDevicesPanel(
+    session: AdminSession,
+    s: AdminSnapshot?,
+    busy: Boolean,
+    onUserControl: (UserControlCommand) -> Unit
+) {
     val devices = s?.devices
     val versions = if (devices == null) emptyList() else (0 until devices.length()).map { devices.optJSONObject(it)?.optString("app_version")?.takeIf(String::isNotBlank) }
     val currentVersion = currentReleaseVersion(s?.config)
@@ -196,7 +216,7 @@ private fun UsersDevicesPanel(s: AdminSnapshot?) {
     Metric("Outdated", adoption.outdated.toString(), if (adoption.outdated > 0) Warn else Good)
     Metric("Ahead / test", adoption.aheadOrTest.toString(), Muted)
     Metric("Unknown version", adoption.unknown.toString(), if (adoption.unknown > 0) Warn else Muted)
-    ListPanel("Users", s?.profiles) { j -> "${j.optString("display_name").ifBlank { "Unnamed" }} • ${j.optString("role")} • ${if (j.optBoolean("is_enabled")) "enabled" else "disabled"}" }
+    UserManagementPanel(session, s?.profiles, busy, onUserControl)
     ListPanel("Devices", devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" }
 }
 
