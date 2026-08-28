@@ -13,6 +13,13 @@ data class TestBuyCompletionHistory(
     val recordedAt: Long
 )
 
+private fun testedChecksSummary(checks: List<HardwareCheck>): String {
+    val tested = checks
+        .filter { it.result != TestResult.NOT_TESTED }
+        .joinToString(", ") { check -> "${check.label}=${check.result.name}" }
+    return if (tested.isBlank()) "none" else tested
+}
+
 fun completionHistoryFor(session: TestBuySessionRecord): TestBuyCompletionHistory {
     val source = when (session.evidenceSource) {
         TestEvidenceSource.MANUAL_ENTRY -> DeviceTestHistorySource.TEST_BUY
@@ -21,13 +28,14 @@ fun completionHistoryFor(session: TestBuySessionRecord): TestBuyCompletionHistor
     }
     val completedAtMillis = Instant.parse(session.completedAt).toEpochMilli()
     val faultsSummary = session.faults.ifBlank { "none recorded" }
+    val testedChecks = testedChecksSummary(session.checks)
     return TestBuyCompletionHistory(
         source = source,
         reference = session.scanReference,
         itemName = session.itemName,
         category = session.category.name,
         result = session.outcome.name,
-        summary = "${session.completedChecks}/${session.totalChecks} checks completed; ${session.failedChecks} failed; faults: $faultsSummary; explicit ${session.outcome.name} outcome.",
+        summary = "${session.completedChecks}/${session.totalChecks} checks completed; ${session.failedChecks} failed; tested: $testedChecks; faults: $faultsSummary; explicit ${session.outcome.name} outcome.",
         recordedAt = completedAtMillis
     )
 }
