@@ -51,6 +51,14 @@ internal object AdminApi {
         )
     }
 
+    suspend fun loadSupportMessages(session: AdminSession, ticketId: String, limit: Int = 100): JSONArray = withContext(Dispatchers.IO) {
+        require(SupportMessageAccessPolicy.canReadProtectedMessages(session)) {
+            "Protected support messages require an authenticated Admin or Manager session."
+        }
+        val path = SupportMessageAccessPolicy.buildReadPath(session, ticketId, limit)
+        getArray(path, session.accessToken)
+    }
+
     suspend fun updateMaintenanceConfig(session: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) = withContext(Dispatchers.IO) {
         val payload = maintenanceUpdatePayload(current, enabled, message).toString()
         val response = request("/rest/v1/rpc/admin_set_config", "POST", session.accessToken, payload, preferMinimal = true)
