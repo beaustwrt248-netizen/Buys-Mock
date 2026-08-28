@@ -19,10 +19,18 @@ internal data class AdminSnapshot(
     val auditEvents: JSONArray
 )
 
+internal fun passwordSignInPayload(email: String, password: String, captchaToken: String): String =
+    JSONObject()
+        .put("email", email.trim())
+        .put("password", password)
+        .put("gotrue_meta_security", JSONObject().put("captcha_token", captchaToken))
+        .toString()
+
 internal object AdminApi {
-    suspend fun signIn(email: String, password: String): AdminSession = withContext(Dispatchers.IO) {
+    suspend fun signIn(email: String, password: String, captchaToken: String): AdminSession = withContext(Dispatchers.IO) {
         require(email.isNotBlank() && password.isNotBlank()) { "Enter email and password." }
-        val payload = JSONObject().put("email", email.trim()).put("password", password).toString()
+        require(captchaToken.isNotBlank()) { "Complete the security check before signing in." }
+        val payload = passwordSignInPayload(email, password, captchaToken)
         val auth = request("/auth/v1/token?grant_type=password", "POST", null, payload)
         if (auth.first !in 200..299) error(message(auth.second, "Sign-in failed."))
         val authJson = JSONObject(auth.second)
