@@ -327,16 +327,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          {
+            printf '%s\n\n' 'B&L Morley production Android release.'
+            printf '%s\n\n' "$RELEASE_NOTES"
+            printf '%s\n' 'Verification: regression tests, Android lint, production signing and SHA-256 OTA integrity checks passed.'
+          } > "$NOTES_FILE"
           gh release create "$APP_RELEASE_TAG" \
             "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk" \
             "dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256" \
             --repo "$GITHUB_REPOSITORY" \
             --title "B&L Morley $APP_VERSION_NAME" \
-            --notes "B&L Morley production Android release.
-
-$RELEASE_NOTES
-
-Verification: regression tests, Android lint, production signing and SHA-256 OTA integrity checks passed." \
+            --notes-file "$NOTES_FILE" \
             --latest
       - name: Publish OTA metadata
         env:
