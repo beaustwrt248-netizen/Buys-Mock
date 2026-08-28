@@ -216,8 +216,8 @@ jobs:
         with:
           name: B-and-L-Morley-${{ env.APP_VERSION_SAFE }}
           path: |
-            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk
-            dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk.sha256
+            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
+            dist/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk.sha256
           if-no-files-found: error
 
   promote-login-video:
