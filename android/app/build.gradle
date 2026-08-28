@@ -86,7 +86,7 @@ tasks.matching { it.name == 'preBuild' }.configureEach {
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.3.0')
+    implementation platform('com.google.firebase:firebase-bom:34.18.0')
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.activity:activity-compose:1.10.1'
