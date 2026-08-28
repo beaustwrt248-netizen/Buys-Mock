@@ -115,12 +115,17 @@ object WorkspaceStore {
         return id
     }
 
-    fun updateInventoryLifecycle(context:Context,id:String,to:InventoryLifecycle){
+    fun updateInventoryLifecycle(
+        context:Context,
+        id:String,
+        to:InventoryLifecycle,
+        reason:String = ""
+    ){
         val items=inventory(context).toMutableList()
         val index=items.indexOfFirst{it.id==id}
         require(index>=0){ "Inventory item was not found." }
         val current=items[index]
-        requireLifecycleTransition(current.lifecycle,to)
+        InventoryLifecycleHistory.validateTransition(current.lifecycle,to,reason)
         items[index]=current.copy(lifecycle=to)
         saveInventory(context,items)
     }
