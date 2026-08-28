@@ -47,7 +47,10 @@ jobs:
           grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
-          ! grep -REq 'force_signout|admin-user-control|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PATCH|PUT|DELETE)"' android/adminapp/src/main/java
+          grep -q '/rest/v1/support_tickets?id=eq.' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
+          grep -q 'request(path, "PATCH", session.accessToken, payload, preferMinimal = true)' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
+          test "$(grep -Rho '"'"'PATCH'"'"' android/adminapp/src/main/java | wc -l)" = "1"
+          ! grep -REq 'force_signout|admin-user-control|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' android/adminapp/src/main/java
           ! grep -REqi 'service[_-]?role|SUPABASE_SECRET_KEY' android/adminapp
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
