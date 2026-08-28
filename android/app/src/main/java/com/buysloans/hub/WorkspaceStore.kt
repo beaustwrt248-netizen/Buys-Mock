@@ -130,6 +130,7 @@ object WorkspaceStore {
     fun sellOne(context:Context,id:String,salePrice:Double){
         val items=inventory(context).toMutableList();val idx=items.indexOfFirst{it.id==id};if(idx<0)return
         val item=items[idx]
+        InventorySalePolicy.requireSellable(item.lifecycle)
         val sales=sales(context).toMutableList();sales.add(0,SaleRecord(UUID.randomUUID().toString(),item.name,item.barcode,item.cost,salePrice.coerceAtLeast(0.0),1,System.currentTimeMillis()));saveSales(context,sales)
         if(item.quantity<=1)items.removeAt(idx) else items[idx]=item.copy(quantity=item.quantity-1)
         saveInventory(context,items)
