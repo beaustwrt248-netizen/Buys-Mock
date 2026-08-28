@@ -9,8 +9,18 @@ class AdminLoginPolicyTest {
         assertTrue(isAdminLoginReady("admin@example.com", "secret", "captcha-token", busy = false))
     }
 
+    @Test fun validTrimmedEmailEnablesSignIn() {
+        assertTrue(isAdminLoginReady("  admin@example.com  ", "secret", "captcha-token", busy = false))
+    }
+
+    @Test fun commonValidEmailFormsEnableSignIn() {
+        assertTrue(isAdminLoginReady("first.last+admin@example.com.au", "secret", "captcha-token", busy = false))
+    }
+
     @Test fun invalidEmailKeepsSignInDisabled() {
         assertFalse(isAdminLoginReady("admin", "secret", "captcha-token", busy = false))
+        assertFalse(isAdminLoginReady("admin@localhost", "secret", "captcha-token", busy = false))
+        assertFalse(isAdminLoginReady("admin @example.com", "secret", "captcha-token", busy = false))
     }
 
     @Test fun emptyPasswordKeepsSignInDisabled() {
@@ -19,6 +29,7 @@ class AdminLoginPolicyTest {
 
     @Test fun missingCaptchaKeepsSignInDisabled() {
         assertFalse(isAdminLoginReady("admin@example.com", "secret", "", busy = false))
+        assertFalse(isAdminLoginReady("admin@example.com", "secret", "   ", busy = false))
     }
 
     @Test fun busyStateKeepsSignInDisabled() {
