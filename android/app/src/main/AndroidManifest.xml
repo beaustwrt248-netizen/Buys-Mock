@@ -43,14 +43,9 @@
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity
             android:name=".SupportTicketActivity"
-            android:exported="true"
+            android:exported="false"
             android:screenOrientation="portrait"
-            android:label="B&amp;L Morley Support">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:label="B&amp;L Morley Support" />
 
         <service
             android:name=".MorleyFirebaseMessagingService"
