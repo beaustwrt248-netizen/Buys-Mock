@@ -43,20 +43,33 @@ internal object AdminApi {
         if (profileResponse.first !in 200..299) error(message(profileResponse.second, "Could not verify Admin access."))
         val profile = JSONArray(profileResponse.second).optJSONObject(0) ?: error("This account is not authorised for Admin access.")
         val role = profile.optString("role")
-        require(profile.optBoolean("is_enabled") && role in setOf("admin", "manager")) { "This account is not authorised for Admin access." }
+        require(AdminAppAccessPolicy.canEnter(role, profile.optBoolean("is_enabled"))) { "This account is not authorised for Admin access." }
         AdminSession(token, userId, profile.optString("display_name").ifBlank { email.substringBefore('@') }, role)
     }
 
     suspend fun load(session: AdminSession): AdminSnapshot = withContext(Dispatchers.IO) {
-        AdminSnapshot(
-            tickets = getArray("/rest/v1/support_tickets?select=id,category,subject,status,priority,app_version,device_model,assigned_to,sla_due_at,first_response_at,created_at,updated_at&order=created_at.desc&limit=50", session.accessToken),
-            announcements = getArray("/rest/v1/announcements?select=id,title,body,audience,is_active,created_at&order=created_at.desc&limit=25", session.accessToken),
-            profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
-            devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
-            config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(feature_flags,current_release,minimum_supported_version)&order=key", session.accessToken),
-            errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken),
-            auditEvents = getArray("/rest/v1/admin_audit_log?select=id,action,target_type,target_id,created_at&order=created_at.desc&limit=50", session.accessToken)
-        )
+        val ticketPath = "/rest/v1/support_tickets?select=id,category,subject,status,priority,app_version,device_model,assigned_to,sla_due_at,first_response_at,created_at,updated_at&order=created_at.desc&limit=50"
+        when {
+            AdminAppAccessPolicy.canReadFullSnapshot(session) -> AdminSnapshot(
+                tickets = getArray(ticketPath, session.accessToken),
+                announcements = getArray("/rest/v1/announcements?select=id,title,body,audience,is_active,created_at&order=created_at.desc&limit=25", session.accessToken),
+                profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
+                devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
+                config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(feature_flags,current_release,minimum_supported_version)&order=key", session.accessToken),
+                errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken),
+                auditEvents = getArray("/rest/v1/admin_audit_log?select=id,action,target_type,target_id,created_at&order=created_at.desc&limit=50", session.accessToken)
+            )
+            AdminAppAccessPolicy.isSupportOnly(session) -> AdminSnapshot(
+                tickets = getArray(ticketPath, session.accessToken),
+                announcements = JSONArray(),
+                profiles = JSONArray(),
+                devices = JSONArray(),
+                config = JSONArray(),
+                errorEvents = JSONArray(),
+                auditEvents = JSONArray()
+            )
+            else -> error("This account is not authorised for Admin access.")
+        }
     }
 
     suspend fun loadSupportMessages(session: AdminSession, ticketId: String, limit: Int = 100): JSONArray = withContext(Dispatchers.IO) {
