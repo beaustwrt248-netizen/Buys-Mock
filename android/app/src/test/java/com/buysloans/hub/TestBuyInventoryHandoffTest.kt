@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -81,9 +82,11 @@ class TestBuyInventoryHandoffTest {
             completedAt = "2026-08-27T17:36:00Z"
         )
 
-        val handoff = TestBuyInventoryHandoff.create(session, "2026-08-27T17:37:00Z")
-        assertEquals(TestEvidenceSource.ANDROID_NFC_READ_ONLY, handoff.evidenceSource)
-        assertEquals("04A1B2C3D4", handoff.scanReference)
-        assertEquals(InventoryLifecycle.PURCHASED, handoff.initialLifecycle)
+        assertEquals(TestEvidenceSource.ANDROID_NFC_READ_ONLY, session.evidenceSource)
+        assertEquals("04A1B2C3D4", session.scanReference)
+        assertFalse(session.canOfferInventoryHandoff)
+        assertTrue(runCatching {
+            TestBuyInventoryHandoff.create(session, "2026-08-27T17:37:00Z")
+        }.isFailure)
     }
 }
