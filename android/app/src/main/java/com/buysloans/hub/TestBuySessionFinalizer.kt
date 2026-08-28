@@ -31,7 +31,8 @@ object TestBuySessionFinalizer {
     fun finalize(
         draft: TestBuyDraft,
         evidenceSource: TestEvidenceSource = TestEvidenceSource.MANUAL_ENTRY,
-        completedAt: String = Instant.now().toString()
+        completedAt: String = Instant.now().toString(),
+        explicitOutcome: BuyOutcome? = null
     ): TestBuySessionRecord {
         require(draft.itemName.isNotBlank()) { "An item name is required before finalizing Test & Buy." }
         require(draft.askingPrice >= 0.0) { "Seller asking price cannot be negative." }
@@ -47,6 +48,18 @@ object TestBuySessionFinalizer {
             require(scanReference.isNotBlank()) { "Android NFC read-only evidence requires a scan reference." }
         }
 
+        val outcome = explicitOutcome ?: recommendedOutcome(draft)
+        if (explicitOutcome != null) {
+            val availability = TestBuyOutcomePolicy.evaluate(draft)
+            require(availability.allows(explicitOutcome)) {
+                when (explicitOutcome) {
+                    BuyOutcome.REJECT -> "Reject requires an item or model name."
+                    BuyOutcome.BUY -> availability.buyBlockers.joinToString(" ").ifBlank { "Buy is not available for this Test & Buy session." }
+                    BuyOutcome.SEND_TO_INVENTORY -> availability.inventoryBlockers.joinToString(" ").ifBlank { "Send to Inventory is not available for this Test & Buy session." }
+                }
+            }
+        }
+
         return TestBuySessionRecord(
             itemName = draft.itemName.trim(),
             category = draft.category,
@@ -57,7 +70,7 @@ object TestBuySessionFinalizer {
             maxBuyPrice = draft.maxBuyPrice,
             faults = draft.faults.trim(),
             checks = draft.checks.map { it.copy(notes = it.notes.trim()) },
-            outcome = recommendedOutcome(draft),
+            outcome = outcome,
             completedAt = completedAt
         )
     }
