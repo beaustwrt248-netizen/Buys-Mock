@@ -37,8 +37,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$FIREBASE_GOOGLE_SERVICES_JSON"
-          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          if [ -n "$FIREBASE_GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "morley-ci-placeholder",
+              "storage_bucket": "morley-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.buysloans.hub"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyMorleyCiPlaceholderKey000000000"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+            echo 'Using non-production Firebase placeholder for read-only pull-request validation.'
+          fi
           python3 -m json.tool android/app/google-services.json >/dev/null
       - name: Run regression tests
         run: gradle -p android testDebugUnitTest --stacktrace --console=plain
