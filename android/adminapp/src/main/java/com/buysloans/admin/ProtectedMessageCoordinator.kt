@@ -14,7 +14,7 @@ internal object ProtectedMessageCoordinator {
     ): ProtectedConversationState {
         require(ticketId.isNotBlank()) { "A ticket id is required for protected-message access." }
         require(SupportMessageAccessPolicy.canReadProtectedMessages(session)) {
-            "Protected support messages require an authenticated Admin or Manager session."
+            "Protected support messages require an authenticated Staff, Manager or Admin session."
         }
 
         val rows = AdminApi.loadSupportMessages(
