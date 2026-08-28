@@ -12,7 +12,7 @@ class TestBuyCompletionHistoryTest {
     )
 
     @Test
-    fun rejectCompletionPreservesBarcodeEvidenceAndFaults() {
+    fun rejectCompletionPreservesBarcodeEvidenceFaultsAndTestedChecks() {
         val session = TestBuySessionFinalizer.finalize(
             draft = TestBuyDraft(
                 itemName = "Console",
@@ -35,6 +35,8 @@ class TestBuyCompletionHistoryTest {
         assertEquals(1787875200000L, history.recordedAt)
         assertTrue(history.summary.contains("explicit REJECT outcome"))
         assertTrue(history.summary.contains("HDMI port intermittent"))
+        assertTrue(history.summary.contains("Power=PASS"))
+        assertTrue(history.summary.contains("Wi-Fi=NOT_APPLICABLE"))
     }
 
     @Test
@@ -57,6 +59,7 @@ class TestBuyCompletionHistoryTest {
         assertFalse(session.canOfferInventoryHandoff)
         assertEquals(DeviceTestHistorySource.TEST_BUY, history.source)
         assertTrue(history.summary.contains("Battery degraded"))
+        assertTrue(history.summary.contains("tested: Power=PASS, Wi-Fi=NOT_APPLICABLE"))
     }
 
     @Test
@@ -80,5 +83,31 @@ class TestBuyCompletionHistoryTest {
         assertTrue(session.canOfferInventoryHandoff)
         assertEquals(DeviceTestHistorySource.NFC, history.source)
         assertEquals("04A1B2C3D4", history.reference)
+        assertTrue(history.summary.contains("Power=PASS"))
+        assertFalse(history.summary.contains("assign", ignoreCase = true))
+        assertFalse(history.summary.contains("link", ignoreCase = true))
+        assertFalse(history.summary.contains("stock", ignoreCase = true))
+    }
+
+    @Test
+    fun untestedChecksAreNotClaimedAsTestedInHistory() {
+        val session = TestBuySessionFinalizer.finalize(
+            draft = TestBuyDraft(
+                itemName = "Desktop PC",
+                category = DeviceCategory.DESKTOP_PC,
+                askingPrice = 100.0,
+                currentValuation = 200.0,
+                maxBuyPrice = 120.0,
+                checks = listOf(
+                    HardwareCheck("power", "Power", TestResult.PASS),
+                    HardwareCheck("camera", "Camera", TestResult.NOT_TESTED)
+                )
+            ),
+            completedAt = "2026-08-28T00:00:00Z"
+        )
+        val history = completionHistoryFor(session)
+
+        assertTrue(history.summary.contains("Power=PASS"))
+        assertFalse(history.summary.contains("Camera=NOT_TESTED"))
     }
 }
