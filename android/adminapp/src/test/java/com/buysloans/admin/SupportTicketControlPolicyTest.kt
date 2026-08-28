@@ -11,14 +11,25 @@ class SupportTicketControlPolicyTest {
     private val admin = AdminSession("token", "admin-1", "Admin", "admin")
     private val manager = AdminSession("token", "manager-1", "Manager", "manager")
     private val staff = AdminSession("token", "staff-1", "Staff", "staff")
+    private val user = AdminSession("token", "user-1", "User", "user")
 
-    @Test fun adminAndManagerCanUsePrivilegedTicketControls() {
+    @Test fun supportRolesCanTriageButOnlyAdminAndManagerCanAssign() {
+        assertTrue(canUpdateSupportTicketTriage(admin))
+        assertTrue(canUpdateSupportTicketTriage(manager))
+        assertTrue(canUpdateSupportTicketTriage(staff))
+        assertFalse(canUpdateSupportTicketTriage(user))
+
+        assertTrue(canAssignSupportTicket(admin))
+        assertTrue(canAssignSupportTicket(manager))
+        assertFalse(canAssignSupportTicket(staff))
+        assertFalse(canAssignSupportTicket(user))
+
         assertTrue(canManageSupportTicketControls(admin))
         assertTrue(canManageSupportTicketControls(manager))
         assertFalse(canManageSupportTicketControls(staff))
     }
 
-    @Test fun payloadContainsOnlyTriageFieldsAndSupportsUnassignment() {
+    @Test fun privilegedPayloadContainsAssignmentAndSupportsUnassignment() {
         val payload = supportTicketUpdatePayload(
             admin,
             SupportTicketUpdateCommand("ticket-1", "in_progress", "high", null)
@@ -28,6 +39,26 @@ class SupportTicketControlPolicyTest {
         assertEquals("in_progress", payload.getString("status"))
         assertEquals("high", payload.getString("priority"))
         assertTrue(payload.isNull("assigned_to"))
+    }
+
+    @Test fun staffPayloadCannotMutateAssignment() {
+        val payload = supportTicketUpdatePayload(
+            staff,
+            SupportTicketUpdateCommand("ticket-1", "waiting_on_user", "normal", "someone-else")
+        )
+
+        assertEquals(setOf("status", "priority"), payload.keySet())
+        assertEquals("waiting_on_user", payload.getString("status"))
+        assertEquals("normal", payload.getString("priority"))
+        assertFalse(payload.has("assigned_to"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun ordinaryUserCannotCreateTriagePayload() {
+        supportTicketUpdatePayload(
+            user,
+            SupportTicketUpdateCommand("ticket-1", "open", "normal", null)
+        )
     }
 
     @Test(expected = IllegalArgumentException::class)
