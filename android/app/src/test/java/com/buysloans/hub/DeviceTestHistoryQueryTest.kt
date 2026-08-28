@@ -19,6 +19,37 @@ class DeviceTestHistoryQueryTest {
     }
 
     @Test
+    fun recentClampsUnsafeLimitsWithoutChangingEvidence() {
+        assertEquals(listOf("d"), DeviceTestHistoryQuery.recent(entries, limit = 0).map { it.id })
+
+        val manyEntries = (1..125).map { index ->
+            DeviceTestHistoryEntry(
+                id = "history-$index",
+                source = DeviceTestHistorySource.BARCODE,
+                reference = index.toString(),
+                itemName = "Item $index",
+                category = "OTHER",
+                result = "PASS",
+                summary = "barcode scan",
+                recordedAt = index.toLong()
+            )
+        }
+        val bounded = DeviceTestHistoryQuery.recent(manyEntries, limit = Int.MAX_VALUE)
+        assertEquals(100, bounded.size)
+        assertEquals("history-125", bounded.first().id)
+        assertEquals("history-26", bounded.last().id)
+    }
+
+    @Test
+    fun equalTimestampsHaveStableOrdering() {
+        val tied = listOf(
+            DeviceTestHistoryEntry("z", DeviceTestHistorySource.BARCODE, "1", "A", "OTHER", "PASS", "barcode", 50L),
+            DeviceTestHistoryEntry("a", DeviceTestHistorySource.BARCODE, "2", "B", "OTHER", "PASS", "barcode", 50L)
+        )
+        assertEquals(listOf("a", "z"), DeviceTestHistoryQuery.recent(tied).map { it.id })
+    }
+
+    @Test
     fun filtersKeepBarcodeNfcAndTestBuySourcesSeparate() {
         assertEquals(listOf("d", "b"), DeviceTestHistoryQuery.recent(entries, source = DeviceTestHistorySource.NFC).map { it.id })
         assertEquals(listOf("a"), DeviceTestHistoryQuery.recent(entries, source = DeviceTestHistorySource.BARCODE).map { it.id })
@@ -29,6 +60,27 @@ class DeviceTestHistoryQueryTest {
     fun referenceAndItemFiltersAreNormalized() {
         assertEquals(listOf("c", "a"), DeviceTestHistoryQuery.recent(entries, reference = " 123 ").map { it.id })
         assertEquals(listOf("d", "b", "c", "a"), DeviceTestHistoryQuery.recent(entries, itemName = " phone ").map { it.id })
+    }
+
+    @Test
+    fun combinedFiltersRequireTheSameEvidenceEntryToMatch() {
+        assertEquals(
+            listOf("d", "b"),
+            DeviceTestHistoryQuery.recent(
+                entries,
+                source = DeviceTestHistorySource.NFC,
+                reference = " 04a1 ",
+                itemName = " PHONE "
+            ).map { it.id }
+        )
+        assertTrue(
+            DeviceTestHistoryQuery.recent(
+                entries,
+                source = DeviceTestHistorySource.NFC,
+                reference = "123",
+                itemName = "Phone"
+            ).isEmpty()
+        )
     }
 
     @Test
