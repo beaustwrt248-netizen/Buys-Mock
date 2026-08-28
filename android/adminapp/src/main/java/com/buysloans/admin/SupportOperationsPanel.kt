@@ -58,7 +58,7 @@ internal fun SupportOperationsPanel(
     var controlError by remember { mutableStateOf("") }
 
     LaunchedEffect(session.userId, profiles) {
-        if (supportProfiles == null && canManageSupportTicketControls(session)) {
+        if (supportProfiles == null && canAssignSupportTicket(session)) {
             runCatching { AdminApi.loadSupportAssigneeProfiles(session) }
                 .onSuccess { supportProfiles = it }
                 .onFailure { controlError = it.message ?: "Support assignees could not be loaded." }
@@ -103,7 +103,9 @@ internal fun SupportOperationsPanel(
                     findSupportTicket(tickets, command.ticketId)?.apply {
                         put("status", command.status)
                         put("priority", command.priority)
-                        put("assigned_to", command.assignedTo ?: JSONObject.NULL)
+                        if (canAssignSupportTicket(session)) {
+                            put("assigned_to", command.assignedTo ?: JSONObject.NULL)
+                        }
                     }
                     controlMessage = "Ticket triage updated. Existing database triggers recorded the change and recalculated SLA when required."
                     onUpdated()
@@ -117,7 +119,7 @@ internal fun SupportOperationsPanel(
 
     Text("Support operations", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
-        "Admin/Manager triage controls use the existing authenticated Supabase row policies and durable support audit triggers. Staff remain limited by server-side assigned-ticket RLS.",
+        "Admin/Manager can triage and assign. Staff can triage only tickets returned by the existing assigned-ticket Supabase RLS; assignment remains unavailable to Staff.",
         color = SupportMuted,
         fontSize = 12.sp
     )
@@ -182,7 +184,7 @@ internal fun SupportOperationsPanel(
     }
 
     Text(
-        "Assignment is exposed only to authenticated Admin/Manager sessions in this app. Status and priority changes are field-limited by the client payload, while Supabase RLS remains authoritative. Priority changes recalculate the existing SLA target server-side. Protected messages remain selected-ticket-only; attachments are not modified here.",
+        "Assignment is exposed only to authenticated Admin/Manager sessions. Staff status/priority changes are field-limited and remain restricted to tickets visible through assigned-only Supabase RLS. Priority changes recalculate the existing SLA target server-side. Protected messages remain selected-ticket-only; attachments are not modified here.",
         color = SupportMuted,
         fontSize = 12.sp
     )
@@ -204,8 +206,9 @@ private fun SupportTicketControlsPanel(
     var status by remember(ticketId, currentStatus) { mutableStateOf(currentStatus) }
     var priority by remember(ticketId, currentPriority) { mutableStateOf(currentPriority) }
     var assignedTo by remember(ticketId, currentAssignee) { mutableStateOf(currentAssignee) }
-    val authorised = canManageSupportTicketControls(session)
-    val changed = status != currentStatus || priority != currentPriority || assignedTo != currentAssignee
+    val canTriage = canUpdateSupportTicketTriage(session)
+    val canAssign = canAssignSupportTicket(session)
+    val changed = status != currentStatus || priority != currentPriority || (canAssign && assignedTo != currentAssignee)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -220,23 +223,26 @@ private fun SupportTicketControlsPanel(
                 label = "Status",
                 value = status,
                 options = SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) },
-                enabled = authorised && !busy,
+                enabled = canTriage && !busy,
                 onSelect = { status = it }
             )
             ChoiceMenu(
                 label = "Priority",
                 value = priority,
                 options = SUPPORT_TICKET_PRIORITIES.map { value -> value to value.replaceFirstChar { it.uppercase() } },
-                enabled = authorised && !busy,
+                enabled = canTriage && !busy,
                 onSelect = { priority = it }
             )
             ChoiceMenu(
                 label = "Assigned to",
                 value = assignedTo,
                 options = listOf("" to "Unassigned") + assignees.map { it.id to "${it.label} · ${it.role}" },
-                enabled = authorised && !busy,
+                enabled = canAssign && !busy,
                 onSelect = { assignedTo = it }
             )
+            if (canTriage && !canAssign) {
+                Text("Staff triage is limited to status and priority. Assignment remains Admin/Manager-only.", color = SupportMuted, fontSize = 11.sp)
+            }
             Text(
                 "SLA target: ${ticket.optString("sla_due_at").ifBlank { "not set" }}. Changing priority recalculates this target through the existing database trigger.",
                 color = SupportMuted,
@@ -253,13 +259,13 @@ private fun SupportTicketControlsPanel(
                         )
                     )
                 },
-                enabled = authorised && !busy && changed && ticketId.isNotBlank(),
+                enabled = canTriage && !busy && changed && ticketId.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save audited triage change", fontWeight = FontWeight.Black)
             }
-            if (!authorised) {
-                Text("These controls require an authenticated Admin or Manager session.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
+            if (!canTriage) {
+                Text("Ticket triage requires an authenticated Staff, Manager or Admin session.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
             }
         }
     }
