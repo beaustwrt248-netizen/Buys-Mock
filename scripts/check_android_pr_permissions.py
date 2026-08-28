@@ -5,6 +5,7 @@ workflow = Path('.github/workflows/android-pr-readonly.yml').read_text(encoding=
 required = [
     'permissions:\n  contents: read',
     'pull_request:',
+    'persist-credentials: false',
     'gradle -p android testDebugUnitTest',
     'gradle -p android lintDebug',
     'gradle -p android assembleDebug',
