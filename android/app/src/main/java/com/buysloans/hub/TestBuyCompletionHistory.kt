@@ -40,10 +40,14 @@ fun completionHistoryFor(session: TestBuySessionRecord): TestBuyCompletionHistor
     )
 }
 
+fun inventoryHandoffHistoryFor(session: TestBuySessionRecord): TestBuyCompletionHistory {
+    require(session.outcome == BuyOutcome.SEND_TO_INVENTORY) { "Inventory handoff history requires Send to Inventory outcome." }
+    return completionHistoryFor(session)
+}
+
 object TestBuyCompletionHistoryRecorder {
-    fun record(context: Context, session: TestBuySessionRecord): DeviceTestHistoryEntry {
-        val history = completionHistoryFor(session)
-        return DeviceTestHistoryStore.record(
+    private fun recordHistory(context: Context, history: TestBuyCompletionHistory): DeviceTestHistoryEntry =
+        DeviceTestHistoryStore.record(
             context = context,
             source = history.source,
             reference = history.reference,
@@ -53,5 +57,10 @@ object TestBuyCompletionHistoryRecorder {
             summary = history.summary,
             recordedAt = history.recordedAt
         )
-    }
+
+    fun record(context: Context, session: TestBuySessionRecord): DeviceTestHistoryEntry =
+        recordHistory(context, completionHistoryFor(session))
+
+    fun recordInventoryHandoff(context: Context, session: TestBuySessionRecord): DeviceTestHistoryEntry =
+        recordHistory(context, inventoryHandoffHistoryFor(session))
 }

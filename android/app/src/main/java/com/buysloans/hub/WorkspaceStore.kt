@@ -86,8 +86,18 @@ object WorkspaceStore {
         saveInventory(context,items)
     }
 
-    fun addInventoryFromTestBuy(context:Context,draft:TestBuyDraft):String {
+    fun addInventoryFromTestBuy(
+        context:Context,
+        draft:TestBuyDraft,
+        completedSession:TestBuySessionRecord? = null
+    ):String {
         require(recommendedOutcome(draft)==BuyOutcome.SEND_TO_INVENTORY){ "Test & Buy item is not ready for inventory." }
+        if (completedSession != null) {
+            require(completedSession.outcome == BuyOutcome.SEND_TO_INVENTORY) { "Completed Test & Buy session must be Send to Inventory." }
+            require(completedSession.itemName.trim() == draft.itemName.trim()) { "Completed Test & Buy session does not match the inventory item." }
+            require(completedSession.category == draft.category) { "Completed Test & Buy session category does not match the inventory item." }
+            require(completedSession.scanReference.trim() == draft.scanValue.trim()) { "Completed Test & Buy session scan reference does not match the inventory item." }
+        }
         val now=System.currentTimeMillis()
         val id=UUID.randomUUID().toString()
         val items=inventory(context).toMutableList()
@@ -102,16 +112,20 @@ object WorkspaceStore {
             lifecycle=InventoryLifecycle.PURCHASED
         ))
         saveInventory(context,items)
-        DeviceTestHistoryStore.record(
-            context=context,
-            source=if(draft.scanValue.isBlank()) DeviceTestHistorySource.TEST_BUY else DeviceTestHistorySource.BARCODE,
-            reference=draft.scanValue,
-            itemName=draft.itemName,
-            category=draft.category.name,
-            result=BuyOutcome.SEND_TO_INVENTORY.name,
-            summary="${draft.completedChecks}/${draft.checks.size} checks completed; ${draft.failedChecks} failed; confirmed inventory handoff; lifecycle Purchased.",
-            recordedAt=now
-        )
+        if (completedSession != null) {
+            TestBuyCompletionHistoryRecorder.record(context, completedSession)
+        } else {
+            DeviceTestHistoryStore.record(
+                context=context,
+                source=if(draft.scanValue.isBlank()) DeviceTestHistorySource.TEST_BUY else DeviceTestHistorySource.BARCODE,
+                reference=draft.scanValue,
+                itemName=draft.itemName,
+                category=draft.category.name,
+                result=BuyOutcome.SEND_TO_INVENTORY.name,
+                summary="${draft.completedChecks}/${draft.checks.size} checks completed; ${draft.failedChecks} failed; confirmed inventory handoff; lifecycle Purchased.",
+                recordedAt=now
+            )
+        }
         return id
     }
 
