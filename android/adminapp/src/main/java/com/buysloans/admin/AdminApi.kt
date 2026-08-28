@@ -41,7 +41,7 @@ internal object AdminApi {
 
     suspend fun load(session: AdminSession): AdminSnapshot = withContext(Dispatchers.IO) {
         AdminSnapshot(
-            tickets = getArray("/rest/v1/support_tickets?select=id,category,subject,status,priority,app_version,device_model,created_at,updated_at&order=created_at.desc&limit=50", session.accessToken),
+            tickets = getArray("/rest/v1/support_tickets?select=id,category,subject,status,priority,assigned_to,sla_due_at,first_response_at,app_version,device_model,created_at,updated_at&order=created_at.desc&limit=50", session.accessToken),
             announcements = getArray("/rest/v1/announcements?select=id,title,body,audience,is_active,created_at&order=created_at.desc&limit=25", session.accessToken),
             profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
             devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
