@@ -40,14 +40,19 @@ object DeviceTestHistoryStore {
         summary:String,
         recordedAt:Long = System.currentTimeMillis()
     ):DeviceTestHistoryEntry {
-        require(reference.isNotBlank() || itemName.isNotBlank()) { "History entry needs an item or scan reference." }
+        val cleanReference = reference.trim()
+        val cleanItemName = itemName.trim()
+        val cleanResult = result.trim()
+        require(cleanReference.isNotBlank() || cleanItemName.isNotBlank()) { "History entry needs an item or scan reference." }
+        require(cleanResult.isNotBlank()) { "History entry result is required." }
+        require(recordedAt > 0L) { "History entry timestamp must be positive." }
         val entry = DeviceTestHistoryEntry(
             id = UUID.randomUUID().toString(),
             source = source,
-            reference = reference.trim(),
-            itemName = itemName.trim(),
+            reference = cleanReference,
+            itemName = cleanItemName,
             category = category.trim(),
-            result = result.trim(),
+            result = cleanResult,
             summary = summary.trim(),
             recordedAt = recordedAt
         )
@@ -90,15 +95,23 @@ object DeviceTestHistoryStore {
                 val fields = line.split('|')
                 if (fields.size != FIELD_COUNT) return@runCatching null
                 val source = DeviceTestHistorySource.valueOf(fields[1])
+                val id = unpack(fields[0]).trim()
+                val reference = unpack(fields[2]).trim()
+                val itemName = unpack(fields[3]).trim()
+                val result = unpack(fields[5]).trim()
                 val recordedAt = fields[7].toLong()
+                if (id.isBlank()) return@runCatching null
+                if (reference.isBlank() && itemName.isBlank()) return@runCatching null
+                if (result.isBlank()) return@runCatching null
+                if (recordedAt <= 0L) return@runCatching null
                 DeviceTestHistoryEntry(
-                    id = unpack(fields[0]),
+                    id = id,
                     source = source,
-                    reference = unpack(fields[2]),
-                    itemName = unpack(fields[3]),
-                    category = unpack(fields[4]),
-                    result = unpack(fields[5]),
-                    summary = unpack(fields[6]),
+                    reference = reference,
+                    itemName = itemName,
+                    category = unpack(fields[4]).trim(),
+                    result = result,
+                    summary = unpack(fields[6]).trim(),
                     recordedAt = recordedAt
                 )
             }.getOrNull()
