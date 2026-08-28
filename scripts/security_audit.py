@@ -19,6 +19,9 @@ CRITICAL_WORKFLOWS = {
     'admin-support-governance.yml',
     'admin-support-audit-check.yml',
     'admin-support-reconcile-check.yml',
+    'android-pr-permissions-guard.yml',
+    'android-pr-readonly.yml',
+    'private-distribution-readiness.yml',
     'build-apk.yml',
 }
 
