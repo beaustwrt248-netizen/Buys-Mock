@@ -15,7 +15,8 @@ internal data class AdminSnapshot(
     val profiles: JSONArray,
     val devices: JSONArray,
     val config: JSONArray,
-    val errorEvents: JSONArray
+    val errorEvents: JSONArray,
+    val auditEvents: JSONArray
 )
 
 internal object AdminApi {
@@ -45,7 +46,8 @@ internal object AdminApi {
             profiles = getArray("/rest/v1/profiles?select=id,display_name,role,is_enabled,created_at&order=created_at.desc&limit=100", session.accessToken),
             devices = getArray("/rest/v1/devices?select=id,device_name,platform,app_version,app_version_code,notifications_enabled,last_seen_at&order=last_seen_at.desc&limit=100", session.accessToken),
             config = getArray("/rest/v1/app_config?select=key,value,updated_at&key=in.(feature_flags,current_release,minimum_supported_version)&order=key", session.accessToken),
-            errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken)
+            errorEvents = getArray("/rest/v1/admin_error_events?select=id,app_version,device_model,failing_screen,error_class,occurred_at&order=occurred_at.desc&limit=50", session.accessToken),
+            auditEvents = getArray("/rest/v1/admin_audit_log?select=id,action,target_type,target_id,created_at&order=created_at.desc&limit=50", session.accessToken)
         )
     }
 
