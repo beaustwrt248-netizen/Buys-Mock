@@ -71,6 +71,8 @@ private fun TestBuyScreen(onBack: () -> Unit) {
         checks = checks
     )
     val outcome = recommendedOutcome(draft)
+    val availability = TestBuyOutcomePolicy.evaluate(draft)
+    val headroom = draft.maxBuyPrice - draft.askingPrice
     val outcomeColor = when (outcome) {
         BuyOutcome.SEND_TO_INVENTORY -> TBGood
         BuyOutcome.BUY -> TBWarn
@@ -82,12 +84,17 @@ private fun TestBuyScreen(onBack: () -> Unit) {
         BuyOutcome.REJECT -> "REJECT / NOT READY"
     }
 
-    fun recordExplicitOutcome() {
+    fun evidenceSource(): TestEvidenceSource =
+        if (draft.scanValue.isBlank()) TestEvidenceSource.MANUAL_ENTRY else TestEvidenceSource.BARCODE
+
+    fun recordExplicitOutcome(desiredOutcome: BuyOutcome) {
         saveError = ""
-        val evidenceSource = if (draft.scanValue.isBlank()) TestEvidenceSource.MANUAL_ENTRY else TestEvidenceSource.BARCODE
         runCatching {
-            val session = TestBuySessionFinalizer.finalize(draft, evidenceSource)
-            require(session.outcome != BuyOutcome.SEND_TO_INVENTORY) { "Use Send to Inventory for a passed item." }
+            val session = TestBuySessionFinalizer.finalize(
+                draft = draft,
+                evidenceSource = evidenceSource(),
+                explicitOutcome = desiredOutcome
+            )
             TestBuyCompletionHistoryRecorder.record(context, session)
             session.outcome
         }.onSuccess { completedOutcome = it }
@@ -110,13 +117,18 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(onClick = {
                     saveError = ""
-                    runCatching { WorkspaceStore.addInventoryFromTestBuy(context, draft) }
-                        .onSuccess { id ->
-                            savedInventoryId = id
-                            completedOutcome = BuyOutcome.SEND_TO_INVENTORY
-                            showInventoryConfirm = false
-                        }
-                        .onFailure { error -> saveError = error.message ?: "Could not add item to inventory." }
+                    runCatching {
+                        TestBuySessionFinalizer.finalize(
+                            draft = draft,
+                            evidenceSource = evidenceSource(),
+                            explicitOutcome = BuyOutcome.SEND_TO_INVENTORY
+                        )
+                        WorkspaceStore.addInventoryFromTestBuy(context, draft)
+                    }.onSuccess { id ->
+                        savedInventoryId = id
+                        completedOutcome = BuyOutcome.SEND_TO_INVENTORY
+                        showInventoryConfirm = false
+                    }.onFailure { error -> saveError = error.message ?: "Could not add item to inventory." }
                 }) { Text("Confirm & Add") }
             }
         )
@@ -137,7 +149,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("TEST & BUY WORKSPACE", color = TBAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-            Text("Test the item, record faults and compare the seller ask against the approved max-buy figure.", color = TBMuted)
+            Text("Scan or enter the item, complete the appropriate checks, consume the current valuation and max-buy guidance, record faults, then choose an explicit outcome.", color = TBMuted)
 
             OutlinedTextField(itemName, { itemName = it }, label = { Text("Item / model") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(scanValue, { scanValue = it }, label = { Text("Barcode / scan reference (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -164,6 +176,17 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                 OutlinedTextField(maxBuyText, { maxBuyText = it }, label = { Text("Max buy") }, modifier = Modifier.weight(1f), singleLine = true)
             }
             OutlinedTextField(valuationText, { valuationText = it }, label = { Text("Current valuation") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+            if (draft.maxBuyPrice > 0.0) {
+                val headroomColor = if (headroom >= 0.0) TBGood else TBBad
+                Text(
+                    if (headroom >= 0.0) "Max-buy headroom: ${"%.2f".format(headroom)}" else "Over max-buy by ${"%.2f".format(-headroom)}",
+                    color = headroomColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+
             OutlinedTextField(faults, { faults = it }, label = { Text("Faults / repair notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
             Text("Hardware checklist", fontSize = 18.sp, fontWeight = FontWeight.Black)
@@ -228,15 +251,15 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("RECOMMENDED OUTCOME", color = TBMuted, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    Text("GUIDANCE", color = TBMuted, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     Text(outcomeLabel, color = outcomeColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
                     Text("${draft.completedChecks}/${draft.checks.size} checks completed · ${draft.failedChecks} failed", color = TBMuted, fontSize = 11.sp)
-                    if (outcome == BuyOutcome.REJECT) {
-                        Text("Complete every applicable check, resolve failures, enter a max-buy price and keep the seller ask at or below that limit.", color = TBMuted, fontSize = 11.sp)
-                    } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
-                        Text("Item passed testing and is within max-buy. Confirm below before any inventory record is created.", color = TBMuted, fontSize = 11.sp)
-                    } else {
-                        Text("The item is within max-buy but has recorded faults. Review repair risk before completing the purchase.", color = TBMuted, fontSize = 11.sp)
+                    Text("Guidance does not choose the outcome for you. The allowed actions below enforce checklist, valuation, max-buy and fault-recording safety.", color = TBMuted, fontSize = 11.sp)
+                    if (!availability.canBuy && availability.buyBlockers.isNotEmpty()) {
+                        Text("Buy blocked: ${availability.buyBlockers.joinToString(" ")}", color = TBWarn, fontSize = 10.sp)
+                    }
+                    if (!availability.canSendToInventory && availability.inventoryBlockers.isNotEmpty()) {
+                        Text("Inventory blocked: ${availability.inventoryBlockers.joinToString(" ")}", color = TBMuted, fontSize = 10.sp)
                     }
                 }
             }
@@ -265,23 +288,27 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                         fontWeight = FontWeight.Black
                     )
                 }
-            } else if (outcome == BuyOutcome.SEND_TO_INVENTORY) {
-                Button(
-                    onClick = { showInventoryConfirm = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = TBGood, contentColor = Color(0xFF04120A))
-                ) { Text("Send to Inventory", fontWeight = FontWeight.Black) }
             } else {
-                Button(
-                    onClick = { recordExplicitOutcome() },
-                    enabled = draft.itemName.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (outcome == BuyOutcome.REJECT) TBBad else TBWarn,
-                        contentColor = Color(0xFF150507)
-                    )
-                ) {
-                    Text(if (outcome == BuyOutcome.REJECT) "Record Reject" else "Record Buy", fontWeight = FontWeight.Black)
+                Text("Explicit outcome", color = TBMuted, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Button(
+                        onClick = { recordExplicitOutcome(BuyOutcome.REJECT) },
+                        enabled = availability.canReject,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = TBBad, contentColor = Color(0xFF150507))
+                    ) { Text("Reject", fontSize = 11.sp, fontWeight = FontWeight.Black) }
+                    Button(
+                        onClick = { recordExplicitOutcome(BuyOutcome.BUY) },
+                        enabled = availability.canBuy,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = TBWarn, contentColor = Color(0xFF150E02))
+                    ) { Text("Buy", fontSize = 11.sp, fontWeight = FontWeight.Black) }
+                    Button(
+                        onClick = { showInventoryConfirm = true },
+                        enabled = availability.canSendToInventory,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = TBGood, contentColor = Color(0xFF04120A))
+                    ) { Text("Inventory", fontSize = 11.sp, fontWeight = FontWeight.Black) }
                 }
             }
 
@@ -290,7 +317,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             }
             if (saveError.isNotBlank()) Text(saveError, color = TBBad, fontSize = 12.sp)
 
-            Text("NFC checks remain scan/read-only. This workflow does not assign NFC tags or modify inventory from an NFC scan.", color = TBMuted, fontSize = 10.sp)
+            Text("NFC checks remain Android scan/read-only. This workflow does not look up inventory from NFC, assign or link tags, or modify stock from an NFC scan.", color = TBMuted, fontSize = 10.sp)
             Spacer(Modifier.height(18.dp))
         }
     }
