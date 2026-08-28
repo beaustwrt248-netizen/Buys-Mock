@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,12 +42,13 @@ private val SupportWarn = Color(0xFFFFC857)
 internal fun SupportOperationsPanel(
     session: AdminSession,
     tickets: JSONArray?,
-    profiles: JSONArray?,
-    busy: Boolean,
-    onUpdated: () -> Unit
+    profiles: JSONArray? = null,
+    busy: Boolean = false,
+    onUpdated: () -> Unit = {}
 ) {
     val health = summarizeSupportTicketHealth(tickets)
     val scope = rememberCoroutineScope()
+    var supportProfiles by remember(profiles) { mutableStateOf(profiles) }
     var selectedTicketId by remember { mutableStateOf("") }
     var conversation by remember { mutableStateOf<ProtectedConversationState?>(null) }
     var conversationError by remember { mutableStateOf("") }
@@ -54,6 +56,14 @@ internal fun SupportOperationsPanel(
     var controlBusy by remember { mutableStateOf(false) }
     var controlMessage by remember { mutableStateOf("") }
     var controlError by remember { mutableStateOf("") }
+
+    LaunchedEffect(session.userId, profiles) {
+        if (supportProfiles == null && canManageSupportTicketControls(session)) {
+            runCatching { AdminApi.loadSupportAssigneeProfiles(session) }
+                .onSuccess { supportProfiles = it }
+                .onFailure { controlError = it.message ?: "Support assignees could not be loaded." }
+        }
+    }
 
     fun loadConversation(ticketId: String, ticketSubject: String) {
         if (ticketId.isBlank() || loadingConversation) return
@@ -90,7 +100,12 @@ internal fun SupportOperationsPanel(
         scope.launch {
             runCatching { AdminApi.updateSupportTicket(session, command) }
                 .onSuccess {
-                    controlMessage = "Ticket triage updated and queued for durable audit refresh."
+                    findSupportTicket(tickets, command.ticketId)?.apply {
+                        put("status", command.status)
+                        put("priority", command.priority)
+                        put("assigned_to", command.assignedTo ?: JSONObject.NULL)
+                    }
+                    controlMessage = "Ticket triage updated. Existing database triggers recorded the change and recalculated SLA when required."
                     onUpdated()
                 }
                 .onFailure {
@@ -135,7 +150,7 @@ internal fun SupportOperationsPanel(
         SupportTicketControlsPanel(
             session = session,
             ticket = selected,
-            profiles = profiles,
+            profiles = supportProfiles,
             busy = busy || controlBusy,
             onSave = ::saveControls
         )
@@ -211,7 +226,7 @@ private fun SupportTicketControlsPanel(
             ChoiceMenu(
                 label = "Priority",
                 value = priority,
-                options = SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar(Char::uppercaseChar) },
+                options = SUPPORT_TICKET_PRIORITIES.map { value -> value to value.replaceFirstChar { it.uppercase() } },
                 enabled = authorised && !busy,
                 onSelect = { priority = it }
             )
