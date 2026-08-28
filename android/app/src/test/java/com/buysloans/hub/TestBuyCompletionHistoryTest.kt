@@ -80,7 +80,7 @@ class TestBuyCompletionHistoryTest {
         val history = completionHistoryFor(session)
 
         assertEquals(BuyOutcome.SEND_TO_INVENTORY.name, history.result)
-        assertTrue(session.canOfferInventoryHandoff)
+        assertFalse(session.canOfferInventoryHandoff)
         assertEquals(DeviceTestHistorySource.NFC, history.source)
         assertEquals("04A1B2C3D4", history.reference)
         assertTrue(history.summary.contains("Power=PASS"))
