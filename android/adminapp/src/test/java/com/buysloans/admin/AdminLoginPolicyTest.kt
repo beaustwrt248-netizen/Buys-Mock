@@ -1,0 +1,27 @@
+package com.buysloans.admin
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class AdminLoginPolicyTest {
+    @Test fun validCredentialsAndCaptchaEnableSignIn() {
+        assertTrue(isAdminLoginReady("admin@example.com", "secret", "captcha-token", busy = false))
+    }
+
+    @Test fun invalidEmailKeepsSignInDisabled() {
+        assertFalse(isAdminLoginReady("admin", "secret", "captcha-token", busy = false))
+    }
+
+    @Test fun emptyPasswordKeepsSignInDisabled() {
+        assertFalse(isAdminLoginReady("admin@example.com", "", "captcha-token", busy = false))
+    }
+
+    @Test fun missingCaptchaKeepsSignInDisabled() {
+        assertFalse(isAdminLoginReady("admin@example.com", "secret", "", busy = false))
+    }
+
+    @Test fun busyStateKeepsSignInDisabled() {
+        assertFalse(isAdminLoginReady("admin@example.com", "secret", "captcha-token", busy = true))
+    }
+}
