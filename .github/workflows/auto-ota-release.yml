@@ -1,0 +1,210 @@
+name: Automatic Android OTA Release
+
+on:
+  workflow_run:
+    workflows: ["Build B&L Morley APK"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automatic-android-ota
+  cancel-in-progress: false
+
+jobs:
+  publish-ota:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout verified source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Java 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Resolve next OTA version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+          old_code = int(manifest.get('versionCode') or 0)
+          old_name = str(manifest.get('versionName') or '2.14.6').strip()
+          match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', old_name)
+          if not match:
+              raise SystemExit(f'OTA versionName must use x.y.z format, got {old_name!r}')
+
+          major, minor, patch = map(int, match.groups())
+          version_code = old_code + 1
+          version_name = f'{major}.{minor}.{patch + 1}'
+          safe_name = re.sub(r'[^A-Za-z0-9._-]+', '-', version_name).strip('-')
+
+          env = Path(os.environ['GITHUB_ENV'])
+          with env.open('a', encoding='utf-8') as fh:
+              fh.write(f'BL_VERSION_CODE={version_code}\n')
+              fh.write(f'BL_VERSION_NAME={version_name}\n')
+              fh.write(f'APP_VERSION_CODE={version_code}\n')
+              fh.write(f'APP_VERSION_NAME={version_name}\n')
+              fh.write(f'APP_VERSION_SAFE={safe_name}\n')
+              fh.write(f'APP_RELEASE_TAG=v{safe_name}\n')
+          print(f'Next OTA release: {version_name} ({version_code})')
+          PY
+
+      - name: Release readiness audit
+        run: python3 scripts/release_audit.py
+
+      - name: Bundle and verify Morley login background video
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP=morley_buys_login_bg_app_hq_new.zip
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app_hq.zip; fi
+          if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
+          test -f "$ZIP" || { echo 'Missing Morley login video ZIP'; exit 1; }
+          rm -rf "$RUNNER_TEMP/morley-login-video"
+          mkdir -p "$RUNNER_TEMP/morley-login-video" android/app/src/main/res/raw
+          unzip -q -o "$ZIP" -d "$RUNNER_TEMP/morley-login-video"
+          VIDEO_PATH="$(find "$RUNNER_TEMP/morley-login-video" -type f -iname '*.mp4' | head -n 1)"
+          test -n "$VIDEO_PATH" && test -s "$VIDEO_PATH"
+          EXPECTED_BYTES=22004826
+          EXPECTED_SHA256=2bdeb6b7add8fda997144483534d3e8b3257079c2d3932ee5c8ff5d70720b897
+          test "$(stat -c%s "$VIDEO_PATH")" = "$EXPECTED_BYTES"
+          test "$(sha256sum "$VIDEO_PATH" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          cp "$VIDEO_PATH" android/app/src/main/res/raw/morley_buys_login_bg_app.mp4
+
+      - name: Prepare Firebase Android config
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_GOOGLE_SERVICES_JSON"
+          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          python3 -m json.tool android/app/google-services.json >/dev/null
+
+      - name: Re-run Android regression tests
+        run: gradle -p android testDebugUnitTest --stacktrace --console=plain
+
+      - name: Re-run Android lint
+        run: gradle -p android lintDebug --stacktrace --console=plain
+
+      - name: Prepare production signing key
+        env:
+          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
+          STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
+          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
+          test -n "$KEYSTORE_BASE64" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS"
+          KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+
+      - name: Build signed OTA APK
+        run: gradle -p android assembleRelease --stacktrace --console=plain
+
+      - name: Verify release signer and embedded version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b
+          APKSIGNER="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
+          ACTUAL_CERT_SHA256="$(printf '%s\n' "$SIGNATURE_OUTPUT" | sed -n -E 's/^(V2 Signer: |Signer #1 )?certificate SHA-256 digest: ([0-9a-fA-F]+)$/\2/p' | head -n 1 | tr '[:upper:]' '[:lower:]')"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+          AAPT="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          BADGING="$("$AAPT" dump badging "$APK" | head -n 1)"
+          printf '%s\n' "$BADGING" | grep -F "versionCode='$APP_VERSION_CODE'" >/dev/null
+          printf '%s\n' "$BADGING" | grep -F "versionName='$APP_VERSION_NAME'" >/dev/null
+
+      - name: Prepare OTA release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APK="dist/B-and-L-Morley-${APP_VERSION_SAFE}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          printf '%s  %s\n' "$SHA" "$(basename "$APK")" > "$APK.sha256"
+          echo "APK_SHA256=$SHA" >> "$GITHUB_ENV"
+          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
+
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(gh release view "$APP_RELEASE_TAG" --json tagName 2>/dev/null || true)" || {
+            echo "Release $APP_RELEASE_TAG already exists; refusing to overwrite it."
+            exit 1
+          }
+          NOTES="$(git log -1 --pretty=%s '${{ github.event.workflow_run.head_sha }}')"
+          gh release create "$APP_RELEASE_TAG" "$APK_PATH" "$APK_PATH.sha256" \
+            --target '${{ github.event.workflow_run.head_sha }}' \
+            --title "B&L Morley $APP_VERSION_NAME" \
+            --notes "$NOTES"
+
+      - name: Advance OTA manifest on latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${APP_RELEASE_TAG}/B-and-L-Morley-${APP_VERSION_SAFE}.apk"
+          NOTES="$(git log -1 --pretty=%s '${{ github.event.workflow_run.head_sha }}')"
+          git fetch origin main
+          git checkout -B ota-publish origin/main
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = {
+              'versionCode': int(os.environ['APP_VERSION_CODE']),
+              'versionName': os.environ['APP_VERSION_NAME'],
+              'apkUrl': os.environ['RELEASE_URL'],
+              'sha256': os.environ['APK_SHA256'],
+              'notes': os.environ['RELEASE_NOTES'],
+          }
+          Path('ota/latest.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+          PY
+          python3 -m json.tool ota/latest.json >/dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ota/latest.json
+          git commit -m "OTA: publish $APP_VERSION_NAME [skip ci]"
+          gh auth setup-git
+          git push origin HEAD:main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ env.APP_RELEASE_TAG }}/B-and-L-Morley-${{ env.APP_VERSION_SAFE }}.apk
+          RELEASE_NOTES: ${{ github.event.workflow_run.display_title }}
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          APK_SHA256: ${{ env.APK_SHA256 }}
