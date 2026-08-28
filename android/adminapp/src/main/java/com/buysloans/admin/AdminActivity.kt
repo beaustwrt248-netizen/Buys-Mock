@@ -88,10 +88,10 @@ private fun AdminRoot() {
     }
 
     if (session == null) {
-        LoginScreen(busy, error) { email, password ->
+        LoginScreen(busy, error) { email, password, captchaToken ->
             busy = true; error = ""
             scope.launch {
-                runCatching { AdminApi.signIn(email, password) }
+                runCatching { AdminApi.signIn(email, password, captchaToken) }
                     .onSuccess { s ->
                         session = s
                         val pending = AdminTelemetry.pending(context)
@@ -123,19 +123,42 @@ private fun AdminRoot() {
 }
 
 @Composable
-private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String) -> Unit) {
+private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center) {
+    var captchaToken by remember { mutableStateOf("") }
+    var captchaError by remember { mutableStateOf("") }
+    var captchaEpoch by remember { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.Center) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
         Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(email, { email = it }, label = { Text("Admin email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(12.dp))
+        Text("Security check", fontWeight = FontWeight.Bold)
+        key(captchaEpoch) {
+            CaptchaChallenge(
+                modifier = Modifier.fillMaxWidth().height(110.dp),
+                onToken = { token -> captchaToken = token; captchaError = "" },
+                onFailure = { message -> captchaToken = ""; captchaError = message }
+            )
+        }
+        if (captchaToken.isNotBlank()) Text("Security check complete.", color = Good, fontSize = 12.sp)
+        if (captchaError.isNotBlank()) Text(captchaError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp))
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
-        Button(onClick = { onLogin(email, password) }, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) { Text("Sign in", fontWeight = FontWeight.Black) }
+        Button(
+            onClick = {
+                val token = captchaToken
+                captchaToken = ""
+                captchaEpoch += 1
+                onLogin(email, password, token)
+            },
+            enabled = !busy && captchaToken.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
+        ) { Text("Sign in", fontWeight = FontWeight.Black) }
     }
 }
 
