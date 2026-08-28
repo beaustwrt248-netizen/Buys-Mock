@@ -11,6 +11,19 @@ data class InventoryLifecycleEvent(
 )
 
 object InventoryLifecycleHistory {
+    fun validateTransition(
+        from: InventoryLifecycle,
+        to: InventoryLifecycle,
+        reason: String = ""
+    ): String {
+        requireLifecycleTransition(from, to)
+        val cleanReason = reason.trim()
+        if (InventoryLifecycleActionPolicy.requiresReason(to)) {
+            require(cleanReason.isNotBlank()) { "Returned/Repair transitions require a reason." }
+        }
+        return cleanReason
+    }
+
     fun transition(
         inventoryId: String,
         from: InventoryLifecycle,
@@ -19,10 +32,8 @@ object InventoryLifecycleHistory {
         occurredAt: String = Instant.now().toString()
     ): InventoryLifecycleEvent {
         require(inventoryId.isNotBlank()) { "Inventory id is required." }
-        requireLifecycleTransition(from, to)
+        val cleanReason = validateTransition(from, to, reason)
         require(runCatching { Instant.parse(occurredAt) }.isSuccess) { "A valid lifecycle timestamp is required." }
-        val cleanReason = reason.trim()
-        if (to == InventoryLifecycle.RETURNED_REPAIR) require(cleanReason.isNotBlank()) { "Returned/Repair transitions require a reason." }
         return InventoryLifecycleEvent(inventoryId.trim(), from, to, cleanReason, occurredAt)
     }
 
@@ -44,7 +55,7 @@ object InventoryLifecycleHistory {
             }
 
             require(event.from == state) { "Lifecycle history is not contiguous." }
-            requireLifecycleTransition(event.from, event.to)
+            validateTransition(event.from, event.to, event.reason)
             state = event.to
             previousTimestamp = timestamp
         }
