@@ -5,16 +5,22 @@ on:
     branches: [ main ]
     paths:
       - 'admin/**'
+      - 'android/adminapp/**'
+      - 'android/settings.gradle'
       - 'ota/latest.json'
       - 'scripts/build_private_distribution_readiness.py'
+      - '.github/workflows/admin-apk-build.yml'
       - '.github/workflows/private-distribution-readiness.yml'
       - 'docs/security/private-repository-migration-readiness.md'
   push:
     branches: [ main ]
     paths:
       - 'admin/**'
+      - 'android/adminapp/**'
+      - 'android/settings.gradle'
       - 'ota/latest.json'
       - 'scripts/build_private_distribution_readiness.py'
+      - '.github/workflows/admin-apk-build.yml'
       - '.github/workflows/private-distribution-readiness.yml'
       - 'docs/security/private-repository-migration-readiness.md'
   workflow_dispatch:
@@ -36,6 +42,19 @@ jobs:
       - name: Verify bundle checksums
         working-directory: dist/private-distribution-readiness
         run: sha256sum --check SHA256SUMS
+      - name: Assert Admin Android distribution is private-repo compatible
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'permissions:' .github/workflows/admin-apk-build.yml
+          grep -q 'contents: read' .github/workflows/admin-apk-build.yml
+          grep -q 'persist-credentials: false' .github/workflows/admin-apk-build.yml
+          grep -q 'sha256sum --check dist/Morley-Admin-readonly.apk.sha256' .github/workflows/admin-apk-build.yml
+          grep -q 'actions/upload-artifact@' .github/workflows/admin-apk-build.yml
+          if grep -Eq 'raw\.githubusercontent\.com|github\.io|releases/download' .github/workflows/admin-apk-build.yml; then
+            echo 'Admin APK build must not depend on public repository distribution URLs.' >&2
+            exit 1
+          fi
       - name: Assert live distribution is untouched
         shell: bash
         run: |
