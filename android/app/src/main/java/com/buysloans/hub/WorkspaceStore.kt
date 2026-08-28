@@ -93,6 +93,9 @@ object WorkspaceStore {
     ):String {
         require(recommendedOutcome(draft)==BuyOutcome.SEND_TO_INVENTORY){ "Test & Buy item is not ready for inventory." }
         if (completedSession != null) {
+            require(completedSession.canOfferInventoryHandoff) {
+                "Completed Test & Buy session cannot authorize inventory handoff. Android NFC evidence is scan/read-only."
+            }
             require(completedSession.outcome == BuyOutcome.SEND_TO_INVENTORY) { "Completed Test & Buy session must be Send to Inventory." }
             require(completedSession.itemName.trim() == draft.itemName.trim()) { "Completed Test & Buy session does not match the inventory item." }
             require(completedSession.category == draft.category) { "Completed Test & Buy session category does not match the inventory item." }
