@@ -24,7 +24,9 @@ data class TestBuySessionRecord(
     val failedChecks: Int get() = checks.count { it.result == TestResult.FAIL }
     val completedChecks: Int get() = checks.count { it.result != TestResult.NOT_TESTED }
     val totalChecks: Int get() = checks.size
-    val canOfferInventoryHandoff: Boolean get() = outcome == BuyOutcome.SEND_TO_INVENTORY
+    val canOfferInventoryHandoff: Boolean
+        get() = outcome == BuyOutcome.SEND_TO_INVENTORY &&
+            evidenceSource != TestEvidenceSource.ANDROID_NFC_READ_ONLY
 }
 
 object TestBuySessionFinalizer {
