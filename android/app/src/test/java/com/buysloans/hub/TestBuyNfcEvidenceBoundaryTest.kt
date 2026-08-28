@@ -78,8 +78,8 @@ class TestBuyNfcEvidenceBoundaryTest {
         )
         val timeline = DeviceTestHistoryTimeline.from(listOf(entry)).single()
 
-        assertEquals("Android NFC read-only", timeline.evidenceLabel)
-        assertEquals("04:A1:B2:C3:D4:E5:80", timeline.reference)
-        assertTrue(timeline.readOnlyEvidence)
+        assertEquals("Android NFC read-only", timeline.sourceLabel)
+        assertEquals("04:A1:B2:C3:D4:E5:80", timeline.evidenceLabel)
+        assertTrue(timeline.isAndroidNfcReadOnly)
     }
 }
