@@ -67,6 +67,13 @@ internal object AdminApi {
         getArray(path, session.accessToken)
     }
 
+    suspend fun updateSupportTicket(session: AdminSession, command: SupportTicketUpdateCommand) = withContext(Dispatchers.IO) {
+        val payload = supportTicketUpdatePayload(session, command).toString()
+        val path = "/rest/v1/support_tickets?id=eq.${enc(command.ticketId.trim())}"
+        val response = request(path, "PATCH", session.accessToken, payload, preferMinimal = true)
+        if (response.first !in 200..299) error(message(response.second, "Support ticket could not be updated."))
+    }
+
     suspend fun updateMaintenanceConfig(session: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) = withContext(Dispatchers.IO) {
         val payload = maintenanceUpdatePayload(current, enabled, message).toString()
         val response = request("/rest/v1/rpc/admin_set_config", "POST", session.accessToken, payload, preferMinimal = true)
