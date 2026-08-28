@@ -107,6 +107,16 @@ def main() -> int:
                 else:
                     warnings.append(message)
 
+        admin_apk_workflow = workflows / 'admin-apk-build.yml'
+        if admin_apk_workflow.is_file():
+            admin_apk_text = admin_apk_workflow.read_text(encoding='utf-8')
+            checksum_command = 'sha256sum --check dist/Morley-Admin-readonly.apk.sha256'
+            checksum_artifact = 'dist/Morley-Admin-readonly.apk.sha256'
+            if checksum_command not in admin_apk_text:
+                failures.append('Admin APK artifact checksum is not verified before publication: .github/workflows/admin-apk-build.yml')
+            if checksum_artifact not in admin_apk_text:
+                failures.append('Admin APK checksum is not included with the published artifact: .github/workflows/admin-apk-build.yml')
+
     if warnings:
         print('SECURITY AUDIT WARNINGS')
         for warning in sorted(set(warnings)):
@@ -116,7 +126,7 @@ def main() -> int:
         for failure in sorted(set(failures)):
             print(f'- {failure}')
         return 1
-    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected; critical checkouts do not persist credentials.')
+    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected; critical checkouts do not persist credentials; Admin APK checksum publication is verified.')
     return 0
 
 
