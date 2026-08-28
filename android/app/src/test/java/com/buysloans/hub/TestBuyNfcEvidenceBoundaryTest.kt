@@ -29,7 +29,7 @@ class TestBuyNfcEvidenceBoundaryTest {
     }
 
     @Test
-    fun `android NFC evidence remains session evidence and does not change outcome policy`() {
+    fun `android NFC evidence remains session evidence without authorizing inventory handoff`() {
         val draft = completedPhoneDraft(scanValue = "04:A1:B2:C3:D4:E5:80")
         val manual = TestBuySessionFinalizer.finalize(
             draft,
@@ -44,8 +44,36 @@ class TestBuyNfcEvidenceBoundaryTest {
 
         assertEquals(manual.outcome, nfc.outcome)
         assertEquals(BuyOutcome.SEND_TO_INVENTORY, nfc.outcome)
+        assertTrue(manual.canOfferInventoryHandoff)
+        assertFalse(nfc.canOfferInventoryHandoff)
         assertEquals(TestEvidenceSource.ANDROID_NFC_READ_ONLY, nfc.evidenceSource)
         assertEquals("04:A1:B2:C3:D4:E5:80", nfc.scanReference)
+    }
+
+    @Test
+    fun `NFC inventory handoff creation is rejected while barcode remains allowed`() {
+        val draft = completedPhoneDraft(scanValue = "04:A1:B2:C3:D4:E5:80")
+        val nfc = TestBuySessionFinalizer.finalize(
+            draft,
+            evidenceSource = TestEvidenceSource.ANDROID_NFC_READ_ONLY,
+            completedAt = "2026-08-28T14:11:00Z"
+        )
+        val barcode = TestBuySessionFinalizer.finalize(
+            draft,
+            evidenceSource = TestEvidenceSource.BARCODE,
+            completedAt = "2026-08-28T14:11:00Z"
+        )
+
+        assertTrue(runCatching {
+            TestBuyInventoryHandoff.create(nfc, handoffCreatedAt = "2026-08-28T14:12:00Z")
+        }.isFailure)
+        assertEquals(
+            InventoryLifecycle.PURCHASED,
+            TestBuyInventoryHandoff.create(
+                barcode,
+                handoffCreatedAt = "2026-08-28T14:12:00Z"
+            ).initialLifecycle
+        )
     }
 
     @Test
