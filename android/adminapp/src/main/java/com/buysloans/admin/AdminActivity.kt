@@ -151,7 +151,7 @@ private fun Dashboard(
     onSignOut: () -> Unit
 ) {
     var tab by remember { mutableStateOf("Health") }
-    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Release")
+    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release")
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column { Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black); Text(session.displayName, fontSize = 22.sp, fontWeight = FontWeight.Black); Text(session.role.uppercase(), color = Muted, fontSize = 11.sp) }
@@ -168,6 +168,7 @@ private fun Dashboard(
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
             "Users & devices" -> UsersDevicesPanel(session, snapshot, busy, onUserControl)
             "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)
+            "Audit" -> AuditTimelinePanel(snapshot?.auditEvents)
             "Release" -> ReleasePanel(snapshot?.config)
         }
         Spacer(Modifier.height(20.dp))
