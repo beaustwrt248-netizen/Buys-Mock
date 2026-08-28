@@ -9,24 +9,25 @@ class SupportMessageAccessPolicyTest {
         AdminSession(accessToken = token, userId = userId, displayName = "Test", role = role)
 
     @Test
-    fun adminAndManagerMayBuildTicketScopedMessageReads() {
+    fun supportRolesMayBuildTicketScopedMessageReads() {
         assertTrue(SupportMessageAccessPolicy.canReadProtectedMessages(session("admin")))
         assertTrue(SupportMessageAccessPolicy.canReadProtectedMessages(session("manager")))
+        assertTrue(SupportMessageAccessPolicy.canReadProtectedMessages(session("staff")))
 
-        val path = SupportMessageAccessPolicy.buildReadPath(session("admin"), "ticket-123", 250)
+        val path = SupportMessageAccessPolicy.buildReadPath(session("staff"), "ticket-123", 250)
         assertTrue(path.contains("ticket_id=eq.ticket-123"))
         assertTrue(path.contains("select=id,ticket_id,author_user_id,author_role,body,created_at"))
         assertTrue(path.endsWith("limit=100"))
     }
 
     @Test
-    fun staffAndIncompleteSessionsAreRejected() {
-        assertFalse(SupportMessageAccessPolicy.canReadProtectedMessages(session("staff")))
+    fun ordinaryUsersAndIncompleteSessionsAreRejected() {
+        assertFalse(SupportMessageAccessPolicy.canReadProtectedMessages(session("user")))
         assertFalse(SupportMessageAccessPolicy.canReadProtectedMessages(session("admin", token = "")))
-        assertFalse(SupportMessageAccessPolicy.canReadProtectedMessages(session("manager", userId = "")))
+        assertFalse(SupportMessageAccessPolicy.canReadProtectedMessages(session("staff", userId = "")))
 
-        runCatching { SupportMessageAccessPolicy.buildReadPath(session("staff"), "ticket-123") }
-            .onSuccess { error("Staff message access must be rejected") }
+        runCatching { SupportMessageAccessPolicy.buildReadPath(session("user"), "ticket-123") }
+            .onSuccess { error("Ordinary user message access must be rejected") }
         runCatching { SupportMessageAccessPolicy.buildReadPath(session("admin"), "") }
             .onSuccess { error("Unscoped message access must be rejected") }
     }
