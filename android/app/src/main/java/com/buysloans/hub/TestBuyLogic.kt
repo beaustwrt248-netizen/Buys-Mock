@@ -37,44 +37,10 @@ data class TestBuyDraft(
     val hasUntestedChecks:Boolean get() = checks.any { it.result == TestResult.NOT_TESTED }
 }
 
-fun checklistFor(category:DeviceCategory):List<HardwareCheck> {
-    val shared = listOf(
-        HardwareCheck("power", "Powers on / boots normally"),
-        HardwareCheck("display", "Display condition and output"),
-        HardwareCheck("ports", "Physical ports and connectors"),
-        HardwareCheck("wifi", "Wi-Fi connectivity"),
-        HardwareCheck("bluetooth", "Bluetooth connectivity"),
-        HardwareCheck("speakers", "Speakers / audio output"),
-        HardwareCheck("storage", "Storage detected and basic health check")
-    )
-    return when(category) {
-        DeviceCategory.LAPTOP -> shared + listOf(
-            HardwareCheck("battery", "Battery condition / charging"),
-            HardwareCheck("keyboard", "Keyboard and trackpad"),
-            HardwareCheck("camera", "Camera"),
-            HardwareCheck("microphone", "Microphone")
-        )
-        DeviceCategory.DESKTOP_PC -> shared + listOf(
-            HardwareCheck("usb", "USB ports"),
-            HardwareCheck("ethernet", "Ethernet"),
-            HardwareCheck("gpu_output", "GPU / display outputs")
-        )
-        DeviceCategory.CONSOLE -> shared + listOf(
-            HardwareCheck("controller", "Controller pairing / input"),
-            HardwareCheck("disc", "Disc drive (if fitted)"),
-            HardwareCheck("hdmi", "HDMI output")
-        )
-        DeviceCategory.PHONE -> shared + listOf(
-            HardwareCheck("battery", "Battery condition / charging"),
-            HardwareCheck("touch", "Touchscreen"),
-            HardwareCheck("camera", "Front / rear cameras"),
-            HardwareCheck("microphone", "Microphone"),
-            HardwareCheck("cellular", "SIM / cellular detection where available"),
-            HardwareCheck("nfc", "NFC scan/read test where supported")
-        )
-        DeviceCategory.OTHER -> shared
+fun checklistFor(category:DeviceCategory):List<HardwareCheck> =
+    DeviceChecklistProfiles.forCategory(category).map { spec ->
+        HardwareCheck(id = spec.id, label = spec.label)
     }
-}
 
 fun recommendedOutcome(draft:TestBuyDraft):BuyOutcome {
     if (draft.itemName.isBlank()) return BuyOutcome.REJECT
