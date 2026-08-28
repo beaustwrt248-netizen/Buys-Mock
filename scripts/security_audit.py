@@ -110,7 +110,7 @@ def main() -> int:
         admin_apk_workflow = workflows / 'admin-apk-build.yml'
         if admin_apk_workflow.is_file():
             admin_apk_text = admin_apk_workflow.read_text(encoding='utf-8')
-            checksum_command = 'sha256sum --check Morley-Admin-readonly.apk.sha256'
+            checksum_command = 'sha256sum --check dist/Morley-Admin-readonly.apk.sha256'
             checksum_artifact = 'dist/Morley-Admin-readonly.apk.sha256'
             if checksum_command not in admin_apk_text:
                 failures.append('Admin APK artifact checksum is not verified before publication: .github/workflows/admin-apk-build.yml')
