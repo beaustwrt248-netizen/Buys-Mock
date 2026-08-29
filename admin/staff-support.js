@@ -6,6 +6,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 let me=null,myProfile=null,currentTicket=null;
 const statusLabel=s=>({open:'Open',in_progress:'In Progress',waiting_on_user:'Waiting on User',resolved:'Resolved',closed:'Closed'})[s]||s;
 const isClosed=t=>['resolved','closed'].includes(t?.status);
+const staffWritableStatuses=new Set(['in_progress','waiting_on_user','resolved']);
 const slaLabel=t=>{if(!t?.sla_due_at||isClosed(t))return '';const due=new Date(t.sla_due_at),ms=due-Date.now(),h=Math.max(1,Math.round(Math.abs(ms)/36e5));return ms<0?`SLA overdue ${h}h`:`SLA due in ${h}h`};
 function showLogin(){ $('loginView').classList.remove('hidden');$('appView').classList.add('hidden') }
 function showApp(){ $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('whoami').textContent=myProfile.display_name||myProfile.email||'Support staff';$('roleText').textContent=`STAFF • assigned tickets only • ${myProfile.email||''}` }
@@ -40,10 +41,9 @@ async function openTicket(id){
  $('ticketMessages').innerHTML=(m||[]).map(x=>`<div class="row"><div><strong>${x.author_role==='admin'?'Support':'User'}</strong><div>${esc(x.body)}</div><div class="muted">${new Date(x.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="muted">No replies yet.</div>';
 }
 async function saveTicket(){
- if(!currentTicket)return;$('ticketStatusText').textContent='Saving…';
- const updates={status:$('ticketStatus').value,priority:$('ticketPriority').value};
- const {error}=await sb.from('support_tickets').update(updates).eq('id',currentTicket.id).eq('assigned_to',me.id);
- $('ticketStatusText').textContent=error?error.message:'Ticket updated.';if(!error){await openTicket(currentTicket.id);await loadTickets()}
+ if(!currentTicket)return;const status=$('ticketStatus').value;if(!staffWritableStatuses.has(status)){$('ticketStatusText').textContent='Staff may move assigned tickets only to In Progress, Waiting on User, or Resolved.';return}$('ticketStatusText').textContent='Saving…';
+ const {error}=await sb.from('support_tickets').update({status}).eq('id',currentTicket.id).eq('assigned_to',me.id);
+ $('ticketStatusText').textContent=error?error.message:'Ticket status updated.';if(!error){await openTicket(currentTicket.id);await loadTickets()}
 }
 async function reply(){
  if(!currentTicket)return;const body=$('ticketReply').value.trim();if(!body)return;$('ticketStatusText').textContent='Sending…';
