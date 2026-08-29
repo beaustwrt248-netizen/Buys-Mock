@@ -30,6 +30,7 @@ object UpdateManager {
     internal fun isValidSha256(value:String):Boolean = value.matches(Regex("^[a-fA-F0-9]{64}$"))
 
     suspend fun check(): AppUpdate? = withContext(Dispatchers.IO) {
+        if (!OtaFeaturePolicy.isEnabled()) return@withContext null
         val cacheBustedUrl = "$METADATA_URL?t=${System.currentTimeMillis()}"
         val c=(URL(cacheBustedUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout=10000
