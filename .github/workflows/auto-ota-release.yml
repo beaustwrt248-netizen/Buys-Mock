@@ -109,7 +109,7 @@ jobs:
           APK="package/$APK_NAME"
           test -s "$APK"
           SHA="$(sha256sum "$APK" | awk '{print $1}')"
-          test "$(printf '%s' "$SHA" | wc -c)" -eq 64
+          [[ "$SHA" =~ ^[0-9a-f]{64}$ ]]
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; verifying its APK is identical."
@@ -120,11 +120,7 @@ jobs:
             test "$EXISTING_SHA" = "$SHA" || { echo 'Existing release APK does not match exact green build'; exit 1; }
           else
             NOTES="$(git -C source log -1 --pretty=%s "$HEAD_SHA")"
-            gh release create "$TAG" "$APK" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$HEAD_SHA" \
-              --title "B&L Morley $VERSION_NAME" \
-              --notes "$NOTES"
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$HEAD_SHA" --title "B&L Morley $VERSION_NAME" --notes "$NOTES"
           fi
           printf '%s' "$SHA" > package/apk.sha256
 
@@ -145,20 +141,19 @@ jobs:
           git reset --hard origin/main
 
           python3 - <<'PY'
+          import os
           import re
           from pathlib import Path
           gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
           code = re.search(r'\bversionCode\s+(\d+)', gradle)
           name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
-          import os
           expected_code = int(os.environ['VERSION_CODE'])
           expected_name = os.environ['VERSION_NAME']
           if not code or not name or int(code.group(1)) != expected_code or name.group(1) != expected_name:
               raise SystemExit('Main advanced to a different Android release before OTA manifest publication; refusing stale publish.')
           PY
 
-          SHA="$(cat ../package/apk.sha256)"
-          NOTES="$(git -C ../source log -1 --pretty=%s "$HEAD_SHA")"
+          export NOTES="$(git -C ../source log -1 --pretty=%s "$HEAD_SHA")"
           python3 - <<'PY'
           import json
           import os
@@ -168,7 +163,7 @@ jobs:
               'versionName': os.environ['VERSION_NAME'],
               'apkUrl': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['TAG']}/{os.environ['APK_NAME']}",
               'sha256': Path('../package/apk.sha256').read_text(encoding='utf-8').strip(),
-              'notes': os.environ.get('NOTES', '').strip(),
+              'notes': os.environ['NOTES'].strip(),
           }
           Path('ota/latest.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
           PY
@@ -181,5 +176,5 @@ jobs:
             exit 0
           fi
           git commit -m "Publish Morley $VERSION_NAME OTA [skip ci]"
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          gh auth setup-git
           git push origin HEAD:main
