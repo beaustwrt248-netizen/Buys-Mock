@@ -37,12 +37,15 @@ internal fun UserManagementPanel(
     val users = buildUserAccessPresentation(session, profiles)
     var pending by remember { mutableStateOf<UserControlCommand?>(null) }
 
+    TeamInvitePanel(session = session, hostBusy = busy)
+
     Text("User access", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
-        if (session.role == "admin")
-            "Admin-only audited controls. Android can change role, enable, or disable an account; delete and force-signout are not exposed."
-        else
-            "Read-only user visibility. Managers cannot change account access from Android Admin.",
+        when (session.role) {
+            "admin" -> "Admin-only audited controls. Android can change role, enable, or disable an existing account; delete and force-signout are not exposed."
+            "manager" -> "Managers may invite new Staff above, but existing account role and enable/disable controls remain Admin-only."
+            else -> "Read-only user visibility. Staff cannot invite or change account access."
+        },
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp
     )
