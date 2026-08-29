@@ -1,9 +1,17 @@
 (()=>{
 const q=id=>document.getElementById(id), esc2=v=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let currentTicket=null,supportAgents=[];
+let currentTicket=null,supportAgents=[],ticketFreshnessTimer=null,lastTicketRefreshAt=null;
 const statusLabel=s=>({open:'Open',in_progress:'In Progress',waiting_on_user:'Waiting on User',resolved:'Resolved',closed:'Closed'})[s]||s;
 const isClosed=t=>['resolved','closed'].includes(t?.status);
 const slaLabel=t=>{if(!t?.sla_due_at||isClosed(t))return '';const due=new Date(t.sla_due_at),ms=due-Date.now(),abs=Math.abs(ms),h=Math.max(1,Math.round(abs/36e5));return ms<0?`SLA overdue ${h}h`:`SLA due in ${h}h`};
+function ensureQueueControls(){
+ const grid=q('ticketSearch')?.closest('.grid');if(!grid)return;
+ if(!q('ticketPriorityFilter')){const select=document.createElement('select');select.id='ticketPriorityFilter';select.innerHTML='<option value="all">All priorities</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>';select.addEventListener('change',loadTickets);grid.insertBefore(select,q('ticketRefreshBtn')||null);}
+ if(!q('ticketAssigneeFilter')){const select=document.createElement('select');select.id='ticketAssigneeFilter';select.innerHTML='<option value="all">All assignees</option><option value="unassigned">Unassigned</option>';select.addEventListener('change',loadTickets);grid.insertBefore(select,q('ticketRefreshBtn')||null);}
+ if(!q('ticketFreshness')){const freshness=document.createElement('div');freshness.id='ticketFreshness';freshness.className='status';freshness.setAttribute('role','status');freshness.setAttribute('aria-live','polite');freshness.textContent='Support queue has not been refreshed yet.';grid.insertAdjacentElement('afterend',freshness);}
+}
+function updateFreshness(stale=false){const el=q('ticketFreshness');if(!el||!lastTicketRefreshAt)return;const stamp=lastTicketRefreshAt.toLocaleString();el.textContent=stale?`Data may be stale • last refreshed ${stamp}`:`Last refreshed ${stamp}`;}
+function markFresh(){lastTicketRefreshAt=new Date();updateFreshness(false);clearTimeout(ticketFreshnessTimer);ticketFreshnessTimer=setTimeout(()=>updateFreshness(true),5*60*1000);}
 function ensureTicketControls(){
  if(q('ticketAssignee'))return;
  const priority=q('ticketPriority'),grid=priority?.closest('.grid');if(!grid)return;
@@ -12,20 +20,22 @@ function ensureTicketControls(){
  const sla=document.createElement('div');sla.id='ticketSla';sla.className='muted';sla.style.margin='10px 0';grid.insertAdjacentElement('afterend',sla);
 }
 async function loadAgents(){
- if(!window.sb)return;ensureTicketControls();
+ if(!window.sb)return;ensureQueueControls();ensureTicketControls();
  const {data,error}=await sb.from('profiles').select('id,display_name,email,role,is_enabled').in('role',['admin','manager','staff']).eq('is_enabled',true).order('display_name');
  if(error){supportAgents=[];return}
  supportAgents=data||[];
- const sel=q('ticketAssignee');if(sel){const selected=sel.value;sel.innerHTML='<option value="">Unassigned</option>'+supportAgents.map(p=>`<option value="${p.id}">${esc2(p.display_name||p.email||p.id)} · ${esc2(p.role)}</option>`).join('');sel.value=selected;}
+ const options=supportAgents.map(p=>`<option value="${p.id}">${esc2(p.display_name||p.email||p.id)} · ${esc2(p.role)}</option>`).join('');
+ const sel=q('ticketAssignee');if(sel){const selected=sel.value;sel.innerHTML='<option value="">Unassigned</option>'+options;sel.value=selected;}
+ const filter=q('ticketAssigneeFilter');if(filter){const selected=filter.value;filter.innerHTML='<option value="all">All assignees</option><option value="unassigned">Unassigned</option>'+options;filter.value=[...filter.options].some(o=>o.value===selected)?selected:'all';}
 }
 async function loadTickets(){
- if(!window.sb||!q('ticketsList'))return;
- const status=q('ticketStatusFilter')?.value||'all',category=q('ticketCategoryFilter')?.value||'all',term=(q('ticketSearch')?.value||'').trim().toLowerCase();
- let req=sb.from('support_tickets').select('*,profiles:user_id(display_name,email)').order('updated_at',{ascending:false}).limit(100);
- if(status!=='all')req=req.eq('status',status); if(category!=='all')req=req.eq('category',category);
- const {data,error}=await req;if(error){q('ticketsList').textContent=error.message;return}
- const rows=(data||[]).filter(t=>!term||[t.subject,t.description,t.category,t.profiles?.display_name,t.profiles?.email].some(v=>String(v||'').toLowerCase().includes(term)));
- q('ticketsList').innerHTML=rows.map(t=>{const sla=slaLabel(t),assignee=supportAgents.find(p=>p.id===t.assigned_to);return `<button class="row ticket-row" data-ticket-id="${t.id}"><div class="row-main"><div class="row-title">${esc2(t.subject)}</div><div class="muted">${esc2(t.profiles?.display_name||t.profiles?.email||t.user_id)} • ${esc2(t.category)} • ${new Date(t.updated_at).toLocaleString()}</div><div class="muted">${assignee?`Assigned: ${esc2(assignee.display_name||assignee.email||assignee.id)}`:'Unassigned'}${sla?` • ${esc2(sla)}`:''}</div></div><span class="pill ${t.status==='resolved'||t.status==='closed'?'ok':''}">${esc2(statusLabel(t.status))}</span></button>`}).join('')||'<div class="muted">No tickets match these filters.</div>';
+ if(!window.sb||!q('ticketsList'))return;ensureQueueControls();
+ const status=q('ticketStatusFilter')?.value||'all',category=q('ticketCategoryFilter')?.value||'all',priority=q('ticketPriorityFilter')?.value||'all',assignee=q('ticketAssigneeFilter')?.value||'all',term=(q('ticketSearch')?.value||'').trim().toLowerCase();
+ const {data,error}=await sb.from('support_tickets').select('*,profiles:user_id(display_name,email)').order('updated_at',{ascending:false}).limit(100);
+ if(error){q('ticketsList').textContent='Support tickets could not be refreshed.';return}
+ markFresh();
+ const rows=(data||[]).filter(t=>(status==='all'||t.status===status)&&(category==='all'||t.category===category)&&(priority==='all'||t.priority===priority)&&(assignee==='all'||(assignee==='unassigned'?!t.assigned_to:t.assigned_to===assignee))&&(!term||[t.subject,t.description,t.category,t.priority,t.profiles?.display_name,t.profiles?.email].some(v=>String(v||'').toLowerCase().includes(term))));
+ q('ticketsList').innerHTML=rows.map(t=>{const sla=slaLabel(t),assigned=supportAgents.find(p=>p.id===t.assigned_to);return `<button class="row ticket-row" data-ticket-id="${t.id}"><div class="row-main"><div class="row-title">${esc2(t.subject)}</div><div class="muted">${esc2(t.profiles?.display_name||t.profiles?.email||t.user_id)} • ${esc2(t.category)} • ${esc2(t.priority||'normal')} • ${new Date(t.updated_at).toLocaleString()}</div><div class="muted">${assigned?`Assigned: ${esc2(assigned.display_name||assigned.email||assigned.id)}`:'Unassigned'}${sla?` • ${esc2(sla)}`:''}</div></div><span class="pill ${t.status==='resolved'||t.status==='closed'?'ok':''}">${esc2(statusLabel(t.status))}</span></button>`}).join('')||'<div class="muted">No tickets match these filters.</div>';
  document.querySelectorAll('[data-ticket-id]').forEach(b=>b.onclick=()=>openTicket(b.dataset.ticketId));
 }
 async function openTicket(id){
@@ -40,9 +50,9 @@ async function openTicket(id){
  q('ticketDiagnostics').textContent=t.diagnostics_opt_in?JSON.stringify(t.diagnostics||{},null,2):'Diagnostics not shared by user.';
  q('ticketMessages').innerHTML=(m||[]).map(x=>`<div class="row"><div><strong>${x.author_role==='admin'?'Support':'User'}</strong><div>${esc2(x.body)}</div><div class="muted">${new Date(x.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="muted">No replies yet.</div>';
 }
-async function saveTicket(){if(!currentTicket)return;ensureTicketControls();const updates={status:q('ticketStatus').value,priority:q('ticketPriority').value,assigned_to:q('ticketAssignee').value||null};const {error}=await sb.from('support_tickets').update(updates).eq('id',currentTicket.id);q('ticketAdminStatus').textContent=error?error.message:'Ticket updated.';if(!error){await openTicket(currentTicket.id);await loadTickets();if(window.loadAudit)await loadAudit()}}
-async function reply(){if(!currentTicket)return;const body=q('ticketReply').value.trim();if(!body)return;const {data:{user}}=await sb.auth.getUser();const actor=user?.id;if(!actor){q('ticketAdminStatus').textContent='Support session identity is unavailable.';return}const {error}=await sb.from('support_ticket_messages').insert({ticket_id:currentTicket.id,author_user_id:actor,author_role:'admin',body});q('ticketAdminStatus').textContent=error?error.message:'Reply added.';if(!error){q('ticketReply').value='';if(currentTicket.status==='open')await sb.from('support_tickets').update({status:'in_progress'}).eq('id',currentTicket.id);await openTicket(currentTicket.id);await loadTickets();}}
-ensureTicketControls();
+async function saveTicket(){if(!currentTicket)return;ensureTicketControls();const updates={status:q('ticketStatus').value,priority:q('ticketPriority').value,assigned_to:q('ticketAssignee').value||null};const {error}=await sb.from('support_tickets').update(updates).eq('id',currentTicket.id);q('ticketAdminStatus').textContent=error?'Ticket update failed.':'Ticket updated.';if(!error){await openTicket(currentTicket.id);await loadTickets();if(window.loadAudit)await loadAudit()}}
+async function reply(){if(!currentTicket)return;const body=q('ticketReply').value.trim();if(!body)return;const {data:{user}}=await sb.auth.getUser();const actor=user?.id;if(!actor){q('ticketAdminStatus').textContent='Support session identity is unavailable.';return}const {error}=await sb.from('support_ticket_messages').insert({ticket_id:currentTicket.id,author_user_id:actor,author_role:'admin',body});q('ticketAdminStatus').textContent=error?'Reply could not be sent.':'Reply added.';if(!error){q('ticketReply').value='';if(currentTicket.status==='open')await sb.from('support_tickets').update({status:'in_progress'}).eq('id',currentTicket.id);await openTicket(currentTicket.id);await loadTickets();}}
+ensureQueueControls();ensureTicketControls();
 document.addEventListener('click',e=>{const tab=e.target.closest?.('[data-tab="tickets"]');if(tab)setTimeout(async()=>{await loadAgents();await loadTickets()},0)});
 ['ticketStatusFilter','ticketCategoryFilter'].forEach(id=>q(id)?.addEventListener('change',loadTickets));q('ticketSearch')?.addEventListener('input',()=>{clearTimeout(window.__ticketSearchTimer);window.__ticketSearchTimer=setTimeout(loadTickets,200)});q('ticketRefreshBtn')?.addEventListener('click',async()=>{await loadAgents();await loadTickets()});q('ticketSaveBtn')?.addEventListener('click',saveTicket);q('ticketReplyBtn')?.addEventListener('click',reply);
 window.loadSupportTickets=async()=>{await loadAgents();await loadTickets()};
