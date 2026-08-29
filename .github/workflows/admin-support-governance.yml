@@ -82,7 +82,16 @@ jobs:
           for needle in forbidden_staff:
               if needle in staff.lower():
                   raise SystemExit(f'Unsafe staff support grant detected: {needle}')
-          for needle in ['ticketAssignee','assigned_to','sla_due_at','first_response_at',".in('role',['admin','manager'])"]:
+          required_admin_ui = [
+              'ticketAssignee',
+              'assigned_to',
+              'sla_due_at',
+              'first_response_at',
+              ".in('role',['admin','manager','staff'])",
+              'sb.auth.getUser()',
+              'author_user_id:actor',
+          ]
+          for needle in required_admin_ui:
               if needle not in admin:
                   raise SystemExit(f'Admin support UI contract missing: {needle}')
           required_staff_ui = [

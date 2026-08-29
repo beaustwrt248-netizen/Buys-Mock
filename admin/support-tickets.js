@@ -13,7 +13,7 @@ function ensureTicketControls(){
 }
 async function loadAgents(){
  if(!window.sb)return;ensureTicketControls();
- const {data,error}=await sb.from('profiles').select('id,display_name,email,role,is_enabled').in('role',['admin','manager']).eq('is_enabled',true).order('display_name');
+ const {data,error}=await sb.from('profiles').select('id,display_name,email,role,is_enabled').in('role',['admin','manager','staff']).eq('is_enabled',true).order('display_name');
  if(error){supportAgents=[];return}
  supportAgents=data||[];
  const sel=q('ticketAssignee');if(sel){const selected=sel.value;sel.innerHTML='<option value="">Unassigned</option>'+supportAgents.map(p=>`<option value="${p.id}">${esc2(p.display_name||p.email||p.id)} · ${esc2(p.role)}</option>`).join('');sel.value=selected;}
@@ -41,7 +41,7 @@ async function openTicket(id){
  q('ticketMessages').innerHTML=(m||[]).map(x=>`<div class="row"><div><strong>${x.author_role==='admin'?'Support':'User'}</strong><div>${esc2(x.body)}</div><div class="muted">${new Date(x.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="muted">No replies yet.</div>';
 }
 async function saveTicket(){if(!currentTicket)return;ensureTicketControls();const updates={status:q('ticketStatus').value,priority:q('ticketPriority').value,assigned_to:q('ticketAssignee').value||null};const {error}=await sb.from('support_tickets').update(updates).eq('id',currentTicket.id);q('ticketAdminStatus').textContent=error?error.message:'Ticket updated.';if(!error){await openTicket(currentTicket.id);await loadTickets();if(window.loadAudit)await loadAudit()}}
-async function reply(){if(!currentTicket)return;const body=q('ticketReply').value.trim();if(!body)return;const {error}=await sb.from('support_ticket_messages').insert({ticket_id:currentTicket.id,author_role:'admin',body});q('ticketAdminStatus').textContent=error?error.message:'Reply added.';if(!error){q('ticketReply').value='';if(currentTicket.status==='open')await sb.from('support_tickets').update({status:'in_progress'}).eq('id',currentTicket.id);await openTicket(currentTicket.id);await loadTickets();}}
+async function reply(){if(!currentTicket)return;const body=q('ticketReply').value.trim();if(!body)return;const {data:{user}}=await sb.auth.getUser();const actor=user?.id;if(!actor){q('ticketAdminStatus').textContent='Support session identity is unavailable.';return}const {error}=await sb.from('support_ticket_messages').insert({ticket_id:currentTicket.id,author_user_id:actor,author_role:'admin',body});q('ticketAdminStatus').textContent=error?error.message:'Reply added.';if(!error){q('ticketReply').value='';if(currentTicket.status==='open')await sb.from('support_tickets').update({status:'in_progress'}).eq('id',currentTicket.id);await openTicket(currentTicket.id);await loadTickets();}}
 ensureTicketControls();
 document.addEventListener('click',e=>{const tab=e.target.closest?.('[data-tab="tickets"]');if(tab)setTimeout(async()=>{await loadAgents();await loadTickets()},0)});
 ['ticketStatusFilter','ticketCategoryFilter'].forEach(id=>q(id)?.addEventListener('change',loadTickets));q('ticketSearch')?.addEventListener('input',()=>{clearTimeout(window.__ticketSearchTimer);window.__ticketSearchTimer=setTimeout(loadTickets,200)});q('ticketRefreshBtn')?.addEventListener('click',async()=>{await loadAgents();await loadTickets()});q('ticketSaveBtn')?.addEventListener('click',saveTicket);q('ticketReplyBtn')?.addEventListener('click',reply);
