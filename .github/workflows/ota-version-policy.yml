@@ -1,0 +1,57 @@
+name: Morley OTA Version Policy
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+
+permissions:
+  contents: read
+
+jobs:
+  require-next-ota-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Require exactly one OTA version advance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
+          manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+          code_match = re.search(r'\bversionCode\s+(\d+)', gradle)
+          name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          if not code_match or not name_match:
+              raise SystemExit('Could not parse Android versionCode/versionName')
+
+          source_code = int(code_match.group(1))
+          source_name = name_match.group(1).strip()
+          published_code = int(manifest.get('versionCode', 0))
+          published_name = str(manifest.get('versionName', '')).strip()
+
+          def semver(value):
+              match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:[-+].*)?', value)
+              return tuple(map(int, match.groups())) if match else None
+
+          if source_code != published_code + 1:
+              raise SystemExit(
+                  f'Every Android update must be OTA-ready: source versionCode {source_code} '
+                  f'must be exactly one above published OTA {published_code}.'
+              )
+          source_semver, published_semver = semver(source_name), semver(published_name)
+          if source_semver is None or published_semver is None or source_semver <= published_semver:
+              raise SystemExit(
+                  f'Android versionName {source_name!r} must be a semantic version newer than OTA {published_name!r}.'
+              )
+          print(f'OTA policy PASSED: {published_name} ({published_code}) -> {source_name} ({source_code})')
+          PY
