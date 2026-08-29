@@ -12,6 +12,7 @@ class MorleyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        AppCopyrightFooter.install(this)
         NotificationHelper.createChannels(this)
         UpdateCheckScheduler.schedule(this)
         ReleasePolicyCoordinator.register(this)
