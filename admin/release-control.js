@@ -190,4 +190,53 @@ $('saveReleaseBtn').onclick=async()=>{
   await Promise.all([loadAudit(),loadMetrics(),loadReleaseRollout(),loadSourceBuild()]);
 };
 
+function ensureOtaEnabledControl(){
+  let box=$('otaEnabledControl');
+  if(box)return box;
+  const minName=$('minName');
+  if(!minName)return null;
+  const anchor=minName.previousElementSibling||minName;
+  box=document.createElement('div');
+  box.id='otaEnabledControl';
+  box.innerHTML='<hr><h3>OTA delivery</h3><label class="switchrow"><span>Automatic OTA update checks</span><input id="otaEnabled" type="checkbox"></label><button id="saveOtaEnabledBtn" class="ghost">Save OTA setting</button><div id="otaEnabledStatus" class="status" role="status" aria-live="polite"></div><hr>';
+  anchor.insertAdjacentElement('beforebegin',box);
+  $('saveOtaEnabledBtn').onclick=saveOtaEnabled;
+  return box;
+}
+
+function renderOtaEnabledControl(){
+  if(!ensureOtaEnabledControl())return;
+  const flags=config?.feature_flags||{};
+  const enabled=flags.otaEnabled!==false;
+  $('otaEnabled').checked=enabled;
+  $('otaEnabledStatus').textContent=enabled
+    ?'OTA is enabled. Signed manifest checks and verified APK downloads are allowed.'
+    :'OTA is disabled. Morley will skip automatic and manual OTA checks.';
+}
+
+async function saveOtaEnabled(){
+  const button=$('saveOtaEnabledBtn');
+  const status=$('otaEnabledStatus');
+  const flags={...(config?.feature_flags||{})};
+  if(typeof flags.maintenanceMode!=='boolean')flags.maintenanceMode=false;
+  if(typeof flags.maintenanceMessage!=='string')flags.maintenanceMessage='';
+  flags.otaEnabled=!!$('otaEnabled').checked;
+  button.disabled=true;
+  status.textContent='Saving audited OTA setting…';
+  const {error}=await sb.rpc('admin_set_config',{config_key:'feature_flags',config_value:flags});
+  if(error){status.textContent=error.message;button.disabled=false;return}
+  config.feature_flags=flags;
+  status.textContent=flags.otaEnabled?'OTA enabled.':'OTA disabled.';
+  button.disabled=false;
+  await Promise.all([loadConfig(),loadAudit()]);
+}
+
+const otaAwareLoadConfig=loadConfig;
+loadConfig=async function(){
+  await otaAwareLoadConfig();
+  renderOtaEnabledControl();
+};
+
+ensureOtaEnabledControl();
+renderOtaEnabledControl();
 refreshVerifiedOtaRelease().catch(()=>{});
