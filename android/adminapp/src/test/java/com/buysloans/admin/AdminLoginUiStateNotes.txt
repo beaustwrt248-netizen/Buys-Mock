@@ -1,6 +1,0 @@
-Login UI state contract for 0.1.2-login-state:
-- email + password + valid CAPTCHA + idle => Sign in enabled
-- active submission => Sign in disabled and explicit "Signing in securely…" feedback shown
-- CAPTCHA token remains visible/preserved while the request is in flight
-- failed submission => CAPTCHA is reset for a fresh token
-- CAPTCHA is never bypassed and Supabase remains authoritative for credentials
