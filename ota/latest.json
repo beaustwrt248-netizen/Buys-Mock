@@ -1,7 +1,7 @@
 {
-  "versionCode": 42,
-  "versionName": "2.14.6",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.6/B-and-L-Morley-2.14.6.apk",
-  "sha256": "aadc7e17ba01823d4d3fb490a105e48d3e7ec9a429a6e3731ee39075cc8e535d",
-  "notes": "Merge PR #77: B&L Morley 2.14.6 support-ticket OTA candidate"
+  "versionCode": 43,
+  "versionName": "2.14.7",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.7/B-and-L-Morley-2.14.7.apk",
+  "sha256": "825a429d2bfb28bb84b691252f8b9b8bf6644e95ac5440edf0c3037d80e24a5d",
+  "notes": "Release: Morley 2.14.7 Guardian diagnostics + automatic OTA (#271)"
 }
