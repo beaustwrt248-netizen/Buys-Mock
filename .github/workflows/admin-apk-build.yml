@@ -110,3 +110,121 @@ jobs:
             dist/Morley-Admin-readonly.apk.sha256
           if-no-files-found: error
           retention-days: 14
+
+  publish-admin-ota:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-admin-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout exact release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download verified Admin APK artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: morley-admin-readonly-apk
+          path: dist
+      - name: Resolve Admin release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)', text)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not code or not name or int(code.group(1)) < 1 or not name.group(1).strip():
+              raise SystemExit('Invalid Admin release identity')
+          safe=re.sub(r'[^A-Za-z0-9._-]+','-',name.group(1)).strip('-')
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as fh:
+              fh.write(f'ADMIN_VERSION_CODE={code.group(1)}\n')
+              fh.write(f'ADMIN_VERSION_NAME={name.group(1)}\n')
+              fh.write(f'ADMIN_VERSION_SAFE={safe}\n')
+              fh.write(f'ADMIN_RELEASE_TAG=admin-v{safe}\n')
+              fh.write(f'ADMIN_RELEASE_FILE=Morley-Admin-{safe}.apk\n')
+          PY
+      - name: Verify release artifact and stage immutable filename
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check dist/Morley-Admin-readonly.apk.sha256
+          cp dist/Morley-Admin-readonly.apk "dist/${ADMIN_RELEASE_FILE}"
+          ADMIN_SHA256="$(sha256sum "dist/${ADMIN_RELEASE_FILE}" | awk '{print $1}')"
+          test "${#ADMIN_SHA256}" = 64
+          echo "ADMIN_SHA256=$ADMIN_SHA256" >> "$GITHUB_ENV"
+      - name: Publish or verify immutable Admin GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            rm -rf "$RUNNER_TEMP/admin-existing-release"
+            mkdir -p "$RUNNER_TEMP/admin-existing-release"
+            gh release download "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ADMIN_RELEASE_FILE" --dir "$RUNNER_TEMP/admin-existing-release"
+            EXISTING_SHA="$(sha256sum "$RUNNER_TEMP/admin-existing-release/$ADMIN_RELEASE_FILE" | awk '{print $1}')"
+            test "$EXISTING_SHA" = "$ADMIN_SHA256" || { echo 'Existing Admin release asset does not match this signed build.' >&2; exit 1; }
+            echo "Verified existing immutable Admin release $ADMIN_RELEASE_TAG"
+          else
+            gh release create "$ADMIN_RELEASE_TAG" "dist/${ADMIN_RELEASE_FILE}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Morley Admin ${ADMIN_VERSION_NAME}" \
+              --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
+              --latest=false
+          fi
+      - name: Publish Admin OTA metadata to Pages source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import hashlib, json, os, re
+          from pathlib import Path
+          gradle=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)', gradle)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          expected_code=int(os.environ['ADMIN_VERSION_CODE'])
+          expected_name=os.environ['ADMIN_VERSION_NAME']
+          if not code or not name or int(code.group(1)) != expected_code or name.group(1) != expected_name:
+              raise SystemExit('Main advanced to a different Admin version; refusing to publish stale OTA metadata.')
+          release_file=os.environ['ADMIN_RELEASE_FILE']
+          data={
+              'versionCode': expected_code,
+              'versionName': expected_name,
+              'apkUrl': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['ADMIN_RELEASE_TAG']}/{release_file}",
+              'sha256': os.environ['ADMIN_SHA256'],
+              'required': False,
+              'sourceSha': os.environ['GITHUB_SHA'],
+          }
+          Path('admin').mkdir(parents=True, exist_ok=True)
+          Path('admin/admin-update.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+          PY
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          d=json.loads(Path('admin/admin-update.json').read_text())
+          assert isinstance(d['versionCode'],int) and d['versionCode'] > 0
+          assert d['versionName']
+          assert d['apkUrl'].startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v')
+          assert re.fullmatch(r'[0-9a-f]{64}',d['sha256'])
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin/admin-update.json
+          if git diff --cached --quiet; then
+            echo 'Admin OTA metadata already current.'
+          else
+            git commit -m "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata"
+            gh auth setup-git
+            git push origin HEAD:main
+          fi
