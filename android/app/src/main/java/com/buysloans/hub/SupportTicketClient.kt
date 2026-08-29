@@ -16,6 +16,99 @@ object SupportTicketClient {
 
     data class SubmitResult(val ticketId: String, val attachmentWarning: String? = null)
 
+    data class TicketSummary(
+        val id: String,
+        val category: String,
+        val subject: String,
+        val description: String,
+        val status: String,
+        val priority: String,
+        val createdAt: String,
+        val updatedAt: String
+    )
+
+    data class TicketMessage(
+        val id: String,
+        val ticketId: String,
+        val authorRole: String,
+        val body: String,
+        val createdAt: String
+    )
+
+    suspend fun listMyTickets(context: Context): List<TicketSummary> {
+        val token = AuthManager.validAccessToken(context)
+        val (code, body) = request(
+            path = "/rest/v1/support_tickets?select=id,category,subject,description,status,priority,created_at,updated_at&order=updated_at.desc",
+            method = "GET",
+            token = token
+        )
+        if (code !in 200..299) throw IllegalStateException(apiError(code, body, "Support tickets could not be loaded."))
+        val json = JSONArray(body)
+        return buildList {
+            for (index in 0 until json.length()) {
+                val item = json.getJSONObject(index)
+                add(
+                    TicketSummary(
+                        id = item.optString("id"),
+                        category = item.optString("category"),
+                        subject = item.optString("subject"),
+                        description = item.optString("description"),
+                        status = item.optString("status"),
+                        priority = item.optString("priority"),
+                        createdAt = item.optString("created_at"),
+                        updatedAt = item.optString("updated_at")
+                    )
+                )
+            }
+        }.filter { it.id.isNotBlank() }
+    }
+
+    suspend fun listMyMessages(context: Context): List<TicketMessage> {
+        val token = AuthManager.validAccessToken(context)
+        val (code, body) = request(
+            path = "/rest/v1/support_ticket_messages?select=id,ticket_id,author_role,body,created_at&order=created_at.asc",
+            method = "GET",
+            token = token
+        )
+        if (code !in 200..299) throw IllegalStateException(apiError(code, body, "Support replies could not be loaded."))
+        val json = JSONArray(body)
+        return buildList {
+            for (index in 0 until json.length()) {
+                val item = json.getJSONObject(index)
+                add(
+                    TicketMessage(
+                        id = item.optString("id"),
+                        ticketId = item.optString("ticket_id"),
+                        authorRole = item.optString("author_role"),
+                        body = item.optString("body"),
+                        createdAt = item.optString("created_at")
+                    )
+                )
+            }
+        }.filter { it.id.isNotBlank() && it.ticketId.isNotBlank() }
+    }
+
+    suspend fun reply(context: Context, ticketId: String, body: String) {
+        val cleanTicketId = ticketId.trim()
+        require(cleanTicketId.isNotBlank()) { "Choose a support ticket first." }
+        val cleanBody = SupportTicketLogic.validateReply(body)
+        val token = AuthManager.validAccessToken(context)
+        val payload = JSONObject().apply {
+            put("ticket_id", cleanTicketId)
+            put("author_role", "user")
+            put("body", cleanBody)
+        }
+        val (code, response) = request(
+            path = "/rest/v1/support_ticket_messages",
+            method = "POST",
+            token = token,
+            contentType = "application/json",
+            body = payload.toString().toByteArray(),
+            prefer = "return=minimal"
+        )
+        if (code !in 200..299) throw IllegalStateException(apiError(code, response, "Reply could not be sent."))
+    }
+
     suspend fun submit(
         context: Context,
         category: String,
@@ -119,8 +212,8 @@ object SupportTicketClient {
         path: String,
         method: String,
         token: String,
-        contentType: String,
-        body: ByteArray,
+        contentType: String = "application/json",
+        body: ByteArray? = null,
         prefer: String? = null,
         extraHeaders: Map<String, String> = emptyMap()
     ): Pair<Int, String> = withContext(Dispatchers.IO) {
@@ -128,15 +221,16 @@ object SupportTicketClient {
             requestMethod = method
             connectTimeout = 15_000
             readTimeout = 20_000
-            doOutput = true
+            doOutput = body != null
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             setRequestProperty("Authorization", "Bearer $token")
-            setRequestProperty("Content-Type", contentType)
+            setRequestProperty("Accept", "application/json")
+            if (body != null) setRequestProperty("Content-Type", contentType)
             if (!prefer.isNullOrBlank()) setRequestProperty("Prefer", prefer)
             extraHeaders.forEach { (key, value) -> setRequestProperty(key, value) }
         }
         try {
-            connection.outputStream.use { it.write(body) }
+            if (body != null) connection.outputStream.use { it.write(body) }
             val responseCode = connection.responseCode
             val responseBody = (if (responseCode in 200..299) connection.inputStream else connection.errorStream)
                 ?.bufferedReader()?.use { it.readText() }.orEmpty()
