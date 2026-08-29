@@ -23,9 +23,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private val Bg = Color(0xFF030712)
 private val CardBg = Color(0xFF0B1528)
@@ -64,6 +68,7 @@ private fun AdminRoot() {
     var snapshot by remember { mutableStateOf<AdminSnapshot?>(null) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    var lastRefreshedAtMillis by remember { mutableLongStateOf(0L) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
 
@@ -71,7 +76,10 @@ private fun AdminRoot() {
         busy = true; error = ""
         scope.launch {
             runCatching { AdminApi.load(s) }
-                .onSuccess { snapshot = it }
+                .onSuccess {
+                    snapshot = it
+                    lastRefreshedAtMillis = System.currentTimeMillis()
+                }
                 .onFailure {
                     AdminTelemetry.record(context, "Dashboard/Refresh", it)
                     error = it.message ?: "Admin data could not be loaded."
@@ -133,10 +141,15 @@ private fun AdminRoot() {
             snapshot = snapshot,
             busy = busy,
             error = error,
+            lastRefreshedAtMillis = lastRefreshedAtMillis,
             onRefresh = { refresh(session!!) },
             onUpdateMaintenance = { current, enabled, message, otaEnabled -> updateMaintenance(session!!, current, enabled, message, otaEnabled) },
             onUserControl = { command -> updateUserAccess(session!!, command) },
-            onSignOut = { session = null; snapshot = null }
+            onSignOut = {
+                session = null
+                snapshot = null
+                lastRefreshedAtMillis = 0L
+            }
         )
     }
 }
@@ -219,13 +232,25 @@ private fun Dashboard(
     snapshot: AdminSnapshot?,
     busy: Boolean,
     error: String,
+    lastRefreshedAtMillis: Long,
     onRefresh: () -> Unit,
     onUpdateMaintenance: (MaintenanceConfig, Boolean, String, Boolean) -> Unit,
     onUserControl: (UserControlCommand) -> Unit,
     onSignOut: () -> Unit
 ) {
     var tab by remember { mutableStateOf("Health") }
+    var freshnessNowMillis by remember(lastRefreshedAtMillis) { mutableLongStateOf(System.currentTimeMillis()) }
     val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release")
+
+    LaunchedEffect(lastRefreshedAtMillis) {
+        if (lastRefreshedAtMillis > 0L) {
+            while (true) {
+                freshnessNowMillis = System.currentTimeMillis()
+                delay(60_000L)
+            }
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -259,11 +284,28 @@ private fun Dashboard(
             }
         }
         OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh Admin data") }
+        if (lastRefreshedAtMillis > 0L) {
+            val freshness = supportQueueFreshness(lastRefreshedAtMillis, freshnessNowMillis)
+            val refreshedTime = remember(lastRefreshedAtMillis) {
+                DateTimeFormatter.ofPattern("HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(Instant.ofEpochMilli(lastRefreshedAtMillis))
+            }
+            Text(
+                if (freshness.stale) "Last refreshed $refreshedTime • STALE (${freshness.ageMinutes}m old) — refresh before acting"
+                else "Last refreshed $refreshedTime • current",
+                color = if (freshness.stale) Warn else Good,
+                fontSize = 11.sp,
+                fontWeight = if (freshness.stale) FontWeight.Bold else FontWeight.Normal
+            )
+        } else {
+            Text("Admin data has not loaded yet.", color = Warn, fontSize = 11.sp)
+        }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         when (tab) {
             "Health" -> HealthPanel(snapshot)
-            "Tickets" -> SupportOperationsPanel(session, snapshot?.tickets)
+            "Tickets" -> SupportOperationsPanel(session, snapshot?.tickets, snapshot?.profiles, busy, onRefresh)
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
             "Users & devices" -> UsersDevicesPanel(session, snapshot, busy, onUserControl)
             "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)

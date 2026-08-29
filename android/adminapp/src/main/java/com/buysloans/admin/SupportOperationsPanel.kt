@@ -59,6 +59,10 @@ internal fun SupportOperationsPanel(
     var errorText by remember { mutableStateOf("") }
     var replyText by remember(selectedTicketId) { mutableStateOf("") }
     var noteText by remember(selectedTicketId) { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("") }
+    var priorityFilter by remember { mutableStateOf("") }
+    var assigneeFilter by remember { mutableStateOf("") }
 
     LaunchedEffect(session.userId, profiles) {
         if (supportProfiles == null && canAssignSupportTicket(session)) {
@@ -67,6 +71,16 @@ internal fun SupportOperationsPanel(
                 .onFailure { errorText = it.message ?: "Support assignees could not be loaded." }
         }
     }
+
+    val queueFilter = SupportQueueFilter(
+        query = searchQuery,
+        status = statusFilter,
+        priority = priorityFilter,
+        assignee = assigneeFilter
+    )
+    val filteredTickets = filterSupportQueue(tickets, queueFilter)
+    val visibleTicketCount = minOf(tickets?.length() ?: 0, SUPPORT_QUEUE_VISIBLE_LIMIT)
+    val filterAssignees = eligibleSupportAssignees(supportProfiles)
 
     fun loadWorkspace(ticketId: String, ticketSubject: String) {
         if (ticketId.isBlank() || loadingWorkspace) return
@@ -171,17 +185,54 @@ internal fun SupportOperationsPanel(
     }
 
     Text("Ticket queue", fontWeight = FontWeight.Bold)
-    for (i in 0 until minOf(tickets.length(), 50)) {
-        val ticket = tickets.optJSONObject(i) ?: continue
-        val ticketId = ticket.optString("id")
-        val ticketSubject = ticket.optString("subject").ifBlank { "Support ticket" }
-        SupportTicketCard(
-            title = supportTicketOperationalLine(ticket),
-            detail = supportTicketOperationalDetail(ticket),
-            selected = ticketId.isNotBlank() && ticketId == selectedTicketId,
-            enabled = ticketId.isNotBlank() && !loadingWorkspace && !controlBusy,
-            onSelect = { loadWorkspace(ticketId, ticketSubject) }
-        )
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = { searchQuery = it.take(120) },
+        label = { Text("Search tickets") },
+        supportingText = { Text("Searches only the tickets already authorised for this session.") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !busy && !controlBusy
+    )
+    ChoiceMenu(
+        "Filter status",
+        statusFilter,
+        listOf("" to "All statuses") + SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) },
+        !busy && !controlBusy
+    ) { statusFilter = it }
+    ChoiceMenu(
+        "Filter priority",
+        priorityFilter,
+        listOf("" to "All priorities") + SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar { c -> c.uppercase() } },
+        !busy && !controlBusy
+    ) { priorityFilter = it }
+    ChoiceMenu(
+        "Filter assignee",
+        assigneeFilter,
+        listOf("" to "All assignees", SUPPORT_ASSIGNEE_UNASSIGNED to "Unassigned") +
+            filterAssignees.map { it.id to "${it.label} · ${it.role}" },
+        !busy && !controlBusy
+    ) { assigneeFilter = it }
+    Text(
+        "Showing ${filteredTickets.size} of $visibleTicketCount authorised tickets",
+        color = SupportMuted,
+        fontSize = 11.sp
+    )
+
+    if (filteredTickets.isEmpty()) {
+        Text("No tickets match the current search and filters.", color = SupportMuted)
+    } else {
+        filteredTickets.forEach { ticket ->
+            val ticketId = ticket.optString("id")
+            val ticketSubject = ticket.optString("subject").ifBlank { "Support ticket" }
+            SupportTicketCard(
+                title = supportTicketOperationalLine(ticket),
+                detail = supportTicketOperationalDetail(ticket),
+                selected = ticketId.isNotBlank() && ticketId == selectedTicketId,
+                enabled = ticketId.isNotBlank() && !loadingWorkspace && !controlBusy,
+                onSelect = { loadWorkspace(ticketId, ticketSubject) }
+            )
+        }
     }
 
     val selected = findSupportTicket(tickets, selectedTicketId)
@@ -241,7 +292,7 @@ internal fun SupportOperationsPanel(
     conversation?.let { state -> ProtectedMessagesPanel(state.ticketSubject, state.messages) }
 
     Text(
-        "User replies are stored in the protected support conversation. Internal notes are a separate RLS-protected record and are never exposed to ticket owners. Staff remain limited to tickets assigned to them; assignment stays Admin/Manager-only.",
+        "Search and filters run locally over the already-authorised queue only. User replies are stored in the protected support conversation. Internal notes are a separate RLS-protected record and are never exposed to ticket owners. Staff remain limited to tickets assigned to them; assignment stays Admin/Manager-only.",
         color = SupportMuted,
         fontSize = 12.sp
     )
