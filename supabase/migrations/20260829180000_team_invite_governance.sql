@@ -66,12 +66,13 @@ declare
   caller_role text;
   clean_email text := lower(btrim(coalesce(invite_email,'')));
   clean_name text := regexp_replace(btrim(coalesce(invite_display_name,'')), '\s+', ' ', 'g');
+  target public.app_invites%rowtype;
 begin
   select p.role into caller_role
   from public.profiles p
   where p.id = auth.uid() and p.is_enabled = true;
 
-  if caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
+  if caller_role is null or caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
   if caller_role = 'manager' and invite_role <> 'staff' then raise exception 'managers may invite staff only'; end if;
   if caller_role = 'admin' and invite_role not in ('staff','manager') then raise exception 'unsupported invite role'; end if;
   if length(clean_name) not between 3 and 100 or position(' ' in clean_name) = 0 then raise exception 'first and last name required'; end if;
@@ -83,19 +84,15 @@ begin
     where lower(i.email) = clean_email and i.used_at is null and i.expires_at > now()
   ) then raise exception 'an active invitation already exists for this email'; end if;
 
+  insert into public.app_invites(email,display_name,role,code_hash,expires_at,created_by)
+  values(clean_email,clean_name,invite_role,invite_code_hash,invite_expires_at,auth.uid())
+  returning * into target;
+
+  insert into public.admin_audit_log(actor_user_id,action,target_type,target_id,details)
+  values(auth.uid(),'team_invite_created','team_invite',target.id::text,jsonb_build_object('role',target.role));
+
   return query
-  with inserted as (
-    insert into public.app_invites(email,display_name,role,code_hash,expires_at,created_by)
-    values(clean_email,clean_name,invite_role,invite_code_hash,invite_expires_at,auth.uid())
-    returning app_invites.id,app_invites.email,app_invites.display_name,app_invites.role,app_invites.expires_at,app_invites.used_at,app_invites.created_at
-  ), audited as (
-    insert into public.admin_audit_log(actor_user_id,action,target_type,target_id,details)
-    select auth.uid(),'team_invite_created','team_invite',inserted.id::text,jsonb_build_object('role',inserted.role)
-    from inserted
-    returning 1
-  )
-  select inserted.id,inserted.email,inserted.display_name,inserted.role,inserted.expires_at,inserted.used_at,inserted.created_at
-  from inserted;
+  select target.id,target.email,target.display_name,target.role,target.expires_at,target.used_at,target.created_at;
 end
 $$;
 
@@ -116,7 +113,7 @@ begin
   select p.role into caller_role
   from public.profiles p
   where p.id = auth.uid() and p.is_enabled = true;
-  if caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
+  if caller_role is null or caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
   if invite_code_hash !~ '^[0-9a-f]{64}$' then raise exception 'invalid invite code hash'; end if;
   if invite_expires_at <= now() or invite_expires_at > now() + interval '8 days' then raise exception 'invalid invite expiry'; end if;
 
@@ -128,14 +125,14 @@ begin
 
   update public.app_invites i
   set code_hash = invite_code_hash, expires_at = invite_expires_at
-  where i.id = invite_id;
+  where i.id = invite_id
+  returning * into target;
 
   insert into public.admin_audit_log(actor_user_id,action,target_type,target_id,details)
   values(auth.uid(),'team_invite_reissued','team_invite',invite_id::text,jsonb_build_object('role',target.role));
 
   return query
-  select i.id,i.email,i.display_name,i.role,i.expires_at,i.used_at,i.created_at
-  from public.app_invites i where i.id = invite_id;
+  select target.id,target.email,target.display_name,target.role,target.expires_at,target.used_at,target.created_at;
 end
 $$;
 
@@ -152,7 +149,7 @@ begin
   select p.role into caller_role
   from public.profiles p
   where p.id = auth.uid() and p.is_enabled = true;
-  if caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
+  if caller_role is null or caller_role not in ('admin','manager') then raise exception 'admin or manager required'; end if;
 
   select i.* into target from public.app_invites i where i.id = invite_id for update;
   if target.id is null or target.used_at is not null then raise exception 'active invitation not found'; end if;
