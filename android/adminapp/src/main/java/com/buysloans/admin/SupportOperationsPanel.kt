@@ -17,6 +17,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,90 +52,125 @@ internal fun SupportOperationsPanel(
     var supportProfiles by remember(profiles) { mutableStateOf(profiles) }
     var selectedTicketId by remember { mutableStateOf("") }
     var conversation by remember { mutableStateOf<ProtectedConversationState?>(null) }
-    var conversationError by remember { mutableStateOf("") }
-    var loadingConversation by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf<JSONArray?>(null) }
+    var loadingWorkspace by remember { mutableStateOf(false) }
     var controlBusy by remember { mutableStateOf(false) }
-    var controlMessage by remember { mutableStateOf("") }
-    var controlError by remember { mutableStateOf("") }
+    var feedback by remember { mutableStateOf("") }
+    var errorText by remember { mutableStateOf("") }
+    var replyText by remember(selectedTicketId) { mutableStateOf("") }
+    var noteText by remember(selectedTicketId) { mutableStateOf("") }
 
     LaunchedEffect(session.userId, profiles) {
         if (supportProfiles == null && canAssignSupportTicket(session)) {
             runCatching { AdminApi.loadSupportAssigneeProfiles(session) }
                 .onSuccess { supportProfiles = it }
-                .onFailure { controlError = it.message ?: "Support assignees could not be loaded." }
+                .onFailure { errorText = it.message ?: "Support assignees could not be loaded." }
         }
     }
 
-    fun loadConversation(ticketId: String, ticketSubject: String) {
-        if (ticketId.isBlank() || loadingConversation) return
+    fun loadWorkspace(ticketId: String, ticketSubject: String) {
+        if (ticketId.isBlank() || loadingWorkspace) return
         selectedTicketId = ticketId
         conversation = null
-        conversationError = ""
-        controlMessage = ""
-        controlError = ""
-        loadingConversation = true
+        notes = null
+        feedback = ""
+        errorText = ""
+        loadingWorkspace = true
         scope.launch {
-            runCatching {
-                ProtectedMessageCoordinator.load(
-                    session = session,
-                    ticketId = ticketId,
-                    ticketSubject = ticketSubject,
-                    limit = 100
-                )
-            }.onSuccess {
-                if (selectedTicketId == ticketId) conversation = it
-            }.onFailure {
-                if (selectedTicketId == ticketId) {
-                    conversationError = it.message ?: "Protected conversation could not be loaded."
-                }
+            val conversationResult = runCatching {
+                ProtectedMessageCoordinator.load(session, ticketId, ticketSubject, 100)
             }
-            if (selectedTicketId == ticketId) loadingConversation = false
+            val noteResult = runCatching { AdminApi.loadSupportNotes(session, ticketId, 100) }
+            if (selectedTicketId == ticketId) {
+                conversationResult
+                    .onSuccess { conversation = it }
+                    .onFailure { errorText = it.message ?: "Conversation could not be loaded." }
+                noteResult
+                    .onSuccess { notes = it }
+                    .onFailure { if (errorText.isBlank()) errorText = it.message ?: "Internal notes could not be loaded." }
+                loadingWorkspace = false
+            }
         }
     }
 
     fun saveControls(command: SupportTicketUpdateCommand) {
         if (controlBusy || busy) return
         controlBusy = true
-        controlMessage = ""
-        controlError = ""
+        feedback = ""
+        errorText = ""
         scope.launch {
             runCatching { AdminApi.updateSupportTicket(session, command) }
                 .onSuccess {
                     findSupportTicket(tickets, command.ticketId)?.apply {
                         put("status", command.status)
                         put("priority", command.priority)
-                        if (canAssignSupportTicket(session)) {
-                            put("assigned_to", command.assignedTo ?: JSONObject.NULL)
-                        }
+                        if (canAssignSupportTicket(session)) put("assigned_to", command.assignedTo ?: JSONObject.NULL)
                     }
-                    controlMessage = "Ticket triage updated. Existing database triggers recorded the change and recalculated SLA when required."
+                    feedback = "Ticket controls saved and audited."
                     onUpdated()
                 }
-                .onFailure {
-                    controlError = it.message ?: "Support ticket could not be updated."
+                .onFailure { errorText = it.message ?: "Support ticket could not be updated." }
+            controlBusy = false
+        }
+    }
+
+    fun sendReply(ticketId: String, ticketSubject: String) {
+        if (controlBusy || replyText.isBlank()) return
+        controlBusy = true
+        feedback = ""
+        errorText = ""
+        val body = replyText
+        scope.launch {
+            runCatching { AdminApi.sendSupportReply(session, ticketId, body) }
+                .onSuccess {
+                    replyText = ""
+                    feedback = "Update sent to the user."
+                    runCatching { ProtectedMessageCoordinator.load(session, ticketId, ticketSubject, 100) }
+                        .onSuccess { conversation = it }
+                    onUpdated()
                 }
+                .onFailure { errorText = it.message ?: "Reply could not be sent." }
+            controlBusy = false
+        }
+    }
+
+    fun addNote(ticketId: String) {
+        if (controlBusy || noteText.isBlank()) return
+        controlBusy = true
+        feedback = ""
+        errorText = ""
+        val body = noteText
+        scope.launch {
+            runCatching { AdminApi.addSupportInternalNote(session, ticketId, body) }
+                .onSuccess {
+                    noteText = ""
+                    feedback = "Internal note saved."
+                    runCatching { AdminApi.loadSupportNotes(session, ticketId, 100) }
+                        .onSuccess { notes = it }
+                }
+                .onFailure { errorText = it.message ?: "Internal note could not be saved." }
             controlBusy = false
         }
     }
 
     Text("Support operations", fontSize = 21.sp, fontWeight = FontWeight.Black)
-    Text(
-        "Admin/Manager can triage and assign. Staff can triage only tickets returned by the existing assigned-ticket Supabase RLS; assignment remains unavailable to Staff.",
-        color = SupportMuted,
-        fontSize = 12.sp
-    )
-    SupportMetric("Open", health.open, if (health.open > 0) SupportWarn else SupportGood)
-    SupportMetric("Overdue SLA", health.overdue, if (health.overdue > 0) MaterialTheme.colorScheme.error else SupportGood)
-    SupportMetric("Due within 2 hours", health.dueSoon, if (health.dueSoon > 0) SupportWarn else SupportGood)
-    SupportMetric("Awaiting first response", health.awaitingFirstResponse, if (health.awaitingFirstResponse > 0) SupportWarn else SupportGood)
-    SupportMetric("Unassigned", health.unassigned, if (health.unassigned > 0) SupportWarn else SupportGood)
+    Text("Open a ticket to view the full issue, reply to the user, add private staff notes and manage triage.", color = SupportMuted, fontSize = 12.sp)
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Open", health.open, if (health.open > 0) SupportWarn else SupportGood, Modifier.weight(1f))
+        CompactMetric("Overdue", health.overdue, if (health.overdue > 0) MaterialTheme.colorScheme.error else SupportGood, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Due soon", health.dueSoon, if (health.dueSoon > 0) SupportWarn else SupportGood, Modifier.weight(1f))
+        CompactMetric("Unassigned", health.unassigned, if (health.unassigned > 0) SupportWarn else SupportGood, Modifier.weight(1f))
+    }
 
     if (tickets == null || tickets.length() == 0) {
         Text("No support tickets returned.", color = SupportMuted)
         return
     }
 
-    Text("Operational queue", fontWeight = FontWeight.Bold)
+    Text("Ticket queue", fontWeight = FontWeight.Bold)
     for (i in 0 until minOf(tickets.length(), 50)) {
         val ticket = tickets.optJSONObject(i) ?: continue
         val ticketId = ticket.optString("id")
@@ -143,12 +179,15 @@ internal fun SupportOperationsPanel(
             title = supportTicketOperationalLine(ticket),
             detail = supportTicketOperationalDetail(ticket),
             selected = ticketId.isNotBlank() && ticketId == selectedTicketId,
-            enabled = ticketId.isNotBlank() && !loadingConversation && !controlBusy,
-            onSelect = { loadConversation(ticketId, ticketSubject) }
+            enabled = ticketId.isNotBlank() && !loadingWorkspace && !controlBusy,
+            onSelect = { loadWorkspace(ticketId, ticketSubject) }
         )
     }
 
-    findSupportTicket(tickets, selectedTicketId)?.let { selected ->
+    val selected = findSupportTicket(tickets, selectedTicketId)
+    if (selected != null) {
+        Text("Ticket workspace", fontSize = 19.sp, fontWeight = FontWeight.Black)
+        TicketDetailCard(selected)
         SupportTicketControlsPanel(
             session = session,
             ticket = selected,
@@ -156,38 +195,102 @@ internal fun SupportOperationsPanel(
             busy = busy || controlBusy,
             onSave = ::saveControls
         )
-    }
 
-    if (controlBusy) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator()
-            Text("Saving audited triage change…", color = SupportMuted)
-        }
-    }
-    if (controlMessage.isNotBlank()) Text(controlMessage, color = SupportGood, fontSize = 12.sp)
-    if (controlError.isNotBlank()) Text(controlError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-
-    if (loadingConversation) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator()
-            Text("Loading protected conversation…", color = SupportMuted)
-        }
-    }
-    if (conversationError.isNotBlank()) {
-        Text(conversationError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-    }
-    conversation?.let { state ->
-        ProtectedMessagesPanel(
-            ticketSubject = state.ticketSubject,
-            messages = state.messages
+        OutlinedTextField(
+            value = replyText,
+            onValueChange = { replyText = it.take(5000) },
+            label = { Text("Reply to user") },
+            supportingText = { Text("Visible to the ticket owner · ${replyText.length}/5000") },
+            minLines = 4,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !controlBusy && !busy
         )
+        Button(
+            onClick = { sendReply(selectedTicketId, selected.optString("subject")) },
+            enabled = !controlBusy && !busy && replyText.trim().isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Send user update", fontWeight = FontWeight.Black) }
+
+        OutlinedTextField(
+            value = noteText,
+            onValueChange = { noteText = it.take(5000) },
+            label = { Text("Internal note") },
+            supportingText = { Text("Private to Admin/Manager and assigned Staff · ${noteText.length}/5000") },
+            minLines = 3,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !controlBusy && !busy
+        )
+        OutlinedButton(
+            onClick = { addNote(selectedTicketId) },
+            enabled = !controlBusy && !busy && noteText.trim().isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save internal note", fontWeight = FontWeight.Bold) }
+
+        InternalNotesPanel(notes)
     }
+
+    if (loadingWorkspace || controlBusy) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CircularProgressIndicator()
+            Text(if (controlBusy) "Saving support action…" else "Opening ticket…", color = SupportMuted)
+        }
+    }
+    if (feedback.isNotBlank()) Text(feedback, color = SupportGood, fontSize = 12.sp)
+    if (errorText.isNotBlank()) Text(errorText, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+
+    conversation?.let { state -> ProtectedMessagesPanel(state.ticketSubject, state.messages) }
 
     Text(
-        "Assignment is exposed only to authenticated Admin/Manager sessions. Staff status/priority changes are field-limited and remain restricted to tickets visible through assigned-only Supabase RLS. Priority changes recalculate the existing SLA target server-side. Protected messages remain selected-ticket-only; attachments are not modified here.",
+        "User replies are stored in the protected support conversation. Internal notes are a separate RLS-protected record and are never exposed to ticket owners. Staff remain limited to tickets assigned to them; assignment stays Admin/Manager-only.",
         color = SupportMuted,
         fontSize = 12.sp
     )
+}
+
+@Composable
+private fun TicketDetailCard(ticket: JSONObject) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .35f)),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(ticket.optString("subject").ifBlank { "Support ticket" }, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            Text(ticket.optString("category").uppercase(), color = SupportMuted, fontSize = 10.sp)
+            Text(ticket.optString("description").ifBlank { "No description provided." })
+            Text("Status: ${supportStatusLabel(ticket.optString("status"))} · Priority: ${ticket.optString("priority").replaceFirstChar { it.uppercase() }}", color = SupportMuted, fontSize = 11.sp)
+            val app = ticket.optString("app_version")
+            val device = ticket.optString("device_model")
+            val android = ticket.optString("android_version")
+            if (app.isNotBlank() || device.isNotBlank() || android.isNotBlank()) {
+                Text("App ${app.ifBlank { "unknown" }} · ${device.ifBlank { "device unknown" }} · Android ${android.ifBlank { "unknown" }}", color = SupportMuted, fontSize = 10.sp)
+            }
+            Text("Created ${ticket.optString("created_at")}", color = SupportMuted, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+private fun InternalNotesPanel(notes: JSONArray?) {
+    Text("Internal notes", fontSize = 17.sp, fontWeight = FontWeight.Black)
+    if (notes == null) {
+        Text("Open a ticket to load private notes.", color = SupportMuted, fontSize = 11.sp)
+        return
+    }
+    if (notes.length() == 0) {
+        Text("No internal notes yet.", color = SupportMuted, fontSize = 11.sp)
+        return
+    }
+    for (i in 0 until minOf(notes.length(), 100)) {
+        val note = notes.optJSONObject(i) ?: continue
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(note.optString("body"))
+                Text(note.optString("created_at"), color = SupportMuted, fontSize = 10.sp)
+            }
+        }
+    }
 }
 
 @Composable
@@ -217,134 +320,55 @@ private fun SupportTicketControlsPanel(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Ticket controls", fontWeight = FontWeight.Black)
-            Text(ticket.optString("subject").ifBlank { "Support ticket" }, fontWeight = FontWeight.Bold)
-            ChoiceMenu(
-                label = "Status",
-                value = status,
-                options = SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) },
-                enabled = canTriage && !busy,
-                onSelect = { status = it }
-            )
-            ChoiceMenu(
-                label = "Priority",
-                value = priority,
-                options = SUPPORT_TICKET_PRIORITIES.map { value -> value to value.replaceFirstChar { it.uppercase() } },
-                enabled = canTriage && !busy,
-                onSelect = { priority = it }
-            )
-            ChoiceMenu(
-                label = "Assigned to",
-                value = assignedTo,
-                options = listOf("" to "Unassigned") + assignees.map { it.id to "${it.label} · ${it.role}" },
-                enabled = canAssign && !busy,
-                onSelect = { assignedTo = it }
-            )
-            if (canTriage && !canAssign) {
-                Text("Staff triage is limited to status and priority. Assignment remains Admin/Manager-only.", color = SupportMuted, fontSize = 11.sp)
-            }
-            Text(
-                "SLA target: ${ticket.optString("sla_due_at").ifBlank { "not set" }}. Changing priority recalculates this target through the existing database trigger.",
-                color = SupportMuted,
-                fontSize = 11.sp
-            )
+            Text("Triage", fontWeight = FontWeight.Black)
+            ChoiceMenu("Status", status, SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) }, canTriage && !busy) { status = it }
+            ChoiceMenu("Priority", priority, SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar { c -> c.uppercase() } }, canTriage && !busy) { priority = it }
+            ChoiceMenu("Assigned to", assignedTo, listOf("" to "Unassigned") + assignees.map { it.id to "${it.label} · ${it.role}" }, canAssign && !busy) { assignedTo = it }
             Button(
-                onClick = {
-                    onSave(
-                        SupportTicketUpdateCommand(
-                            ticketId = ticketId,
-                            status = status,
-                            priority = priority,
-                            assignedTo = assignedTo.takeIf(String::isNotBlank)
-                        )
-                    )
-                },
+                onClick = { onSave(SupportTicketUpdateCommand(ticketId, status, priority, assignedTo.takeIf(String::isNotBlank))) },
                 enabled = canTriage && !busy && changed && ticketId.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Save audited triage change", fontWeight = FontWeight.Black)
-            }
-            if (!canTriage) {
-                Text("Ticket triage requires an authenticated Staff, Manager or Admin session.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
-            }
+            ) { Text("Save triage", fontWeight = FontWeight.Black) }
         }
     }
 }
 
 @Composable
-private fun ChoiceMenu(
-    label: String,
-    value: String,
-    options: List<Pair<String, String>>,
-    enabled: Boolean,
-    onSelect: (String) -> Unit
-) {
+private fun ChoiceMenu(label: String, value: String, options: List<Pair<String, String>>, enabled: Boolean, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val display = options.firstOrNull { it.first == value }?.second ?: value.ifBlank { "Unassigned" }
     Box(Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            enabled = enabled,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("$label: $display")
-        }
+        OutlinedButton(onClick = { expanded = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("$label: $display") }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.second) },
-                    onClick = {
-                        expanded = false
-                        onSelect(option.first)
-                    }
-                )
+                DropdownMenuItem(text = { Text(option.second) }, onClick = { expanded = false; onSelect(option.first) })
             }
         }
     }
 }
 
 @Composable
-private fun SupportMetric(label: String, value: Int, color: Color) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = SupportMuted)
+private fun CompactMetric(label: String, value: Int, color: Color, modifier: Modifier = Modifier) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = modifier) {
+        Column(Modifier.padding(12.dp)) {
+            Text(label, color = SupportMuted, fontSize = 11.sp)
             Text(value.toString(), color = color, fontWeight = FontWeight.Black, fontSize = 19.sp)
         }
     }
 }
 
 @Composable
-private fun SupportTicketCard(
-    title: String,
-    detail: String,
-    selected: Boolean,
-    enabled: Boolean,
-    onSelect: () -> Unit
-) {
+private fun SupportTicketCard(title: String, detail: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = if (selected) .55f else .18f)
-        ),
+        border = BorderStroke(if (selected) 2.dp else 1.dp, MaterialTheme.colorScheme.primary.copy(alpha = if (selected) .55f else .18f)),
         shape = RoundedCornerShape(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onSelect)
+        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onSelect)
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, fontWeight = FontWeight.Bold)
             Text(detail, color = SupportMuted, fontSize = 11.sp)
-            Text(
-                when {
-                    selected && enabled -> "Selected • tap another ticket to switch"
-                    selected -> "Selected"
-                    enabled -> "Tap to manage ticket and view protected conversation"
-                    else -> "Ticket unavailable while another operation is running"
-                },
-                color = SupportMuted,
-                fontSize = 10.sp
-            )
+            Text(if (selected) "OPEN · ticket workspace below" else "Tap to open ticket", color = if (selected) MaterialTheme.colorScheme.primary else SupportMuted, fontSize = 10.sp)
         }
     }
 }

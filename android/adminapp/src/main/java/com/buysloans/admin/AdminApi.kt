@@ -48,7 +48,7 @@ internal object AdminApi {
     }
 
     suspend fun load(session: AdminSession): AdminSnapshot = withContext(Dispatchers.IO) {
-        val ticketPath = "/rest/v1/support_tickets?select=id,category,subject,status,priority,app_version,device_model,assigned_to,sla_due_at,first_response_at,created_at,updated_at&order=created_at.desc&limit=50"
+        val ticketPath = "/rest/v1/support_tickets?select=id,user_id,category,subject,description,status,priority,app_version,device_model,android_version,assigned_to,sla_due_at,first_response_at,created_at,updated_at&order=created_at.desc&limit=50"
         when {
             AdminAppAccessPolicy.canReadFullSnapshot(session) -> AdminSnapshot(
                 tickets = getArray(ticketPath, session.accessToken),
@@ -74,10 +74,49 @@ internal object AdminApi {
 
     suspend fun loadSupportMessages(session: AdminSession, ticketId: String, limit: Int = 100): JSONArray = withContext(Dispatchers.IO) {
         require(SupportMessageAccessPolicy.canReadProtectedMessages(session)) {
-            "Protected support messages require an authenticated Admin or Manager session."
+            "Protected support messages require an authenticated Staff, Manager or Admin session."
         }
         val path = SupportMessageAccessPolicy.buildReadPath(session, ticketId, limit)
         getArray(path, session.accessToken)
+    }
+
+    suspend fun loadSupportNotes(session: AdminSession, ticketId: String, limit: Int = 100): JSONArray = withContext(Dispatchers.IO) {
+        require(canUpdateSupportTicketTriage(session)) { "Internal notes require an authenticated Staff, Manager or Admin session." }
+        require(ticketId.isNotBlank()) { "A support ticket id is required." }
+        val boundedLimit = limit.coerceIn(1, 100)
+        getArray(
+            "/rest/v1/support_ticket_internal_notes?ticket_id=eq.${enc(ticketId.trim())}&select=id,body,created_at&order=created_at.asc&limit=$boundedLimit",
+            session.accessToken
+        )
+    }
+
+    suspend fun sendSupportReply(session: AdminSession, ticketId: String, body: String) = withContext(Dispatchers.IO) {
+        require(canUpdateSupportTicketTriage(session)) { "Replying requires an authenticated Staff, Manager or Admin session." }
+        val cleanBody = body.trim()
+        require(ticketId.isNotBlank()) { "A support ticket id is required." }
+        require(cleanBody.length in 1..5000) { "Reply must be between 1 and 5000 characters." }
+        val payload = JSONObject()
+            .put("ticket_id", ticketId.trim())
+            .put("author_user_id", session.userId)
+            .put("author_role", "admin")
+            .put("body", cleanBody)
+            .toString()
+        val response = request("/rest/v1/support_ticket_messages", "POST", session.accessToken, payload, preferMinimal = true)
+        if (response.first !in 200..299) error(message(response.second, "Reply could not be sent."))
+    }
+
+    suspend fun addSupportInternalNote(session: AdminSession, ticketId: String, body: String) = withContext(Dispatchers.IO) {
+        require(canUpdateSupportTicketTriage(session)) { "Internal notes require an authenticated Staff, Manager or Admin session." }
+        val cleanBody = body.trim()
+        require(ticketId.isNotBlank()) { "A support ticket id is required." }
+        require(cleanBody.length in 1..5000) { "Internal note must be between 1 and 5000 characters." }
+        val payload = JSONObject()
+            .put("ticket_id", ticketId.trim())
+            .put("author_user_id", session.userId)
+            .put("body", cleanBody)
+            .toString()
+        val response = request("/rest/v1/support_ticket_internal_notes", "POST", session.accessToken, payload, preferMinimal = true)
+        if (response.first !in 200..299) error(message(response.second, "Internal note could not be saved."))
     }
 
     suspend fun loadSupportAssigneeProfiles(session: AdminSession): JSONArray = withContext(Dispatchers.IO) {
