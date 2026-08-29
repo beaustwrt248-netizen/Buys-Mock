@@ -49,7 +49,10 @@ internal fun supportTicketUpdatePayload(
         .put("priority", command.priority)
 
     if (canAssignSupportTicket(session)) {
-        payload.put("assigned_to", command.assignedTo?.takeIf(String::isNotBlank) ?: JSONObject.NULL)
+        val assignee = command.assignedTo
+            ?.trim()
+            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+        payload.put("assigned_to", assignee ?: JSONObject.NULL)
     }
     return payload
 }
@@ -59,7 +62,7 @@ internal fun eligibleSupportAssignees(profiles: JSONArray?): List<SupportAssigne
     val roles = setOf("admin", "manager", "staff")
     return (0 until profiles.length()).mapNotNull { index ->
         val profile = profiles.optJSONObject(index) ?: return@mapNotNull null
-        val id = profile.optString("id")
+        val id = profile.optString("id").trim().takeUnless { it.equals("null", ignoreCase = true) }.orEmpty()
         val role = profile.optString("role")
         if (id.isBlank() || role !in roles || !profile.optBoolean("is_enabled")) return@mapNotNull null
         SupportAssignee(
