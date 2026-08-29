@@ -119,4 +119,4 @@ jobs:
           fetch_with_retry "$BASE/no-gold.css" "$RUNNER_TEMP/no-gold.css"
           grep -q -- '--yellow:#2f7cff' "$RUNNER_TEMP/no-gold.css"
           fetch_with_retry "$BASE/web-a11y.js" "$RUNNER_TEMP/web-a11y.js"
-          grep -q 'focus-visible' "$RUNNER_TEMP/web-a11y.js'
+          grep -q 'focus-visible' "$RUNNER_TEMP/web-a11y.js"
