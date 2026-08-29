@@ -1,7 +1,9 @@
 package com.buysloans.hub
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SupportTicketLogicTest {
@@ -28,6 +30,30 @@ class SupportTicketLogicTest {
         assertThrows(IllegalArgumentException::class.java) {
             SupportTicketLogic.validateDraft("other", "Valid subject", "bad")
         }
+    }
+
+    @Test
+    fun replyIsTrimmedAndValidated() {
+        assertEquals("Thanks for the update", SupportTicketLogic.validateReply("  Thanks for the update  "))
+        assertThrows(IllegalArgumentException::class.java) { SupportTicketLogic.validateReply("   ") }
+        assertThrows(IllegalArgumentException::class.java) { SupportTicketLogic.validateReply("x".repeat(5001)) }
+    }
+
+    @Test
+    fun supportStatusesHaveUserFriendlyLabels() {
+        assertEquals("Open", SupportTicketLogic.statusLabel("open"))
+        assertEquals("In progress", SupportTicketLogic.statusLabel("in_progress"))
+        assertEquals("Waiting on you", SupportTicketLogic.statusLabel("waiting_on_user"))
+        assertEquals("Resolved", SupportTicketLogic.statusLabel("resolved"))
+        assertEquals("Closed", SupportTicketLogic.statusLabel("closed"))
+    }
+
+    @Test
+    fun unreadReplyOnlyClearsAfterLatestAdminMessageIsSeen() {
+        assertFalse(SupportTicketLogic.hasUnreadSupportReply(null, null))
+        assertTrue(SupportTicketLogic.hasUnreadSupportReply("admin-message-1", null))
+        assertFalse(SupportTicketLogic.hasUnreadSupportReply("admin-message-1", "admin-message-1"))
+        assertTrue(SupportTicketLogic.hasUnreadSupportReply("admin-message-2", "admin-message-1"))
     }
 
     @Test
