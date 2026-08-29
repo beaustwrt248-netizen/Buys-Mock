@@ -6,6 +6,8 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
+        android:icon="@drawable/ic_admin_launcher"
+        android:roundIcon="@drawable/ic_admin_launcher"
         android:label="Morley Admin"
         android:theme="@style/Theme.MorleyAdmin">
         <activity
