@@ -8,7 +8,12 @@ internal data class AdminUpdateRelease(
     val required: Boolean = false
 )
 
+private const val TRUSTED_ADMIN_RELEASE_PREFIX =
+    "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v"
+
 internal fun shouldOfferAdminUpdate(installedVersionCode: Int, release: AdminUpdateRelease): Boolean =
     release.versionCode > installedVersionCode &&
-        release.apkUrl.startsWith("https://") &&
+        release.versionName.isNotBlank() &&
+        release.apkUrl.startsWith(TRUSTED_ADMIN_RELEASE_PREFIX) &&
+        release.apkUrl.endsWith(".apk") &&
         release.sha256.matches(Regex("^[a-fA-F0-9]{64}$"))
