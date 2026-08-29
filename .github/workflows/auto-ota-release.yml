@@ -1,0 +1,185 @@
+name: Auto Publish Morley OTA
+
+on:
+  workflow_run:
+    workflows: ["Build B&L Morley APK"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: morley-auto-ota
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact tested source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Checkout current release state
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          path: release
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release identity and eligibility
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          source_gradle = Path('source/android/app/build.gradle').read_text(encoding='utf-8')
+          current_gradle = Path('release/android/app/build.gradle').read_text(encoding='utf-8')
+          manifest = json.loads(Path('release/ota/latest.json').read_text(encoding='utf-8'))
+
+          def version(text):
+              code = re.search(r'\bversionCode\s+(\d+)', text)
+              name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+              if not code or not name:
+                  raise SystemExit('Could not parse Android release identity')
+              return int(code.group(1)), name.group(1).strip()
+
+          tested_code, tested_name = version(source_gradle)
+          current_code, current_name = version(current_gradle)
+          published_code = int(manifest.get('versionCode', 0))
+          published_name = str(manifest.get('versionName', '')).strip()
+
+          output = Path(os.environ['GITHUB_OUTPUT'])
+          if tested_code <= published_code:
+              output.write_text('publish=false\n', encoding='utf-8')
+              print(f'Nothing to publish: tested {tested_name} ({tested_code}), OTA already {published_name} ({published_code})')
+              raise SystemExit(0)
+          if tested_code != published_code + 1:
+              raise SystemExit(f'Refusing OTA jump: tested code {tested_code}, published code {published_code}')
+          if current_code != tested_code or current_name != tested_name:
+              raise SystemExit(
+                  f'Current main Android identity {current_name} ({current_code}) no longer matches '
+                  f'tested build {tested_name} ({tested_code}); a newer main build must publish instead.'
+              )
+
+          with output.open('a', encoding='utf-8') as fh:
+              fh.write('publish=true\n')
+              fh.write(f'version_code={tested_code}\n')
+              fh.write(f'version_name={tested_name}\n')
+              fh.write(f'tag=v{tested_name}\n')
+              fh.write(f'artifact=B-and-L-Morley-{tested_name}\n')
+              fh.write(f'apk=B-and-L-Morley-{tested_name}.apk\n')
+          print(f'Eligible OTA release: {tested_name} ({tested_code})')
+          PY
+
+      - name: Download exact signed APK artifact
+        if: steps.release.outputs.publish == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ steps.release.outputs.artifact }}
+          path: package
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify artifact and publish immutable GitHub Release
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
+          TAG: ${{ steps.release.outputs.tag }}
+          APK_NAME: ${{ steps.release.outputs.apk }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="package/$APK_NAME"
+          test -s "$APK"
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          test "$(printf '%s' "$SHA" | wc -c)" -eq 64
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; verifying its APK is identical."
+            rm -rf existing-release
+            mkdir -p existing-release
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$APK_NAME" --dir existing-release
+            EXISTING_SHA="$(sha256sum "existing-release/$APK_NAME" | awk '{print $1}')"
+            test "$EXISTING_SHA" = "$SHA" || { echo 'Existing release APK does not match exact green build'; exit 1; }
+          else
+            NOTES="$(git -C source log -1 --pretty=%s "$HEAD_SHA")"
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$HEAD_SHA" \
+              --title "B&L Morley $VERSION_NAME" \
+              --notes "$NOTES"
+          fi
+          printf '%s' "$SHA" > package/apk.sha256
+
+      - name: Publish OTA manifest on current main
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERSION_CODE: ${{ steps.release.outputs.version_code }}
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
+          TAG: ${{ steps.release.outputs.tag }}
+          APK_NAME: ${{ steps.release.outputs.apk }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release
+          git fetch origin main
+          git reset --hard origin/main
+
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
+          code = re.search(r'\bversionCode\s+(\d+)', gradle)
+          name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          import os
+          expected_code = int(os.environ['VERSION_CODE'])
+          expected_name = os.environ['VERSION_NAME']
+          if not code or not name or int(code.group(1)) != expected_code or name.group(1) != expected_name:
+              raise SystemExit('Main advanced to a different Android release before OTA manifest publication; refusing stale publish.')
+          PY
+
+          SHA="$(cat ../package/apk.sha256)"
+          NOTES="$(git -C ../source log -1 --pretty=%s "$HEAD_SHA")"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          data = {
+              'versionCode': int(os.environ['VERSION_CODE']),
+              'versionName': os.environ['VERSION_NAME'],
+              'apkUrl': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['TAG']}/{os.environ['APK_NAME']}",
+              'sha256': Path('../package/apk.sha256').read_text(encoding='utf-8').strip(),
+              'notes': os.environ.get('NOTES', '').strip(),
+          }
+          Path('ota/latest.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ota/latest.json
+          if git diff --cached --quiet; then
+            echo 'OTA manifest already current.'
+            exit 0
+          fi
+          git commit -m "Publish Morley $VERSION_NAME OTA [skip ci]"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin HEAD:main
