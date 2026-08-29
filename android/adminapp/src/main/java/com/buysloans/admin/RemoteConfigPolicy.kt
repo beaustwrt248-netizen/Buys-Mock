@@ -6,6 +6,7 @@ import org.json.JSONObject
 internal data class MaintenanceConfig(
     val enabled: Boolean,
     val message: String,
+    val otaEnabled: Boolean,
     val fullFeatureFlags: JSONObject
 )
 
@@ -18,17 +19,24 @@ internal fun maintenanceConfig(config: JSONArray?): MaintenanceConfig? {
         return MaintenanceConfig(
             enabled = flags.optBoolean("maintenanceMode", false),
             message = flags.optString("maintenanceMessage").take(160),
+            otaEnabled = if (flags.has("otaEnabled")) flags.optBoolean("otaEnabled", true) else true,
             fullFeatureFlags = JSONObject(flags.toString())
         )
     }
     return null
 }
 
-internal fun maintenanceUpdatePayload(current: MaintenanceConfig, enabled: Boolean, message: String): JSONObject {
+internal fun maintenanceUpdatePayload(
+    current: MaintenanceConfig,
+    enabled: Boolean,
+    message: String,
+    otaEnabled: Boolean = current.otaEnabled
+): JSONObject {
     val clean = message.trim().take(160)
     val flags = JSONObject(current.fullFeatureFlags.toString())
         .put("maintenanceMode", enabled)
         .put("maintenanceMessage", clean)
+        .put("otaEnabled", otaEnabled)
     return JSONObject()
         .put("config_key", "feature_flags")
         .put("config_value", flags)
