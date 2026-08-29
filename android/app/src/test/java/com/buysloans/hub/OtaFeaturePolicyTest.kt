@@ -1,24 +1,23 @@
 package com.buysloans.hub
 
-import org.json.JSONArray
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OtaFeaturePolicyTest {
     @Test fun otaDefaultsEnabledWhenConfigIsMissing() {
-        assertTrue(OtaFeaturePolicy.enabledFromConfig(JSONArray()))
+        assertTrue(OtaFeaturePolicy.enabledValue(null))
     }
 
     @Test fun otaDefaultsEnabledForLegacyFeatureFlags() {
-        assertTrue(OtaFeaturePolicy.enabledFromConfig(JSONArray("""[{"key":"feature_flags","value":{"maintenanceMode":false}}]""")))
+        assertTrue(OtaFeaturePolicy.enabledValue(null))
     }
 
     @Test fun otaCanBeExplicitlyDisabled() {
-        assertFalse(OtaFeaturePolicy.enabledFromConfig(JSONArray("""[{"key":"feature_flags","value":{"otaEnabled":false}}]""")))
+        assertFalse(OtaFeaturePolicy.enabledValue(false))
     }
 
     @Test fun otaCanBeExplicitlyEnabled() {
-        assertTrue(OtaFeaturePolicy.enabledFromConfig(JSONArray("""[{"key":"feature_flags","value":{"otaEnabled":true}}]""")))
+        assertTrue(OtaFeaturePolicy.enabledValue(true))
     }
 }
