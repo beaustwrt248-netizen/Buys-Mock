@@ -119,7 +119,7 @@ jobs:
           for needle in forbidden_staff_ui:
               if needle in staff_ui:
                   raise SystemExit(f'Staff support UI must not expose privileged Admin controls: {needle}')
-          for needle in ['ASSIGNED TICKETS ONLY','My assigned tickets','staff-support.js?v=1','login-security.js?v=1']:
+          for needle in ['ASSIGNED TICKETS ONLY','My assigned tickets','staff-support.js?v=2','login-security.js?v=1']:
               if needle not in staff_html:
                   raise SystemExit(f'Staff support page contract missing: {needle}')
           print('Support ownership, attachments, assignment, SLA and status-only assigned-staff UI/RLS contracts OK')
