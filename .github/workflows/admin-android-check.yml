@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
-          grep -q "versionName '0.1.0-readonly'" android/adminapp/build.gradle
+          grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
           grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"

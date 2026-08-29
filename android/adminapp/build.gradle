@@ -12,10 +12,27 @@ android {
         applicationId 'com.buysloans.admin'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0-readonly'
+        versionCode 2
+        versionName '0.1.1-stable'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
+    }
+
+    def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH')
+    def releaseStorePassword = System.getenv('B_AND_L_STORE_PASSWORD')
+    def releaseKeyAlias = System.getenv('B_AND_L_KEY_ALIAS')
+    def releaseKeyPassword = releaseStorePassword
+    def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
 
     buildFeatures { compose true; buildConfig true }
@@ -30,9 +47,23 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
+            if (hasReleaseSigning) { signingConfig signingConfigs.release }
         }
     }
 }
+
+def releaseStoreFileForCheck = System.getenv('B_AND_L_KEYSTORE_PATH')
+def releaseStorePasswordForCheck = System.getenv('B_AND_L_STORE_PASSWORD')
+def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
+
+tasks.register('verifyReleaseSigning') {
+    doLast {
+        if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) throw new GradleException('Stable Admin release signing is required.')
+        if (!file(releaseStoreFileForCheck).exists()) throw new GradleException('Configured Admin release keystore does not exist.')
+    }
+}
+
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
