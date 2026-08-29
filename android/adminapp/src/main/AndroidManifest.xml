@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
+        android:name=".AdminApplication"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:icon="@drawable/ic_admin_launcher"
