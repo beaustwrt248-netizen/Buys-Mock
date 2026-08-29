@@ -33,14 +33,26 @@ private val Accent = Color(0xFF16C7FF)
 private val Muted = Color(0xFF8EA6C4)
 private val Good = Color(0xFF57E389)
 private val Warn = Color(0xFFFFC857)
+private val TextPrimary = Color(0xFFF4F7FB)
 
 class AdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AdminTelemetry.installCrashHandler(applicationContext)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = Accent, background = Bg, surface = CardBg)) {
-                AdminRoot()
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Accent,
+                    background = Bg,
+                    surface = CardBg,
+                    onBackground = TextPrimary,
+                    onSurface = TextPrimary,
+                    onSurfaceVariant = Muted
+                )
+            ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = Bg, contentColor = TextPrimary) {
+                    AdminRoot()
+                }
             }
         }
     }
@@ -144,9 +156,17 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
         }
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.Center) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
-        Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
+        Text("Admin Control", color = TextPrimary, fontSize = 30.sp, fontWeight = FontWeight.Black)
         Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 11.sp)
         Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(
@@ -168,7 +188,7 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
         )
         Spacer(Modifier.height(12.dp))
-        Text("Security check", fontWeight = FontWeight.Bold)
+        Text("Security check", color = TextPrimary, fontWeight = FontWeight.Bold)
         key(captchaEpoch) {
             CaptchaChallenge(
                 modifier = Modifier.fillMaxWidth().height(110.dp),
@@ -206,13 +226,38 @@ private fun Dashboard(
 ) {
     var tab by remember { mutableStateOf("Health") }
     val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release")
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column { Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black); Text(session.displayName, fontSize = 22.sp, fontWeight = FontWeight.Black); Text(session.role.uppercase(), color = Muted, fontSize = 11.sp) }
+            Column {
+                Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                Text(session.displayName, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                Text(session.role.uppercase(), color = Muted, fontSize = 11.sp)
+            }
             TextButton(onClick = onSignOut) { Text("Sign out") }
         }
         Text("CONTROLLED ADMIN MODE", color = Good, fontWeight = FontWeight.Black)
-        tabs.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) { row.forEach { name -> FilterChip(selected = tab == name, onClick = { tab = name }, label = { Text(name, fontSize = 10.sp) }, modifier = Modifier.weight(1f)) }; repeat(3-row.size) { Spacer(Modifier.weight(1f)) } } }
+        tabs.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+                row.forEach { name ->
+                    FilterChip(
+                        selected = tab == name,
+                        onClick = { tab = name },
+                        label = { Text(name, fontSize = 10.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
         OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh Admin data") }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
@@ -225,8 +270,13 @@ private fun Dashboard(
             "Audit" -> AuditTimelinePanel(snapshot?.auditEvents)
             "Release" -> ReleasePanel(snapshot?.config)
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(text, color = TextPrimary, fontSize = 21.sp, fontWeight = FontWeight.Black)
 }
 
 @Composable
@@ -238,13 +288,13 @@ private fun HealthPanel(s: AdminSnapshot?) {
     val staleDevices = countOlderThan(devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000)
     val disabledUsers = countBoolean(s?.profiles, "is_enabled", false)
     val recentErrors = countRecent(errors, "occurred_at", 24L * 60 * 60 * 1000)
-    Text("Production health", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    SectionTitle("Production health")
     Metric("Open support tickets", openTickets.toString(), if (openTickets > 0) Warn else Good)
     Metric("Devices not seen in 7 days", staleDevices.toString(), if (staleDevices > 0) Warn else Good)
     Metric("Disabled staff/user accounts", disabledUsers.toString(), Muted)
     Metric("Admin app errors in 24 hours", recentErrors.toString(), if (recentErrors > 0) Warn else Good)
     if (errors != null && errors.length() > 0) {
-        Text("Recent privacy-minimal Admin errors", fontWeight = FontWeight.Bold)
+        Text("Recent privacy-minimal Admin errors", color = TextPrimary, fontWeight = FontWeight.Bold)
         for (i in 0 until minOf(errors.length(), 8)) {
             val j = errors.optJSONObject(i) ?: continue
             InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
@@ -265,7 +315,7 @@ private fun UsersDevicesPanel(
     val currentVersion = currentReleaseVersion(s?.config)
     val adoption = summarizeVersionAdoption(versions, currentVersion)
 
-    Text("App-version adoption", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    SectionTitle("App-version adoption")
     Text("Current release ${currentVersion ?: "unknown"}. Counts are derived from registered-device app versions only.", color = Muted, fontSize = 12.sp)
     Metric("On current release", adoption.current.toString(), Good)
     Metric("Outdated", adoption.outdated.toString(), if (adoption.outdated > 0) Warn else Good)
@@ -278,7 +328,7 @@ private fun UsersDevicesPanel(
 @Composable
 private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (MaintenanceConfig, Boolean, String) -> Unit) {
     val current = maintenanceConfig(config)
-    Text("Safe remote configuration", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    SectionTitle("Safe remote configuration")
     Text("Only maintenance mode and its short notice are writable here. Pricing, scanner, valuation-history, release and minimum-version fields are preserved and rejected if changed.", color = Muted, fontSize = 12.sp)
     if (current == null) {
         Text("Feature flags are not available to this Admin session.", color = Warn)
@@ -286,7 +336,7 @@ private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (Maint
     }
     var enabled by remember(current.enabled, current.message) { mutableStateOf(current.enabled) }
     var message by remember(current.enabled, current.message) { mutableStateOf(current.message) }
-    Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+    Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Text(if (enabled) "Users may be shown the configured maintenance state by clients that consume this flag." else "Normal configured state.", color = Muted, fontSize = 11.sp) }
@@ -301,15 +351,15 @@ private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (Maint
 
 @Composable
 private fun ReleasePanel(config: JSONArray?) {
-    Text("Release status", fontSize = 21.sp, fontWeight = FontWeight.Black)
+    SectionTitle("Release status")
     if (config == null || config.length() == 0) Text("No release configuration returned.", color = Muted)
     else for (i in 0 until config.length()) { val j = config.optJSONObject(i) ?: continue; if (j.optString("key") == "feature_flags") continue; val v = j.optJSONObject("value") ?: JSONObject(); InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})${if (v.has("forceUpdate")) " • forceUpdate ${v.optBoolean("forceUpdate")}" else ""}") }
     Text("This screen does not publish releases, change minimum versions, or modify OTA metadata.", color = Muted, fontSize = 12.sp)
 }
 
-@Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { Text(title, fontSize = 21.sp, fontWeight = FontWeight.Black); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) { data.optJSONObject(i)?.let { InfoCard(line(it), if (it.has("created_at")) it.optString("created_at") else "") } } }
-@Composable private fun InfoCard(title: String, detail: String) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(title, fontWeight = FontWeight.Bold); if (detail.isNotBlank()) Text(detail, color = Muted, fontSize = 11.sp) } } }
-@Composable private fun Metric(label: String, value: String, color: Color) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Muted); Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 19.sp) } } }
+@Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { SectionTitle(title); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) { data.optJSONObject(i)?.let { InfoCard(line(it), if (it.has("created_at")) it.optString("created_at") else "") } } }
+@Composable private fun InfoCard(title: String, detail: String) { Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(title, fontWeight = FontWeight.Bold); if (detail.isNotBlank()) Text(detail, color = Muted, fontSize = 11.sp) } } }
+@Composable private fun Metric(label: String, value: String, color: Color) { Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Muted); Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 19.sp) } } }
 private fun currentReleaseVersion(config: JSONArray?): String? { if (config == null) return null; for (i in 0 until config.length()) { val row = config.optJSONObject(i) ?: continue; if (row.optString("key") == "current_release") return row.optJSONObject("value")?.optString("versionName")?.takeIf(String::isNotBlank) }; return null }
 private fun ticketLine(j: JSONObject) = "${j.optString("priority").uppercase()} • ${j.optString("status")} • ${j.optString("subject")}" 
 private fun announcementLine(j: JSONObject) = "${if (j.optBoolean("is_active")) "ACTIVE" else "INACTIVE"} • ${j.optString("audience")} • ${j.optString("title")}" 
