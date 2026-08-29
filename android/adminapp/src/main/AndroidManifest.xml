@@ -23,6 +23,10 @@
         </provider>
         <activity
             android:name=".AdminActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".AdminUpdateGateActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>

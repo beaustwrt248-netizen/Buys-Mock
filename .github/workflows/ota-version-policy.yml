@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'android/**'
+      - '!android/adminapp/**'
 
 permissions:
   contents: read
@@ -45,13 +46,13 @@ jobs:
 
           if source_code != published_code + 1:
               raise SystemExit(
-                  f'Every Android update must be OTA-ready: source versionCode {source_code} '
+                  f'Every Morley Android update must be OTA-ready: source versionCode {source_code} '
                   f'must be exactly one above published OTA {published_code}.'
               )
           source_semver, published_semver = semver(source_name), semver(published_name)
           if source_semver is None or published_semver is None or source_semver <= published_semver:
               raise SystemExit(
-                  f'Android versionName {source_name!r} must be a semantic version newer than OTA {published_name!r}.'
+                  f'Morley Android versionName {source_name!r} must be a semantic version newer than OTA {published_name!r}.'
               )
           print(f'OTA policy PASSED: {published_name} ({published_code}) -> {source_name} ({source_code})')
           PY
