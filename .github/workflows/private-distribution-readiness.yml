@@ -42,6 +42,34 @@ jobs:
       - name: Verify bundle checksums
         working-directory: dist/private-distribution-readiness
         run: sha256sum --check SHA256SUMS
+      - name: Verify public-resource coupling inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('dist/private-distribution-readiness')
+          inventory = json.loads((root / 'public-resource-dependencies.json').read_text(encoding='utf-8'))
+          contract = json.loads((root / 'private-origin-contract.json').read_text(encoding='utf-8'))
+          manifest = json.loads((root / 'distribution-manifest.json').read_text(encoding='utf-8'))
+
+          deps = inventory['dependencies']
+          assert inventory['blockingDependencyCount'] == len(deps)
+          assert inventory['migrationReady'] == (len(deps) == 0)
+          assert manifest['blockingPublicResourceCount'] == len(deps)
+          assert manifest['migrationReady'] == inventory['migrationReady']
+          assert inventory['repositoryVisibilityChanged'] is False
+          assert inventory['liveOtaChanged'] is False
+          assert contract['status'] == 'prepared-not-enabled'
+          assert contract['requirements']['transport'] == 'https-only'
+          assert contract['requirements']['secretsInClient'] is False
+          assert contract['requirements']['serviceRoleInClient'] is False
+          for dep in deps:
+              assert dep['blockingPrivateRepositoryCutover'] is True
+              assert str(dep['url']).startswith('https://')
+          PY
       - name: Assert Admin Android distribution is private-repo compatible
         shell: bash
         run: |
