@@ -11,6 +11,7 @@ TEXT_SUFFIXES = {'.kt', '.java', '.xml', '.gradle', '.kts', '.yml', '.yaml', '.j
 FORBIDDEN_FILE_SUFFIXES = {'.jks', '.keystore', '.p12', '.pfx', '.pem', '.key'}
 CRITICAL_WORKFLOWS = {
     'security-audit.yml',
+    'quality-gate.yml',
     'deploy-admin-pages.yml',
     'admin-release-check.yml',
     'admin-apk-build.yml',
