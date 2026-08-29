@@ -23,6 +23,11 @@ def require(condition: bool, message: str) -> None:
         errors.append(message)
 
 
+def semantic_version(value: str) -> tuple[int, int, int] | None:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:[-+].*)?", value.strip())
+    return tuple(map(int, match.groups())) if match else None
+
+
 admin_html = read("admin/index.html")
 admin_app = read("admin/app.js")
 login_security = read("admin/login-security.js")
@@ -81,6 +86,8 @@ require("admin_audit_log" in admin_api, "Android Admin audit read path is missin
 require("UserManagementPanel" in admin_activity, "Android Admin user-management panel is missing")
 
 # OTA: source, manifest, installer integrity and remote enable switch must line up.
+# Normal main is exact-match. A release PR may be exactly one monotonic versionCode
+# ahead while the signed OTA manifest still points at the last published release.
 try:
     ota_manifest = json.loads(ota_manifest_text)
 except Exception as exc:
@@ -91,10 +98,21 @@ version_code_match = re.search(r"\bversionCode\s+(\d+)", build_gradle)
 version_name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", build_gradle)
 require(version_code_match is not None, "Android versionCode could not be parsed")
 require(version_name_match is not None, "Android versionName could not be parsed")
-if version_code_match:
-    require(int(ota_manifest.get("versionCode", 0)) == int(version_code_match.group(1)), "OTA versionCode does not match Android source")
-if version_name_match:
-    require(str(ota_manifest.get("versionName", "")) == version_name_match.group(1), "OTA versionName does not match Android source")
+if version_code_match and version_name_match:
+    source_code = int(version_code_match.group(1))
+    source_name = version_name_match.group(1)
+    ota_code = int(ota_manifest.get("versionCode", 0) or 0)
+    ota_name = str(ota_manifest.get("versionName", ""))
+    if source_code == ota_code:
+        require(source_name == ota_name, "OTA versionName does not match Android source for the same versionCode")
+    elif source_code == ota_code + 1:
+        source_semver = semantic_version(source_name)
+        ota_semver = semantic_version(ota_name)
+        require(source_semver is not None and ota_semver is not None, "Pending release versions must use semantic x.y.z names")
+        if source_semver is not None and ota_semver is not None:
+            require(source_semver > ota_semver, "Pending Android release versionName must advance beyond the published OTA version")
+    else:
+        require(False, f"Android source versionCode {source_code} must equal published OTA {ota_code} or be exactly one pending release ahead")
 require(bool(re.fullmatch(r"[0-9a-fA-F]{64}", str(ota_manifest.get("sha256", "")))), "OTA SHA-256 is missing or invalid")
 require(str(ota_manifest.get("apkUrl", "")).startswith("https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/"), "OTA APK URL is not a trusted repository release URL")
 require("UpdateCheckScheduler.schedule(this)" in morley_application, "Automatic OTA scheduling is not enabled at application startup")
@@ -108,6 +126,7 @@ require("isTrustedApkUrl" in update_manager and "isValidSha256" in update_manage
 # Remote config least privilege: only maintenance and OTA switches can change inside feature_flags.
 require("only maintenanceMode, maintenanceMessage and otaEnabled may be changed remotely" in ota_migration, "Remote-config allowlist is broader than expected")
 require("private.is_admin_or_manager()" in ota_migration, "Remote-config mutation is not Admin/Manager gated")
+require("revoke execute on function private.admin_set_config_impl(text,jsonb) from authenticated" in ota_migration, "Private remote-config implementation is directly executable by authenticated clients")
 
 if errors:
     print("Admin Control integration audit FAILED")
