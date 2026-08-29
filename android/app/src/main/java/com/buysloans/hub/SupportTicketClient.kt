@@ -3,6 +3,7 @@ package com.buysloans.hub
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.provider.OpenableColumns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -10,6 +11,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
+import java.util.TimeZone
 
 object SupportTicketClient {
     private const val ATTACHMENT_BUCKET = "support-ticket-attachments"
@@ -122,13 +125,34 @@ object SupportTicketClient {
         val token = AuthManager.validAccessToken(context)
         val userId = jwtSubject(token)
         require(userId.isNotBlank()) { "Could not identify the signed-in account." }
-        val diagnostics = if (includeDiagnostics) JSONObject().apply {
+
+        // Guardian always receives a deliberately small, non-secret baseline so a
+        // report can be correlated with the exact app/device environment. The
+        // existing user opt-in adds extra hardware/runtime context only.
+        val diagnostics = JSONObject().apply {
+            put("schema", 2)
             put("platform", "android")
             put("captured", System.currentTimeMillis())
+            put("screen", "SupportTicketActivity")
+            put("app_version", BuildConfig.VERSION_NAME)
+            put("app_version_code", BuildConfig.VERSION_CODE)
+            put("package_name", context.packageName)
             put("manufacturer", Build.MANUFACTURER)
             put("model", Build.MODEL)
             put("android", Build.VERSION.RELEASE)
-        } else JSONObject()
+            put("sdk_int", Build.VERSION.SDK_INT)
+            put("locale", Locale.getDefault().toLanguageTag())
+            put("timezone", TimeZone.getDefault().id)
+            put("uptime_ms", SystemClock.elapsedRealtime())
+            put("extended_opt_in", includeDiagnostics)
+            if (includeDiagnostics) {
+                put("brand", Build.BRAND)
+                put("device", Build.DEVICE)
+                put("product", Build.PRODUCT)
+                put("hardware", Build.HARDWARE)
+                put("supported_abis", JSONArray(Build.SUPPORTED_ABIS.toList()))
+            }
+        }
         val payload = JSONObject().apply {
             put("user_id", userId)
             put("category", draft.category)
@@ -139,8 +163,8 @@ object SupportTicketClient {
             put("assigned_to", JSONObject.NULL)
             put("app_version", BuildConfig.VERSION_NAME)
             put("app_version_code", BuildConfig.VERSION_CODE)
-            put("device_model", if (includeDiagnostics) "${Build.MANUFACTURER} ${Build.MODEL}".trim() else JSONObject.NULL)
-            put("android_version", if (includeDiagnostics) Build.VERSION.RELEASE else JSONObject.NULL)
+            put("device_model", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
+            put("android_version", Build.VERSION.RELEASE)
             put("diagnostics", diagnostics)
             put("diagnostics_opt_in", includeDiagnostics)
         }
