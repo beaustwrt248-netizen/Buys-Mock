@@ -37,6 +37,7 @@ internal fun UserManagementPanel(
     val users = buildUserAccessPresentation(session, profiles)
     var pending by remember { mutableStateOf<UserControlCommand?>(null) }
 
+    ManualNotificationPanel(session = session, profiles = profiles, hostBusy = busy)
     TeamInvitePanel(session = session, hostBusy = busy)
 
     Text("User access", fontSize = 21.sp, fontWeight = FontWeight.Black)
