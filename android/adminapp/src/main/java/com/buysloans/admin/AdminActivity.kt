@@ -80,14 +80,14 @@ private fun AdminRoot() {
         }
     }
 
-    fun updateMaintenance(s: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) {
+    fun updateMaintenance(s: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String, otaEnabled: Boolean) {
         busy = true; error = ""
         scope.launch {
-            runCatching { AdminApi.updateMaintenanceConfig(s, current, enabled, message) }
+            runCatching { AdminApi.updateMaintenanceConfig(s, current, enabled, message, otaEnabled) }
                 .onSuccess { refresh(s) }
                 .onFailure {
-                    AdminTelemetry.record(context, "Controls/Maintenance", it)
-                    error = it.message ?: "Maintenance configuration could not be updated."
+                    AdminTelemetry.record(context, "Controls/RemoteConfig", it)
+                    error = it.message ?: "Remote configuration could not be updated."
                     busy = false
                 }
         }
@@ -134,7 +134,7 @@ private fun AdminRoot() {
             busy = busy,
             error = error,
             onRefresh = { refresh(session!!) },
-            onUpdateMaintenance = { current, enabled, message -> updateMaintenance(session!!, current, enabled, message) },
+            onUpdateMaintenance = { current, enabled, message, otaEnabled -> updateMaintenance(session!!, current, enabled, message, otaEnabled) },
             onUserControl = { command -> updateUserAccess(session!!, command) },
             onSignOut = { session = null; snapshot = null }
         )
@@ -168,7 +168,7 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", color = TextPrimary, fontSize = 30.sp, fontWeight = FontWeight.Black)
         Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 11.sp)
-        Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
+        Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance/OTA controls and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -220,7 +220,7 @@ private fun Dashboard(
     busy: Boolean,
     error: String,
     onRefresh: () -> Unit,
-    onUpdateMaintenance: (MaintenanceConfig, Boolean, String) -> Unit,
+    onUpdateMaintenance: (MaintenanceConfig, Boolean, String, Boolean) -> Unit,
     onUserControl: (UserControlCommand) -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -300,7 +300,7 @@ private fun HealthPanel(s: AdminSnapshot?) {
             InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
         }
     }
-    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. Writable actions remain isolated to audited maintenance and Admin-only user-access controls.", color = Muted, fontSize = 12.sp)
+    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. Writable actions remain isolated to audited maintenance/OTA and Admin-only user-access controls.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
@@ -326,35 +326,50 @@ private fun UsersDevicesPanel(
 }
 
 @Composable
-private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (MaintenanceConfig, Boolean, String) -> Unit) {
+private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (MaintenanceConfig, Boolean, String, Boolean) -> Unit) {
     val current = maintenanceConfig(config)
     SectionTitle("Safe remote configuration")
-    Text("Only maintenance mode and its short notice are writable here. Pricing, scanner, valuation-history, release and minimum-version fields are preserved and rejected if changed.", color = Muted, fontSize = 12.sp)
+    Text("Maintenance mode and OTA delivery are the only feature flags writable here. Pricing, scanner and valuation-history flags are preserved and rejected if changed.", color = Muted, fontSize = 12.sp)
     if (current == null) {
         Text("Feature flags are not available to this Admin session.", color = Warn)
         return
     }
-    var enabled by remember(current.enabled, current.message) { mutableStateOf(current.enabled) }
-    var message by remember(current.enabled, current.message) { mutableStateOf(current.message) }
+    var enabled by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.enabled) }
+    var message by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.message) }
+    var otaEnabled by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.otaEnabled) }
     Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Text(if (enabled) "Users may be shown the configured maintenance state by clients that consume this flag." else "Normal configured state.", color = Muted, fontSize = 11.sp) }
+                Column(Modifier.weight(1f)) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Text(if (enabled) "Morley users are blocked by the configured maintenance screen." else "Normal app access.", color = Muted, fontSize = 11.sp) }
                 Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
             }
             OutlinedTextField(value = message, onValueChange = { message = it.take(160) }, label = { Text("Maintenance notice") }, supportingText = { Text("${message.length}/160") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { onUpdate(current, enabled, message) }, enabled = !busy && (enabled != current.enabled || message.trim() != current.message), modifier = Modifier.fillMaxWidth()) { Text("Save audited maintenance control", fontWeight = FontWeight.Black) }
+            HorizontalDivider()
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("OTA updates", fontWeight = FontWeight.Bold)
+                    Text(if (otaEnabled) "Automatic and manual signed OTA checks are enabled." else "Morley will skip OTA checks until re-enabled.", color = Muted, fontSize = 11.sp)
+                }
+                Switch(checked = otaEnabled, onCheckedChange = { otaEnabled = it }, enabled = !busy)
+            }
+            Button(
+                onClick = { onUpdate(current, enabled, message, otaEnabled) },
+                enabled = !busy && (enabled != current.enabled || message.trim() != current.message || otaEnabled != current.otaEnabled),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Save audited remote controls", fontWeight = FontWeight.Black) }
         }
     }
-    Text("Every successful change is written through the existing Admin/Manager RPC and recorded in the durable admin audit log. This screen cannot publish a release, change minimum versions, or modify OTA metadata.", color = Muted, fontSize = 12.sp)
+    Text("Every successful change goes through the Admin/Manager RPC and durable audit log. This screen cannot alter release identity, APK URLs, checksums or minimum-version policy.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
 private fun ReleasePanel(config: JSONArray?) {
     SectionTitle("Release status")
+    val remote = maintenanceConfig(config)
+    if (remote != null) InfoCard("OTA delivery", if (remote.otaEnabled) "ENABLED • signed update checks active" else "DISABLED • update checks paused")
     if (config == null || config.length() == 0) Text("No release configuration returned.", color = Muted)
     else for (i in 0 until config.length()) { val j = config.optJSONObject(i) ?: continue; if (j.optString("key") == "feature_flags") continue; val v = j.optJSONObject("value") ?: JSONObject(); InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})${if (v.has("forceUpdate")) " • forceUpdate ${v.optBoolean("forceUpdate")}" else ""}") }
-    Text("This screen does not publish releases, change minimum versions, or modify OTA metadata.", color = Muted, fontSize = 12.sp)
+    Text("Release identity and minimum-version policy remain read-only in the Admin APK. Use the verified release workflow/web control for publishing; OTA enablement is controlled from the Controls tab.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { SectionTitle(title); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) { data.optJSONObject(i)?.let { InfoCard(line(it), if (it.has("created_at")) it.optString("created_at") else "") } } }

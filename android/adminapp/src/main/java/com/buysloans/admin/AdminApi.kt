@@ -136,10 +136,16 @@ internal object AdminApi {
         if (response.first !in 200..299) error(message(response.second, "Support ticket could not be updated."))
     }
 
-    suspend fun updateMaintenanceConfig(session: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String) = withContext(Dispatchers.IO) {
-        val payload = maintenanceUpdatePayload(current, enabled, message).toString()
+    suspend fun updateMaintenanceConfig(
+        session: AdminSession,
+        current: MaintenanceConfig,
+        enabled: Boolean,
+        message: String,
+        otaEnabled: Boolean = current.otaEnabled
+    ) = withContext(Dispatchers.IO) {
+        val payload = maintenanceUpdatePayload(current, enabled, message, otaEnabled).toString()
         val response = request("/rest/v1/rpc/admin_set_config", "POST", session.accessToken, payload, preferMinimal = true)
-        if (response.first !in 200..299) error(message(response.second, "Maintenance configuration could not be updated."))
+        if (response.first !in 200..299) error(message(response.second, "Remote configuration could not be updated."))
     }
 
     suspend fun submitTelemetry(session: AdminSession, events: List<AdminErrorEvent>) = withContext(Dispatchers.IO) {
