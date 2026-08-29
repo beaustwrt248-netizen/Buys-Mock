@@ -12,6 +12,7 @@ OUT = ROOT / "dist" / "private-distribution-readiness"
 ADMIN = ROOT / "admin"
 OTA = ROOT / "ota" / "latest.json"
 ADMIN_APK_WORKFLOW = ROOT / ".github" / "workflows" / "admin-apk-build.yml"
+ADMIN_UPDATE_MANAGER = ROOT / "android" / "adminapp" / "src" / "main" / "java" / "com" / "buysloans" / "admin" / "AdminUpdateManager.kt"
 
 PUBLIC_RESOURCE_PATTERNS = (
     ("github_release", re.compile(r"https://github\.com/[^\s\"']+/releases/download/[^\s\"']+")),
@@ -22,6 +23,7 @@ PUBLIC_SCAN_FILES = (
     OTA,
     ADMIN / "release-control.js",
     ADMIN_APK_WORKFLOW,
+    ADMIN_UPDATE_MANAGER,
 )
 
 
@@ -43,7 +45,7 @@ def public_resource_dependencies() -> list[dict[str, object]]:
         rel = path.relative_to(ROOT).as_posix()
         for resource_type, pattern in PUBLIC_RESOURCE_PATTERNS:
             for match in pattern.finditer(text):
-                url = match.group(0).rstrip(",);]}")
+                url = match.group(0).rstrip(",);]}\")")
                 key = (rel, resource_type, url)
                 if key in seen:
                     continue
