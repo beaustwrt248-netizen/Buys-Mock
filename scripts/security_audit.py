@@ -37,6 +37,10 @@ PATTERNS = [
 SAFE_SECRET_REFERENCE = re.compile(r'\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}')
 CHECKOUT_STEP = re.compile(r'(?m)^\s*-?(?:\s*name:\s*[^\n]+\n)?\s*uses:\s*actions/checkout@[^\n]+\n(?P<body>(?:\s{6,}[^\n]*\n){0,8})')
 PERSIST_CREDENTIALS_FALSE = re.compile(r'(?m)^\s*persist-credentials:\s*false\s*(?:#.*)?$')
+TOP_LEVEL_PERMISSIONS = re.compile(r'(?m)^permissions:\s*(?:#.*)?$')
+TOP_LEVEL_WRITE = re.compile(r'(?m)^  [A-Za-z0-9_-]+:\s*write\s*(?:#.*)?$')
+WRITE_ALL = re.compile(r'(?m)^permissions:\s*write-all\s*(?:#.*)?$')
+PULL_REQUEST_TARGET = re.compile(r'(?m)^\s{2}pull_request_target:\s*(?:#.*)?$')
 
 
 def iter_files():
@@ -46,6 +50,16 @@ def iter_files():
         if any(part in SKIP_DIRS for part in path.parts):
             continue
         yield path
+
+
+def workflow_header(text: str) -> str:
+    """Return workflow-level YAML before the jobs block.
+
+    Job-scoped permissions may legitimately grant a narrow write permission for a release/deploy job.
+    The workflow-wide baseline must stay explicit and non-write so unrelated jobs inherit no elevation.
+    """
+    marker = re.search(r'(?m)^jobs:\s*(?:#.*)?$', text)
+    return text[:marker.start()] if marker else text
 
 
 def main() -> int:
@@ -79,8 +93,20 @@ def main() -> int:
             text = path.read_text(encoding='utf-8')
             rel = path.relative_to(ROOT)
             critical = path.name in CRITICAL_WORKFLOWS
-            if re.search(r'(?m)^\s*permissions:\s*\n\s*contents:\s*write\s*$', text):
+            header = workflow_header(text)
+
+            if critical:
+                if not TOP_LEVEL_PERMISSIONS.search(header):
+                    failures.append(f'Critical workflow has no explicit workflow-wide permissions baseline: {rel}')
+                if WRITE_ALL.search(header):
+                    failures.append(f'Critical workflow grants workflow-wide write-all: {rel}')
+                for write_scope in TOP_LEVEL_WRITE.findall(header):
+                    failures.append(f'Critical workflow grants workflow-wide write permission ({write_scope.strip()}): {rel}')
+                if PULL_REQUEST_TARGET.search(header):
+                    failures.append(f'Critical workflow uses pull_request_target, which exposes privileged context to PR-triggered execution: {rel}')
+            elif re.search(r'(?m)^\s*permissions:\s*\n\s*contents:\s*write\s*$', text):
                 warnings.append(f'Workflow-wide contents:write should be split/narrowed: {rel}')
+
             for m in re.finditer(r'(?m)^\s*-?\s*uses:\s*([^\s#]+)\s*$', text):
                 ref = m.group(1)
                 if ref.startswith('./'):
@@ -126,7 +152,7 @@ def main() -> int:
         for failure in sorted(set(failures)):
             print(f'- {failure}')
         return 1
-    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected; critical checkouts do not persist credentials; Admin APK checksum publication is verified.')
+    print('SECURITY AUDIT PASSED: no high-confidence privileged credentials or critical mutable action refs detected; critical workflows have an explicit non-write permission baseline and avoid pull_request_target; critical checkouts do not persist credentials; Admin APK checksum publication is verified.')
     return 0
 
 
