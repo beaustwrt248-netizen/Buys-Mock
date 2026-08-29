@@ -99,9 +99,12 @@ begin
 end
 $$;
 
-revoke all on function private.admin_set_config_impl(text,jsonb) from public, anon;
+-- Keep the implementation private. Authenticated callers must use the existing
+-- SECURITY DEFINER public.admin_set_config(text,jsonb) wrapper, which delegates
+-- here after the implementation performs explicit Admin/Manager authorization.
+revoke execute on function private.admin_set_config_impl(text,jsonb) from authenticated;
+revoke execute on function private.admin_set_config_impl(text,jsonb) from public, anon;
 grant usage on schema private to authenticated;
-grant execute on function private.admin_set_config_impl(text,jsonb) to authenticated;
 
 comment on function private.admin_set_config_impl(text,jsonb) is
-  'Privileged Admin/Manager config implementation. feature_flags changes are limited to maintenanceMode/message and otaEnabled; all changes are audited.';
+  'Privileged Admin/Manager config implementation. Direct client execution is revoked; feature_flags changes are limited to maintenanceMode/message and otaEnabled and all changes are audited.';
