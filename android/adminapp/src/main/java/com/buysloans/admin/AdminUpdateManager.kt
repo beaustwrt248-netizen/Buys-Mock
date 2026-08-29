@@ -19,8 +19,8 @@ internal object AdminUpdateManager {
 
     suspend fun fetchRelease(): AdminUpdateRelease = withContext(Dispatchers.IO) {
         val connection = (URL(METADATA_URL).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 10_000
-            readTimeout = 10_000
+            connectTimeout = 4_000
+            readTimeout = 4_000
             instanceFollowRedirects = true
         }
         try {
@@ -35,9 +35,9 @@ internal object AdminUpdateManager {
         val obj = JSONObject(json)
         return AdminUpdateRelease(
             versionCode = obj.getInt("versionCode"),
-            versionName = obj.getString("versionName"),
-            apkUrl = obj.getString("apkUrl"),
-            sha256 = obj.getString("sha256"),
+            versionName = obj.getString("versionName").trim(),
+            apkUrl = obj.getString("apkUrl").trim(),
+            sha256 = obj.getString("sha256").trim().lowercase(),
             required = obj.optBoolean("required", false)
         )
     }
@@ -46,8 +46,9 @@ internal object AdminUpdateManager {
         require(shouldOfferAdminUpdate(BuildConfig.VERSION_CODE, release)) { "Release is not eligible for installation." }
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val target = File(dir, "Morley-Admin-update.apk")
+        if (target.exists()) target.delete()
         val connection = (URL(release.apkUrl).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15_000
+            connectTimeout = 10_000
             readTimeout = 30_000
             instanceFollowRedirects = true
         }
@@ -67,11 +68,15 @@ internal object AdminUpdateManager {
             }
             digest.digest().joinToString("") { "%02x".format(it) }
         }
-        require(actual.equals(release.sha256, ignoreCase = true)) { "Downloaded update failed SHA-256 verification." }
+        require(actual.equals(release.sha256, ignoreCase = true)) {
+            target.delete()
+            "Downloaded update failed SHA-256 verification."
+        }
         target
     }
 
     fun launchInstaller(context: Context, apk: File): Boolean {
+        require(apk.isFile && apk.length() > 0L) { "Verified Admin update file is missing." }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
