@@ -17,10 +17,14 @@ class AdminLoginPolicyTest {
         assertTrue(isAdminLoginReady("first.last+admin@example.com.au", "secret", "captcha-token", busy = false))
     }
 
-    @Test fun invalidEmailKeepsSignInDisabled() {
-        assertFalse(isAdminLoginReady("admin", "secret", "captcha-token", busy = false))
-        assertFalse(isAdminLoginReady("admin@localhost", "secret", "captcha-token", busy = false))
-        assertFalse(isAdminLoginReady("admin @example.com", "secret", "captcha-token", busy = false))
+    @Test fun nonEmptyIdentifierDefersValidationToSupabase() {
+        assertTrue(isAdminLoginReady("admin", "secret", "captcha-token", busy = false))
+        assertTrue(isAdminLoginReady("admin@localhost", "secret", "captcha-token", busy = false))
+    }
+
+    @Test fun emptyEmailKeepsSignInDisabled() {
+        assertFalse(isAdminLoginReady("", "secret", "captcha-token", busy = false))
+        assertFalse(isAdminLoginReady("   ", "secret", "captcha-token", busy = false))
     }
 
     @Test fun emptyPasswordKeepsSignInDisabled() {
