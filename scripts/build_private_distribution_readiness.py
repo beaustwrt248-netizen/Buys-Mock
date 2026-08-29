@@ -12,18 +12,17 @@ OUT = ROOT / "dist" / "private-distribution-readiness"
 ADMIN = ROOT / "admin"
 OTA = ROOT / "ota" / "latest.json"
 ADMIN_APK_WORKFLOW = ROOT / ".github" / "workflows" / "admin-apk-build.yml"
-ADMIN_UPDATE_MANAGER = ROOT / "android" / "adminapp" / "src" / "main" / "java" / "com" / "buysloans" / "admin" / "AdminUpdateManager.kt"
+ADMIN_ANDROID_SOURCE = ROOT / "android" / "adminapp" / "src" / "main"
 
 PUBLIC_RESOURCE_PATTERNS = (
     ("github_release", re.compile(r"https://github\.com/[^\s\"']+/releases/download/[^\s\"']+")),
     ("github_raw", re.compile(r"https://raw\.githubusercontent\.com/[^\s\"']+")),
     ("github_pages", re.compile(r"https://[^\s\"']+\.github\.io(?:/[^\s\"']*)?")),
 )
-PUBLIC_SCAN_FILES = (
+STATIC_PUBLIC_SCAN_FILES = (
     OTA,
     ADMIN / "release-control.js",
     ADMIN_APK_WORKFLOW,
-    ADMIN_UPDATE_MANAGER,
 )
 
 
@@ -35,12 +34,17 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def public_scan_files() -> list[Path]:
+    files = [path for path in STATIC_PUBLIC_SCAN_FILES if path.is_file()]
+    if ADMIN_ANDROID_SOURCE.is_dir():
+        files.extend(path for path in ADMIN_ANDROID_SOURCE.rglob("*") if path.is_file())
+    return sorted(set(files))
+
+
 def public_resource_dependencies() -> list[dict[str, object]]:
     dependencies: list[dict[str, object]] = []
     seen: set[tuple[str, str, str]] = set()
-    for path in PUBLIC_SCAN_FILES:
-        if not path.is_file():
-            continue
+    for path in public_scan_files():
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(ROOT).as_posix()
         for resource_type, pattern in PUBLIC_RESOURCE_PATTERNS:
@@ -71,6 +75,8 @@ def main() -> None:
         raise SystemExit("ota/latest.json missing")
     if not ADMIN_APK_WORKFLOW.is_file():
         raise SystemExit("Admin APK workflow missing")
+    if not ADMIN_ANDROID_SOURCE.is_dir():
+        raise SystemExit("Admin Android source directory missing")
 
     ota = json.loads(OTA.read_text(encoding="utf-8"))
     required = {"versionCode", "versionName", "apkUrl", "sha256"}
