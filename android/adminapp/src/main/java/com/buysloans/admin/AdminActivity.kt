@@ -136,9 +136,18 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
     var captchaToken by remember { mutableStateOf("") }
     var captchaError by remember { mutableStateOf("") }
     var captchaEpoch by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(error, busy) {
+        if (error.isNotBlank() && !busy) {
+            captchaToken = ""
+            captchaEpoch += 1
+        }
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.Center) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
         Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
+        Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 11.sp)
         Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(
             value = email,
@@ -170,17 +179,17 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
         if (captchaToken.isNotBlank()) Text("Security check complete.", color = Good, fontSize = 12.sp)
         if (captchaError.isNotBlank()) Text(captchaError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp))
-        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
+        if (busy) {
+            LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
+            Text("Signing in securely…", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        } else if (isAdminLoginReady(email, password, captchaToken, busy = false)) {
+            Text("Email, password and security check are ready.", color = Good, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        }
         Button(
-            onClick = {
-                val token = captchaToken
-                captchaToken = ""
-                captchaEpoch += 1
-                onLogin(email.trim(), password, token)
-            },
+            onClick = { onLogin(email.trim(), password, captchaToken) },
             enabled = isAdminLoginReady(email, password, captchaToken, busy),
             modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
-        ) { Text("Sign in", fontWeight = FontWeight.Black) }
+        ) { Text(if (busy) "Signing in…" else "Sign in", fontWeight = FontWeight.Black) }
     }
 }
 
