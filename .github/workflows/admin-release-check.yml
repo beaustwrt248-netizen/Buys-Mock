@@ -7,7 +7,9 @@ on:
       - 'admin/**'
       - 'ota/latest.json'
       - 'android/app/build.gradle'
+      - 'android/adminapp/**'
       - 'supabase/migrations/*admin*config*'
+      - '.github/workflows/admin-apk-build.yml'
       - '.github/workflows/admin-release-check.yml'
   push:
     branches: [ main ]
@@ -15,7 +17,9 @@ on:
       - 'admin/**'
       - 'ota/latest.json'
       - 'android/app/build.gradle'
+      - 'android/adminapp/**'
       - 'supabase/migrations/*admin*config*'
+      - '.github/workflows/admin-apk-build.yml'
       - '.github/workflows/admin-release-check.yml'
   workflow_dispatch:
 
@@ -55,6 +59,36 @@ jobs:
           grep -q "config_key:'minimum_supported_version'" admin/release-control.js
           grep -q "config_key:'current_release'" admin/release-control.js
           grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
+      - name: Validate dedicated Admin APK OTA channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'android:name=".AdminUpdateGateActivity"' android/adminapp/src/main/AndroidManifest.xml
+          grep -q 'AdminUpdateGateActivity' android/adminapp/src/main/AndroidManifest.xml
+          grep -q 'METADATA_URL = "https://beaustwrt248-netizen.github.io/Buys-Mock/admin/admin-update.json"' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt
+          grep -q 'releases/download/admin-v' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdatePolicy.kt
+          grep -q 'Downloaded update failed SHA-256 verification' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt
+          grep -q 'publish-admin-ota:' .github/workflows/admin-apk-build.yml
+          grep -q 'Morley-Admin-${safe}.apk' .github/workflows/admin-apk-build.yml
+          grep -q 'admin/admin-update.json' .github/workflows/admin-apk-build.yml
+          grep -q 'EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b' .github/workflows/admin-apk-build.yml
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)',text)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]",text)
+          assert code and int(code.group(1)) >= 6
+          assert name and name.group(1).strip()
+          p=Path('admin/admin-update.json')
+          if p.exists():
+              import json
+              d=json.loads(p.read_text(encoding='utf-8'))
+              assert isinstance(d.get('versionCode'),int) and d['versionCode'] > 0
+              assert str(d.get('versionName','')).strip()
+              assert str(d.get('apkUrl','')).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v')
+              assert re.fullmatch(r'[0-9a-f]{64}',str(d.get('sha256','')))
+          PY
       - name: Validate Admin config migration least privilege
         shell: bash
         run: |
