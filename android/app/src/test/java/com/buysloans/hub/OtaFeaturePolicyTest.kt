@@ -6,18 +6,18 @@ import org.junit.Test
 
 class OtaFeaturePolicyTest {
     @Test fun otaDefaultsEnabledWhenConfigIsMissing() {
-        assertTrue(OtaFeaturePolicy.enabledValue(null))
+        assertTrue(otaEnabledValue(null))
     }
 
     @Test fun otaDefaultsEnabledForLegacyFeatureFlags() {
-        assertTrue(OtaFeaturePolicy.enabledValue(null))
+        assertTrue(otaEnabledValue(null))
     }
 
     @Test fun otaCanBeExplicitlyDisabled() {
-        assertFalse(OtaFeaturePolicy.enabledValue(false))
+        assertFalse(otaEnabledValue(false))
     }
 
     @Test fun otaCanBeExplicitlyEnabled() {
-        assertTrue(OtaFeaturePolicy.enabledValue(true))
+        assertTrue(otaEnabledValue(true))
     }
 }
