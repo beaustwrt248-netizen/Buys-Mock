@@ -1,0 +1,41 @@
+name: Admin Control Integration Audit
+
+on:
+  pull_request:
+    paths:
+      - 'admin/**'
+      - 'android/adminapp/**'
+      - 'android/app/src/main/java/com/buysloans/hub/UpdateManager.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/OtaFeaturePolicy.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
+      - 'android/app/build.gradle'
+      - 'ota/latest.json'
+      - 'supabase/migrations/**'
+      - 'scripts/admin_control_integration_audit.py'
+      - '.github/workflows/admin-control-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'admin/**'
+      - 'android/adminapp/**'
+      - 'android/app/src/main/java/com/buysloans/hub/UpdateManager.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/OtaFeaturePolicy.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
+      - 'android/app/build.gradle'
+      - 'ota/latest.json'
+      - 'supabase/migrations/**'
+      - 'scripts/admin_control_integration_audit.py'
+      - '.github/workflows/admin-control-integration.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify Admin Control integration contracts
+        run: python3 scripts/admin_control_integration_audit.py
