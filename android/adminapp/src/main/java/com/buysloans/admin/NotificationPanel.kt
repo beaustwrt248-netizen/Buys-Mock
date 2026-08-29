@@ -165,15 +165,6 @@ private object NotificationApi {
         val jobId = JSONArray(inserted.second).optJSONObject(0)?.optString("id").orEmpty()
         require(jobId.isNotBlank()) { "Notification queue did not return a job id." }
 
-        val audit = JSONObject()
-            .put("actor_user_id", session.userId)
-            .put("action", "notification_queued")
-            .put("target_type", if (targetUserId.isNullOrBlank()) "audience" else "user")
-            .put("target_id", targetUserId ?: audience)
-            .put("details", JSONObject().put("title", cleanTitle))
-        val auditResult = request("/rest/v1/admin_audit_log", "POST", session.accessToken, audit.toString())
-        if (auditResult.first !in 200..299) error(apiMessage(auditResult.second, "Notification audit entry could not be written."))
-
         val delivery = request(
             path = "/functions/v1/send-admin-notification",
             method = "POST",
