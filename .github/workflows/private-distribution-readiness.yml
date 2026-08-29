@@ -69,6 +69,9 @@ jobs:
           for dep in deps:
               assert dep['blockingPrivateRepositoryCutover'] is True
               assert str(dep['url']).startswith('https://')
+          admin_update_source = 'android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt'
+          assert any(dep['source'] == admin_update_source and dep['type'] == 'github_pages' for dep in deps), \
+              'Admin Android public update origin must remain inventoried until private-origin cutover'
           PY
       - name: Assert Admin Android distribution is private-repo compatible
         shell: bash
