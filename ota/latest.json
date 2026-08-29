@@ -1,7 +1,7 @@
 {
-  "versionCode": 43,
-  "versionName": "2.14.7",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.7/B-and-L-Morley-2.14.7.apk",
-  "sha256": "825a429d2bfb28bb84b691252f8b9b8bf6644e95ac5440edf0c3037d80e24a5d",
-  "notes": "Release: Morley 2.14.7 Guardian diagnostics + automatic OTA (#271)"
+  "versionCode": 44,
+  "versionName": "2.14.8",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.8/B-and-L-Morley-2.14.8.apk",
+  "sha256": "2aef9f01e8f46b1b0b3810057ae575753a3acae226575f084184be2dd483514a",
+  "notes": "Harden laptop marketplace filtering at scale"
 }
