@@ -73,7 +73,7 @@ jobs:
           assert any(dep['source'] == admin_update_source and dep['type'] == 'github_pages' for dep in deps), \
               'Admin Android public update origin must remain inventoried until private-origin cutover'
           PY
-      - name: Assert Admin Android distribution is private-repo compatible
+      - name: Assert Admin Android distribution is governed and inventoried
         shell: bash
         run: |
           set -euo pipefail
@@ -82,8 +82,11 @@ jobs:
           grep -q 'persist-credentials: false' .github/workflows/admin-apk-build.yml
           grep -q 'sha256sum --check dist/Morley-Admin-readonly.apk.sha256' .github/workflows/admin-apk-build.yml
           grep -q 'actions/upload-artifact@' .github/workflows/admin-apk-build.yml
-          if grep -Eq 'raw\.githubusercontent\.com|github\.io|releases/download' .github/workflows/admin-apk-build.yml; then
-            echo 'Admin APK build must not depend on public repository distribution URLs.' >&2
+          grep -q 'publish-admin-ota:' .github/workflows/admin-apk-build.yml
+          grep -q 'contents: write' .github/workflows/admin-apk-build.yml
+          grep -q 'releases/download' .github/workflows/admin-apk-build.yml
+          if grep -Eq 'raw\.githubusercontent\.com|github\.io' .github/workflows/admin-apk-build.yml; then
+            echo 'Admin APK publication workflow must not introduce raw/Pages download dependencies.' >&2
             exit 1
           fi
       - name: Assert live distribution is untouched
