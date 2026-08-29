@@ -21,6 +21,27 @@ internal object SupportTicketLogic {
         return SupportTicketDraft(cleanCategory, cleanSubject, cleanDescription)
     }
 
+    fun validateReply(body: String): String {
+        val cleanBody = body.trim()
+        require(cleanBody.length in 1..5000) { "Reply must be between 1 and 5000 characters." }
+        return cleanBody
+    }
+
+    fun statusLabel(status: String): String = when (status.trim().lowercase()) {
+        "open" -> "Open"
+        "in_progress" -> "In progress"
+        "waiting_on_user" -> "Waiting on you"
+        "resolved" -> "Resolved"
+        "closed" -> "Closed"
+        else -> "Support"
+    }
+
+    fun hasUnreadSupportReply(latestAdminMessageId: String?, lastSeenAdminMessageId: String?): Boolean {
+        val latest = latestAdminMessageId.orEmpty().trim()
+        if (latest.isBlank()) return false
+        return latest != lastSeenAdminMessageId.orEmpty().trim()
+    }
+
     fun validateAttachment(contentType: String?, byteSize: Long?) {
         val mime = contentType.orEmpty().trim().lowercase()
         require(mime in allowedTypes) { "Attachment must be a JPG, PNG, WebP or PDF." }
