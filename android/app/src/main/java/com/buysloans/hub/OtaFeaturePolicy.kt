@@ -7,14 +7,16 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 internal object OtaFeaturePolicy {
+    internal fun enabledValue(configured: Boolean?): Boolean = configured ?: true
+
     internal fun enabledFromConfig(rows: JSONArray): Boolean {
         for (i in 0 until rows.length()) {
             val row = rows.optJSONObject(i) ?: continue
             if (row.optString("key") != "feature_flags") continue
-            val flags = row.optJSONObject("value") ?: return true
-            return if (flags.has("otaEnabled")) flags.optBoolean("otaEnabled", true) else true
+            val flags = row.optJSONObject("value") ?: return enabledValue(null)
+            return enabledValue(if (flags.has("otaEnabled")) flags.optBoolean("otaEnabled", true) else null)
         }
-        return true
+        return enabledValue(null)
     }
 
     suspend fun isEnabled(): Boolean {
