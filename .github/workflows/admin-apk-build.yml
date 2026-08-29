@@ -22,11 +22,25 @@ jobs:
   build-admin-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      admin_app_changed: ${{ steps.admin-change.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Detect Admin app source change
+        id: admin-change
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- android/adminapp; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Java 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -112,7 +126,7 @@ jobs:
           retention-days: 14
 
   publish-admin-ota:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-admin-apk.outputs.admin_app_changed == 'true'
     needs: build-admin-apk
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -129,22 +143,29 @@ jobs:
         with:
           name: morley-admin-readonly-apk
           path: dist
-      - name: Resolve Admin release identity
+      - name: Resolve and validate next Admin release identity
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, re
+          import json, os, re
           from pathlib import Path
           text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
           code=re.search(r'\bversionCode\s+(\d+)', text)
           name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
           if not code or not name or int(code.group(1)) < 1 or not name.group(1).strip():
               raise SystemExit('Invalid Admin release identity')
-          safe=re.sub(r'[^A-Za-z0-9._-]+','-',name.group(1)).strip('-')
+          current_code=int(code.group(1)); current_name=name.group(1).strip()
+          metadata=Path('admin/admin-update.json')
+          if metadata.exists():
+              published=json.loads(metadata.read_text(encoding='utf-8'))
+              published_code=int(published.get('versionCode',0))
+              if current_code != published_code + 1:
+                  raise SystemExit(f'Admin app source changed: versionCode {current_code} must be exactly one above published Admin OTA {published_code}.')
+          safe=re.sub(r'[^A-Za-z0-9._-]+','-',current_name).strip('-')
           with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as fh:
-              fh.write(f'ADMIN_VERSION_CODE={code.group(1)}\n')
-              fh.write(f'ADMIN_VERSION_NAME={name.group(1)}\n')
+              fh.write(f'ADMIN_VERSION_CODE={current_code}\n')
+              fh.write(f'ADMIN_VERSION_NAME={current_name}\n')
               fh.write(f'ADMIN_VERSION_SAFE={safe}\n')
               fh.write(f'ADMIN_RELEASE_TAG=admin-v{safe}\n')
               fh.write(f'ADMIN_RELEASE_FILE=Morley-Admin-{safe}.apk\n')
@@ -158,26 +179,21 @@ jobs:
           ADMIN_SHA256="$(sha256sum "dist/${ADMIN_RELEASE_FILE}" | awk '{print $1}')"
           test "${#ADMIN_SHA256}" = 64
           echo "ADMIN_SHA256=$ADMIN_SHA256" >> "$GITHUB_ENV"
-      - name: Publish or verify immutable Admin GitHub Release
+      - name: Publish immutable Admin GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           if gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            rm -rf "$RUNNER_TEMP/admin-existing-release"
-            mkdir -p "$RUNNER_TEMP/admin-existing-release"
-            gh release download "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ADMIN_RELEASE_FILE" --dir "$RUNNER_TEMP/admin-existing-release"
-            EXISTING_SHA="$(sha256sum "$RUNNER_TEMP/admin-existing-release/$ADMIN_RELEASE_FILE" | awk '{print $1}')"
-            test "$EXISTING_SHA" = "$ADMIN_SHA256" || { echo 'Existing Admin release asset does not match this signed build.' >&2; exit 1; }
-            echo "Verified existing immutable Admin release $ADMIN_RELEASE_TAG"
-          else
-            gh release create "$ADMIN_RELEASE_TAG" "dist/${ADMIN_RELEASE_FILE}" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Morley Admin ${ADMIN_VERSION_NAME}" \
-              --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
-              --latest=false
+            echo "Admin release tag $ADMIN_RELEASE_TAG already exists; refusing version identity reuse." >&2
+            exit 1
           fi
+          gh release create "$ADMIN_RELEASE_TAG" "dist/${ADMIN_RELEASE_FILE}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Morley Admin ${ADMIN_VERSION_NAME}" \
+            --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
+            --latest=false
       - name: Publish Admin OTA metadata to Pages source
         env:
           GH_TOKEN: ${{ github.token }}
@@ -188,7 +204,7 @@ jobs:
           git checkout main
           git pull --ff-only origin main
           python3 - <<'PY'
-          import hashlib, json, os, re
+          import json, os, re
           from pathlib import Path
           gradle=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
           code=re.search(r'\bversionCode\s+(\d+)', gradle)
@@ -221,10 +237,99 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add admin/admin-update.json
-          if git diff --cached --quiet; then
-            echo 'Admin OTA metadata already current.'
-          else
-            git commit -m "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata"
-            gh auth setup-git
-            git push origin HEAD:main
-          fi
+          git diff --cached --quiet && { echo 'Expected a new Admin OTA metadata version.' >&2; exit 1; }
+          git commit -m "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata"
+          gh auth setup-git
+          git push origin HEAD:main
+
+  deploy-admin-ota-feed:
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-admin-apk.result == 'success' && (needs.publish-admin-ota.result == 'success' || needs.publish-admin-ota.result == 'skipped')
+    needs: [build-admin-apk, publish-admin-ota]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout current main including Admin OTA metadata
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate published Admin OTA metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          d=json.loads(Path('admin/admin-update.json').read_text(encoding='utf-8'))
+          assert isinstance(d.get('versionCode'),int) and d['versionCode'] > 0
+          assert str(d.get('versionName','')).strip()
+          assert str(d.get('apkUrl','')).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v')
+          assert re.fullmatch(r'[0-9a-f]{64}',str(d.get('sha256','')))
+          assert isinstance(d.get('required'),bool)
+          assert re.fullmatch(r'[0-9a-f]{40}',str(d.get('sourceSha','')))
+          PY
+      - name: Build static web bundle with Admin OTA feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/release_audit.py
+          rm -rf site
+          mkdir -p site
+          cp index.html site/
+          cp -v ./*.css site/
+          cp -v ./*.js site/
+          cp -R admin site/admin
+          if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
+          touch site/.nojekyll
+          test -s site/index.html
+          test -s site/admin/index.html
+          test -s site/admin/admin-update.json
+          test -s site/web-assets/morley_buys_login_bg_app.mp4
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+        with:
+          enablement: true
+      - name: Upload web site
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Verify live Admin OTA feed
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${PAGE_URL%/}"
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --location --max-time 30 --output "$RUNNER_TEMP/live-admin-update.json" "$BASE/admin/admin-update.json"; then
+              if python3 - <<'PY'
+          import json
+          from pathlib import Path
+          expected=json.loads(Path('admin/admin-update.json').read_text(encoding='utf-8'))
+          live=json.loads(Path(__import__('os').environ['RUNNER_TEMP'],'live-admin-update.json').read_text(encoding='utf-8'))
+          if live != expected:
+              raise SystemExit(1)
+          PY
+              then
+                echo 'Live Admin OTA metadata matches main.'
+                exit 0
+              fi
+            fi
+            echo "Waiting for Admin OTA feed propagation ($attempt/6)"
+            sleep 10
+          done
+          echo 'Live Admin OTA feed did not match the published metadata.' >&2
+          exit 1
