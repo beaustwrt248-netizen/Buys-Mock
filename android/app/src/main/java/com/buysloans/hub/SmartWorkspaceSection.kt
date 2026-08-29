@@ -33,9 +33,14 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
     val ask = item.askingPrice ?: return "REVIEW" to SWMuted
     val max = item.maxBuy
     val market = item.marketValue
+    if (max != null && max > 0.0) {
+        return when {
+            ask <= max -> "GREAT BUY" to SWGood
+            ask <= max * 1.10 -> "NEGOTIATE" to SWWarn
+            else -> "AVOID" to SWBad
+        }
+    }
     return when {
-        max != null && ask <= max -> "GREAT BUY" to SWGood
-        market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
         market != null && ask < market -> "MARGINAL" to SWWarn
         else -> "AVOID" to SWBad
     }
@@ -43,12 +48,11 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
 
 private fun swDealVerdict(ask: Double?, market: Double?, maxBuy: Double?): Pair<String, Color> {
     if (ask == null) return "ENTER ASK" to SWMuted
+    if (market == null || maxBuy == null || maxBuy <= 0.0) return "ENTER MARKET VALUE" to SWMuted
     return when {
-        maxBuy != null && ask <= maxBuy -> "GREAT BUY" to SWGood
-        market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
-        market != null && ask < market -> "MARGINAL" to SWWarn
-        market != null -> "AVOID" to SWBad
-        else -> "ENTER MARKET VALUE" to SWMuted
+        ask <= maxBuy -> "BUY — WITHIN MAX" to SWGood
+        ask <= maxBuy * 1.10 -> "NEGOTIATE" to SWWarn
+        else -> "PASS — ABOVE MAX" to SWBad
     }
 }
 
@@ -103,7 +107,7 @@ fun SmartWorkspaceSection() {
     }
     if (showDealMode) DealModeDialog(onDismiss = { showDealMode = false }, onSaved = { showDealMode = false; reload() })
 
-    val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" || swVerdict(it).first == "GOOD BUY" }
+    val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" }
     val potentialMargin = opportunities.sumOf(::swPotentialMargin)
     val latest = items.take(3)
     val watched = items.filter { favouriteIds.contains(it.id) }.take(3)
