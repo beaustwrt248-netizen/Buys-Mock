@@ -4,8 +4,8 @@ on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'android/**'
-      - '!android/adminapp/**'
+      - 'android/app/**'
+      - 'ota/latest.json'
 
 permissions:
   contents: read
