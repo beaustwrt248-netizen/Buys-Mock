@@ -24,6 +24,7 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
         super.onCreate()
         instance = this
         registerActivityLifecycleCallbacks(this)
+        AppCopyrightFooter.install(this)
         NotificationHelper.createChannels(this)
         UpdateCheckScheduler.schedule(this)
         ReleasePolicyCoordinator.register(this)

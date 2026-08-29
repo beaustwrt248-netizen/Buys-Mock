@@ -33,9 +33,14 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
     val ask = item.askingPrice ?: return "REVIEW" to SWMuted
     val max = item.maxBuy
     val market = item.marketValue
+    if (max != null && max > 0.0) {
+        return when {
+            ask <= max -> "GREAT BUY" to SWGood
+            ask <= max * 1.10 -> "NEGOTIATE" to SWWarn
+            else -> "AVOID" to SWBad
+        }
+    }
     return when {
-        max != null && ask <= max -> "GREAT BUY" to SWGood
-        market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
         market != null && ask < market -> "MARGINAL" to SWWarn
         else -> "AVOID" to SWBad
     }
@@ -43,12 +48,11 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
 
 private fun swDealVerdict(ask: Double?, market: Double?, maxBuy: Double?): Pair<String, Color> {
     if (ask == null) return "ENTER ASK" to SWMuted
+    if (market == null || maxBuy == null || maxBuy <= 0.0) return "ENTER MARKET VALUE" to SWMuted
     return when {
-        maxBuy != null && ask <= maxBuy -> "GREAT BUY" to SWGood
-        market != null && ask <= market * .78 -> "GOOD BUY" to SWGood
-        market != null && ask < market -> "MARGINAL" to SWWarn
-        market != null -> "AVOID" to SWBad
-        else -> "REVIEW" to SWMuted
+        ask <= maxBuy -> "BUY — WITHIN MAX" to SWGood
+        ask <= maxBuy * 1.10 -> "NEGOTIATE" to SWWarn
+        else -> "PASS — ABOVE MAX" to SWBad
     }
 }
 
@@ -56,6 +60,17 @@ private fun swPotentialMargin(item: SavedValuation): Double {
     val ask = item.askingPrice ?: return 0.0
     val market = item.marketValue ?: return 0.0
     return (market - ask).coerceAtLeast(0.0)
+}
+
+private fun quickDealTargetGp(grade: String): Double = when (grade) {
+    "B" -> 50.0
+    "C" -> 70.0
+    else -> 30.0
+}
+
+private fun quickDealMaxBuy(marketValue: Double?, grade: String): Double? {
+    val market = marketValue?.takeIf { it.isFinite() && it > 0.0 } ?: return null
+    return market * (1.0 - quickDealTargetGp(grade) / 100.0)
 }
 
 @Composable
@@ -92,7 +107,7 @@ fun SmartWorkspaceSection() {
     }
     if (showDealMode) DealModeDialog(onDismiss = { showDealMode = false }, onSaved = { showDealMode = false; reload() })
 
-    val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" || swVerdict(it).first == "GOOD BUY" }
+    val opportunities = items.filter { swVerdict(it).first == "GREAT BUY" }
     val potentialMargin = opportunities.sumOf(::swPotentialMargin)
     val latest = items.take(3)
     val watched = items.filter { favouriteIds.contains(it.id) }.take(3)
@@ -195,50 +210,59 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var item by remember { mutableStateOf("") }
-    var grade by remember { mutableStateOf("B") }
+    var grade by remember { mutableStateOf("A") }
     var askText by remember { mutableStateOf("") }
     var marketText by remember { mutableStateOf("") }
-    var maxText by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val ask = askText.toDoubleOrNull()
-    val market = marketText.toDoubleOrNull()
-    val maxBuy = maxText.toDoubleOrNull()
+    val ask = askText.toDoubleOrNull()?.takeIf { it >= 0.0 }
+    val market = marketText.toDoubleOrNull()?.takeIf { it > 0.0 }
+    val maxBuy = quickDealMaxBuy(market, grade)
+    val targetGp = quickDealTargetGp(grade)
     val verdict = swDealVerdict(ask, market, maxBuy)
     val margin = if (ask != null && market != null) (market - ask).coerceAtLeast(0.0) else null
     val headroom = if (ask != null && maxBuy != null) maxBuy - ask else null
+    val canSave = !busy && item.isNotBlank() && ask != null && market != null && maxBuy != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Quick Deal Mode") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("Enter the seller ask and your current market/max-buy figures for an instant decision.", color = SWMuted, fontSize = 12.sp)
+                Text("Enter the seller ask and current market value. Max Buy is calculated automatically from the selected grade.", color = SWMuted, fontSize = 12.sp)
                 OutlinedTextField(item, { item = it }, label = { Text("Item / model") }, singleLine = true)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Item grade", color = SWMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Item grade / target GP", color = SWMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        listOf("A", "B", "C").forEach { value ->
+                        listOf("A", "B", "C", "Luxury").forEach { value ->
                             FilterChip(
                                 selected = grade == value,
                                 onClick = { grade = value },
-                                label = { Text("$value Grade", fontSize = 10.sp) },
+                                label = { Text("$value ${quickDealTargetGp(value).toInt()}%", fontSize = 9.sp) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
                 OutlinedTextField(askText, { askText = it }, label = { Text("Seller asking price") }, singleLine = true)
-                OutlinedTextField(marketText, { marketText = it }, label = { Text("Market value") }, singleLine = true)
-                OutlinedTextField(maxText, { maxText = it }, label = { Text("Max buy") }, singleLine = true)
+                OutlinedTextField(marketText, { marketText = it }, label = { Text("Market value / expected sale value") }, singleLine = true)
+                OutlinedTextField(
+                    value = maxBuy?.let { "%.2f".format(it) } ?: "",
+                    onValueChange = {},
+                    label = { Text("Auto Max Buy") },
+                    readOnly = true,
+                    singleLine = true
+                )
+                Text("$grade Grade targets ${targetGp.toInt()}% GP. Max Buy = market value × ${(100.0 - targetGp).toInt()}%.", color = SWMuted, fontSize = 10.sp)
                 Surface(color = verdict.second.copy(alpha = .10f), border = BorderStroke(1.dp, verdict.second.copy(alpha = .35f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                        Text("$grade Grade", color = SWAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("$grade Grade • ${targetGp.toInt()}% GP", color = SWAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         if (margin != null) Text("Potential gross margin ${swMoney(margin)}", color = SWGood, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         if (headroom != null) Text(if (headroom >= 0) "${swMoney(headroom)} below max buy" else "${swMoney(-headroom)} above max buy", color = if (headroom >= 0) SWGood else SWWarn, fontSize = 11.sp)
                     }
                 }
+                if (!canSave && !busy) Text("Enter an item, valid seller ask and market value to save this deal.", color = SWMuted, fontSize = 10.sp)
                 if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
@@ -247,7 +271,7 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = {
-                    if (item.isBlank() || ask == null) { error = "Enter an item and valid asking price."; return@Button }
+                    if (!canSave) { error = "Enter an item, valid asking price and market value."; return@Button }
                     busy = true; error = ""
                     scope.launch {
                         runCatching {
@@ -255,12 +279,12 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                                 context = context,
                                 itemType = "other",
                                 itemSummary = item.trim(),
-                                specs = "Quick Deal Mode",
+                                specs = "Quick Deal Mode • $grade Grade • ${targetGp.toInt()}% GP",
                                 askingPrice = ask,
                                 marketValue = market,
                                 maxBuy = maxBuy,
                                 expectedProfit = margin,
-                                confidence = if (market != null && maxBuy != null) "deal mode" else "manual review",
+                                confidence = "quick deal grade pricing",
                                 itemGrade = grade
                             )
                         }.onSuccess { onSaved() }
@@ -268,7 +292,7 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                         busy = false
                     }
                 },
-                enabled = !busy
+                enabled = canSave
             ) { Text("Save Deal") }
         }
     )

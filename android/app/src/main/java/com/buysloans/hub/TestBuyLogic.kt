@@ -15,6 +15,21 @@ enum class InventoryLifecycle(val label:String) {
 
 enum class BuyOutcome { REJECT, BUY, SEND_TO_INVENTORY }
 
+enum class TestBuyPricingGrade(val label:String, val targetGpPct:Double) {
+    A("A", 30.0),
+    B("B", 50.0),
+    C("C", 70.0),
+    LUXURY("Luxury", 30.0)
+}
+
+enum class TestBuyGuidanceState {
+    COMPLETE_TEST_AND_PRICING,
+    REJECT_ASK_ABOVE_MAX,
+    REJECT_FAILED_CHECKS,
+    READY_WITH_FAULTS,
+    READY_CLEAN
+}
+
 data class HardwareCheck(
     val id:String,
     val label:String,
@@ -41,6 +56,26 @@ fun checklistFor(category:DeviceCategory):List<HardwareCheck> =
     DeviceChecklistProfiles.forCategory(category).map { spec ->
         HardwareCheck(id = spec.id, label = spec.label)
     }
+
+/**
+ * Test & Buy uses the same simple GP relationship already exposed by the Morley GP calculator:
+ * max cost = expected sale value × (1 - target GP%). This is deliberately local to Test & Buy
+ * and does not alter Valuation 3.0 or its evidence/decision algorithms.
+ */
+fun calculatedTestBuyMaxBuy(currentValuation:Double, grade:TestBuyPricingGrade):Double {
+    if (!currentValuation.isFinite() || currentValuation <= 0.0) return 0.0
+    return currentValuation * (1.0 - grade.targetGpPct / 100.0)
+}
+
+fun testBuyGuidanceState(draft:TestBuyDraft):TestBuyGuidanceState {
+    if (draft.itemName.isBlank() || draft.hasUntestedChecks || draft.currentValuation <= 0.0 || draft.maxBuyPrice <= 0.0) {
+        return TestBuyGuidanceState.COMPLETE_TEST_AND_PRICING
+    }
+    if (draft.askingPrice > draft.maxBuyPrice) return TestBuyGuidanceState.REJECT_ASK_ABOVE_MAX
+    if (draft.failedChecks > 0) return TestBuyGuidanceState.REJECT_FAILED_CHECKS
+    if (draft.faults.isNotBlank()) return TestBuyGuidanceState.READY_WITH_FAULTS
+    return TestBuyGuidanceState.READY_CLEAN
+}
 
 fun recommendedOutcome(draft:TestBuyDraft):BuyOutcome {
     if (draft.itemName.isBlank()) return BuyOutcome.REJECT
