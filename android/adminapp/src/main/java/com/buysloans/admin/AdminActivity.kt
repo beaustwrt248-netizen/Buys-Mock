@@ -83,7 +83,7 @@ private fun AdminRoot() {
     fun updateMaintenance(s: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String, otaEnabled: Boolean) {
         busy = true; error = ""
         scope.launch {
-            runCatching { RemoteConfigApi.update(s, current, enabled, message, otaEnabled) }
+            runCatching { AdminApi.updateMaintenanceConfig(s, current, enabled, message, otaEnabled) }
                 .onSuccess { refresh(s) }
                 .onFailure {
                     AdminTelemetry.record(context, "Controls/RemoteConfig", it)
