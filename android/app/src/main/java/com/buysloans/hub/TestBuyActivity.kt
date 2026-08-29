@@ -52,7 +52,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
     var category by remember { mutableStateOf(DeviceCategory.OTHER) }
     var askingText by remember { mutableStateOf("") }
     var valuationText by remember { mutableStateOf("") }
-    var maxBuyText by remember { mutableStateOf("") }
+    var pricingGrade by remember { mutableStateOf(TestBuyPricingGrade.A) }
     var faults by remember { mutableStateOf("") }
     var checks by remember(category) { mutableStateOf(checklistFor(category)) }
     var showInventoryConfirm by remember { mutableStateOf(false) }
@@ -60,28 +60,33 @@ private fun TestBuyScreen(onBack: () -> Unit) {
     var completedOutcome by remember { mutableStateOf<BuyOutcome?>(null) }
     var saveError by remember { mutableStateOf("") }
 
+    val valuationValue = valuationText.toDoubleOrNull() ?: 0.0
+    val automaticMaxBuy = calculatedTestBuyMaxBuy(valuationValue, pricingGrade)
     val draft = TestBuyDraft(
         itemName = itemName.trim(),
         scanValue = scanValue.trim(),
         category = category,
         askingPrice = askingText.toDoubleOrNull() ?: 0.0,
-        currentValuation = valuationText.toDoubleOrNull() ?: 0.0,
-        maxBuyPrice = maxBuyText.toDoubleOrNull() ?: 0.0,
+        currentValuation = valuationValue,
+        maxBuyPrice = automaticMaxBuy,
         faults = faults.trim(),
         checks = checks
     )
-    val outcome = recommendedOutcome(draft)
     val availability = TestBuyOutcomePolicy.evaluate(draft)
+    val guidanceState = testBuyGuidanceState(draft)
     val headroom = draft.maxBuyPrice - draft.askingPrice
-    val outcomeColor = when (outcome) {
-        BuyOutcome.SEND_TO_INVENTORY -> TBGood
-        BuyOutcome.BUY -> TBWarn
-        BuyOutcome.REJECT -> TBBad
+    val guidanceColor = when (guidanceState) {
+        TestBuyGuidanceState.READY_CLEAN -> TBGood
+        TestBuyGuidanceState.READY_WITH_FAULTS -> TBWarn
+        TestBuyGuidanceState.COMPLETE_TEST_AND_PRICING -> TBAccent
+        TestBuyGuidanceState.REJECT_ASK_ABOVE_MAX, TestBuyGuidanceState.REJECT_FAILED_CHECKS -> TBBad
     }
-    val outcomeLabel = when (outcome) {
-        BuyOutcome.SEND_TO_INVENTORY -> "SEND TO INVENTORY"
-        BuyOutcome.BUY -> "BUY — FAULTS RECORDED"
-        BuyOutcome.REJECT -> "REJECT / NOT READY"
+    val guidanceLabel = when (guidanceState) {
+        TestBuyGuidanceState.COMPLETE_TEST_AND_PRICING -> "COMPLETE TEST & PRICING"
+        TestBuyGuidanceState.REJECT_ASK_ABOVE_MAX -> "REJECT — ASK ABOVE MAX BUY"
+        TestBuyGuidanceState.REJECT_FAILED_CHECKS -> "REVIEW — FAILED CHECKS"
+        TestBuyGuidanceState.READY_WITH_FAULTS -> "READY — FAULTS REQUIRE REVIEW"
+        TestBuyGuidanceState.READY_CLEAN -> "READY — WITHIN MAX BUY"
     }
 
     fun evidenceSource(): TestEvidenceSource =
@@ -153,7 +158,7 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("TEST & BUY WORKSPACE", color = TBAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-            Text("Scan or enter the item, complete the appropriate checks, consume the current valuation and max-buy guidance, record faults, then choose an explicit outcome.", color = TBMuted)
+            Text("Test the item, record faults and compare the seller ask against an automatically calculated max-buy figure.", color = TBMuted)
 
             OutlinedTextField(itemName, { itemName = it }, label = { Text("Item / model") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(scanValue, { scanValue = it }, label = { Text("Barcode / scan reference (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -176,15 +181,45 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(askingText, { askingText = it }, label = { Text("Seller ask") }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(maxBuyText, { maxBuyText = it }, label = { Text("Max buy") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(
+                    askingText,
+                    { askingText = it },
+                    label = { Text("Seller ask") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = if (automaticMaxBuy > 0.0) "%.2f".format(automaticMaxBuy) else "",
+                    onValueChange = {},
+                    label = { Text("Auto max buy") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    readOnly = true
+                )
             }
-            OutlinedTextField(valuationText, { valuationText = it }, label = { Text("Current valuation") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(valuationText, { valuationText = it }, label = { Text("Current valuation / sale value") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
-            if (draft.maxBuyPrice > 0.0) {
+            Text("Grade / target GP", color = TBMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                TestBuyPricingGrade.entries.forEach { option ->
+                    FilterChip(
+                        selected = pricingGrade == option,
+                        onClick = { pricingGrade = option },
+                        label = { Text("${option.label} ${option.targetGpPct.toInt()}%", fontSize = 9.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Text(
+                "Auto max buy = current valuation × ${(100.0 - pricingGrade.targetGpPct).toInt()}% (${pricingGrade.targetGpPct.toInt()}% target GP). Seller ask remains the price quoted by the seller.",
+                color = TBMuted,
+                fontSize = 10.sp
+            )
+
+            if (draft.maxBuyPrice > 0.0 && askingText.isNotBlank()) {
                 val headroomColor = if (headroom >= 0.0) TBGood else TBBad
                 Text(
-                    if (headroom >= 0.0) "Max-buy headroom: ${"%.2f".format(headroom)}" else "Over max-buy by ${"%.2f".format(-headroom)}",
+                    if (headroom >= 0.0) "Within max buy by ${"%.2f".format(headroom)}" else "Seller ask is ${"%.2f".format(-headroom)} over max buy",
                     color = headroomColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
@@ -249,16 +284,16 @@ private fun TestBuyScreen(onBack: () -> Unit) {
             }
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = outcomeColor.copy(alpha = .10f)),
-                border = BorderStroke(1.dp, outcomeColor.copy(alpha = .45f)),
+                colors = CardDefaults.cardColors(containerColor = guidanceColor.copy(alpha = .10f)),
+                border = BorderStroke(1.dp, guidanceColor.copy(alpha = .45f)),
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("GUIDANCE", color = TBMuted, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                    Text(outcomeLabel, color = outcomeColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Text(guidanceLabel, color = guidanceColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
                     Text("${draft.completedChecks}/${draft.checks.size} checks completed · ${draft.failedChecks} failed", color = TBMuted, fontSize = 11.sp)
-                    Text("Guidance does not choose the outcome for you. The allowed actions below enforce checklist, valuation, max-buy and fault-recording safety.", color = TBMuted, fontSize = 11.sp)
+                    Text("Guidance explains the current state; it no longer labels an incomplete form as a rejected deal. Explicit actions still enforce checklist, valuation, max-buy and fault-recording safety.", color = TBMuted, fontSize = 11.sp)
                     if (!availability.canBuy && availability.buyBlockers.isNotEmpty()) {
                         Text("Buy blocked: ${availability.buyBlockers.joinToString(" ")}", color = TBWarn, fontSize = 10.sp)
                     }
