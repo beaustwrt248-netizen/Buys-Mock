@@ -46,6 +46,11 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:label="B&amp;L Morley Support" />
+        <activity
+            android:name=".MaintenanceActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:label="B&amp;L Morley Maintenance" />
 
         <service
             android:name=".MorleyFirebaseMessagingService"
