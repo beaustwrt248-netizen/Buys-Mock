@@ -15,27 +15,35 @@ import androidx.compose.ui.viewinterop.AndroidView
 private const val TURNSTILE_URL = "https://beaustwrt248-netizen.github.io/Buys-Mock/admin/turnstile.html"
 private const val TURNSTILE_HOST = "beaustwrt248-netizen.github.io"
 
-private class TurnstileBridge(
-    private val onToken: (String) -> Unit,
-    private val onFailure: (String) -> Unit
+internal class TurnstileBridge(
+    private val emitToken: (String) -> Unit,
+    private val emitFailure: (String) -> Unit,
+    private val postToMain: ((() -> Unit) -> Unit)
 ) {
-    private val main = Handler(Looper.getMainLooper())
+    constructor(
+        emitToken: (String) -> Unit,
+        emitFailure: (String) -> Unit
+    ) : this(
+        emitToken = emitToken,
+        emitFailure = emitFailure,
+        postToMain = { action -> Handler(Looper.getMainLooper()).post(action) }
+    )
 
     @JavascriptInterface
     fun onToken(token: String) {
         if (token.isBlank()) return
-        main.post { onToken(token) }
+        postToMain { emitToken(token) }
     }
 
     @JavascriptInterface
     fun onExpired(ignored: String) {
-        main.post { onFailure("Security check expired. Complete it again.") }
+        postToMain { emitFailure("Security check expired. Complete it again.") }
     }
 
     @JavascriptInterface
     fun onError(code: String) {
         val suffix = code.trim().takeIf { it.isNotEmpty() }?.let { " ($it)" }.orEmpty()
-        main.post { onFailure("Security check failed$suffix. Retry the challenge.") }
+        postToMain { emitFailure("Security check failed$suffix. Retry the challenge.") }
     }
 }
 
