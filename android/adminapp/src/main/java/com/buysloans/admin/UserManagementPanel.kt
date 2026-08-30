@@ -14,6 +14,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,6 +36,8 @@ internal fun UserManagementPanel(
     onExecute: (UserControlCommand) -> Unit
 ) {
     val users = buildUserAccessPresentation(session, profiles)
+    var query by remember { mutableStateOf("") }
+    val visibleUsers = remember(users, query) { filterUserAccessRows(users, query) }
     var pending by remember { mutableStateOf<UserControlCommand?>(null) }
 
     ManualNotificationPanel(session = session, profiles = profiles, hostBusy = busy)
@@ -51,11 +54,24 @@ internal fun UserManagementPanel(
         fontSize = 12.sp
     )
 
-    if (users.isEmpty()) {
-        Text("No user profiles returned.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (users.isNotEmpty()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it.take(80) },
+            label = { Text("Search users") },
+            supportingText = { Text("Name, role or account state • ${visibleUsers.size}/${users.size}") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 
-    users.forEach { user ->
+    if (users.isEmpty()) {
+        Text("No user profiles returned.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else if (visibleUsers.isEmpty()) {
+        Text("No users match this search.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+
+    visibleUsers.forEach { user ->
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .18f)),
