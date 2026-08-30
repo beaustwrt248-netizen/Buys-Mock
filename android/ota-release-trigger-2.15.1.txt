@@ -1,0 +1,2 @@
+Morley OTA release trigger for 2.15.1 (47).
+No application logic changes.
