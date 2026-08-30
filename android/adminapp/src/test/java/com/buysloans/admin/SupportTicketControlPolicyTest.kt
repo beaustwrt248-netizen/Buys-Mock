@@ -13,7 +13,7 @@ class SupportTicketControlPolicyTest {
     private val staff = AdminSession("token", "staff-1", "Staff", "staff")
     private val user = AdminSession("token", "user-1", "User", "user")
 
-    @Test fun supportRolesCanTriageButOnlyAdminAndManagerCanAssign() {
+    @Test fun supportRolesCanTriageButOnlyAdminAndManagerCanUsePowerfulControls() {
         assertTrue(canUpdateSupportTicketTriage(admin))
         assertTrue(canUpdateSupportTicketTriage(manager))
         assertTrue(canUpdateSupportTicketTriage(staff))
@@ -24,12 +24,15 @@ class SupportTicketControlPolicyTest {
         assertFalse(canAssignSupportTicket(staff))
         assertFalse(canAssignSupportTicket(user))
 
+        assertTrue(canSetSupportTicketPriority(admin))
+        assertTrue(canSetSupportTicketPriority(manager))
+        assertFalse(canSetSupportTicketPriority(staff))
         assertTrue(canManageSupportTicketControls(admin))
         assertTrue(canManageSupportTicketControls(manager))
         assertFalse(canManageSupportTicketControls(staff))
     }
 
-    @Test fun privilegedPayloadContainsAssignmentAndSupportsUnassignment() {
+    @Test fun privilegedPayloadContainsPriorityAssignmentAndSupportsUnassignment() {
         val payload = supportTicketUpdatePayload(
             admin,
             SupportTicketUpdateCommand("ticket-1", "in_progress", "high", null)
@@ -41,16 +44,29 @@ class SupportTicketControlPolicyTest {
         assertTrue(payload.isNull("assigned_to"))
     }
 
-    @Test fun staffPayloadCannotMutateAssignment() {
+    @Test fun staffPayloadIsStrictlyStatusOnly() {
         val payload = supportTicketUpdatePayload(
             staff,
-            SupportTicketUpdateCommand("ticket-1", "waiting_on_user", "normal", "someone-else")
+            SupportTicketUpdateCommand("ticket-1", "waiting_on_user", "urgent", "someone-else")
         )
 
-        assertEquals(setOf("status", "priority"), payload.keySet())
+        assertEquals(setOf("status"), payload.keySet())
         assertEquals("waiting_on_user", payload.getString("status"))
-        assertEquals("normal", payload.getString("priority"))
+        assertFalse(payload.has("priority"))
         assertFalse(payload.has("assigned_to"))
+    }
+
+    @Test fun staffWritableStatusesMatchDatabaseGuard() {
+        assertEquals(listOf("in_progress", "waiting_on_user", "resolved"), supportWritableStatuses(staff))
+        assertEquals(SUPPORT_TICKET_STATUSES, supportWritableStatuses(manager))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun staffCannotSetClosedStatus() {
+        supportTicketUpdatePayload(
+            staff,
+            SupportTicketUpdateCommand("ticket-1", "closed", "normal", null)
+        )
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -62,7 +78,7 @@ class SupportTicketControlPolicyTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsUnsupportedPriority() {
+    fun privilegedPayloadRejectsUnsupportedPriority() {
         supportTicketUpdatePayload(
             admin,
             SupportTicketUpdateCommand("ticket-1", "open", "critical", null)
