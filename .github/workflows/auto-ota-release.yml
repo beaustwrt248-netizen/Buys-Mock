@@ -6,8 +6,9 @@ on:
     types: [completed]
 
 permissions:
-  actions: read
+  actions: write
   contents: write
+  pull-requests: write
 
 concurrency:
   group: morley-auto-ota
@@ -124,7 +125,7 @@ jobs:
           fi
           printf '%s' "$SHA" > package/apk.sha256
 
-      - name: Publish OTA manifest on current main
+      - name: Publish OTA manifest through protected main
         if: steps.release.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -175,6 +176,19 @@ jobs:
             echo 'OTA manifest already current.'
             exit 0
           fi
-          git commit -m "Publish Morley $VERSION_NAME OTA [skip ci]"
+
+          BRANCH="automation/morley-ota-${VERSION_NAME}-${GITHUB_RUN_ID}"
+          git checkout -B "$BRANCH"
+          git commit -m "Publish Morley $VERSION_NAME OTA metadata"
           gh auth setup-git
-          git push origin HEAD:main
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "Publish Morley $VERSION_NAME OTA metadata" \
+            --body "Automated OTA metadata publication for the exact green Morley $VERSION_NAME build. Main protection remains enforced; required checks must pass before merge.")"
+
+          gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          sleep 5
+          gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required --watch --interval 10
+          gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
