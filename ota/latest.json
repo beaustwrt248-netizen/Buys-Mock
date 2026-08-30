@@ -1,7 +1,7 @@
 {
-  "versionCode": 46,
-  "versionName": "2.15.0",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.0/B-and-L-Morley-2.15.0.apk",
-  "sha256": "df2ec1100f0b64647a54c23ece4d9cbc51c910c4afd9029fda38ebdd24dadd2f",
-  "notes": "Guided laptop catalog and dashboard cleanup (#307); crowned blue Morley launcher icon and matching navy/cyan/electric-blue theme included."
+  "versionCode": 47,
+  "versionName": "2.15.1",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.1/B-and-L-Morley-2.15.1.apk",
+  "sha256": "741d87e201bf12ca16ad33ff73e9a16bb2f65109367a37fa877cbf8eb66c3cf0",
+  "notes": "Morley 2.15.1 release with the integrated market regression expectation aligned to current LOW-confidence behavior; signed APK and SHA-256 verified before manifest promotion."
 }
