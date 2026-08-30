@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   audit:
-    name: B&L Morley Quality Gate
+    name: audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
