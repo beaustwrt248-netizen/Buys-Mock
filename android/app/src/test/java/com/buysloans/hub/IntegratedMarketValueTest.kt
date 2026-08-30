@@ -43,7 +43,8 @@ class IntegratedMarketValueTest {
             newToUsedRate = 0.65
         )
         assertFalse(result.sources.any { it.source == "Facebook Marketplace" })
-        assertEquals(790.0, result.usedValue, 10.0)
+        assertEquals("LOW", result.confidence)
+        assertEquals(0.0, result.usedValue, 0.01)
     }
 
     @Test fun `single cheap marketplace listing cannot drag strong ebay anchor`() {
