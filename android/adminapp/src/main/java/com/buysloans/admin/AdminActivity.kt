@@ -54,9 +54,7 @@ class AdminActivity : ComponentActivity() {
                     onSurfaceVariant = Muted
                 )
             ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = Bg, contentColor = TextPrimary) {
-                    AdminRoot()
-                }
+                Surface(Modifier.fillMaxSize(), color = Bg, contentColor = TextPrimary) { AdminRoot() }
             }
         }
     }
@@ -73,7 +71,8 @@ private fun AdminRoot() {
     val context = LocalContext.current.applicationContext
 
     fun refresh(s: AdminSession) {
-        busy = true; error = ""
+        busy = true
+        error = ""
         scope.launch {
             runCatching { AdminApi.load(s) }
                 .onSuccess {
@@ -89,7 +88,8 @@ private fun AdminRoot() {
     }
 
     fun updateMaintenance(s: AdminSession, current: MaintenanceConfig, enabled: Boolean, message: String, otaEnabled: Boolean) {
-        busy = true; error = ""
+        busy = true
+        error = ""
         scope.launch {
             runCatching { AdminApi.updateMaintenanceConfig(s, current, enabled, message, otaEnabled) }
                 .onSuccess { refresh(s) }
@@ -102,7 +102,8 @@ private fun AdminRoot() {
     }
 
     fun updateUserAccess(s: AdminSession, command: UserControlCommand) {
-        busy = true; error = ""
+        busy = true
+        error = ""
         scope.launch {
             runCatching { UserControlCoordinator.execute(s, command, confirmed = true) }
                 .onSuccess { refresh(s) }
@@ -114,19 +115,19 @@ private fun AdminRoot() {
         }
     }
 
-    if (session == null) {
+    val currentSession = session
+    if (currentSession == null) {
         LoginScreen(busy, error) { email, password, captchaToken ->
-            busy = true; error = ""
+            busy = true
+            error = ""
             scope.launch {
                 runCatching { AdminApi.signIn(email, password, captchaToken) }
-                    .onSuccess { s ->
-                        session = s
+                    .onSuccess { signedIn ->
+                        session = signedIn
                         val pending = AdminTelemetry.pending(context)
-                        if (pending.isNotEmpty()) {
-                            runCatching { AdminApi.submitTelemetry(s, pending) }
-                                .onSuccess { AdminTelemetry.clear(context) }
-                        }
-                        refresh(s)
+                        if (pending.isNotEmpty()) runCatching { AdminApi.submitTelemetry(signedIn, pending) }
+                            .onSuccess { AdminTelemetry.clear(context) }
+                        refresh(signedIn)
                     }
                     .onFailure {
                         AdminTelemetry.record(context, "Login", it)
@@ -137,19 +138,15 @@ private fun AdminRoot() {
         }
     } else {
         Dashboard(
-            session = session!!,
+            session = currentSession,
             snapshot = snapshot,
             busy = busy,
             error = error,
             lastRefreshedAtMillis = lastRefreshedAtMillis,
-            onRefresh = { refresh(session!!) },
-            onUpdateMaintenance = { current, enabled, message, otaEnabled -> updateMaintenance(session!!, current, enabled, message, otaEnabled) },
-            onUserControl = { command -> updateUserAccess(session!!, command) },
-            onSignOut = {
-                session = null
-                snapshot = null
-                lastRefreshedAtMillis = 0L
-            }
+            onRefresh = { refresh(currentSession) },
+            onUpdateMaintenance = { current, enabled, message, ota -> updateMaintenance(currentSession, current, enabled, message, ota) },
+            onUserControl = { updateUserAccess(currentSession, it) },
+            onSignOut = { session = null; snapshot = null; lastRefreshedAtMillis = 0L }
         )
     }
 }
@@ -163,61 +160,42 @@ private fun LoginScreen(busy: Boolean, error: String, onLogin: (String, String, 
     var captchaEpoch by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(error, busy) {
-        if (error.isNotBlank() && !busy) {
-            captchaToken = ""
-            captchaEpoch += 1
-        }
+        if (error.isNotBlank() && !busy) { captchaToken = ""; captchaEpoch += 1 }
     }
 
     Column(
-        Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+        Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.Center
     ) {
         Text("MORLEY ADMIN", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Black)
-        Text("Admin Control", color = TextPrimary, fontSize = 30.sp, fontWeight = FontWeight.Black)
+        Text("Admin Control", fontSize = 30.sp, fontWeight = FontWeight.Black)
         Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 11.sp)
-        Text("Authenticated operational access. Writable actions are limited to allowlisted, audited maintenance/OTA controls and Admin-only user-access controls.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
+        Text("Authenticated operational access with backend-enforced role and audit boundaries.", color = Muted, modifier = Modifier.padding(vertical = 10.dp))
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Admin email") },
-            singleLine = true,
+            value = email, onValueChange = { email = it }, label = { Text("Admin email") }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.EmailAddress }
         )
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            singleLine = true,
+            value = password, onValueChange = { password = it }, label = { Text("Password") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Password }
         )
         Spacer(Modifier.height(12.dp))
-        Text("Security check", color = TextPrimary, fontWeight = FontWeight.Bold)
+        Text("Security check", fontWeight = FontWeight.Bold)
         key(captchaEpoch) {
             CaptchaChallenge(
                 modifier = Modifier.fillMaxWidth().height(110.dp),
-                onToken = { token -> captchaToken = token; captchaError = "" },
-                onFailure = { message -> captchaToken = ""; captchaError = message }
+                onToken = { captchaToken = it; captchaError = "" },
+                onFailure = { captchaToken = ""; captchaError = it }
             )
         }
         if (captchaToken.isNotBlank()) Text("Security check complete.", color = Good, fontSize = 12.sp)
         if (captchaError.isNotBlank()) Text(captchaError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp))
-        if (busy) {
-            LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
-            Text("Signing in securely…", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
-        } else if (isAdminLoginReady(email, password, captchaToken, busy = false)) {
-            Text("Email, password and security check are ready.", color = Good, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
-        }
+        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
         Button(
             onClick = { onLogin(email.trim(), password, captchaToken) },
             enabled = isAdminLoginReady(email, password, captchaToken, busy),
@@ -238,170 +216,149 @@ private fun Dashboard(
     onUserControl: (UserControlCommand) -> Unit,
     onSignOut: () -> Unit
 ) {
-    var tab by remember { mutableStateOf("Health") }
-    var freshnessNowMillis by remember(lastRefreshedAtMillis) { mutableLongStateOf(System.currentTimeMillis()) }
-    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release")
-
+    var tab by remember { mutableStateOf("Overview") }
+    var now by remember(lastRefreshedAtMillis) { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(lastRefreshedAtMillis) {
-        if (lastRefreshedAtMillis > 0L) {
-            while (true) {
-                freshnessNowMillis = System.currentTimeMillis()
-                delay(60_000L)
-            }
-        }
+        while (lastRefreshedAtMillis > 0L) { delay(60_000L); now = System.currentTimeMillis() }
     }
 
     Column(
-        Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState())
+            .padding(horizontal = 14.dp, vertical = 10.dp).padding(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                Text(session.displayName, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                Text(session.role.uppercase(), color = Muted, fontSize = 11.sp)
-            }
-            TextButton(onClick = onSignOut) { Text("Sign out") }
-        }
-        Text("CONTROLLED ADMIN MODE", color = Good, fontWeight = FontWeight.Black)
-        tabs.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-                row.forEach { name ->
-                    FilterChip(
-                        selected = tab == name,
-                        onClick = { tab = name },
-                        label = { Text(name, fontSize = 10.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = CardBg),
+            border = BorderStroke(1.dp, Accent.copy(alpha = .22f)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f)) {
+                        Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        Text(session.displayName, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        Text("${session.role.uppercase()} • CONTROLLED ADMIN MODE", color = Good, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(onClick = onSignOut) { Text("Sign out") }
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (tab != "Overview") OutlinedButton(onClick = { tab = "Overview" }, modifier = Modifier.weight(1f)) { Text("Overview") }
+                    Button(onClick = onRefresh, enabled = !busy, modifier = Modifier.weight(1f)) { Text(if (busy) "Refreshing…" else "Refresh") }
+                }
+                Freshness(lastRefreshedAtMillis, now)
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
         }
-        OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh Admin data") }
-        if (lastRefreshedAtMillis > 0L) {
-            val freshness = supportQueueFreshness(lastRefreshedAtMillis, freshnessNowMillis)
-            val refreshedTime = remember(lastRefreshedAtMillis) {
-                DateTimeFormatter.ofPattern("HH:mm:ss")
-                    .withZone(ZoneId.systemDefault())
-                    .format(Instant.ofEpochMilli(lastRefreshedAtMillis))
-            }
-            Text(
-                if (freshness.stale) "Last refreshed $refreshedTime • STALE (${freshness.ageMinutes}m old) — refresh before acting"
-                else "Last refreshed $refreshedTime • current",
-                color = if (freshness.stale) Warn else Good,
-                fontSize = 11.sp,
-                fontWeight = if (freshness.stale) FontWeight.Bold else FontWeight.Normal
-            )
-        } else {
-            Text("Admin data has not loaded yet.", color = Warn, fontSize = 11.sp)
-        }
-        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
         when (tab) {
+            "Overview" -> AdminOverview(session, snapshot) { tab = it }
             "Health" -> HealthPanel(snapshot)
             "Tickets" -> SupportOperationsPanel(session, snapshot?.tickets, snapshot?.profiles, busy, onRefresh)
+            "Guardian" -> GuardianPanel(session)
+            "Notifications" -> { SectionTitle("Notifications"); ManualNotificationPanel(session, snapshot?.profiles, busy) }
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
             "Users & devices" -> UsersDevicesPanel(session, snapshot, busy, onUserControl)
             "Controls" -> MaintenancePanel(snapshot?.config, busy, onUpdateMaintenance)
             "Audit" -> AuditTimelinePanel(snapshot?.auditEvents)
             "Release" -> ReleasePanel(snapshot?.config)
         }
-        Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, color = TextPrimary, fontSize = 21.sp, fontWeight = FontWeight.Black)
+private fun Freshness(last: Long, now: Long) {
+    if (last <= 0L) { Text("Admin data has not loaded yet.", color = Warn, fontSize = 11.sp); return }
+    val freshness = supportQueueFreshness(last, now)
+    val time = remember(last) { DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(last)) }
+    Text(
+        if (freshness.stale) "Data stale • $time • ${freshness.ageMinutes}m old — refresh before acting" else "Data current • refreshed $time",
+        color = if (freshness.stale) Warn else Good,
+        fontSize = 11.sp,
+        fontWeight = if (freshness.stale) FontWeight.Bold else FontWeight.Normal
+    )
 }
+
+@Composable
+private fun AdminOverview(session: AdminSession, s: AdminSnapshot?, onOpen: (String) -> Unit) {
+    val openTickets = countWhere(s?.tickets, "status", setOf("open", "in_progress", "waiting_on_user"))
+    val staleDevices = countOlderThan(s?.devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000)
+    val disabledUsers = countBoolean(s?.profiles, "is_enabled", false)
+    val recentErrors = countRecent(s?.errorEvents, "occurred_at", 24L * 60 * 60 * 1000)
+    SectionTitle("Operations overview")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Open tickets", openTickets.toString(), if (openTickets > 0) Warn else Good, Modifier.weight(1f))
+        CompactMetric("Errors 24h", recentErrors.toString(), if (recentErrors > 0) Warn else Good, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Stale devices", staleDevices.toString(), if (staleDevices > 0) Warn else Good, Modifier.weight(1f))
+        CompactMetric("Disabled users", disabledUsers.toString(), if (disabledUsers > 0) Warn else Good, Modifier.weight(1f))
+    }
+    Text("Workspaces", fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 4.dp))
+    DashboardActionRow("Support", "$openTickets active", { onOpen("Tickets") }, "Guardian", if (session.role in setOf("admin", "manager")) "Control Center" else "Restricted", { onOpen("Guardian") })
+    DashboardActionRow("Notifications", "Send + target", { onOpen("Notifications") }, "Users & devices", "$staleDevices stale", { onOpen("Users & devices") })
+    DashboardActionRow("Staff alerts", "Announcements", { onOpen("Staff alerts") }, "Safe controls", "Maintenance + OTA", { onOpen("Controls") })
+    DashboardActionRow("Audit", "Privileged activity", { onOpen("Audit") }, "Release", currentReleaseVersion(s?.config)?.let { "Morley $it" } ?: "Version status", { onOpen("Release") })
+    OutlinedButton(onClick = { onOpen("Health") }, modifier = Modifier.fillMaxWidth()) { Text("Production health") }
+}
+
+@Composable
+private fun DashboardActionRow(leftTitle: String, leftDetail: String, leftAction: () -> Unit, rightTitle: String, rightDetail: String, rightAction: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DashboardAction(leftTitle, leftDetail, leftAction, Modifier.weight(1f))
+        DashboardAction(rightTitle, rightDetail, rightAction, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DashboardAction(title: String, detail: String, action: () -> Unit, modifier: Modifier) {
+    OutlinedButton(onClick = action, modifier = modifier.heightIn(min = 74.dp), contentPadding = PaddingValues(10.dp)) {
+        Column(Modifier.fillMaxWidth()) { Text(title, fontWeight = FontWeight.Black); Text(detail, color = Muted, fontSize = 10.sp) }
+    }
+}
+
+@Composable
+private fun CompactMetric(label: String, value: String, color: Color, modifier: Modifier) {
+    Card(colors = CardDefaults.cardColors(containerColor = CardBg), modifier = modifier) {
+        Column(Modifier.padding(12.dp)) { Text(value, color = color, fontSize = 22.sp, fontWeight = FontWeight.Black); Text(label, color = Muted, fontSize = 10.sp) }
+    }
+}
+
+@Composable private fun SectionTitle(text: String) { Text(text, fontSize = 21.sp, fontWeight = FontWeight.Black) }
 
 @Composable
 private fun HealthPanel(s: AdminSnapshot?) {
-    val devices = s?.devices
-    val tickets = s?.tickets
-    val errors = s?.errorEvents
-    val openTickets = countWhere(tickets, "status", setOf("open", "in_progress", "waiting_on_user"))
-    val staleDevices = countOlderThan(devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000)
-    val disabledUsers = countBoolean(s?.profiles, "is_enabled", false)
-    val recentErrors = countRecent(errors, "occurred_at", 24L * 60 * 60 * 1000)
     SectionTitle("Production health")
-    Metric("Open support tickets", openTickets.toString(), if (openTickets > 0) Warn else Good)
-    Metric("Devices not seen in 7 days", staleDevices.toString(), if (staleDevices > 0) Warn else Good)
-    Metric("Disabled staff/user accounts", disabledUsers.toString(), Muted)
-    Metric("Admin app errors in 24 hours", recentErrors.toString(), if (recentErrors > 0) Warn else Good)
-    if (errors != null && errors.length() > 0) {
-        Text("Recent privacy-minimal Admin errors", color = TextPrimary, fontWeight = FontWeight.Bold)
-        for (i in 0 until minOf(errors.length(), 8)) {
-            val j = errors.optJSONObject(i) ?: continue
-            InfoCard("${j.optString("error_class")} • ${j.optString("failing_screen")}", "${j.optString("app_version")} • ${j.optString("device_model")} • ${j.optString("occurred_at")}")
-        }
-    }
-    Text("Health remains read-only. Telemetry excludes user identifiers, emails, ticket content, tokens, stack traces and free-form error messages. Writable actions remain isolated to audited maintenance/OTA and Admin-only user-access controls.", color = Muted, fontSize = 12.sp)
+    Metric("Open support tickets", countWhere(s?.tickets, "status", setOf("open", "in_progress", "waiting_on_user")).toString(), Warn)
+    Metric("Devices not seen in 7 days", countOlderThan(s?.devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000).toString(), Warn)
+    Metric("Disabled accounts", countBoolean(s?.profiles, "is_enabled", false).toString(), Muted)
+    Metric("Admin app errors in 24 hours", countRecent(s?.errorEvents, "occurred_at", 24L * 60 * 60 * 1000).toString(), Warn)
 }
 
 @Composable
-private fun UsersDevicesPanel(
-    session: AdminSession,
-    s: AdminSnapshot?,
-    busy: Boolean,
-    onUserControl: (UserControlCommand) -> Unit
-) {
-    val devices = s?.devices
-    val versions = if (devices == null) emptyList() else (0 until devices.length()).map { devices.optJSONObject(it)?.optString("app_version")?.takeIf(String::isNotBlank) }
-    val currentVersion = currentReleaseVersion(s?.config)
-    val adoption = summarizeVersionAdoption(versions, currentVersion)
-
-    SectionTitle("App-version adoption")
-    Text("Current release ${currentVersion ?: "unknown"}. Counts are derived from registered-device app versions only.", color = Muted, fontSize = 12.sp)
-    Metric("On current release", adoption.current.toString(), Good)
-    Metric("Outdated", adoption.outdated.toString(), if (adoption.outdated > 0) Warn else Good)
-    Metric("Ahead / test", adoption.aheadOrTest.toString(), Muted)
-    Metric("Unknown version", adoption.unknown.toString(), if (adoption.unknown > 0) Warn else Muted)
+private fun UsersDevicesPanel(session: AdminSession, s: AdminSnapshot?, busy: Boolean, onUserControl: (UserControlCommand) -> Unit) {
+    SectionTitle("Users & devices")
     UserManagementPanel(session, s?.profiles, busy, onUserControl)
-    ListPanel("Devices", devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" }
+    ListPanel("Devices", s?.devices) { j -> "${j.optString("device_name").ifBlank { "Device" }} • ${j.optString("app_version").ifBlank { "unknown version" }} • ${j.optString("last_seen_at")}" }
 }
 
 @Composable
 private fun MaintenancePanel(config: JSONArray?, busy: Boolean, onUpdate: (MaintenanceConfig, Boolean, String, Boolean) -> Unit) {
     val current = maintenanceConfig(config)
     SectionTitle("Safe remote configuration")
-    Text("Maintenance mode and OTA delivery are the only feature flags writable here. Pricing, scanner and valuation-history flags are preserved and rejected if changed.", color = Muted, fontSize = 12.sp)
-    if (current == null) {
-        Text("Feature flags are not available to this Admin session.", color = Warn)
-        return
-    }
+    if (current == null) { Text("Feature flags are not available to this Admin session.", color = Warn); return }
     var enabled by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.enabled) }
     var message by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.message) }
-    var otaEnabled by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.otaEnabled) }
-    Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+    var ota by remember(current.enabled, current.message, current.otaEnabled) { mutableStateOf(current.otaEnabled) }
+    Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha = .18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Text(if (enabled) "Morley users are blocked by the configured maintenance screen." else "Normal app access.", color = Muted, fontSize = 11.sp) }
-                Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
-            }
-            OutlinedTextField(value = message, onValueChange = { message = it.take(160) }, label = { Text("Maintenance notice") }, supportingText = { Text("${message.length}/160") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Maintenance mode", fontWeight = FontWeight.Bold); Switch(enabled, { enabled = it }, enabled = !busy) }
+            OutlinedTextField(message, { message = it.take(160) }, label = { Text("Maintenance notice") }, supportingText = { Text("${message.length}/160") }, enabled = !busy, modifier = Modifier.fillMaxWidth())
             HorizontalDivider()
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) {
-                    Text("OTA updates", fontWeight = FontWeight.Bold)
-                    Text(if (otaEnabled) "Automatic and manual signed OTA checks are enabled." else "Morley will skip OTA checks until re-enabled.", color = Muted, fontSize = 11.sp)
-                }
-                Switch(checked = otaEnabled, onCheckedChange = { otaEnabled = it }, enabled = !busy)
-            }
-            Button(
-                onClick = { onUpdate(current, enabled, message, otaEnabled) },
-                enabled = !busy && (enabled != current.enabled || message.trim() != current.message || otaEnabled != current.otaEnabled),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Save audited remote controls", fontWeight = FontWeight.Black) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("OTA updates", fontWeight = FontWeight.Bold); Switch(ota, { ota = it }, enabled = !busy) }
+            Button(onClick = { onUpdate(current, enabled, message, ota) }, enabled = !busy && (enabled != current.enabled || message.trim() != current.message || ota != current.otaEnabled), modifier = Modifier.fillMaxWidth()) { Text("Save audited remote controls", fontWeight = FontWeight.Black) }
         }
     }
-    Text("Every successful change goes through the Admin/Manager RPC and durable audit log. This screen cannot alter release identity, APK URLs, checksums or minimum-version policy.", color = Muted, fontSize = 12.sp)
 }
 
 @Composable
@@ -410,17 +367,21 @@ private fun ReleasePanel(config: JSONArray?) {
     val remote = maintenanceConfig(config)
     if (remote != null) InfoCard("OTA delivery", if (remote.otaEnabled) "ENABLED • signed update checks active" else "DISABLED • update checks paused")
     if (config == null || config.length() == 0) Text("No release configuration returned.", color = Muted)
-    else for (i in 0 until config.length()) { val j = config.optJSONObject(i) ?: continue; if (j.optString("key") == "feature_flags") continue; val v = j.optJSONObject("value") ?: JSONObject(); InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})${if (v.has("forceUpdate")) " • forceUpdate ${v.optBoolean("forceUpdate")}" else ""}") }
-    Text("Release identity and minimum-version policy remain read-only in the Admin APK. Use the verified release workflow/web control for publishing; OTA enablement is controlled from the Controls tab.", color = Muted, fontSize = 12.sp)
+    else for (i in 0 until config.length()) {
+        val j = config.optJSONObject(i) ?: continue
+        if (j.optString("key") == "feature_flags") continue
+        val v = j.optJSONObject("value") ?: JSONObject()
+        InfoCard(j.optString("key"), "${v.optString("versionName")} (${v.optInt("versionCode")})")
+    }
 }
 
-@Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { SectionTitle(title); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) { data.optJSONObject(i)?.let { InfoCard(line(it), if (it.has("created_at")) it.optString("created_at") else "") } } }
-@Composable private fun InfoCard(title: String, detail: String) { Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), border = BorderStroke(1.dp, Accent.copy(alpha=.18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(title, fontWeight = FontWeight.Bold); if (detail.isNotBlank()) Text(detail, color = Muted, fontSize = 11.sp) } } }
-@Composable private fun Metric(label: String, value: String, color: Color) { Card(colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary), modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Muted); Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 19.sp) } } }
+@Composable private fun ListPanel(title: String, data: JSONArray?, line: (JSONObject) -> String) { SectionTitle(title); if (data == null || data.length() == 0) Text("No records returned.", color = Muted) else for (i in 0 until minOf(data.length(), 50)) data.optJSONObject(i)?.let { InfoCard(line(it), it.optString("created_at")) } }
+@Composable private fun InfoCard(title: String, detail: String) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), border = BorderStroke(1.dp, Accent.copy(alpha = .18f)), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(title, fontWeight = FontWeight.Bold); if (detail.isNotBlank()) Text(detail, color = Muted, fontSize = 11.sp) } } }
+@Composable private fun Metric(label: String, value: String, color: Color) { Card(colors = CardDefaults.cardColors(containerColor = CardBg), modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Muted); Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 19.sp) } } }
+
 private fun currentReleaseVersion(config: JSONArray?): String? { if (config == null) return null; for (i in 0 until config.length()) { val row = config.optJSONObject(i) ?: continue; if (row.optString("key") == "current_release") return row.optJSONObject("value")?.optString("versionName")?.takeIf(String::isNotBlank) }; return null }
-private fun ticketLine(j: JSONObject) = "${j.optString("priority").uppercase()} • ${j.optString("status")} • ${j.optString("subject")}" 
 private fun announcementLine(j: JSONObject) = "${if (j.optBoolean("is_active")) "ACTIVE" else "INACTIVE"} • ${j.optString("audience")} • ${j.optString("title")}" 
 private fun countWhere(a: JSONArray?, key: String, values: Set<String>): Int = if (a == null) 0 else (0 until a.length()).count { values.contains(a.optJSONObject(it)?.optString(key)) }
 private fun countBoolean(a: JSONArray?, key: String, value: Boolean): Int = if (a == null) 0 else (0 until a.length()).count { a.optJSONObject(it)?.optBoolean(key) == value }
-private fun countOlderThan(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { val raw = a.optJSONObject(it)?.optString(key).orEmpty(); runCatching { java.time.Instant.parse(raw).toEpochMilli() < cutoff }.getOrDefault(false) } }
-private fun countRecent(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { val raw = a.optJSONObject(it)?.optString(key).orEmpty(); runCatching { java.time.Instant.parse(raw).toEpochMilli() >= cutoff }.getOrDefault(false) } }
+private fun countOlderThan(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { runCatching { Instant.parse(a.optJSONObject(it)?.optString(key).orEmpty()).toEpochMilli() < cutoff }.getOrDefault(false) } }
+private fun countRecent(a: JSONArray?, key: String, ageMs: Long): Int { if (a == null) return 0; val cutoff = System.currentTimeMillis() - ageMs; return (0 until a.length()).count { runCatching { Instant.parse(a.optJSONObject(it)?.optString(key).orEmpty()).toEpochMilli() >= cutoff }.getOrDefault(false) } }
