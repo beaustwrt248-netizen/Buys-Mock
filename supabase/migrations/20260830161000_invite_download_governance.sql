@@ -36,7 +36,7 @@ set search_path = public, pg_temp
 as $$
 declare new_id uuid;
 begin
-  if not (public.is_admin() or public.is_manager()) then raise exception 'admin_or_manager_required'; end if;
+  if not public.is_admin_or_manager() then raise exception 'admin_or_manager_required'; end if;
   if invite_app_channel = 'admin' and not public.is_admin() then raise exception 'admin_required_for_admin_app_invites'; end if;
   if invite_role not in ('staff','manager','admin') then raise exception 'invalid_role'; end if;
   if invite_role in ('manager','admin') and not public.is_admin() then raise exception 'admin_required_for_privileged_invite'; end if;
@@ -53,13 +53,13 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
-  if not (public.is_admin() or public.is_manager()) then raise exception 'admin_or_manager_required'; end if;
+  if not public.is_admin_or_manager() then raise exception 'admin_or_manager_required'; end if;
   update public.app_download_invites set revoked_at=now(), revoked_by=auth.uid()
   where id=invite_id and redeemed_at is null and revoked_at is null;
 end $$;
 
 create policy download_invites_admin_manager_read on public.app_download_invites
-for select to authenticated using (public.is_admin() or public.is_manager());
+for select to authenticated using (public.is_admin_or_manager());
 
 revoke all on function public.admin_create_download_invite(text,text,text,text,text,timestamptz) from public, anon;
 revoke all on function public.admin_revoke_download_invite(uuid) from public, anon;
