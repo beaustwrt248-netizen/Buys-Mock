@@ -122,7 +122,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
-                Page.Laptop->Laptop()
+                Page.Laptop->LaptopGuidedScreen()
                 Page.Desktop->Desktop()
                 Page.GP->GPFix()
                 Page.More->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
@@ -133,23 +133,11 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 
 @Composable
 private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
-    var quickText by remember{mutableStateOf("")};var ask by remember{mutableStateOf("")};var type by remember{mutableStateOf("Auto detect")}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         DashboardCard("WELCOME","Buys and Loans Calculator","Live valuation, buying targets and native pricing tools in one workspace.")
         SmartWorkspaceSection()
-        Card(colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.55f)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){
-            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-                Text("⚡ Quick Deal Capture",fontSize=24.sp,fontWeight=FontWeight.Black)
-                Text("Paste a seller listing, specs or product details. We'll route it to the right valuation tool.",color=Color.LightGray)
-                OutlinedTextField(quickText,{quickText=it},label={Text("Listing / specs / URL")},modifier=Modifier.fillMaxWidth(),minLines=4)
-                OutlinedTextField(ask,{ask=it},label={Text("Seller asking price")},modifier=Modifier.fillMaxWidth(),singleLine=true)
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Auto detect","Laptop","Desktop").forEach{option->FilterChip(selected=type==option,onClick={type=option},label={Text(option,fontSize=11.sp)})}}
-                Button(onClick={val text=quickText.lowercase();if(type=="Laptop"||(type=="Auto detect"&&listOf("laptop","macbook","notebook").any{text.contains(it)}))onLaptop() else onDesktop()},enabled=quickText.isNotBlank(),colors=ButtonDefaults.buttonColors(containerColor=DashAccentStrong,contentColor=Color.White),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().height(56.dp)){Text("Analyse Now",fontWeight=FontWeight.Black,fontSize=17.sp)}
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onLaptop,modifier=Modifier.weight(1f)){Text("💻 Laptop")};OutlinedButton(onDesktop,modifier=Modifier.weight(1f)){Text("🖥 Desktop")}}
-            }
-        }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){StatusTile("LIVE PRICING","READY",Modifier.weight(1f));StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))}
-        NavCard("💻","Laptops / MacBooks","Whole-device Google + eBay AU valuation",onLaptop)
+        NavCard("💻","Laptops / MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)
         NavCard("🖥","Desktops / Gaming PCs","Component-based live pricing",onDesktop)
         NavCard("💰","General Buys / GP","A / B / C / Luxury buying targets",onGp)
     }
