@@ -86,7 +86,7 @@ private fun marketplaceFeatures(s: String): MarketplaceFeatures {
         else -> ""
     }
     val brand = explicitBrand.ifBlank { inferredBrand }
-    val appleCpu = Regex("\\bm[1-4](?:\\s*(?:pro|max|ultra))?\\b").find(x)?.value.orEmpty()
+    val appleCpu = Regex("\\bm[1-5](?:\\s*(?:pro|max|ultra))?\\b").find(x)?.value.orEmpty()
     val intelCpuMatch = Regex("\\bi([3579])\\s*[- ]?\\s*(\\d{4,5}[a-z]{0,3})\\b").find(x)
     val intelCpu = intelCpuMatch?.let { "i${it.groupValues[1]} ${it.groupValues[2]}" }.orEmpty()
     val ryzenCpu = Regex("\\bryzen\\s*[3579]\\s*\\d{4}[a-z]{0,2}\\b").find(x)?.value.orEmpty()
@@ -160,6 +160,7 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
     val yearMismatch = q.year.isNotBlank() && t.year.isNotBlank() && q.year != t.year
     val cpuMismatch = q.cpu.isNotBlank() && t.cpu.isNotBlank() && !cpuMatched
     val storageMismatch = q.storage.isNotBlank() && t.storage.isNotBlank() && !storageMatched
+    val ramMismatch = q.ram.isNotBlank() && t.ram.isNotBlank() && !ramMatched
     val sizeMismatch = q.size.isNotBlank() && t.size.isNotBlank() && q.size != t.size
     val familyMismatch = q.family.isNotBlank() && t.family.isNotBlank() && !familyMatched
 
@@ -169,7 +170,7 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
         else -> (q.modelTokens.size + 1) / 2
     }
     val modelSatisfied = q.modelTokens.isEmpty() || hits >= requiredModelHits
-    val macbookIdentity = q.family.startsWith("macbook") && !genericMacbook && yearMatched && cpuMatched && storageMatched && sizeMatched && !identifierConflict
+    val macbookIdentity = q.family.startsWith("macbook") && !genericMacbook && yearMatched && cpuMatched && storageMatched && ramMatched && sizeMatched && !identifierConflict
     val generalIdentity = when {
         identifierConflict -> false
         q.modelTokens.isNotEmpty() -> modelSatisfied
@@ -180,7 +181,7 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
     val hasSpecificIdentity = if (q.family.startsWith("macbook")) macbookIdentity else generalIdentity
 
     val exact = !hardFilter.rejected && !identifierConflict && !brandMismatch && !familyMismatch &&
-        !generationMismatch && !yearMismatch && !cpuMismatch && !storageMismatch && !sizeMismatch &&
+        !generationMismatch && !yearMismatch && !cpuMismatch && !storageMismatch && !ramMismatch && !sizeMismatch &&
         brandMatched && familyMatched && hasSpecificIdentity
 
     if (hardFilter.rejected) reasons += hardFilter.reason ?: "Rejected listing"
@@ -192,6 +193,7 @@ internal fun classifyMarketplace(query: String, title: String): Triple<Boolean, 
     if (yearMismatch) reasons += "Year mismatch"
     if (cpuMismatch) reasons += "CPU mismatch"
     if (storageMismatch) reasons += "Storage mismatch"
+    if (ramMismatch) reasons += "RAM mismatch"
     if (sizeMismatch) reasons += "Size mismatch"
     if (q.modelTokens.isNotEmpty() && !modelSatisfied) reasons += "Model mismatch"
     if (!hasSpecificIdentity && !genericMacbook) reasons += "Insufficient model identity"
