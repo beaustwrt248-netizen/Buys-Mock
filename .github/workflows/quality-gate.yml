@@ -52,6 +52,7 @@ jobs:
             web-a11y.js \
             admin/app.js \
             admin/invites.js \
+            admin/download-invites.js \
             admin/targeted-notifications.js; do
             test -s "$file"
             node --check "$file"
