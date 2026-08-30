@@ -129,9 +129,11 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-admin-apk.outputs.admin_app_changed == 'true'
     needs: build-admin-apk
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
+      actions: write
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout exact release source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -194,7 +196,7 @@ jobs:
             --title "Morley Admin ${ADMIN_VERSION_NAME}" \
             --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
             --latest=false
-      - name: Publish Admin OTA metadata to Pages source
+      - name: Publish Admin OTA metadata through protected main
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -238,9 +240,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add admin/admin-update.json
           git diff --cached --quiet && { echo 'Expected a new Admin OTA metadata version.' >&2; exit 1; }
+
+          BRANCH="automation/admin-ota-${ADMIN_VERSION_SAFE}-${GITHUB_RUN_ID}"
+          git checkout -B "$BRANCH"
           git commit -m "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata"
           gh auth setup-git
-          git push origin HEAD:main
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata" \
+            --body "Automated Admin OTA metadata publication for the exact signed ${ADMIN_VERSION_NAME} build. Main protection remains enforced; required checks must pass before merge.")"
+
+          gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          sleep 5
+          gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required --watch --interval 10
+          gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
 
   deploy-admin-ota-feed:
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-admin-apk.result == 'success' && (needs.publish-admin-ota.result == 'success' || needs.publish-admin-ota.result == 'skipped')
