@@ -54,7 +54,10 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
         }
     }
 
-    override fun onActivityResumed(activity: Activity) = checkMaintenance(activity)
+    override fun onActivityResumed(activity: Activity) {
+        DiagnosticContextStore.recordActivity(this, activity::class.java.simpleName)
+        checkMaintenance(activity)
+    }
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
     override fun onActivityStarted(activity: Activity) = Unit
     override fun onActivityPaused(activity: Activity) = Unit

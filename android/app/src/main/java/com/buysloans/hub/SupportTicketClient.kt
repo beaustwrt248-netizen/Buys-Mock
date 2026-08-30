@@ -134,6 +134,10 @@ object SupportTicketClient {
             put("platform", "android")
             put("captured", System.currentTimeMillis())
             put("screen", "SupportTicketActivity")
+            DiagnosticContextStore.snapshot(context)?.let { origin ->
+                put("origin_screen", origin.screen)
+                if (origin.capturedAt > 0L) put("origin_screen_at", origin.capturedAt)
+            }
             put("app_version", BuildConfig.VERSION_NAME)
             put("app_version_code", BuildConfig.VERSION_CODE)
             put("package_name", context.packageName)
