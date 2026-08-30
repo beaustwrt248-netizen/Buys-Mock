@@ -32,16 +32,25 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("FOUR-SOURCE MARKET CROSS-CHECK", color = Color(0xFF12C9FF), fontWeight = FontWeight.Black, fontSize = 11.sp)
+            Text("MARKET EVIDENCE", color = Color(0xFF12C9FF), fontWeight = FontWeight.Black, fontSize = 11.sp)
             if (loading) {
-                Text("Checking Gumtree + Facebook Marketplace…", color = Color(0xFF8FA6C6))
+                Text("Checking Australian market sources…", color = Color(0xFF8FA6C6))
             } else {
+                val protectedReady = value.usedValue > 0.0 && value.confidence in setOf("MEDIUM", "HIGH")
                 Text(
-                    if (value.usedValue > 0.0) "Protected used-market value: ${integratedMoney(value.usedValue)}" else "Protected used-market value unavailable",
+                    if (protectedReady) "Protected used-market value: ${integratedMoney(value.usedValue)}"
+                    else "Insufficient exact market evidence for a protected valuation",
                     color = Color.White,
                     fontWeight = FontWeight.Black,
                     fontSize = 19.sp
                 )
+                if (!protectedReady && value.sources.isNotEmpty()) {
+                    Text(
+                        "Reference evidence below is not used to set the used value or max buy.",
+                        color = Color(0xFFFFC266),
+                        fontSize = 12.sp
+                    )
+                }
                 value.sources.forEach { source ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(source.source, color = Color(0xFFDCE9FF), fontWeight = FontWeight.SemiBold)
@@ -51,7 +60,12 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
                 if (value.excludedSources.isNotEmpty()) {
                     Text("Outlier sources excluded: ${value.excludedSources.joinToString()}", color = Color(0xFFFFA726), fontSize = 12.sp)
                 }
-                Text("Confidence: ${value.confidence}", color = Color(0xFF25D991), fontWeight = FontWeight.Bold)
+                val confidenceColor = when (value.confidence) {
+                    "HIGH", "MEDIUM" -> Color(0xFF25D991)
+                    "LOW" -> Color(0xFFFFC266)
+                    else -> Color(0xFF8FA6C6)
+                }
+                Text("Confidence: ${value.confidence}", color = confidenceColor, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -67,7 +81,7 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text("MARKETPLACE EXACT MATCHES", color = Color(0xFF9B4DFF), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                Text("MARKETPLACE EXACT CONFIGURATION MATCHES", color = Color(0xFF9B4DFF), fontWeight = FontWeight.Black, fontSize = 11.sp)
                 gumtreeExact.take(6).forEach { item ->
                     Text("Gumtree • ${integratedMoney(item.price)} • ${item.title}", color = Color(0xFFDCE9FF), fontSize = 12.sp)
                 }
