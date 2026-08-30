@@ -191,8 +191,11 @@ private fun GuardianControlsCard(
             killSwitchReason = killSwitchReason,
         )
     }
-    val validation = draft?.let { validateGuardianControlDraft(it, session.role, current.killSwitch) }
-        ?: "Enter a valid confidence threshold."
+    val validation = if (draft == null) {
+        "Enter a valid confidence threshold."
+    } else {
+        validateGuardianControlDraft(draft, session.role, current.killSwitch).orEmpty()
+    }
     val changed = draft != null && (
         enabled != current.enabled ||
             autoFixEnabled != current.autoFixEnabled ||
