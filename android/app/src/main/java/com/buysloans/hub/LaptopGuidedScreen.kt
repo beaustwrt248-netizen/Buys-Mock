@@ -101,7 +101,9 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
 
     val ready = selected != null && processor.isNotBlank() && ram.isNotBlank() && storage.isNotBlank()
     val canonical = if (ready) LaptopSelectionCatalog.canonicalQuery(selected!!, processor, ram, storage) else ""
-    if (canonical.isNotBlank()) Block("SELECTED CONFIGURATION", canonical)
+    val displayProcessor = if (ready) processor.removePrefix("${selected!!.brand} ") else ""
+    val displayConfiguration = if (ready) listOf(selected!!.brand, selected.model, displayProcessor, ram, storage).joinToString(" ") else ""
+    if (displayConfiguration.isNotBlank()) Block("SELECTED CONFIGURATION", displayConfiguration)
 
     Button(
         onClick = {
@@ -114,7 +116,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
                         result = it
                         val exact = it.exactGoogle.size + it.exactEbay.size
                         val similar = it.similarGoogle.size + it.similarEbay.size
-                        status = "$exact exact • $similar similar • ${it.rejected.size} rejected"
+                        status = "Google/eBay: $exact exact • $similar similar • ${it.rejected.size} rejected"
                     }
                     .onFailure { status = it.message ?: "Search failed" }
                 busy = false
