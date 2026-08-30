@@ -238,9 +238,8 @@ private fun Dashboard(
     onUserControl: (UserControlCommand) -> Unit,
     onSignOut: () -> Unit
 ) {
-    var tab by remember { mutableStateOf("Health") }
+    var tab by remember { mutableStateOf("Overview") }
     var freshnessNowMillis by remember(lastRefreshedAtMillis) { mutableLongStateOf(System.currentTimeMillis()) }
-    val tabs = listOf("Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release")
 
     LaunchedEffect(lastRefreshedAtMillis) {
         if (lastRefreshedAtMillis > 0L) {
@@ -260,50 +259,53 @@ private fun Dashboard(
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                Text(session.displayName, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                Text(session.role.uppercase(), color = Muted, fontSize = 11.sp)
-            }
-            TextButton(onClick = onSignOut) { Text("Sign out") }
-        }
-        Text("CONTROLLED ADMIN MODE", color = Good, fontWeight = FontWeight.Black)
-        tabs.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-                row.forEach { name ->
-                    FilterChip(
-                        selected = tab == name,
-                        onClick = { tab = name },
-                        label = { Text(name, fontSize = 10.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary),
+            border = BorderStroke(1.dp, Accent.copy(alpha = .22f)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f)) {
+                        Text("MORLEY ADMIN", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        Text(session.displayName, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        Text("${session.role.uppercase()} • CONTROLLED ADMIN MODE", color = Good, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(onClick = onSignOut) { Text("Sign out") }
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (tab != "Overview") {
+                        OutlinedButton(onClick = { tab = "Overview" }, modifier = Modifier.weight(1f)) { Text("Overview") }
+                    }
+                    Button(onClick = onRefresh, enabled = !busy, modifier = Modifier.weight(1f)) {
+                        Text(if (busy) "Refreshing…" else "Refresh")
+                    }
+                }
+                if (lastRefreshedAtMillis > 0L) {
+                    val freshness = supportQueueFreshness(lastRefreshedAtMillis, freshnessNowMillis)
+                    val refreshedTime = remember(lastRefreshedAtMillis) {
+                        DateTimeFormatter.ofPattern("HH:mm:ss")
+                            .withZone(ZoneId.systemDefault())
+                            .format(Instant.ofEpochMilli(lastRefreshedAtMillis))
+                    }
+                    Text(
+                        if (freshness.stale) "Data stale • $refreshedTime • ${freshness.ageMinutes}m old — refresh before acting"
+                        else "Data current • refreshed $refreshedTime",
+                        color = if (freshness.stale) Warn else Good,
+                        fontSize = 11.sp,
+                        fontWeight = if (freshness.stale) FontWeight.Bold else FontWeight.Normal
+                    )
+                } else {
+                    Text("Admin data has not loaded yet.", color = Warn, fontSize = 11.sp)
+                }
+                if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
         }
-        OutlinedButton(onClick = onRefresh, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Refresh Admin data") }
-        if (lastRefreshedAtMillis > 0L) {
-            val freshness = supportQueueFreshness(lastRefreshedAtMillis, freshnessNowMillis)
-            val refreshedTime = remember(lastRefreshedAtMillis) {
-                DateTimeFormatter.ofPattern("HH:mm:ss")
-                    .withZone(ZoneId.systemDefault())
-                    .format(Instant.ofEpochMilli(lastRefreshedAtMillis))
-            }
-            Text(
-                if (freshness.stale) "Last refreshed $refreshedTime • STALE (${freshness.ageMinutes}m old) — refresh before acting"
-                else "Last refreshed $refreshedTime • current",
-                color = if (freshness.stale) Warn else Good,
-                fontSize = 11.sp,
-                fontWeight = if (freshness.stale) FontWeight.Bold else FontWeight.Normal
-            )
-        } else {
-            Text("Admin data has not loaded yet.", color = Warn, fontSize = 11.sp)
-        }
-        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
+
         when (tab) {
+            "Overview" -> AdminOverview(snapshot) { tab = it }
             "Health" -> HealthPanel(snapshot)
             "Tickets" -> SupportOperationsPanel(session, snapshot?.tickets, snapshot?.profiles, busy, onRefresh)
             "Staff alerts" -> ListPanel("Staff alerts", snapshot?.announcements, ::announcementLine)
@@ -313,6 +315,107 @@ private fun Dashboard(
             "Release" -> ReleasePanel(snapshot?.config)
         }
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun AdminOverview(s: AdminSnapshot?, onOpen: (String) -> Unit) {
+    val openTickets = countWhere(s?.tickets, "status", setOf("open", "in_progress", "waiting_on_user"))
+    val staleDevices = countOlderThan(s?.devices, "last_seen_at", 7L * 24 * 60 * 60 * 1000)
+    val disabledUsers = countBoolean(s?.profiles, "is_enabled", false)
+    val recentErrors = countRecent(s?.errorEvents, "occurred_at", 24L * 60 * 60 * 1000)
+    val activeAlerts = countBoolean(s?.announcements, "is_active", true)
+    val currentVersion = currentReleaseVersion(s?.config)
+
+    Text("Operations overview", color = TextPrimary, fontSize = 21.sp, fontWeight = FontWeight.Black)
+    Text("At-a-glance status and direct access to the tools you use most.", color = Muted, fontSize = 12.sp)
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Open tickets", openTickets.toString(), if (openTickets > 0) Warn else Good, Modifier.weight(1f))
+        CompactMetric("Errors 24h", recentErrors.toString(), if (recentErrors > 0) Warn else Good, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactMetric("Stale devices", staleDevices.toString(), if (staleDevices > 0) Warn else Good, Modifier.weight(1f))
+        CompactMetric("Disabled users", disabledUsers.toString(), if (disabledUsers > 0) Warn else Good, Modifier.weight(1f))
+    }
+
+    Text("Workspaces", color = TextPrimary, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 4.dp))
+    DashboardActionRow(
+        leftTitle = "Support queue",
+        leftDetail = "$openTickets open / active",
+        leftAction = { onOpen("Tickets") },
+        rightTitle = "Users & devices",
+        rightDetail = "$staleDevices stale devices",
+        rightAction = { onOpen("Users & devices") }
+    )
+    DashboardActionRow(
+        leftTitle = "Staff alerts",
+        leftDetail = "$activeAlerts active",
+        leftAction = { onOpen("Staff alerts") },
+        rightTitle = "Safe controls",
+        rightDetail = "Maintenance + OTA",
+        rightAction = { onOpen("Controls") }
+    )
+    DashboardActionRow(
+        leftTitle = "Audit trail",
+        leftDetail = "Privileged activity",
+        leftAction = { onOpen("Audit") },
+        rightTitle = "Release status",
+        rightDetail = currentVersion?.let { "Morley $it" } ?: "Version status",
+        rightAction = { onOpen("Release") }
+    )
+    OutlinedButton(onClick = { onOpen("Health") }, modifier = Modifier.fillMaxWidth()) {
+        Text("Open production health")
+    }
+    Text(
+        "Sensitive actions keep their existing backend role checks, RLS and durable auditing. This overview only reorganises navigation and status visibility.",
+        color = Muted,
+        fontSize = 11.sp
+    )
+}
+
+@Composable
+private fun DashboardActionRow(
+    leftTitle: String,
+    leftDetail: String,
+    leftAction: () -> Unit,
+    rightTitle: String,
+    rightDetail: String,
+    rightAction: () -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DashboardAction(leftTitle, leftDetail, leftAction, Modifier.weight(1f))
+        DashboardAction(rightTitle, rightDetail, rightAction, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DashboardAction(title: String, detail: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 72.dp),
+        shape = RoundedCornerShape(14.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            Text(title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(detail, color = Muted, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+private fun CompactMetric(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = TextPrimary),
+        border = BorderStroke(1.dp, Accent.copy(alpha = .14f)),
+        shape = RoundedCornerShape(14.dp),
+        modifier = modifier
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 22.sp)
+            Text(label, color = Muted, fontSize = 11.sp)
+        }
     }
 }
 
