@@ -82,4 +82,21 @@ class MarketplaceExactMatchTest {
         assertFalse(exact)
         assertTrue(reasons.contains("CPU mismatch"))
     }
+
+    @Test fun `wrong macbook ram is not exact`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "Apple MacBook Pro 14-inch 2025 Apple M5 32GB 512GB",
+            "Apple MacBook Pro 14-inch 2025 M5 16GB RAM 512GB SSD"
+        )
+        assertFalse(exact)
+        assertTrue(reasons.contains("RAM mismatch"))
+    }
+
+    @Test fun `matching M5 configuration can qualify as exact`() {
+        val (exact, _, reasons) = classifyMarketplace(
+            "Apple MacBook Pro 14-inch 2025 Apple M5 32GB 512GB",
+            "Apple MacBook Pro 14-inch 2025 M5 32GB RAM 512GB SSD"
+        )
+        assertTrue(reasons, exact)
+    }
 }
