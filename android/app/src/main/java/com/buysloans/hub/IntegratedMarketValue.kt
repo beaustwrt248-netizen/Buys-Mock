@@ -85,7 +85,7 @@ object IntegratedMarketValueEngine {
             }
             List(weight) { source.value }
         }
-        val value = median(weighted)
+        val candidateValue = median(weighted)
 
         val strongSourceCount = effective.count { it.sampleSize >= 2 }
         val confidence = when {
@@ -96,7 +96,10 @@ object IntegratedMarketValueEngine {
             else -> "UNAVAILABLE"
         }
 
-        return IntegratedMarketValue(value, effective, excluded, marketplace, confidence)
+        // LOW confidence evidence remains visible for reference, but it must not
+        // manufacture a protected valuation or a max-buy recommendation.
+        val protectedValue = if (confidence == "MEDIUM" || confidence == "HIGH") candidateValue else 0.0
+        return IntegratedMarketValue(protectedValue, effective, excluded, marketplace, confidence)
     }
 
     suspend fun calculateLive(
