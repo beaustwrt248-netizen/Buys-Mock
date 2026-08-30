@@ -1,7 +1,7 @@
 {
-  "versionCode": 47,
-  "versionName": "2.15.1",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.1/B-and-L-Morley-2.15.1.apk",
-  "sha256": "741d87e201bf12ca16ad33ff73e9a16bb2f65109367a37fa877cbf8eb66c3cf0",
-  "notes": "Morley 2.15.1 release with the integrated market regression expectation aligned to current LOW-confidence behavior; signed APK and SHA-256 verified before manifest promotion."
+  "versionCode": 48,
+  "versionName": "2.15.2",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.2/B-and-L-Morley-2.15.2.apk",
+  "sha256": "4888b0271474869b4521e9191b2039370143ee2d9981dd7b36ef19f4b14f12fb",
+  "notes": "Hotfix Morley launcher icon for OTA 2.15.2 (#313)"
 }
