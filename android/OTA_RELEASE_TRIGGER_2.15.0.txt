@@ -1,0 +1,2 @@
+Morley OTA release trigger for version 2.15.0 (versionCode 46).
+No application logic, UI, pricing, authentication, or Admin code is changed by this file.
