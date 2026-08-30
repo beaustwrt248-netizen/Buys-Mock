@@ -1,7 +1,7 @@
 {
-  "versionCode": 45,
-  "versionName": "2.14.9",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.14.9/B-and-L-Morley-2.14.9.apk",
-  "sha256": "1cba2ba3f27d63d57361cc1fce0aa86e0215fd3b0350de0be307ca4aaa966bdd",
-  "notes": "Merge pull request #287 from beaustwrt248-netizen/guardian/repair-support-origin-diagnostics"
+  "versionCode": 46,
+  "versionName": "2.15.0",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.0/B-and-L-Morley-2.15.0.apk",
+  "sha256": "df2ec1100f0b64647a54c23ece4d9cbc51c910c4afd9029fda38ebdd24dadd2f",
+  "notes": "Guided laptop catalog and dashboard cleanup (#307)"
 }
