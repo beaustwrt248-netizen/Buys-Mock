@@ -62,9 +62,25 @@ class IntegratedMarketValueTest {
         assertEquals(439.0, result.usedValue, 5.0)
     }
 
-    @Test fun `non exact marketplace evidence is ignored`() {
+    @Test fun `single exact source remains reference only`() {
         val marketplace = MarketplaceEvidence(
-            gumtree = listOf(listing("Gumtree", 1600.0, false)),
+            gumtree = emptyList(),
+            facebook = listOf(listing("Facebook Marketplace", 550.0))
+        )
+        val result = IntegratedMarketValueEngine.calculate(
+            ebayUsed = emptyList(),
+            googleNew = emptyList(),
+            marketplace = marketplace,
+            newToUsedRate = 0.65
+        )
+        assertEquals("LOW", result.confidence)
+        assertEquals(0.0, result.usedValue, 0.01)
+        assertEquals(1, result.sources.size)
+    }
+
+    @Test fun `single direct exact result is insufficient for protected value`() {
+        val marketplace = MarketplaceEvidence(
+            gumtree = emptyList(),
             facebook = emptyList()
         )
         val result = IntegratedMarketValueEngine.calculate(
@@ -73,6 +89,7 @@ class IntegratedMarketValueTest {
             marketplace = marketplace,
             newToUsedRate = 0.65
         )
-        assertEquals(800.0, result.usedValue, 0.01)
+        assertEquals("LOW", result.confidence)
+        assertEquals(0.0, result.usedValue, 0.01)
     }
 }
