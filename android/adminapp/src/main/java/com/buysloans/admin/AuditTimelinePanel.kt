@@ -8,8 +8,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,20 +52,52 @@ internal fun auditTimelineTitle(entry: AuditTimelineEntry): String {
     return if (target.isBlank()) action else "$action • $target"
 }
 
+internal fun filterAuditTimeline(entries: List<AuditTimelineEntry>, query: String): List<AuditTimelineEntry> {
+    val needle = query.trim().lowercase()
+    if (needle.isBlank()) return entries
+    return entries.filter { entry ->
+        entry.action.lowercase().contains(needle) ||
+            entry.targetType.lowercase().contains(needle) ||
+            entry.targetId.lowercase().contains(needle) ||
+            entry.createdAt.lowercase().contains(needle) ||
+            auditTimelineTitle(entry).lowercase().contains(needle)
+    }
+}
+
 @Composable
 internal fun AuditTimelinePanel(rows: JSONArray?) {
     val entries = buildAuditTimeline(rows)
+    var query by remember { mutableStateOf("") }
+    val visibleEntries = remember(entries, query) { filterAuditTimeline(entries, query) }
+
     Text("Admin audit timeline", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
         "Read-only operational history for Admin/Manager accounts. Android intentionally does not display audit details payloads, ticket/message content, credentials, or release/config values.",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp
     )
+    OutlinedTextField(
+        value = query,
+        onValueChange = { query = it.take(120) },
+        label = { Text("Search audit activity") },
+        supportingText = { Text("Action, target, ID or timestamp") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth()
+    )
     if (entries.isEmpty()) {
         Text("No audit entries returned.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    entries.take(50).forEach { entry ->
+    if (visibleEntries.isEmpty()) {
+        Text("No audit entries match this search.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    Text(
+        "Showing ${visibleEntries.size} of ${entries.size} returned entries",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 11.sp
+    )
+    visibleEntries.take(50).forEach { entry ->
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .18f)),
