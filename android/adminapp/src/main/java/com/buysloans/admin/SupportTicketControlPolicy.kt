@@ -4,6 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 internal val SUPPORT_TICKET_STATUSES = listOf("open", "in_progress", "waiting_on_user", "resolved", "closed")
+internal val SUPPORT_STAFF_WRITABLE_STATUSES = listOf("in_progress", "waiting_on_user", "resolved")
 internal val SUPPORT_TICKET_PRIORITIES = listOf("low", "normal", "high", "urgent")
 
 internal data class SupportTicketUpdateCommand(
@@ -33,6 +34,11 @@ internal fun canAssignSupportTicket(session: AdminSession): Boolean =
 
 internal fun canManageSupportTicketControls(session: AdminSession): Boolean = canAssignSupportTicket(session)
 
+internal fun canSetSupportTicketPriority(session: AdminSession): Boolean = canManageSupportTicketControls(session)
+
+internal fun supportWritableStatuses(session: AdminSession): List<String> =
+    if (canManageSupportTicketControls(session)) SUPPORT_TICKET_STATUSES else SUPPORT_STAFF_WRITABLE_STATUSES
+
 internal fun supportTicketUpdatePayload(
     session: AdminSession,
     command: SupportTicketUpdateCommand
@@ -41,14 +47,13 @@ internal fun supportTicketUpdatePayload(
         "Support-ticket triage requires an authenticated Staff, Manager or Admin session."
     }
     require(command.ticketId.isNotBlank()) { "A support ticket id is required." }
-    require(command.status in SUPPORT_TICKET_STATUSES) { "Unsupported support-ticket status." }
-    require(command.priority in SUPPORT_TICKET_PRIORITIES) { "Unsupported support-ticket priority." }
+    require(command.status in supportWritableStatuses(session)) { "Unsupported support-ticket status for this role." }
 
-    val payload = JSONObject()
-        .put("status", command.status)
-        .put("priority", command.priority)
+    val payload = JSONObject().put("status", command.status)
 
-    if (canAssignSupportTicket(session)) {
+    if (canManageSupportTicketControls(session)) {
+        require(command.priority in SUPPORT_TICKET_PRIORITIES) { "Unsupported support-ticket priority." }
+        payload.put("priority", command.priority)
         val assignee = command.assignedTo
             ?.trim()
             ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
