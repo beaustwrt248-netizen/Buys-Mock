@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   security-audit:
+    name: Repository Security Audit
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
