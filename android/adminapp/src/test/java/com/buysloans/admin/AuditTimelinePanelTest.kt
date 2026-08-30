@@ -39,4 +39,18 @@ class AuditTimelinePanelTest {
         assertEquals(1, entries.size)
         assertTrue(auditTimelineTitle(entries.single()).startsWith("Config updated"))
     }
+
+    @Test
+    fun searchMatchesOnlyOperationalMetadata() {
+        val entries = listOf(
+            AuditTimelineEntry("user_access_updated", "profile", "user-123", "2026-08-29T01:00:00Z"),
+            AuditTimelineEntry("support_ticket_changed", "support_ticket", "ticket-456", "2026-08-29T02:00:00Z")
+        )
+
+        assertEquals(listOf(entries[0]), filterAuditTimeline(entries, "USER-123"))
+        assertEquals(listOf(entries[1]), filterAuditTimeline(entries, "support ticket"))
+        assertEquals(listOf(entries[1]), filterAuditTimeline(entries, "02:00"))
+        assertEquals(entries, filterAuditTimeline(entries, "   "))
+        assertTrue(filterAuditTimeline(entries, "secret-payload").isEmpty())
+    }
 }
