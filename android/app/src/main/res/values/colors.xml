@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="launcher_background">#111111</color>
+    <color name="morley_background">#030712</color>
+    <color name="morley_surface">#07172C</color>
+    <color name="morley_surface_alt">#0B1528</color>
+    <color name="morley_primary">#2F7CFF</color>
+    <color name="morley_accent">#12C9FF</color>
+    <color name="morley_accent_strong">#16C7FF</color>
+    <color name="morley_text_muted">#8EA6C4</color>
+    <color name="launcher_background">#030712</color>
 </resources>
