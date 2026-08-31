@@ -1,7 +1,7 @@
 {
-  "versionCode": 52,
-  "versionName": "2.15.6",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.6/B-and-L-Morley-2.15.6.apk",
-  "sha256": "ec1abe257d41c972a31aec9b673f1b344b202c7cbf9ee57e8bcd3f442e3d314e",
-  "notes": "Morley 2.15.6: update PS4 and PS5 console RRPs"
+  "versionCode": 53,
+  "versionName": "2.15.7",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.7/B-and-L-Morley-2.15.7.apk",
+  "sha256": "b77ea649130297e802d1fa7eed4db7d5c9e2f293f5f142ef5f5d13b27832f48a",
+  "notes": "Morley: premium visual foundation (#330)"
 }
