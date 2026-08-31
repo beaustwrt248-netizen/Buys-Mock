@@ -1,7 +1,7 @@
 {
-  "versionCode": 60,
-  "versionName": "2.15.15",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.15/B-and-L-Morley-2.15.15.apk",
-  "sha256": "66d5b1dc61179d1e4cce7f3998caf408655cbe84404b902f6997e492fcc498de",
-  "notes": "Make Android support diagnostics explicit opt-in"
+  "versionCode": 61,
+  "versionName": "2.15.16",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.16/B-and-L-Morley-2.15.16.apk",
+  "sha256": "6c7f1094d524cef5d7be7949a96fdd3c904c3c9c18c05e28221ba91756942998",
+  "notes": "Refresh AU laptop and Chromebook retail catalog (#375)"
 }
