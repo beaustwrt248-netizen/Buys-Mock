@@ -15,7 +15,7 @@ import java.net.URL
 import java.security.MessageDigest
 
 internal object AdminUpdateManager {
-    const val METADATA_URL = "https://buyshub.me/admin/admin-update.json"
+    const val METADATA_URL = "https://beaustwrt248-netizen.github.io/Buys-Mock/admin/admin-update.json"
 
     suspend fun fetchRelease(): AdminUpdateRelease = withContext(Dispatchers.IO) {
         val connection = (URL(METADATA_URL).openConnection() as HttpURLConnection).apply {
