@@ -9,6 +9,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
@@ -54,6 +55,9 @@ internal fun CaptchaChallenge(
     onToken: (String) -> Unit,
     onFailure: (String) -> Unit
 ) {
+    val latestOnToken = rememberUpdatedState(onToken)
+    val latestOnFailure = rememberUpdatedState(onFailure)
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -63,7 +67,13 @@ internal fun CaptchaChallenge(
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                addJavascriptInterface(TurnstileBridge(onToken, onFailure), "AndroidBridge")
+                addJavascriptInterface(
+                    TurnstileBridge(
+                        emitToken = { token -> latestOnToken.value(token) },
+                        emitFailure = { message -> latestOnFailure.value(message) }
+                    ),
+                    "AndroidBridge"
+                )
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                         if (request == null || !request.isForMainFrame) return false
