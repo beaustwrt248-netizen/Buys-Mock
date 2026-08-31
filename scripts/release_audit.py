@@ -19,7 +19,7 @@ required = [
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
-    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html",
+    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html", "admin/login-security.js",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
     "android/app/src/main/java/com/buysloans/hub/AuthActivity.kt",
@@ -126,10 +126,22 @@ for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-
         errors.append(f"GitHub Pages post-deploy verification is missing production control: {token}")
 
 turnstile = (ROOT / "admin/turnstile.html").read_text(encoding="utf-8")
-if "postMessage(payload,parentOrigin)" not in turnstile:
-    errors.append("Turnstile bridge must restrict browser postMessage delivery to the same origin")
+login_security = (ROOT / "admin/login-security.js").read_text(encoding="utf-8")
+for token in (
+    "const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",
+    "postMessage(payload,postMessageOrigin)",
+):
+    if token not in turnstile:
+        errors.append(f"Turnstile bridge is missing guarded WebView delivery control: {token}")
 if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turnstile:
-    errors.append("Turnstile bridge must not broadcast tokens with a wildcard target origin")
+    errors.append("Turnstile bridge must not unconditionally broadcast tokens with a wildcard target origin")
+for token in (
+    "event.source===frame.contentWindow",
+    "event.origin===window.location.origin",
+    "window.location.origin==='null'&&event.origin==='null'",
+):
+    if token not in login_security:
+        errors.append(f"Turnstile parent bridge is missing source/origin validation: {token}")
 
 admin_app = (ROOT / "admin/app.js").read_text(encoding="utf-8")
 for token in ("secureUserAction('set_role'", "secureUserAction('set_display_name'", "data-name-save", "admin-user-control"):

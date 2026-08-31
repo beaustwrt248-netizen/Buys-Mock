@@ -21,7 +21,10 @@
   }
 
   window.addEventListener('message',function(event){
-    if(event.origin!==window.location.origin||event.source!==frame.contentWindow)return;
+    const sameSource=event.source===frame.contentWindow;
+    const sameOrigin=event.origin===window.location.origin;
+    const opaqueLocalOrigin=window.location.origin==='null'&&event.origin==='null';
+    if(!sameSource||(!sameOrigin&&!opaqueLocalOrigin))return;
     const payload=event.data;
     if(!payload||payload.source!=='morley-turnstile')return;
     if(payload.type==='token'&&payload.value){
