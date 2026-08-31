@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -71,6 +71,8 @@ jobs:
           test -s site/web-a11y.js
           test -s site/product-parity-v3.js
           test -s site/ultimate-parity.js
+          test -s site/mobile-parity-v3.css
+          test -s site/mobile-layout-fix.js
           test -s site/admin/index.html
           test -s site/admin/app.js
           test -s site/admin/invites.js
@@ -120,6 +122,8 @@ jobs:
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/page-index.html"
           grep -q 'web-base.html' "$RUNNER_TEMP/page-index.html"
           grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
+          grep -q 'mobile-parity-v3.css' "$RUNNER_TEMP/page-index.html"
+          grep -q 'mobile-layout-fix.js' "$RUNNER_TEMP/page-index.html"
           fetch_with_retry "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html"
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/web-base.html"
           fetch_with_retry "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js"
@@ -134,6 +138,13 @@ jobs:
           grep -q 'Console Pricing' "$RUNNER_TEMP/product-parity-v3.js"
           fetch_with_retry "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js"
           grep -q 'Help & FAQ' "$RUNNER_TEMP/ultimate-parity.js"
+          fetch_with_retry "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js"
+          grep -q 'home|computer|console|general' "$RUNNER_TEMP/mobile-layout-fix.js"
+          node --check "$RUNNER_TEMP/mobile-layout-fix.js"
+          fetch_with_retry "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css"
+          grep -q '@media(max-width:760px)' "$RUNNER_TEMP/mobile-parity-v3.css"
+          grep -q 'grid-template-columns:repeat(4,minmax(0,1fr))' "$RUNNER_TEMP/mobile-parity-v3.css"
+          grep -q '.modal.open,.morley-menu-dialog.open,.msw-dialog.open' "$RUNNER_TEMP/mobile-parity-v3.css"
           fetch_with_retry "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/desktop-oem.js"
