@@ -13,8 +13,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
-private const val TURNSTILE_URL = "https://beaustwrt248-netizen.github.io/Buys-Mock/admin/turnstile.html"
-private const val TURNSTILE_HOST = "beaustwrt248-netizen.github.io"
+private const val TURNSTILE_URL = "https://buyshub.me/admin/turnstile.html"
+private const val TURNSTILE_HOST = "buyshub.me"
+private const val TURNSTILE_PATH = "/admin/turnstile.html"
 
 internal class TurnstileBridge(
     private val emitToken: (String) -> Unit,
@@ -78,7 +79,7 @@ internal fun CaptchaChallenge(
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                         if (request == null || !request.isForMainFrame) return false
                         val uri: Uri = request.url
-                        return !(uri.scheme == "https" && uri.host == TURNSTILE_HOST && uri.path == "/Buys-Mock/admin/turnstile.html")
+                        return !(uri.scheme == "https" && uri.host == TURNSTILE_HOST && uri.path == TURNSTILE_PATH)
                     }
                 }
                 loadUrl(TURNSTILE_URL)
