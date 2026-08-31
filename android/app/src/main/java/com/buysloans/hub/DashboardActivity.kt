@@ -105,28 +105,48 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             )
         },
         bottomBar={
-            if(!showMenu) NavigationBar(containerColor=MorleySurface,modifier=Modifier.height(72.dp)){
-                Page.entries.filter{it!=Page.More}.forEach{p->
-                    val navLabel=when(p){Page.Laptop->"Computer";Page.Desktop->"Console";else->p.label}
-                    val navIcon=when(p){Page.Laptop->"▱";Page.Desktop->"◫";else->p.icon}
-                    NavigationBarItem(
-                        selected=page==p,
-                        onClick={page=p},
-                        icon={Text(navIcon,fontSize=18.sp)},
-                        label={Text(navLabel,fontSize=11.sp)},
-                        colors=NavigationBarItemDefaults.colors(
-                            indicatorColor=MorleyAccentSoft,
-                            selectedIconColor=MorleyAccent,
-                            selectedTextColor=MorleyAccent,
-                            unselectedIconColor=MorleyTextMuted,
-                            unselectedTextColor=MorleyTextSecondary
+            if(!showMenu) {
+                val primaryPages=listOf(Page.Home,Page.Laptop,Page.Desktop,Page.GP)
+                NavigationBar(
+                    containerColor=MorleySurface,
+                    tonalElevation=0.dp,
+                    modifier=Modifier.fillMaxWidth()
+                ){
+                    primaryPages.forEach{p->
+                        val navLabel=when(p){
+                            Page.Home->"Home"
+                            Page.Laptop->"Computer"
+                            Page.Desktop->"Console"
+                            Page.GP->"GP"
+                            else->p.label
+                        }
+                        val navIcon=when(p){
+                            Page.Home->"⌂"
+                            Page.Laptop->"▱"
+                            Page.Desktop->"◫"
+                            Page.GP->"$"
+                            else->p.icon
+                        }
+                        NavigationBarItem(
+                            selected=page==p,
+                            onClick={page=p},
+                            icon={Text(navIcon,fontSize=20.sp,fontWeight=FontWeight.Bold)},
+                            label={Text(navLabel,fontSize=12.sp,fontWeight=FontWeight.Bold)},
+                            alwaysShowLabel=true,
+                            colors=NavigationBarItemDefaults.colors(
+                                indicatorColor=MorleyAccentSoft,
+                                selectedIconColor=MorleyAccent,
+                                selectedTextColor=MorleyAccent,
+                                unselectedIconColor=MorleyTextSecondary,
+                                unselectedTextColor=MorleyTextSecondary
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
     ){pad->
-        Box(Modifier.padding(pad).fillMaxSize()){
+        Box(Modifier.padding(pad).consumeWindowInsets(pad).fillMaxSize()){
             if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
@@ -141,13 +161,16 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 
 @Composable
 private fun ParityHome(onComputer:()->Unit,onConsole:()->Unit,onGp:()->Unit){
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-        DashboardCard("MORLEY WORKSPACE","Valuation & buying workspace","Live valuation, protected buying targets and native pricing tools in one refined workspace.")
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=12.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
         SmartWorkspaceSection()
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){StatusTile("LIVE PRICING","READY",Modifier.weight(1f));StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            StatusTile("LIVE PRICING","READY",Modifier.weight(1f))
+            StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))
+        }
         NavCard("▱","Computer Pricing","Laptop / MacBook or Desktop / Gaming PC",onComputer)
         NavCard("◫","Console Pricing","PS4, PS5, Xbox and Nintendo grade pricing",onConsole)
         NavCard("$","General buys & GP","A / B / C / Luxury buying targets",onGp)
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -185,7 +208,7 @@ private fun MoreHub(onSignOut:()->Unit){
         }
         if(privileged){
             MenuSection("Administration"){
-                MenuRow("◆","Admin mode","Operational overview for ${AuthManager.role(context).replaceFirstChar{it.uppercase()}} accounts. Standard users never see this area."){
+                MenuRow("◆","Admin mode","Manage support, users, devices and operational controls for ${AuthManager.role(context).replaceFirstChar{it.uppercase()}} accounts."){
                     context.startActivity(Intent(context,EmbeddedAdminActivity::class.java))
                 }
             }
@@ -251,7 +274,7 @@ private fun MoreHub(onSignOut:()->Unit){
 
 @Composable private fun StatusTile(label:String,value:String,modifier:Modifier=Modifier){
     Card(colors=CardDefaults.cardColors(containerColor=MorleySurfaceRaised),border=BorderStroke(1.dp,MorleyBorder.copy(alpha=.7f)),shape=RoundedCornerShape(18.dp),modifier=modifier){
-        Column(Modifier.padding(14.dp)){
+        Column(Modifier.padding(13.dp)){
             Text(label,color=MorleyTextMuted,fontSize=10.sp,fontWeight=FontWeight.Bold)
             Text(value,color=MorleySuccess,fontSize=18.sp,fontWeight=FontWeight.Black)
         }
@@ -259,12 +282,16 @@ private fun MoreHub(onSignOut:()->Unit){
 }
 
 @Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){
-    Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=MorleySurface),border=BorderStroke(1.dp,MorleyBorder),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
-        Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            Text(icon,color=MorleyAccent,fontSize=22.sp,fontWeight=FontWeight.Black)
-            Text(title,color=MorleyTextPrimary,fontSize=19.sp,fontWeight=FontWeight.Black)
-            Text(subtitle,color=MorleyTextSecondary,fontSize=13.sp)
-            HorizontalDivider(color=MorleyAccent.copy(alpha=.65f),thickness=2.dp)
+    Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=MorleySurface),border=BorderStroke(1.dp,MorleyBorder),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.padding(15.dp),horizontalArrangement=Arrangement.spacedBy(13.dp)){
+            Surface(color=MorleyAccentSoft,shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,MorleyBorder)){
+                Text(icon,Modifier.padding(horizontal=12.dp,vertical=10.dp),color=MorleyAccent,fontSize=21.sp,fontWeight=FontWeight.Black)
+            }
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
+                Text(title,color=MorleyTextPrimary,fontSize=18.sp,fontWeight=FontWeight.Black)
+                Text(subtitle,color=MorleyTextSecondary,fontSize=13.sp,lineHeight=18.sp)
+            }
+            Text("›",color=MorleyAccent,fontSize=25.sp,fontWeight=FontWeight.Black)
         }
     }
 }
