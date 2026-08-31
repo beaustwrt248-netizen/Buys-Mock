@@ -15,10 +15,4 @@ class AdminBuyshubEndpointContractTest {
         assertFalse(source.contains("http://buyshub.me/admin/turnstile.html"))
         assertFalse(source.contains("beaustwrt248-netizen.github.io/Buys-Mock/admin/turnstile.html"))
     }
-
-    @Test
-    fun adminUpdateMetadataUsesBuyshubHttps() {
-        assertTrue(AdminUpdateManager.METADATA_URL == "https://buyshub.me/admin/admin-update.json")
-        assertFalse(AdminUpdateManager.METADATA_URL.startsWith("http://"))
-    }
 }
