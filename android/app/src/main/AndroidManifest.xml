@@ -41,6 +41,7 @@
         <activity android:name=".HelpGuideActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NotificationCentreActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".EmbeddedAdminActivity" android:exported="false" android:screenOrientation="portrait" android:label="B&amp;L Morley Admin Mode" />
         <activity
             android:name=".SupportTicketActivity"
             android:exported="false"
