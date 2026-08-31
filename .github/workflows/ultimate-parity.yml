@@ -17,12 +17,23 @@ concurrency:
 jobs:
   parity:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+
+      - name: Java 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '8.11.1'
 
       - name: Cross-platform product audit
         run: python3 scripts/ultimate_parity_audit.py
@@ -33,6 +44,36 @@ jobs:
           node --check ultimate-parity.js
           node --check admin/guardian-health.js
 
+      - name: Prepare Firebase config for unit-test graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "morley-ci-placeholder",
+              "storage_bucket": "morley-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.buysloans.hub"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyMorleyCiPlaceholderKey000000000"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          python3 -m json.tool android/app/google-services.json >/dev/null
+
       - name: NFC and valuation regression tests
-        working-directory: android
-        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'
+        run: gradle --no-daemon --project-dir android :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'

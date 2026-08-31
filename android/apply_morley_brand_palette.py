@@ -78,5 +78,32 @@ smart_changed = apply(root / 'SmartWorkspaceSection.kt', {
     'Text("Welcome, ${AuthManager.displayName(context).ifBlank { "back" }.substringBefore(\' \')}", fontSize = 24.sp, fontWeight = FontWeight.Black)': 'Text("Welcome, ${AuthManager.displayName(context).ifBlank { "back" }.substringBefore(\' \')}", color = MorleyTextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Black)',
 })
 
-changed = main_changed or dashboard_changed or smart_changed
+# Catch older one-off surfaces that pre-date the shared theme. This generic pass
+# is intentionally presentation-only and keeps every Android screen inside the
+# same graphite/emerald family without changing valuation, auth, NFC or data logic.
+legacy_palette = {
+    '0xFFFFD400': '0xFF38D6A3',
+    '0xFFC99A27': '0xFF38D6A3',
+    '0xFFDDB347': '0xFF38D6A3',
+    '0xFF2F7CFF': '0xFF38D6A3',
+    '0xFF12C9FF': '0xFF77E9C4',
+    '0xFF16C7FF': '0xFF38D6A3',
+    '0xFF2684FF': '0xFF1FB887',
+    '0xFF030712': '0xFF080B0D',
+    '0xFF07172C': '0xFF101619',
+    '0xFF041024': '0xFF0C1214',
+    '0xFF081A31': '0xFF151D20',
+    '0xFF061327': '0xFF101619',
+    '0xFF0A1B33': '0xFF151D20',
+    '0xFF0B1528': '0xFF151D20',
+    '0xFF8EA6C4': '0xFFB2C0BC',
+    '0xFF57E389': '0xFF63E6A6',
+    '0xFFFFC857': '0xFFF5C76B',
+    '0xFFFF6B7A': '0xFFFF7B86',
+}
+legacy_changed = False
+for kotlin_file in root.glob('*.kt'):
+    legacy_changed = apply(kotlin_file, legacy_palette) or legacy_changed
+
+changed = main_changed or dashboard_changed or smart_changed or legacy_changed
 print('Applied Morley graphite/emerald visual contract' if changed else 'Morley graphite/emerald visual contract already applied')

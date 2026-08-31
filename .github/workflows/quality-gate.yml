@@ -50,7 +50,10 @@ jobs:
             signed-in-user.js \
             premium-motion.js \
             web-a11y.js \
+            ultimate-parity.js \
             admin/app.js \
+            admin/guardian.js \
+            admin/guardian-health.js \
             admin/invites.js \
             admin/download-invites.js \
             admin/targeted-notifications.js; do
@@ -58,28 +61,30 @@ jobs:
             node --check "$file"
           done
 
-      - name: Verify Android cyber palette transform
+      - name: Verify Android cyber palette transform with Morley emerald contract
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile android/apply_cyber_palette.py
-          python3 android/apply_cyber_palette.py
-          if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
-            echo 'Retired Android gold token remains after cyber palette transform'
+          python3 -m py_compile android/apply_morley_brand_palette.py
+          python3 android/apply_morley_brand_palette.py
+          if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347|0xFF2F7CFF|0xFF12C9FF' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
+            echo 'Retired Android gold/blue/cyan token remains after Morley palette transform'
             exit 1
           fi
-          grep -q 'Laptop Intelligence' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
-          grep -q '0xFF2F7CFF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
-          grep -q '0xFF12C9FF' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+          grep -q '0xFF38D6A3' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF080B0D' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF101619' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFFF4F7F6' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q 'Computer Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Console Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'AuthManager.validAccessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'fun accountLabel' android/app/src/main/java/com/buysloans/hub/AuthManager.kt
           grep -q 'itemGrade = grade' android/app/src/main/java/com/buysloans/hub/SmartWorkspaceSection.kt
           grep -q 'put("item_grade",it)' android/app/src/main/java/com/buysloans/hub/ValuationHistoryManager.kt
-          grep -q 'surface laptop studio' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-before.sha"
-          python3 android/apply_cyber_palette.py
+          python3 android/apply_morley_brand_palette.py
           find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/palette-after.sha"
           diff -u "$RUNNER_TEMP/palette-before.sha" "$RUNNER_TEMP/palette-after.sha"
 
@@ -156,3 +161,4 @@ jobs:
           grep -q 'premium-motion.js' index.html
           grep -q 'web-a11y.js' index.html
           grep -q 'quick-deal-grade.js' index.html
+          grep -q 'ultimate-parity.js' index.html
