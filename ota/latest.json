@@ -1,7 +1,7 @@
 {
-  "versionCode": 51,
-  "versionName": "2.15.5",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.5/B-and-L-Morley-2.15.5.apk",
-  "sha256": "795ca17560b63d944dfe78bf5b8da40c53ca09f3fa332e07c2e6980d402b9d62",
-  "notes": "Hotfix Console crash in Morley 2.15.5 (#325)"
+  "versionCode": 52,
+  "versionName": "2.15.6",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.6/B-and-L-Morley-2.15.6.apk",
+  "sha256": "ec1abe257d41c972a31aec9b673f1b344b202c7cbf9ee57e8bcd3f442e3d314e",
+  "notes": "Morley 2.15.6: update PS4 and PS5 console RRPs"
 }
