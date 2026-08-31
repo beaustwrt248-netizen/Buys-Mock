@@ -9,7 +9,11 @@ class ConsolePricingCatalogTest {
     fun suppliedPricingSheetIsFullyRepresented() {
         assertEquals(19, ConsolePricingCatalog.entries.size)
         assertEquals(129.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS4 OG 500gb" }.rrp, 0.01)
-        assertEquals(899.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Pro" }.rrp, 0.01)
+        assertEquals(649.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Digital" }.rrp, 0.01)
+        assertEquals(699.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Disc" }.rrp, 0.01)
+        assertEquals(799.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Digital Slim" }.rrp, 0.01)
+        assertEquals(849.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Slim Disc" }.rrp, 0.01)
+        assertEquals(1199.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Pro" }.rrp, 0.01)
         assertEquals(549.0, ConsolePricingCatalog.entries.first { it.name == "Xbox Series X" }.rrp, 0.01)
         assertEquals(599.0, ConsolePricingCatalog.entries.first { it.name == "Nintendo Switch 2" }.rrp, 0.01)
     }
