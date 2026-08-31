@@ -34,8 +34,8 @@ if(exactEvidence&&protectedUsed>0){
  if(a<=0)Block("DEAL CHECK PENDING","Enter the seller asking price to compare the deal against Morley's protected max-buy target.")
 }else{
  val lowReference=integrated?.confidence=="LOW"&&integrated?.sources?.isNotEmpty()==true
- Block(if(lowReference)"MARKET DATA INSUFFICIENT" else "EXACT MARKET VALUE UNAVAILABLE",if(lowReference)"Exact reference evidence was found, but there is not enough independent evidence to set a protected used value or max buy." else "No sufficiently verified exact configuration evidence was found across the available sources. Similar or mismatched listings remain reference-only and cannot drive the primary value.")
- if(componentEstimate>0){Metrics(listOf("COMPONENT ESTIMATE" to componentEstimate,"COMPONENT MAX BUY" to max));ComponentBreakdown(r.components);Verdict(if(a<=0)"LOW CONFIDENCE" else if(a<=max)"BUY — LOW CONFIDENCE" else if(a<=max*1.1)"NEGOTIATE — LOW CONFIDENCE" else "PASS — LOW CONFIDENCE")}else Verdict("INSUFFICIENT MARKET DATA")
+ Block(if(lowReference)"MARKET CONFIDENCE • LOW" else "EXACT MARKET VALUE UNAVAILABLE",if(lowReference)"Exact reference evidence was found, but more independent evidence is required before Morley can set a protected used value or max buy." else "No sufficiently verified exact configuration evidence was found across the available sources. Similar or mismatched listings remain reference-only and cannot drive the primary value.")
+ if(componentEstimate>0){Metrics(listOf("COMPONENT ESTIMATE" to componentEstimate,"COMPONENT MAX BUY" to max));ComponentBreakdown(r.components);Verdict(if(a<=0)"LOW CONFIDENCE" else if(a<=max)"BUY — LOW CONFIDENCE" else if(a<=max*1.1)"NEGOTIATE — LOW CONFIDENCE" else "PASS — LOW CONFIDENCE")}
 }
 Confidence(r)
 if(marketplaceLoading)Block("MARKET EVIDENCE","Checking Australian marketplace exact-configuration evidence…") else integrated?.let{IntegratedMarketEvidencePanel(it)}
@@ -46,6 +46,6 @@ Evidence(r)
 
 if old in text:
     main.write_text(text.replace(old, new), encoding='utf-8')
-    print('Integrated protected marketplace consensus into live valuation')
+    print('Integrated protected marketplace consensus with compact confidence UI')
 else:
     print('Valuation function has moved or been refactored; skipping marketplace migration safely')
