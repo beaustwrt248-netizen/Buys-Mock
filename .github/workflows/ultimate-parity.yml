@@ -38,10 +38,14 @@ jobs:
       - name: Cross-platform product audit
         run: python3 scripts/ultimate_parity_audit.py
 
+      - name: Final product audit
+        run: python3 scripts/final_product_audit.py
+
       - name: New JavaScript syntax
         run: |
           set -euo pipefail
           node --check ultimate-parity.js
+          node --check web-admin-mode.js
           node --check admin/guardian-health.js
 
       - name: Prepare Firebase config for unit-test graph
