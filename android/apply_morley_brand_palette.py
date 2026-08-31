@@ -39,6 +39,8 @@ main_changed = apply(root / 'MainActivity.kt', {
     'colors=ButtonDefaults.buttonColors(containerColor=Yellow,contentColor=Color.Black)': 'colors=ButtonDefaults.buttonColors(containerColor=Yellow,contentColor=Color(0xFF06251B))',
 })
 
+nav_icon = 'icon={MorleyIcon(when(p){Page.Home->MorleyIcons.Home;Page.Laptop->MorleyIcons.Computer;Page.Desktop->MorleyIcons.Console;Page.GP->MorleyIcons.Money;Page.More->MorleyIcons.Menu},p.label,if(page==p) MorleyAccent else MorleyTextMuted)}'
+
 dashboard_changed = apply(root / 'DashboardActivity.kt', {
     'private val DashAccent = Color(0xFF16C7FF)': 'private val DashAccent = MorleyAccent',
     'private val DashAccentStrong = Color(0xFF2684FF)': 'private val DashAccentStrong = MorleyAccentStrong',
@@ -51,7 +53,8 @@ dashboard_changed = apply(root / 'DashboardActivity.kt', {
     'Text(if(showMenu)"×" else "☰",fontSize=28.sp,color=DashAccent,fontWeight=FontWeight.Black)': 'if(showMenu) Text("×",fontSize=28.sp,color=MorleyTextPrimary,fontWeight=FontWeight.Black) else MorleyIcon(MorleyIcons.Menu,"Menu",MorleyAccent)',
     'Surface(color=DashAccent.copy(alpha=.08f),border=BorderStroke(1.dp,DashAccent.copy(alpha=.35f)),shape=RoundedCornerShape(999.dp))': 'Surface(color=MorleyAccentSoft.copy(alpha=.75f),border=BorderStroke(1.dp,MorleyBorder),shape=RoundedCornerShape(999.dp))',
     'if(!showMenu) NavigationBar(containerColor=Color(0xFF07101F).copy(alpha=.97f)){': 'if(!showMenu) NavigationBar(containerColor=MorleySurfaceSoft.copy(alpha=.98f),modifier=Modifier.height(72.dp)){',
-    'icon={Text(p.icon,fontSize=20.sp)}': 'icon={MorleyIcon(when(p){Page.Home->MorleyIcons.Home;Page.Laptop->MorleyIcons.Computer;Page.Desktop->MorleyIcons.Console;Page.GP->MorleyIcons.Money;Page.More->MorleyIcons.Menu},p.label,if(page==p) MorleyAccent else MorleyTextMuted)}',
+    'icon={Text(p.icon,fontSize=20.sp)}': nav_icon,
+    'icon={Text(p.icon,fontSize=18.sp)}': nav_icon,
     'indicatorColor=DashAccent.copy(alpha=.18f),selectedIconColor=DashAccent,selectedTextColor=DashAccent,unselectedTextColor=DashMuted': 'indicatorColor=MorleyAccentSoft,selectedIconColor=MorleyAccent,selectedTextColor=MorleyAccent,unselectedIconColor=MorleyTextMuted,unselectedTextColor=MorleyTextMuted',
     'NavCard("💰","General buys & GP","A / B / C / Luxury buying targets",onGp)': 'NavCard("money","General buys & GP","A / B / C / Luxury buying targets",onGp)',
     'Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)': 'Text(title,color=MorleyTextPrimary,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=MorleyTextSecondary,lineHeight=22.sp)',
