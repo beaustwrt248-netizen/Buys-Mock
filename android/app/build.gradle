@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 53
-        versionName '2.15.7'
+        versionCode 54
+        versionName '2.15.8'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -66,7 +66,7 @@ tasks.register('verifyReleaseSigning') {
 }
 
 // Keep build-time migrations deterministic and idempotent. The Morley palette
-// migration is color-only and deliberately cannot modify pricing behaviour.
+// migration is presentation-only and deliberately cannot modify pricing behaviour.
 tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'improve_exact_matching.py' }
 tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
 tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
