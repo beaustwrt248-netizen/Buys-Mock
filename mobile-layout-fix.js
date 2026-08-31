@@ -28,13 +28,20 @@ function mobileNav(){
 }
 
 function overlayState(){
+  const nav=$('nav');
   if(!isMobile()){
     document.body.classList.remove('morley-mobile-overlay-active');
+    nav?.style.removeProperty('display');
     return;
   }
   const moreActive=!!$('#more.section.active #morleyRelevantMore, #settings.section.active #morleyRelevantMore');
   const dialogOpen=!!$('.morley-menu-dialog.open,.msw-dialog.open,.modal.open,[role="dialog"].open');
-  document.body.classList.toggle('morley-mobile-overlay-active',moreActive||dialogOpen);
+  const hidden=moreActive||dialogOpen;
+  document.body.classList.toggle('morley-mobile-overlay-active',hidden);
+  if(nav){
+    if(hidden) nav.style.setProperty('display','none','important');
+    else nav.style.removeProperty('display');
+  }
 }
 
 function fixMarginInsight(){
