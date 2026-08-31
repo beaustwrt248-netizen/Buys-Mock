@@ -29,4 +29,14 @@ object ConsolePricingCatalog {
     )
 
     val grades = listOf("A", "B", "C")
+
+    /** Standard Morley grade buy percentages supplied for general pricing. */
+    val gradeBuyPercent = mapOf(
+        "A" to 0.70,
+        "B" to 0.50,
+        "C" to 0.30
+    )
+
+    fun buyPrice(entry: ConsolePriceEntry, grade: String): Double =
+        entry.rrp * (gradeBuyPercent[grade] ?: error("Unsupported grade: $grade"))
 }
