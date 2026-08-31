@@ -1,7 +1,7 @@
 {
-  "versionCode": 50,
-  "versionName": "2.15.4",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.4/B-and-L-Morley-2.15.4.apk",
-  "sha256": "edb64f2b1974acac4e839b67a3a7710b7b9e77a49c2d364d70f772a0ab172678",
-  "notes": "Release Morley 2.15.4 computer and console pricing (#323)"
+  "versionCode": 51,
+  "versionName": "2.15.5",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.5/B-and-L-Morley-2.15.5.apk",
+  "sha256": "795ca17560b63d944dfe78bf5b8da40c53ca09f3fa332e07c2e6980d402b9d62",
+  "notes": "Hotfix Console crash in Morley 2.15.5 (#325)"
 }
