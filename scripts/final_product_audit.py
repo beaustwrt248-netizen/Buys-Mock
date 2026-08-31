@@ -11,7 +11,7 @@ def need(path: str, *tokens: str):
             errors.append(f'{path}: missing {token!r}')
     return text
 
-build = need('android/app/build.gradle', "versionCode 59", "versionName '2.15.13'")
+build = need('android/app/build.gradle', "versionCode 58", "versionName '2.15.13'")
 admin_build = need('android/adminapp/build.gradle', "versionCode 18", "versionName '0.1.17'", 'applyAdminMorleyPalette')
 dashboard = need('android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt', 'Computer Pricing', 'Console Pricing', 'General buys & GP', 'Admin mode')
 need('android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt', 'admin', 'manager')
