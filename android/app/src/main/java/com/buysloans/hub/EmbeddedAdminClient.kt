@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import android.content.Context
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -45,6 +46,7 @@ data class EmbeddedAdminEvent(
 )
 
 data class EmbeddedAdminSnapshot(
+    val actorUserId: String,
     val openTickets: Int,
     val enabledUsers: Int,
     val registeredDevices: Int,
@@ -60,9 +62,11 @@ data class EmbeddedAdminSnapshot(
 object EmbeddedAdminClient {
     val ticketStatuses = listOf("open", "in_progress", "waiting_on_user", "resolved", "closed")
     val ticketPriorities = listOf("low", "normal", "high", "urgent")
+    val assignableRoles = listOf("staff", "manager", "admin")
 
     suspend fun load(context: Context): EmbeddedAdminSnapshot = withContext(Dispatchers.IO) {
         val token = privilegedToken(context)
+        val actorUserId = extractUserId(token)
         val ticketsJson = getArray(
             "/rest/v1/support_tickets?select=id,category,subject,description,status,priority,assigned_to,sla_due_at,app_version,device_model,created_at&order=created_at.desc&limit=50",
             token
@@ -135,6 +139,7 @@ object EmbeddedAdminClient {
         }
 
         EmbeddedAdminSnapshot(
+            actorUserId = actorUserId,
             openTickets = tickets.count { it.status !in setOf("resolved", "closed") },
             enabledUsers = users.count { it.enabled },
             registeredDevices = devices.size,
@@ -170,6 +175,32 @@ object EmbeddedAdminClient {
             payload.toString(),
             preferMinimal = true
         ).requireSuccess("Support ticket could not be updated.")
+    }
+
+    suspend fun updateUserAccess(
+        context: Context,
+        targetUserId: String,
+        action: String,
+        requestedRole: String? = null,
+    ) = withContext(Dispatchers.IO) {
+        require(AuthManager.role(context) == "admin") { "Only Admin accounts may change user access." }
+        require(targetUserId.isNotBlank()) { "A target account is required." }
+        require(action in setOf("enable", "disable", "set_role")) { "Unsupported user action." }
+        val token = privilegedToken(context)
+        val actorUserId = extractUserId(token)
+        require(actorUserId.isNotBlank() && actorUserId != targetUserId) { "Your own active Admin account is protected from these changes." }
+        val payload = JSONObject()
+            .put("action", action)
+            .put("target_user_id", targetUserId)
+        if (action == "set_role") {
+            val role = requestedRole?.trim()?.lowercase().orEmpty()
+            require(role in assignableRoles) { "Role must be staff, manager or admin." }
+            payload.put("role", role)
+        }
+        val response = request("/functions/v1/admin-user-control", "POST", token, payload.toString())
+        response.requireSuccess("User access could not be updated.")
+        val confirmed = runCatching { JSONObject(response.second).optBoolean("ok") }.getOrDefault(false)
+        require(confirmed) { "User access update was not confirmed." }
     }
 
     private suspend fun privilegedToken(context: Context): String {
@@ -223,6 +254,12 @@ object EmbeddedAdminClient {
         }.getOrNull().orEmpty()
         error(detail.ifBlank { "$fallback ($first)" })
     }
+
+    private fun extractUserId(jwt: String): String = runCatching {
+        val payload = jwt.split('.')[1].replace('-', '+').replace('_', '/')
+        val padded = payload + "=".repeat((4 - payload.length % 4) % 4)
+        JSONObject(String(Base64.decode(padded, Base64.DEFAULT))).optString("sub")
+    }.getOrDefault("")
 
     private fun JSONArray.toObjects(): List<JSONObject> =
         (0 until length()).mapNotNull { optJSONObject(it) }
