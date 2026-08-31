@@ -22,4 +22,13 @@ class ChromebookSelectionCatalogTest {
         assertTrue("4GB" in acer311.ramOptions)
         assertTrue(acer311.processors.any { it.contains("Celeron") || it.contains("MediaTek") })
     }
+
+    @Test
+    fun currentAppleCatalogIncludesMacBookNeo() {
+        val neo = LaptopSelectionCatalog.models("Apple").first { it.model == "MacBook Neo 13-inch (2026)" }
+        assertTrue("Apple A18 Pro" in neo.processors)
+        assertTrue("8GB" in neo.ramOptions)
+        assertTrue("256GB" in neo.storageOptions)
+        assertTrue("512GB" in neo.storageOptions)
+    }
 }
