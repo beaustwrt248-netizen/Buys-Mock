@@ -35,4 +35,4 @@ jobs:
 
       - name: NFC and valuation regression tests
         working-directory: android
-        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.ValuationFinancialInvariantTest' --tests 'com.buysloans.hub.ValuationRegressionSentinelTest'
+        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'
