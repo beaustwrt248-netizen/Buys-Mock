@@ -1,7 +1,7 @@
 {
-  "versionCode": 59,
-  "versionName": "2.15.14",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.14/B-and-L-Morley-2.15.14.apk",
-  "sha256": "95f12f2247f8703cb860aaac47def80fd24e89b0c7d7e7e9b2f74425e99da58c",
-  "notes": "Fix mobile layouts and make Admin Mode operational (#365)"
+  "versionCode": 60,
+  "versionName": "2.15.15",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.15/B-and-L-Morley-2.15.15.apk",
+  "sha256": "66d5b1dc61179d1e4cce7f3998caf408655cbe84404b902f6997e492fcc498de",
+  "notes": "Make Android support diagnostics explicit opt-in"
 }
