@@ -16,12 +16,15 @@ object AuthManager {
     private const val EXPIRES_AT = "expires_at"
     private const val USER_EMAIL = "user_email"
     private const val DISPLAY_NAME = "display_name"
+    private const val USER_ROLE = "user_role"
     const val AUTH_CALLBACK = "bnlmorley://auth/callback"
 
     fun accessToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACCESS_TOKEN, "").orEmpty()
     fun refreshToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(REFRESH_TOKEN, "").orEmpty()
     fun email(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_EMAIL, "").orEmpty()
     fun displayName(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(DISPLAY_NAME, "").orEmpty()
+    fun role(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_ROLE, "user").orEmpty().lowercase().ifBlank { "user" }
+    fun canUseAdminMode(context: Context): Boolean = role(context) in setOf("admin", "manager")
     fun accountLabel(context: Context): String = displayName(context).ifBlank { email(context) }.ifBlank { "Authorised B&L Morley account" }
     private fun expiresAt(context: Context): Long = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(EXPIRES_AT, 0L)
 
@@ -74,7 +77,7 @@ object AuthManager {
 
     private suspend fun authorisedProfile(token: String): JSONObject? = withContext(Dispatchers.IO) {
         val userId = extractUserId(token); if (userId.isBlank()) return@withContext null
-        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled,display_name,email&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
+        val url = URL("${BuildConfig.SUPABASE_URL}/rest/v1/profiles?select=is_enabled,display_name,email,role&id=eq.${URLEncoder.encode(userId, "UTF-8")}")
         val c = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); setRequestProperty("Authorization", "Bearer $token")
@@ -90,9 +93,11 @@ object AuthManager {
         val profile = authorisedProfile(token) ?: return false
         val name = profile.optString("display_name").trim()
         val profileEmail = profile.optString("email").trim().lowercase()
+        val profileRole = profile.optString("role", "user").trim().lowercase().ifBlank { "user" }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
             if (name.isNotBlank()) putString(DISPLAY_NAME, name)
             if (profileEmail.isNotBlank()) putString(USER_EMAIL, profileEmail)
+            putString(USER_ROLE, profileRole)
         }.apply()
         return true
     }
