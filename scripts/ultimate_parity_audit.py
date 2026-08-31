@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +31,7 @@ nfc_activity = read("android/app/src/main/java/com/buysloans/hub/NfcScannerActiv
 guardian_html = read("admin/guardian.html")
 guardian_js = read("admin/guardian.js")
 guardian_health = read("admin/guardian-health.js")
+menu_js = read("more-menu-v2.js")
 
 # Shared product navigation and help terminology.
 for label in ("Computer Pricing", "Console Pricing", "General buys & GP"):
@@ -66,8 +66,9 @@ read("android/app/src/test/java/com/buysloans/hub/TestBuyNfcEvidenceBoundaryTest
 for path in (
     "android/app/src/test/java/com/buysloans/hub/Valuation3FinalSmokeTest.kt",
     "android/app/src/test/java/com/buysloans/hub/ValuationDecisionEngineTest.kt",
-    "android/app/src/test/java/com/buysloans/hub/ValuationFinancialInvariantTest.kt",
-    "android/app/src/test/java/com/buysloans/hub/ValuationRegressionSentinelTest.kt",
+    "android/app/src/test/java/com/buysloans/hub/Valuation3FinancialInvariantTest.kt",
+    "android/app/src/test/java/com/buysloans/hub/Valuation3RegressionSentinelTest.kt",
+    "android/app/src/test/java/com/buysloans/hub/Valuation3CompletionRegressionTest.kt",
 ):
     read(path)
 
@@ -78,12 +79,11 @@ for path in (
     "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
     "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
     "android/app/src/main/res/drawable/ic_notification.xml",
-    "more-menu-v2.js",
     "more-menu-v2.css",
 ):
     read(path)
 for action in ("deals", "inventory", "sales", "scanner", "account", "privacy", "backup", "notifications", "display", "help", "updates", "report", "legal", "about"):
-    require(read("more-menu-v2.js"), f"'{action}'", f"web menu action {action}")
+    require(menu_js, f"'{action}'", f"web menu action {action}")
 
 # Guardian safety posture: ultimate upgrade must not weaken human boundaries.
 require(guardian_html, "guardian-health.js?v=1", "Guardian health telemetry bootstrap")
