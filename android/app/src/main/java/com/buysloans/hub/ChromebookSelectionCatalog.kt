@@ -22,6 +22,7 @@ object ChromebookSelectionCatalog {
     private val intelEntry = listOf(
         "Intel Celeron N4020",
         "Intel Celeron N4500",
+        "Intel Processor N50",
         "Intel Processor N100",
         "Intel Processor N200",
         "Intel Pentium Silver N6000",
@@ -34,6 +35,7 @@ object ChromebookSelectionCatalog {
         "MediaTek Kompanio 520",
         "MediaTek Kompanio 528",
         "MediaTek Kompanio 828",
+        "MediaTek Kompanio Ultra 910",
         "Qualcomm Snapdragon 7c Gen 2"
     )
 
@@ -52,6 +54,7 @@ object ChromebookSelectionCatalog {
         ChromeFamily("Acer", "Chromebook Plus Spin 714", 2023, 2026, listOf("Intel Core i3", "Intel Core i5", "Intel Core Ultra 5")),
 
         ChromeFamily("ASUS", "Chromebook CX1", 2021, 2026, intelEntry),
+        ChromeFamily("ASUS", "Chromebook CX14", 2025, 2026, listOf("Intel Processor N50", "Intel Core i3")),
         ChromeFamily("ASUS", "Chromebook CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("ASUS", "Chromebook Plus CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("ASUS", "Chromebook Flip CM3", 2021, 2025, chromeArm),
@@ -63,6 +66,7 @@ object ChromebookSelectionCatalog {
         ChromeFamily("Lenovo", "IdeaPad Flex 5 Chromebook", 2020, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("Lenovo", "IdeaPad Slim 3 Chromebook", 2023, 2026, intelEntry + chromeArm),
         ChromeFamily("Lenovo", "Chromebook Plus 5i", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
+        ChromeFamily("Lenovo", "Chromebook Plus 14 OLED", 2026, 2026, listOf("MediaTek Kompanio Ultra 910")),
 
         ChromeFamily("HP", "Chromebook 11", 2013, 2024, intelEntry + chromeArm),
         ChromeFamily("HP", "Chromebook 14", 2013, 2026, intelEntry + chromeArm),
