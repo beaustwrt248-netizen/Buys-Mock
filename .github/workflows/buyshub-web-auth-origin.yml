@@ -1,0 +1,23 @@
+name: Buyshub Web Auth Origin
+
+on:
+  pull_request:
+    paths:
+      - 'web-auth.js'
+      - 'index.html'
+      - 'tests/buyshub-web-auth-origin.test.js'
+      - '.github/workflows/buyshub-web-auth-origin.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  origin-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify active-origin auth assets and CAPTCHA enforcement
+        run: node tests/buyshub-web-auth-origin.test.js
