@@ -126,11 +126,11 @@ object SupportTicketClient {
         val userId = jwtSubject(token)
         require(userId.isNotBlank()) { "Could not identify the signed-in account." }
 
-        // Guardian always receives a deliberately small, non-secret baseline so a
-        // report can be correlated with the exact app/device environment. The
-        // existing user opt-in adds extra hardware/runtime context only.
-        val diagnostics = JSONObject().apply {
-            put("schema", 2)
+        // Diagnostics are genuinely opt-in. When the switch is off the ticket contains
+        // no device/runtime diagnostic payload and the diagnostic top-level fields are
+        // null. Authentication/session material is never added to either path.
+        val diagnostics = if (includeDiagnostics) JSONObject().apply {
+            put("schema", 3)
             put("platform", "android")
             put("captured", System.currentTimeMillis())
             put("screen", "SupportTicketActivity")
@@ -148,15 +148,13 @@ object SupportTicketClient {
             put("locale", Locale.getDefault().toLanguageTag())
             put("timezone", TimeZone.getDefault().id)
             put("uptime_ms", SystemClock.elapsedRealtime())
-            put("extended_opt_in", includeDiagnostics)
-            if (includeDiagnostics) {
-                put("brand", Build.BRAND)
-                put("device", Build.DEVICE)
-                put("product", Build.PRODUCT)
-                put("hardware", Build.HARDWARE)
-                put("supported_abis", JSONArray(Build.SUPPORTED_ABIS.toList()))
-            }
-        }
+            put("brand", Build.BRAND)
+            put("device", Build.DEVICE)
+            put("product", Build.PRODUCT)
+            put("hardware", Build.HARDWARE)
+            put("supported_abis", JSONArray(Build.SUPPORTED_ABIS.toList()))
+            put("extended_opt_in", true)
+        } else JSONObject()
         val payload = JSONObject().apply {
             put("user_id", userId)
             put("category", draft.category)
@@ -165,10 +163,10 @@ object SupportTicketClient {
             put("status", "open")
             put("priority", "normal")
             put("assigned_to", JSONObject.NULL)
-            put("app_version", BuildConfig.VERSION_NAME)
-            put("app_version_code", BuildConfig.VERSION_CODE)
-            put("device_model", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
-            put("android_version", Build.VERSION.RELEASE)
+            put("app_version", if (includeDiagnostics) BuildConfig.VERSION_NAME else JSONObject.NULL)
+            put("app_version_code", if (includeDiagnostics) BuildConfig.VERSION_CODE else JSONObject.NULL)
+            put("device_model", if (includeDiagnostics) "${Build.MANUFACTURER} ${Build.MODEL}".trim() else JSONObject.NULL)
+            put("android_version", if (includeDiagnostics) Build.VERSION.RELEASE else JSONObject.NULL)
             put("diagnostics", diagnostics)
             put("diagnostics_opt_in", includeDiagnostics)
         }
