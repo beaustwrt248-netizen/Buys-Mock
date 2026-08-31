@@ -1,7 +1,7 @@
 {
-  "versionCode": 55,
-  "versionName": "2.15.9",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.9/B-and-L-Morley-2.15.9.apk",
-  "sha256": "904791577b510be5c6b851f38cd9bfdbd20a64c04225aaca10027309fe62b387",
-  "notes": "Morley 2.15.9: fix video-review UI errors (#334)"
+  "versionCode": 56,
+  "versionName": "2.15.10",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.10/B-and-L-Morley-2.15.10.apk",
+  "sha256": "6d5ba8ae1231cbf88255417c45a4db975a6023e532642ce94a253a54d98f2e31",
+  "notes": "Fix Morley Android Turnstile HTTPS (#343)"
 }
