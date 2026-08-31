@@ -128,6 +128,7 @@
 
   /* Dialogs/settings use a phone-sized bottom sheet with large controls. */
   .modal,.morley-menu-dialog,.msw-dialog{padding:0!important;align-items:end!important;justify-content:center!important;place-items:end center!important;background:rgba(0,0,0,.72)!important}
+  .modal.open,.morley-menu-dialog.open,.msw-dialog.open{display:grid!important;place-items:end center!important}
   .dialog,.morley-menu-dialog-card,.msw-dialog-card{
     width:100%!important;
     max-width:none!important;
