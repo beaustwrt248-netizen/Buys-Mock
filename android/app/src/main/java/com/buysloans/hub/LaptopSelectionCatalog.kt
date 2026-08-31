@@ -79,7 +79,7 @@ object LaptopSelectionCatalog {
         LaptopPreset("Apple", "MacBook Pro 14-inch (2025)", 2025, listOf("Apple M5"), listOf("16GB", "24GB", "32GB", "48GB", "64GB"), listOf("512GB", "1TB", "2TB", "4TB"))
     )
 
-    val presets: List<LaptopPreset> = (apple + families.flatMap { family ->
+    val presets: List<LaptopPreset> = (apple + ChromebookSelectionCatalog.presets + families.flatMap { family ->
         (family.from..family.to).map { year ->
             LaptopPreset(family.brand, "${family.name} ($year)", year, family.processors, modernRam, modernStorage)
         }
