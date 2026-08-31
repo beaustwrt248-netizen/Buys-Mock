@@ -2,10 +2,14 @@
 <resources>
     <style name="Theme.BL.Morley" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:statusBarColor">@color/morley_background</item>
         <item name="android:navigationBarColor">@color/morley_background</item>
-        <item name="android:windowBackground">@color/morley_background</item>
+        <item name="android:navigationBarDividerColor">@color/morley_background</item>
+        <item name="android:windowBackground">@drawable/morley_window_background</item>
         <item name="android:colorAccent">@color/morley_accent</item>
         <item name="android:colorControlActivated">@color/morley_primary</item>
     </style>
