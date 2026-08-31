@@ -2,7 +2,7 @@
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const API_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
 const STORE='morley_web_auth';
-const SITE_BASE=new URL('./',window.location.href).href;
+const SITE_BASE=new URL('./',document.baseURI).href;
 const $=(s,r=document)=>r.querySelector(s);
 let captchaToken='';
 function loadSession(){try{return JSON.parse(localStorage.getItem(STORE)||'null')}catch{return null}}
