@@ -159,7 +159,14 @@ private fun MoreHub(onSignOut:()->Unit){
     var updateStatus by remember{mutableStateOf("Check app version and update status.")}
     var availableUpdate by remember{mutableStateOf<AppUpdate?>(null)}
     val notificationUnread=NotificationInboxStore.unreadCount(context)
-    val privileged=AuthManager.canUseAdminMode(context)
+    var privileged by remember { mutableStateOf(AuthManager.canUseAdminMode(context)) }
+    var roleRefreshComplete by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        runCatching { AuthManager.validAccessToken(context) }
+        privileged = AuthManager.canUseAdminMode(context)
+        roleRefreshComplete = true
+    }
 
     fun open(feature:String){context.startActivity(Intent(context,MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE,feature))}
 
@@ -182,6 +189,8 @@ private fun MoreHub(onSignOut:()->Unit){
                     context.startActivity(Intent(context,EmbeddedAdminActivity::class.java))
                 }
             }
+        } else if(!roleRefreshComplete) {
+            LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
         }
         MenuSection("Data & preferences"){
             MenuRow("☁","Backup & data","Export, import and local app data."){open("backup")}
