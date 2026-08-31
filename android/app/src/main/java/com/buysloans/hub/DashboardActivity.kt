@@ -107,11 +107,13 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
         bottomBar={
             if(!showMenu) NavigationBar(containerColor=MorleySurface,modifier=Modifier.height(72.dp)){
                 Page.entries.filter{it!=Page.More}.forEach{p->
+                    val navLabel=when(p){Page.Laptop->"Computer";Page.Desktop->"Console";else->p.label}
+                    val navIcon=when(p){Page.Laptop->"▱";Page.Desktop->"◫";else->p.icon}
                     NavigationBarItem(
                         selected=page==p,
                         onClick={page=p},
-                        icon={Text(p.icon,fontSize=18.sp)},
-                        label={Text(p.label,fontSize=11.sp)},
+                        icon={Text(navIcon,fontSize=18.sp)},
+                        label={Text(navLabel,fontSize=11.sp)},
                         colors=NavigationBarItemDefaults.colors(
                             indicatorColor=MorleyAccentSoft,
                             selectedIconColor=MorleyAccent,
@@ -128,8 +130,8 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
-                Page.Laptop->LaptopGuidedScreen()
-                Page.Desktop->Desktop()
+                Page.Laptop->ComputerPricingScreen()
+                Page.Desktop->ConsolePricingScreen()
                 Page.GP->GPFix()
                 Page.More->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
             }
@@ -138,13 +140,13 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 }
 
 @Composable
-private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
+private fun ParityHome(onComputer:()->Unit,onConsole:()->Unit,onGp:()->Unit){
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
         DashboardCard("MORLEY WORKSPACE","Valuation & buying workspace","Live valuation, protected buying targets and native pricing tools in one refined workspace.")
         SmartWorkspaceSection()
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){StatusTile("LIVE PRICING","READY",Modifier.weight(1f));StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))}
-        NavCard("▱","Laptops & MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)
-        NavCard("▦","Desktops & gaming PCs","Component-based live pricing",onDesktop)
+        NavCard("▱","Computer Pricing","Laptop / MacBook or Desktop / Gaming PC",onComputer)
+        NavCard("◫","Console Pricing","PS4, PS5, Xbox and Nintendo grade pricing",onConsole)
         NavCard("$","General buys & GP","A / B / C / Luxury buying targets",onGp)
     }
 }
