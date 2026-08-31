@@ -1,0 +1,38 @@
+name: Morley Ultimate Parity Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ultimate-parity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Cross-platform product audit
+        run: python3 scripts/ultimate_parity_audit.py
+
+      - name: New JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check ultimate-parity.js
+          node --check admin/guardian-health.js
+
+      - name: NFC and valuation regression tests
+        working-directory: android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'
