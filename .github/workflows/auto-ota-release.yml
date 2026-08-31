@@ -6,9 +6,7 @@ on:
     types: [completed]
 
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: morley-auto-ota
@@ -20,6 +18,10 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.event == 'push'
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact tested source
@@ -125,7 +127,7 @@ jobs:
           fi
           printf '%s' "$SHA" > package/apk.sha256
 
-      - name: Publish OTA manifest through protected main
+      - name: Stage OTA manifest through protected main
         if: steps.release.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -209,8 +211,13 @@ jobs:
             echo "Reusing existing OTA PR $PR_URL."
           fi
 
+          # PRs created with GITHUB_TOKEN do not reliably receive the repository's
+          # normal pull_request-required check contexts. Do not weaken protection or
+          # turn a successful signed release into a false-red workflow. Run the two
+          # lightweight audits as extra evidence, then leave the exact manifest PR as
+          # a protected handoff. A normal user-authored promotion PR can attach the
+          # full required checks and merge the identical manifest commit.
           gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
-          sleep 5
-          gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required --watch --interval 10
-          gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+          echo "Protected OTA handoff ready: $PR_URL"
+          echo "Release asset is immutable; OTA metadata remains unmerged until normal required PR checks attach through the protected promotion path."
