@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -69,7 +67,7 @@ fun ConsolePricingScreen() = Screen("🎮 Console Pricing") {
     var menuOpen by remember { mutableStateOf(false) }
     val money = remember { NumberFormat.getCurrencyInstance(Locale("en", "AU")) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Card(colors = CardDefaults.cardColors(containerColor = ComputerCard), border = BorderStroke(1.dp, ComputerCyan.copy(alpha = .45f)), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("CONSOLE PRICING", fontSize = 11.sp, fontWeight = FontWeight.Black, color = ComputerCyan)
