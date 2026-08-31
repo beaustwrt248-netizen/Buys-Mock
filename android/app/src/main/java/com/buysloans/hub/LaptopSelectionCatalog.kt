@@ -76,7 +76,12 @@ object LaptopSelectionCatalog {
         LaptopPreset("Apple", "MacBook Air 13-inch (2024, M3)", 2024, listOf("Apple M3"), listOf("8GB", "16GB", "24GB"), listOf("256GB", "512GB", "1TB", "2TB")),
         LaptopPreset("Apple", "MacBook Pro 14-inch (2024)", 2024, listOf("Apple M4", "Apple M4 Pro", "Apple M4 Max"), listOf("16GB", "24GB", "32GB", "36GB", "48GB", "64GB", "128GB"), listOf("512GB", "1TB", "2TB", "4TB", "8TB")),
         LaptopPreset("Apple", "MacBook Air 13-inch (2025)", 2025, listOf("Apple M4"), listOf("16GB", "24GB", "32GB"), listOf("256GB", "512GB", "1TB", "2TB")),
-        LaptopPreset("Apple", "MacBook Pro 14-inch (2025)", 2025, listOf("Apple M5"), listOf("16GB", "24GB", "32GB", "48GB", "64GB"), listOf("512GB", "1TB", "2TB", "4TB"))
+        LaptopPreset("Apple", "MacBook Pro 14-inch (2025)", 2025, listOf("Apple M5"), listOf("16GB", "24GB", "32GB", "48GB", "64GB"), listOf("512GB", "1TB", "2TB", "4TB")),
+        LaptopPreset("Apple", "MacBook Neo 13-inch (2026)", 2026, listOf("Apple A18 Pro"), listOf("8GB"), listOf("256GB", "512GB")),
+        LaptopPreset("Apple", "MacBook Air 13-inch (2026, M5)", 2026, listOf("Apple M5"), listOf("16GB", "24GB", "32GB"), listOf("512GB", "1TB", "2TB")),
+        LaptopPreset("Apple", "MacBook Air 15-inch (2026, M5)", 2026, listOf("Apple M5"), listOf("16GB", "24GB", "32GB"), listOf("512GB", "1TB", "2TB")),
+        LaptopPreset("Apple", "MacBook Pro 14-inch (2026)", 2026, listOf("Apple M5", "Apple M5 Pro", "Apple M5 Max"), listOf("16GB", "24GB", "32GB", "36GB", "48GB", "64GB", "128GB"), listOf("512GB", "1TB", "2TB", "4TB", "8TB")),
+        LaptopPreset("Apple", "MacBook Pro 16-inch (2026)", 2026, listOf("Apple M5 Pro", "Apple M5 Max"), listOf("24GB", "32GB", "36GB", "48GB", "64GB", "128GB"), listOf("1TB", "2TB", "4TB", "8TB"))
     )
 
     val presets: List<LaptopPreset> = (apple + ChromebookSelectionCatalog.presets + families.flatMap { family ->

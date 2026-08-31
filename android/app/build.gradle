@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 49
-        versionName '2.15.3'
+        versionCode 50
+        versionName '2.15.4'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -72,16 +72,19 @@ tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.p
 tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
 tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_laptop_catalog.py' }
 tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
+tasks.register('restructurePricingNavigation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
 tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
 tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }
 tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('securePricingAuth') }
 tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }
+tasks.named('restructurePricingNavigation') { mustRunAfter tasks.named('applyMorleyBrandPalette') }
 tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('improveExactMatching')
     dependsOn tasks.named('integrateMarketplaceValuation')
     dependsOn tasks.named('securePricingAuth')
     dependsOn tasks.named('integrateLaptopCatalog')
     dependsOn tasks.named('applyMorleyBrandPalette')
+    dependsOn tasks.named('restructurePricingNavigation')
 }
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
