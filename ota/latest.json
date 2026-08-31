@@ -1,7 +1,7 @@
 {
-  "versionCode": 57,
-  "versionName": "2.15.11",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.11/B-and-L-Morley-2.15.11.apk",
-  "sha256": "4b3426058b0265d11ced30647ea0dafdb10c4ec8eaf5776ccad7f16d9f08bca3",
-  "notes": "Keep Morley app and buyshub navigation in sync"
+  "versionCode": 58,
+  "versionName": "2.15.12",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.12/B-and-L-Morley-2.15.12.apk",
+  "sha256": "1a536cc4538f70b850f0d9e7b7a6f5316690824f5aac23d1e9ac663f206ce7a0",
+  "notes": "Morley ultimate parity, Help, Guardian and release hardening (#352)"
 }
