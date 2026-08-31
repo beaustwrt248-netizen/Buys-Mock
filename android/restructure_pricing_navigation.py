@@ -39,7 +39,8 @@ text = replace_any(
     (
         'NavCard("💻","Laptops / MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)',
         'NavCard("💻","Laptops & MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)',
-        'NavCard("💻","Computer Pricing","Choose Laptop / MacBook or Desktop / Gaming PC, then complete the matching valuation flow.",onComputer)',
+        'NavCard("▱","Laptops & MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)',
+        'NavCard("computer","Computer Pricing","Choose Laptop / MacBook or Desktop / Gaming PC, then complete the matching valuation flow.",onComputer)',
     ),
     'NavCard("computer","Computer Pricing","Choose Laptop / MacBook or Desktop / Gaming PC, then complete the matching valuation flow.",onComputer)',
     'computer pricing card',
@@ -49,11 +50,14 @@ text = replace_any(
     (
         'NavCard("🖥","Desktops / Gaming PCs","Component-based live pricing",onDesktop)',
         'NavCard("🖥","Desktops & gaming PCs","Component-based live pricing",onDesktop)',
+        'NavCard("▦","Desktops & gaming PCs","Component-based live pricing",onDesktop)',
         'NavCard("🎮","Console Pricing","Dedicated console pricing workspace — pricing dataset coming next.",onConsole)',
+        'NavCard("console","Console Pricing","Choose a supported console and condition grade for an automatic buy-price target.",onConsole)',
     ),
     'NavCard("console","Console Pricing","Choose a supported console and condition grade for an automatic buy-price target.",onConsole)',
     'console pricing card',
 )
+text = text.replace('NavCard("$","General buys & GP","A / B / C / Luxury buying targets",onGp)', 'NavCard("money","General buys & GP","A / B / C / Luxury buying targets",onGp)')
 dashboard.write_text(text, encoding='utf-8')
 
 text = main.read_text(encoding='utf-8')
