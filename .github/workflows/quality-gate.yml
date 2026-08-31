@@ -61,7 +61,7 @@ jobs:
             node --check "$file"
           done
 
-      - name: Verify Android Morley emerald palette transform
+      - name: Verify Android cyber palette transform with Morley emerald contract
         shell: bash
         run: |
           set -euo pipefail
