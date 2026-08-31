@@ -33,7 +33,7 @@ def between(value: str, start: str, end: str, label: str) -> str:
 web_issue = require(
     "web-issue-report.js",
     "diagnostics_opt_in:includeDiagnostics",
-    "Authentication tokens are never included" if "Authentication tokens are never included" in text("web-issue-report.js") else "Diagnostics and attachments are optional",
+    "Diagnostics and attachments are optional",
     "MAX_ATTACHMENT_BYTES=10*1024*1024",
 )
 web_diag_builder = between(web_issue, "function buildDiagnostics()", "function buildReport", "web support diagnostics")
@@ -49,13 +49,27 @@ for forbidden in ("access_token", "refresh_token", "password", "captcha", "docum
     if forbidden in summary_block:
         failures.append(f"web-diagnostics.js: copied diagnostics summary contains forbidden sensitive field {forbidden}")
 
-support_client = text("android/app/src/main/java/com/buysloans/hub/SupportTicketClient.kt")
-android_diag = between(support_client, "val diagnostics = JSONObject().apply", "val payload = JSONObject().apply", "Android support diagnostics")
+support_client = require(
+    "android/app/src/main/java/com/buysloans/hub/SupportTicketClient.kt",
+    "val diagnostics = if (includeDiagnostics) JSONObject().apply",
+    "else JSONObject()",
+    'put("diagnostics_opt_in", includeDiagnostics)',
+    'put("extended_opt_in", true)',
+    'put("app_version", if (includeDiagnostics) BuildConfig.VERSION_NAME else JSONObject.NULL)',
+    'put("device_model", if (includeDiagnostics)',
+)
+android_diag = between(
+    support_client,
+    "val diagnostics = if (includeDiagnostics) JSONObject().apply",
+    "val payload = JSONObject().apply",
+    "Android opt-in support diagnostics",
+)
 for forbidden in ("accessToken", "refreshToken", "password", "captchaToken", "inviteCode", "authorization", "cookie"):
     if forbidden.lower() in android_diag.lower():
         failures.append(f"SupportTicketClient.kt: diagnostics include forbidden authentication field {forbidden}")
-if 'put("extended_opt_in", includeDiagnostics)' not in android_diag:
-    failures.append("SupportTicketClient.kt: extended diagnostics opt-in state is not recorded explicitly")
+for field in ("locale", "timezone", "uptime_ms", "hardware", "supported_abis"):
+    if f'put("{field}"' not in android_diag:
+        failures.append(f"SupportTicketClient.kt: expected extended diagnostic field {field!r} is missing from the opt-in block")
 
 admin_telemetry = require(
     "android/adminapp/src/main/java/com/buysloans/admin/AdminTelemetry.kt",
@@ -106,4 +120,4 @@ if failures:
         print(f"- {failure}")
     sys.exit(1)
 
-print("PRIVACY AUDIT PASSED: support diagnostics exclude URL query/fragment and authentication secrets; copied diagnostics omit credentials; Admin crash telemetry stays metadata-only and bounded; sensitive Android surfaces remain non-exported; cleartext backend endpoints are blocked.")
+print("PRIVACY AUDIT PASSED: web diagnostics exclude URL query/fragment and authentication material; Android device/runtime diagnostics and diagnostic top-level metadata are explicit opt-in; Admin crash telemetry stays metadata-only and bounded; sensitive Android surfaces remain non-exported; cleartext backend endpoints are blocked.")
