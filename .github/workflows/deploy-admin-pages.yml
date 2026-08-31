@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -68,6 +68,13 @@ jobs:
           test -s site/admin/index.html
           test -s site/admin/app.js
           test -s site/admin/invites.js
+          test -s site/admin/download-invites.js
+          test -s site/admin/login-security.js
+          test -s site/admin/release-control.js
+          test -s site/admin/support-tickets.js
+          test -s site/admin/audit-triage.js
+          test -s site/admin/control-governance.js
+          test -s site/admin/user-management-policy.js
           test -s site/admin/styles.css
           test -s site/admin/turnstile.html
           test -s site/web-assets/morley_buys_login_bg_app.mp4
