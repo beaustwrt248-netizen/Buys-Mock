@@ -177,15 +177,37 @@ jobs:
             exit 0
           fi
 
-          BRANCH="automation/morley-ota-${VERSION_NAME}-${GITHUB_RUN_ID}"
+          # Use the upstream build run ID, not this workflow's run ID. A rerun of
+          # this workflow therefore targets the same deterministic branch and PR.
+          BRANCH="automation/morley-ota-${VERSION_NAME}-${{ github.event.workflow_run.id }}"
+          PR_TITLE="Publish Morley $VERSION_NAME OTA metadata"
           git checkout -B "$BRANCH"
-          git commit -m "Publish Morley $VERSION_NAME OTA metadata"
+          git commit -m "$PR_TITLE"
           gh auth setup-git
-          git push origin "HEAD:refs/heads/$BRANCH"
 
-          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
-            --title "Publish Morley $VERSION_NAME OTA metadata" \
-            --body "Automated OTA metadata publication for the exact green Morley $VERSION_NAME build. Main protection remains enforced; required checks must pass before merge.")"
+          # A previous attempt may already have pushed this exact branch. Reuse it
+          # when identical; otherwise refuse to overwrite unexpected remote state.
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH"
+            LOCAL_TREE="$(git rev-parse HEAD^{tree})"
+            REMOTE_TREE="$(git rev-parse FETCH_HEAD^{tree})"
+            if [ "$LOCAL_TREE" != "$REMOTE_TREE" ]; then
+              echo "Existing OTA branch $BRANCH differs from the exact manifest being published; refusing overwrite."
+              exit 1
+            fi
+            echo "Reusing existing identical OTA branch $BRANCH."
+          else
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
+
+          PR_URL="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --state open --json url --jq '.[0].url // empty')"
+          if [ -z "$PR_URL" ]; then
+            PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+              --title "$PR_TITLE" \
+              --body "Automated OTA metadata publication for the exact green Morley $VERSION_NAME build. Main protection remains enforced; required checks must pass before merge.")"
+          else
+            echo "Reusing existing OTA PR $PR_URL."
+          fi
 
           gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
