@@ -44,11 +44,23 @@
   }
 
   function navParity(){
-    const nav=$('nav'); if(nav){
-      const buttons=$$('button',nav);
-      buttons.forEach(b=>{const p=b.dataset.page;if(p==='home'){b.innerHTML='⌂<small>Home</small>';}else if(p==='laptop'){b.dataset.page='computer';b.setAttribute('onclick',"show('computer')");b.innerHTML='▱<small>Computer</small>';b.style.display='';}else if(p==='general'){b.innerHTML='$<small>GP</small>';b.style.display='';}else if(p==='desktop'){b.dataset.page='console';b.setAttribute('onclick',"show('console')");b.innerHTML='◫<small>Console</small>';b.style.display='';}else if(p==='deals'||p==='inventory'){b.style.display='none';}});
+    const nav=$('nav');
+    if(nav){
+      nav.innerHTML=`<button data-page="home" class="active" type="button">⌂<small>Home</small></button><button data-page="computer" type="button">▱<small>Computer</small></button><button data-page="console" type="button">◫<small>Console</small></button><button data-page="general" type="button">$<small>GP</small></button>`;
+      $$('#appframe nav button',document).forEach(()=>{});
+      $$('button[data-page]',nav).forEach(b=>b.onclick=()=>go(b.dataset.page));
+      nav.style.gridTemplateColumns='repeat(4,1fr)';
     }
     $$('.desktop-side-nav [data-target]').forEach(b=>{const t=b.dataset.target;if(t==='laptop'){b.dataset.target='computer';b.innerHTML=b.innerHTML.replace(/Laptop(?:s)?(?:\s*\/\s*MacBooks?)?/i,'Computer Pricing');}else if(t==='desktop'){b.dataset.target='console';b.innerHTML=b.innerHTML.replace(/Desktop(?:s)?(?:\s*\/\s*Gaming PCs?)?/i,'Console Pricing');}});
+  }
+
+  function activeNavParity(){
+    const observer=new MutationObserver(()=>{
+      const active=$('.section.active')?.id||'home';
+      const parent=active==='laptop'||active==='desktop'?'computer':active;
+      $$('nav [data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===parent));
+    });
+    const main=$('main.app')||$('main'); if(main) observer.observe(main,{subtree:true,attributes:true,attributeFilter:['class']});
   }
 
   function terminologyParity(){
@@ -71,7 +83,7 @@
     `;document.head.appendChild(s);
   }
 
-  function boot(){ensureSections();homeParity();navParity();terminologyParity();addStyles();}
+  function boot(){ensureSections();homeParity();navParity();activeNavParity();terminologyParity();addStyles();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,0));else setTimeout(boot,0);
   window.addEventListener('load',()=>setTimeout(boot,100));
 })();
