@@ -44,5 +44,36 @@ jobs:
           node --check ultimate-parity.js
           node --check admin/guardian-health.js
 
+      - name: Prepare Firebase config for unit-test graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "morley-ci-placeholder",
+              "storage_bucket": "morley-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.buysloans.hub"
+                  }
+                },
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyMorleyCiPlaceholderKey000000000"
+                  }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          python3 -m json.tool android/app/google-services.json >/dev/null
+
       - name: NFC and valuation regression tests
         run: gradle --no-daemon --project-dir android :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'
