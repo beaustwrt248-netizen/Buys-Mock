@@ -48,7 +48,7 @@ jobs:
               'smart-workspace.js','smart-workspace-plus.js','smart-insights.js','smart-input-polish.js',
               'connection-status.js','web-diagnostics.js','menu-parity-polish.js','menu-dialog-a11y.js',
               'web-notification-centre.js','web-display-parity.js','web-issue-report.js','reference-theme.css','no-gold.css','premium-motion.css',
-              'admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html'
+              'admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html','admin/login-security.js'
           ]
           absent = [p for p in required if not Path(p).is_file()]
           if absent: raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
@@ -66,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-insights.js smart-input-polish.js connection-status.js web-diagnostics.js menu-parity-polish.js menu-dialog-a11y.js account-refresh-parity.js web-notification-centre.js web-display-parity.js web-issue-report.js admin/app.js admin/invites.js admin/targeted-notifications.js; do
+          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-insights.js smart-input-polish.js connection-status.js web-diagnostics.js menu-parity-polish.js menu-dialog-a11y.js account-refresh-parity.js web-notification-centre.js web-display-parity.js web-issue-report.js admin/app.js admin/invites.js admin/targeted-notifications.js admin/login-security.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -108,11 +108,14 @@ jobs:
             'admin/index.html':['id="inviteName"','First and last name','styles.css?v=3','app.js?v=4','invites.js?v=3'],
             'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
             'admin/invites.js':['crypto.getRandomValues','sha256Hex','display_name:name','inviteName'],
-            'admin/turnstile.html':['postMessage(payload,parentOrigin)'],
+            'admin/turnstile.html':["const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",'postMessage(payload,postMessageOrigin)'],
+            'admin/login-security.js':['event.source===frame.contentWindow','event.origin===window.location.origin',"window.location.origin==='null'&&event.origin==='null'"],
           }
           for file,needles in checks.items():
               text=Path(file).read_text(encoding='utf-8'); missing=[n for n in needles if n not in text]
               if missing: raise SystemExit(f'{file} missing expected production hooks: {missing}')
+          if "postMessage(payload,'*')" in Path('admin/turnstile.html').read_text(encoding='utf-8') or 'postMessage(payload,"*")' in Path('admin/turnstile.html').read_text(encoding='utf-8'):
+              raise SystemExit('Turnstile bridge must not unconditionally broadcast CAPTCHA tokens')
           if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
               raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
           print('Auth/navigation/pricing/smart-workspace/admin/full-name/support-ticket hooks OK')
