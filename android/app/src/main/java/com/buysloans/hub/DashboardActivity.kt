@@ -92,16 +92,16 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
     )
 
     Scaffold(
-        containerColor=DashBg,
+        containerColor=Color.Transparent,
         topBar={
             TopAppBar(
-                colors=TopAppBarDefaults.topAppBarColors(containerColor=Color(0xFF050B16),titleContentColor=Color.White),
+                colors=TopAppBarDefaults.topAppBarColors(containerColor=Color(0xFF050B16).copy(alpha=.96f),titleContentColor=Color.White),
                 navigationIcon={
                     IconButton(onClick={ if(showMenu) closeMenu() else openMenu() }){
                         Text(if(showMenu)"×" else "☰",fontSize=28.sp,color=DashAccent,fontWeight=FontWeight.Black)
                     }
                 },
-                title={Text("Buys & Loans Hub",fontSize=21.sp,fontWeight=FontWeight.Black)},
+                title={Text("B&L Morley",fontSize=21.sp,fontWeight=FontWeight.Black)},
                 actions={
                     Surface(color=DashAccent.copy(alpha=.08f),border=BorderStroke(1.dp,DashAccent.copy(alpha=.35f)),shape=RoundedCornerShape(999.dp)){
                         Text(AuthManager.accountLabel(context),Modifier.padding(horizontal=10.dp,vertical=7.dp),fontSize=10.sp,fontWeight=FontWeight.Bold,color=Color.White)
@@ -111,7 +111,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             )
         },
         bottomBar={
-            if(!showMenu) NavigationBar(containerColor=Color(0xFF07101F)){
+            if(!showMenu) NavigationBar(containerColor=Color(0xFF07101F).copy(alpha=.97f)){
                 Page.entries.filter{it!=Page.More}.forEach{p->
                     NavigationBarItem(selected=page==p,onClick={page=p},icon={Text(p.icon,fontSize=20.sp)},label={Text(p.label)},colors=NavigationBarItemDefaults.colors(indicatorColor=DashAccent.copy(alpha=.18f),selectedIconColor=DashAccent,selectedTextColor=DashAccent,unselectedTextColor=DashMuted))
                 }
@@ -134,12 +134,12 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 @Composable
 private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-        DashboardCard("WELCOME","Buys and Loans Calculator","Live valuation, buying targets and native pricing tools in one workspace.")
+        DashboardCard("MORLEY WORKSPACE","Valuation & buying workspace","Live valuation, protected buying targets and native pricing tools in one refined workspace.")
         SmartWorkspaceSection()
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){StatusTile("LIVE PRICING","READY",Modifier.weight(1f));StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))}
-        NavCard("💻","Laptops / MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)
-        NavCard("🖥","Desktops / Gaming PCs","Component-based live pricing",onDesktop)
-        NavCard("💰","General Buys / GP","A / B / C / Luxury buying targets",onGp)
+        NavCard("💻","Laptops & MacBooks","Guided exact-model Google + eBay AU valuation",onLaptop)
+        NavCard("🖥","Desktops & gaming PCs","Component-based live pricing",onDesktop)
+        NavCard("💰","General buys & GP","A / B / C / Luxury buying targets",onGp)
     }
 }
 
@@ -157,24 +157,24 @@ private fun MoreHub(onSignOut:()->Unit){
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=14.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
         Text("Menu",fontSize=30.sp,fontWeight=FontWeight.Black)
         MenuSection("Workspace"){
-            MenuRow("◷","Valuations & Deals","Saved valuations and deal history."){context.startActivity(Intent(context,ValuationHistoryActivity::class.java))}
-            MenuRow("✓","Test & Buy","Run a hardware checklist and compare the seller ask with max-buy guidance."){context.startActivity(Intent(context,TestBuyActivity::class.java))}
+            MenuRow("◷","Valuations & deals","Saved valuations and deal history."){context.startActivity(Intent(context,ValuationHistoryActivity::class.java))}
+            MenuRow("✓","Test & buy","Run a hardware checklist and compare the seller ask with Max Buy guidance."){context.startActivity(Intent(context,TestBuyActivity::class.java))}
             MenuRow("▣","Inventory","Stock, costs and resale values."){open("inventory")}
-            MenuRow("↗","Sales History","Revenue and realised profit."){open("sales")}
-            MenuRow("⌗","Barcode Scanner","Find or add stock quickly."){open("scanner")}
+            MenuRow("↗","Sales history","Revenue and realised profit."){open("sales")}
+            MenuRow("⌗","Barcode scanner","Find or add stock quickly."){open("scanner")}
         }
         MenuSection("Your account"){
-            MenuRow("●","Account & Profile",AuthManager.accountLabel(context)){open("account")}
-            MenuRow("⌁","Privacy & Security","Account privacy and session security."){open("privacy")}
+            MenuRow("●","Account & profile",AuthManager.accountLabel(context)){open("account")}
+            MenuRow("⌁","Privacy & security","Account privacy and session security."){open("privacy")}
         }
         MenuSection("Data & preferences"){
-            MenuRow("☁","Backup & Data","Export, import and local app data."){open("backup")}
-            MenuRow("✦","Notification Centre",if(notificationUnread==0)"No unread notifications." else "$notificationUnread unread notification${if(notificationUnread==1)"" else "s"}."){context.startActivity(Intent(context,NotificationCentreActivity::class.java))}
+            MenuRow("☁","Backup & data","Export, import and local app data."){open("backup")}
+            MenuRow("✦","Notification centre",if(notificationUnread==0)"No unread notifications." else "$notificationUnread unread notification${if(notificationUnread==1)"" else "s"}."){context.startActivity(Intent(context,NotificationCentreActivity::class.java))}
             MenuRow("♢","Notifications","Update and app notification preferences."){open("notifications")}
             MenuRow("◐","Display","Interface and display preferences."){open("display")}
         }
         MenuSection("Help & guidance"){
-            MenuRow("?","How-to Guide & FAQ","Quick start, feature breakdown and common questions."){context.startActivity(Intent(context,HelpGuideActivity::class.java))}
+            MenuRow("?","How-to guide & FAQ","Quick start, feature breakdown and common questions."){context.startActivity(Intent(context,HelpGuideActivity::class.java))}
         }
         MenuSection("App"){
             MenuRow("↻","Updates",updateStatus){
@@ -185,9 +185,9 @@ private fun MoreHub(onSignOut:()->Unit){
             }
             if(checking) LinearProgressIndicator(modifier=Modifier.fillMaxWidth())
             availableUpdate?.let{u->OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=26&&!context.packageManager.canRequestPackageInstalls())UpdateManager.openInstallerPermission(context) else UpdateManager.openDownload(context,u)},modifier=Modifier.fillMaxWidth()){Text("Download ${u.versionName}")}}
-            MenuRow("◇","System Diagnostics","Check app, account, network, notification and OTA readiness."){context.startActivity(Intent(context,DiagnosticsActivity::class.java))}
+            MenuRow("◇","System diagnostics","Check app, account, network, notification and OTA readiness."){context.startActivity(Intent(context,DiagnosticsActivity::class.java))}
             MenuRow("⚑","Support","View your tickets, support replies and securely reply from the app."){context.startActivity(Intent(context,SupportTicketActivity::class.java))}
-            MenuRow("§","Legal & Privacy","Privacy and application information."){open("legal")}
+            MenuRow("§","Legal & privacy","Privacy and application information."){open("legal")}
             MenuRow("ⓘ","About B&L Morley","Version ${BuildConfig.VERSION_NAME}"){open("about")}
         }
         Button(onClick=onSignOut,modifier=Modifier.fillMaxWidth().height(54.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF57202A),contentColor=Color(0xFFFFC0C8)),shape=RoundedCornerShape(16.dp)){Text("↪  Sign out",fontWeight=FontWeight.Black)}
@@ -198,7 +198,7 @@ private fun MoreHub(onSignOut:()->Unit){
 @Composable private fun MenuSection(title:String,content:@Composable ColumnScope.()->Unit){
     Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
         Text(title,color=DashMuted,fontSize=12.sp,fontWeight=FontWeight.Bold)
-        Card(colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.18f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
+        Card(colors=CardDefaults.cardColors(containerColor=DashCard.copy(alpha=.92f)),border=BorderStroke(1.dp,DashAccent.copy(alpha=.18f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
             Column(content=content)
         }
     }
@@ -214,6 +214,6 @@ private fun MoreHub(onSignOut:()->Unit){
     }
 }
 
-@Composable private fun DashboardCard(kicker:String,title:String,body:String){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(kicker,color=DashAccent,fontSize=12.sp,fontWeight=FontWeight.Black);Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)}}}
-@Composable private fun StatusTile(label:String,value:String,modifier:Modifier=Modifier){Card(colors=CardDefaults.cardColors(containerColor=DashCard),shape=RoundedCornerShape(18.dp),modifier=modifier){Column(Modifier.padding(14.dp)){Text(label,color=Color.Gray,fontSize=10.sp,fontWeight=FontWeight.Bold);Text(value,color=Color(0xFF57E389),fontSize=18.sp,fontWeight=FontWeight.Black)}}}
-@Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=DashCard),border=BorderStroke(1.dp,DashAccent.copy(alpha=.18f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp);HorizontalDivider(color=DashAccent.copy(alpha=.70f),thickness=2.dp)}}}
+@Composable private fun DashboardCard(kicker:String,title:String,body:String){Card(colors=CardDefaults.cardColors(containerColor=DashCard.copy(alpha=.94f)),border=BorderStroke(1.dp,DashAccent.copy(alpha=.20f)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(kicker,color=DashAccent,fontSize=12.sp,fontWeight=FontWeight.Black);Text(title,fontSize=27.sp,fontWeight=FontWeight.Black);Text(body,color=Color.LightGray,lineHeight=22.sp)}}}
+@Composable private fun StatusTile(label:String,value:String,modifier:Modifier=Modifier){Card(colors=CardDefaults.cardColors(containerColor=DashCard.copy(alpha=.92f)),border=BorderStroke(1.dp,DashAccent.copy(alpha=.12f)),shape=RoundedCornerShape(18.dp),modifier=modifier){Column(Modifier.padding(14.dp)){Text(label,color=Color.Gray,fontSize=10.sp,fontWeight=FontWeight.Bold);Text(value,color=Color(0xFF57E389),fontSize=18.sp,fontWeight=FontWeight.Black)}}}
+@Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=DashCard.copy(alpha=.94f)),border=BorderStroke(1.dp,DashAccent.copy(alpha=.22f)),shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp);HorizontalDivider(color=DashAccent.copy(alpha=.70f),thickness=2.dp)}}}
