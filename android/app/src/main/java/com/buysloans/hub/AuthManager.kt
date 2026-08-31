@@ -24,7 +24,7 @@ object AuthManager {
     fun email(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_EMAIL, "").orEmpty()
     fun displayName(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(DISPLAY_NAME, "").orEmpty()
     fun role(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(USER_ROLE, "user").orEmpty().lowercase().ifBlank { "user" }
-    fun canUseAdminMode(context: Context): Boolean = role(context) in setOf("admin", "manager")
+    fun canUseAdminMode(context: Context): Boolean = AdminModePolicy.canEnter(role(context))
     fun accountLabel(context: Context): String = displayName(context).ifBlank { email(context) }.ifBlank { "Authorised B&L Morley account" }
     private fun expiresAt(context: Context): Long = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(EXPIRES_AT, 0L)
 
