@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 54
-        versionName '2.15.8'
+        versionCode 55
+        versionName '2.15.9'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -41,9 +41,7 @@ android {
     kotlinOptions { jvmTarget = '17' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 
-    lint {
-        disable 'NullSafeMutableLiveData'
-    }
+    lint { disable 'NullSafeMutableLiveData' }
 
     buildTypes {
         release {
@@ -65,19 +63,19 @@ tasks.register('verifyReleaseSigning') {
     }
 }
 
-// Keep build-time migrations deterministic and idempotent. The Morley palette
-// migration is presentation-only and deliberately cannot modify pricing behaviour.
 tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'improve_exact_matching.py' }
 tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
 tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
 tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_laptop_catalog.py' }
 tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
 tasks.register('restructurePricingNavigation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
+tasks.register('fixVideoUiErrors', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'fix_video_ui_errors.py' }
 tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
 tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }
 tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('securePricingAuth') }
 tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }
 tasks.named('restructurePricingNavigation') { mustRunAfter tasks.named('applyMorleyBrandPalette') }
+tasks.named('fixVideoUiErrors') { mustRunAfter tasks.named('restructurePricingNavigation') }
 tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('improveExactMatching')
     dependsOn tasks.named('integrateMarketplaceValuation')
@@ -85,6 +83,7 @@ tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('integrateLaptopCatalog')
     dependsOn tasks.named('applyMorleyBrandPalette')
     dependsOn tasks.named('restructurePricingNavigation')
+    dependsOn tasks.named('fixVideoUiErrors')
 }
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
