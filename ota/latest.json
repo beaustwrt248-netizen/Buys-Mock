@@ -1,7 +1,7 @@
 {
-  "versionCode": 53,
-  "versionName": "2.15.7",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.7/B-and-L-Morley-2.15.7.apk",
-  "sha256": "b77ea649130297e802d1fa7eed4db7d5c9e2f293f5f142ef5f5d13b27832f48a",
-  "notes": "Morley: premium visual foundation (#330)"
+  "versionCode": 54,
+  "versionName": "2.15.8",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.8/B-and-L-Morley-2.15.8.apk",
+  "sha256": "4e22187a8a40cc050c9845d7bd43913976b8f81a142223a7b1a75dfefcff03bb",
+  "notes": "Morley 2.15.8: graphite emerald UI correction"
 }
