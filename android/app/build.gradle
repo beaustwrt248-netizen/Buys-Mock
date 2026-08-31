@@ -71,7 +71,7 @@ tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir
 tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
 tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
 tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_laptop_catalog.py' }
-tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.project_dir; commandLine 'python3', 'apply_morley_brand_palette.py' }
+tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
 tasks.register('restructurePricingNavigation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
 tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
 tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }
