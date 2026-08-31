@@ -7,9 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -18,18 +18,18 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
-private val SWAccent = Color(0xFF16C7FF)
-private val SWStrong = Color(0xFF2684FF)
-private val SWCard = Color(0xFF0B1528)
-private val SWMuted = Color(0xFF8EA6C4)
-private val SWGood = Color(0xFF57E389)
-private val SWWarn = Color(0xFFFFC857)
-private val SWBad = Color(0xFFFF6B7A)
+private val SWAccent = MorleyAccent
+private val SWStrong = MorleyAccentStrong
+private val SWCard = MorleySurface
+private val SWMuted = MorleyTextSecondary
+private val SWGood = MorleySuccess
+private val SWWarn = MorleyWarning
+private val SWBad = MorleyDanger
 
 private fun swMoney(value: Double?): String = if (value == null) "—" else
     NumberFormat.getCurrencyInstance(Locale("en", "AU")).apply { maximumFractionDigits = 0 }.format(value)
 
-private fun swVerdict(item: SavedValuation): Pair<String, Color> {
+private fun swVerdict(item: SavedValuation): Pair<String, androidx.compose.ui.graphics.Color> {
     val ask = item.askingPrice ?: return "REVIEW" to SWMuted
     val max = item.maxBuy
     val market = item.marketValue
@@ -46,7 +46,7 @@ private fun swVerdict(item: SavedValuation): Pair<String, Color> {
     }
 }
 
-private fun swDealVerdict(ask: Double?, market: Double?, maxBuy: Double?): Pair<String, Color> {
+private fun swDealVerdict(ask: Double?, market: Double?, maxBuy: Double?): Pair<String, androidx.compose.ui.graphics.Color> {
     if (ask == null) return "ENTER ASK" to SWMuted
     if (market == null || maxBuy == null || maxBuy <= 0.0) return "ENTER MARKET VALUE" to SWMuted
     return when {
@@ -115,23 +115,23 @@ fun SmartWorkspaceSection() {
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SWCard),
-        border = BorderStroke(1.dp, SWAccent.copy(alpha = .3f)),
+        border = BorderStroke(1.dp, MorleyBorder),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("SMART WORKSPACE", color = SWAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-            Text("Welcome, ${AuthManager.displayName(context).ifBlank { "back" }.substringBefore(' ')}", fontSize = 24.sp, fontWeight = FontWeight.Black)
+            Text("Welcome, ${AuthManager.displayName(context).ifBlank { "back" }.substringBefore(' ')}", color = MorleyTextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Black)
             Text("Recent valuations, watchlist activity and buy opportunities at a glance.", color = SWMuted, fontSize = 13.sp)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SWMetric("VALUATIONS", items.size.toString(), Modifier.weight(1f))
                 SWMetric("WATCHLIST", favouriteIds.size.toString(), Modifier.weight(1f))
                 SWMetric("OPPORTUNITIES", opportunities.size.toString(), Modifier.weight(1f))
             }
-            Surface(color = Color(0xFF07101F), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+            Surface(color = MorleySurfaceSoft, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
-                        Text("POTENTIAL GROSS MARGIN", color = SWMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text("POTENTIAL GROSS MARGIN", color = MorleyTextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         Text(swMoney(potentialMargin), color = SWGood, fontSize = 20.sp, fontWeight = FontWeight.Black)
                     }
                     Text("${opportunities.size} live buy ${if (opportunities.size == 1) "opportunity" else "opportunities"}", color = SWMuted, fontSize = 10.sp)
@@ -140,15 +140,15 @@ fun SmartWorkspaceSection() {
             Button(
                 onClick = { showDealMode = true },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF168E61)),
+                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary),
                 shape = RoundedCornerShape(14.dp)
-            ) { Text("⚡ Quick Deal Mode", fontWeight = FontWeight.Black) }
+            ) { Text("Quick Deal Mode", fontWeight = FontWeight.Black) }
             OutlinedButton(
                 onClick = { context.startActivity(Intent(context, NfcScannerActivity::class.java)) },
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, SWAccent.copy(alpha = .55f)),
+                border = BorderStroke(1.dp, MorleyBorder),
                 shape = RoundedCornerShape(14.dp)
-            ) { Text("⌁ NFC Scanner", color = SWAccent, fontWeight = FontWeight.Black) }
+            ) { Text("NFC Scanner", color = SWAccent, fontWeight = FontWeight.Black) }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (error.isNotBlank()) Text("Smart workspace will refresh when connected.", color = SWMuted, fontSize = 11.sp)
             if (!loading && latest.isEmpty()) {
@@ -159,7 +159,7 @@ fun SmartWorkspaceSection() {
             }
 
             if (!loading && favouriteIds.isNotEmpty()) {
-                HorizontalDivider(color = SWAccent.copy(alpha = .16f))
+                HorizontalDivider(color = MorleyBorder)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("WATCHLIST", color = SWAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     Text(
@@ -179,10 +179,12 @@ fun SmartWorkspaceSection() {
             Button(
                 onClick = { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SWStrong),
+                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary),
                 shape = RoundedCornerShape(14.dp)
             ) { Text("Open Valuations & Deals", fontWeight = FontWeight.Black) }
-            OutlinedButton(onClick = { reload() }, modifier = Modifier.fillMaxWidth()) { Text("Refresh Smart Workspace") }
+            OutlinedButton(onClick = { reload() }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MorleyBorder)) {
+                Text("Refresh Smart Workspace", color = MorleyTextPrimary)
+            }
         }
     }
 }
@@ -190,10 +192,10 @@ fun SmartWorkspaceSection() {
 @Composable
 private fun SmartValuationRow(item: SavedValuation, isFavourite: Boolean, compact: Boolean = false) {
     val verdict = swVerdict(item)
-    Surface(color = Color(0xFF07101F), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = MorleySurfaceSoft, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(if (compact) 10.dp else 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(item.itemSummary, fontWeight = FontWeight.Black, fontSize = if (compact) 13.sp else 14.sp, modifier = Modifier.weight(1f))
+                Text(item.itemSummary, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = if (compact) 13.sp else 14.sp, modifier = Modifier.weight(1f))
                 if (isFavourite) Text("★", color = SWWarn, fontSize = 14.sp)
                 Spacer(Modifier.width(6.dp))
                 Text(verdict.first, color = verdict.second, fontWeight = FontWeight.Black, fontSize = 10.sp)
@@ -233,13 +235,20 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                 OutlinedTextField(item, { item = it }, label = { Text("Item / model") }, singleLine = true)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Item grade / target GP", color = SWMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("A", "B", "C", "Luxury").forEach { value ->
                             FilterChip(
                                 selected = grade == value,
                                 onClick = { grade = value },
-                                label = { Text("$value ${quickDealTargetGp(value).toInt()}%", fontSize = 9.sp) },
-                                modifier = Modifier.weight(1f)
+                                label = {
+                                    Text(
+                                        "$value ${quickDealTargetGp(value).toInt()}%",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Clip,
+                                        fontSize = if (value == "Luxury") 8.sp else 9.sp
+                                    )
+                                },
+                                modifier = Modifier.weight(if (value == "Luxury") 1.35f else 1f)
                             )
                         }
                     }
@@ -300,10 +309,10 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
 
 @Composable
 private fun SWMetric(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(color = Color(0xFF07101F), shape = RoundedCornerShape(14.dp), modifier = modifier) {
+    Surface(color = MorleySurfaceSoft, shape = RoundedCornerShape(14.dp), modifier = modifier) {
         Column(Modifier.padding(10.dp)) {
-            Text(label, color = SWMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            Text(value, fontSize = 18.sp, fontWeight = FontWeight.Black)
+            Text(label, color = MorleyTextMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = MorleyTextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Black)
         }
     }
 }
