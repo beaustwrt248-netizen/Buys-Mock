@@ -20,3 +20,5 @@ jobs:
           persist-credentials: false
       - name: Run credential and workflow audit
         run: python3 scripts/security_audit.py
+      - name: Run privacy regression audit
+        run: python3 scripts/privacy_audit.py
