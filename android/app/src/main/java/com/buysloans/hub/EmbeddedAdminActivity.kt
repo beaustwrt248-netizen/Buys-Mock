@@ -18,6 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
+private data class PendingUserChange(
+    val user: EmbeddedAdminUser,
+    val action: String,
+    val requestedRole: String? = null,
+)
+
 class EmbeddedAdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +42,8 @@ class EmbeddedAdminActivity : ComponentActivity() {
         var snapshot by remember { mutableStateOf<EmbeddedAdminSnapshot?>(null) }
         var busy by remember { mutableStateOf(false) }
         var savingTicket by remember { mutableStateOf("") }
+        var savingUser by remember { mutableStateOf("") }
+        var pendingUserChange by remember { mutableStateOf<PendingUserChange?>(null) }
         var error by remember { mutableStateOf("") }
         var feedback by remember { mutableStateOf("") }
 
@@ -69,6 +77,63 @@ class EmbeddedAdminActivity : ComponentActivity() {
                     .onFailure { error = it.message ?: "Support ticket could not be updated." }
                 savingTicket = ""
             }
+        }
+
+        fun executeUserChange(change: PendingUserChange) {
+            if (savingUser.isNotBlank()) return
+            savingUser = change.user.id
+            error = ""
+            feedback = ""
+            scope.launch {
+                runCatching {
+                    EmbeddedAdminClient.updateUserAccess(
+                        context = context,
+                        targetUserId = change.user.id,
+                        action = change.action,
+                        requestedRole = change.requestedRole,
+                    )
+                }.onSuccess {
+                    feedback = when (change.action) {
+                        "enable" -> "${change.user.displayName} was enabled through the audited user-control service."
+                        "disable" -> "${change.user.displayName} was disabled through the audited user-control service."
+                        else -> "${change.user.displayName}'s role was updated through the audited user-control service."
+                    }
+                    runCatching { EmbeddedAdminClient.load(context) }.onSuccess { snapshot = it }
+                }.onFailure {
+                    error = it.message ?: "User access could not be updated."
+                }
+                savingUser = ""
+            }
+        }
+
+        pendingUserChange?.let { change ->
+            val actionText = when (change.action) {
+                "enable" -> "enable this account"
+                "disable" -> "disable this account"
+                "set_role" -> "change this account to ${change.requestedRole?.replaceFirstChar { it.uppercase() }}"
+                else -> "change this account"
+            }
+            AlertDialog(
+                onDismissRequest = { pendingUserChange = null },
+                title = { Text("Confirm user access change") },
+                text = {
+                    Text("${change.user.displayName}: $actionText? This action is sent through the protected Admin user-control service and recorded by the existing governance path.")
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingUserChange = null }) { Text("Cancel") }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            pendingUserChange = null
+                            executeUserChange(change)
+                        },
+                        colors = if (change.action == "disable") {
+                            ButtonDefaults.buttonColors(containerColor = Color(0xFF7D2B38), contentColor = Color.White)
+                        } else ButtonDefaults.buttonColors()
+                    ) { Text("Confirm", fontWeight = FontWeight.Black) }
+                }
+            )
         }
 
         LaunchedEffect(Unit) { refresh() }
@@ -133,14 +198,29 @@ class EmbeddedAdminActivity : ComponentActivity() {
                         }
                     }
 
-                    AdminSectionTitle("Users", "Current enabled state and role. High-impact account changes stay on the audited user-governance path.")
-                    if (s.users.isEmpty()) AdminEmptyState("No authorised user records returned.")
-                    else s.users.take(20).forEach { user ->
-                        AdminListRow(
-                            title = user.displayName,
-                            detail = "${user.role.replaceFirstChar { it.uppercase() }} • ${if (user.enabled) "Enabled" else "Disabled"}",
-                            badge = if (user.enabled) "ACTIVE" else "OFF"
-                        )
+                    val canManageUsers = AuthManager.role(context) == "admin"
+                    AdminSectionTitle(
+                        "Users",
+                        if (canManageUsers) {
+                            "Manage enabled state and Staff/Manager/Admin roles through the audited user-control service. Your own active Admin account is protected."
+                        } else {
+                            "Managers have read-only user visibility. User-access changes remain Admin-only and server-authorised."
+                        }
+                    )
+                    if (s.users.isEmpty()) {
+                        AdminEmptyState("No authorised user records returned.")
+                    } else {
+                        s.users.take(20).forEach { user ->
+                            UserControlCard(
+                                user = user,
+                                isSelf = user.id == s.actorUserId,
+                                canManage = canManageUsers,
+                                busy = savingUser == user.id,
+                                onAction = { action, requestedRole ->
+                                    pendingUserChange = PendingUserChange(user, action, requestedRole)
+                                }
+                            )
+                        }
                     }
 
                     AdminSectionTitle("Devices", "Recently registered Morley devices and app versions.")
@@ -169,7 +249,7 @@ class EmbeddedAdminActivity : ComponentActivity() {
 
                 Button(
                     onClick = { refresh() },
-                    enabled = !busy && savingTicket.isBlank(),
+                    enabled = !busy && savingTicket.isBlank() && savingUser.isBlank(),
                     modifier = Modifier.fillMaxWidth().height(52.dp)
                 ) { Text(if (busy) "Refreshing…" else "Refresh Admin Data", fontWeight = FontWeight.Black) }
                 OutlinedButton(
@@ -233,6 +313,87 @@ private fun TicketControlCard(
             ) {
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 else Text("Save Ticket Controls", fontWeight = FontWeight.Black)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserControlCard(
+    user: EmbeddedAdminUser,
+    isSelf: Boolean,
+    canManage: Boolean,
+    busy: Boolean,
+    onAction: (String, String?) -> Unit,
+) {
+    val safeCurrentRole = user.role.takeIf { it in EmbeddedAdminClient.assignableRoles } ?: "staff"
+    var requestedRole by remember(user.id, user.role) { mutableStateOf(safeCurrentRole) }
+    val roleChanged = requestedRole != user.role
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MorleySurface),
+        border = BorderStroke(1.dp, MorleyBorder),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(user.displayName, color = MorleyTextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        "${user.role.replaceFirstChar { it.uppercase() }} • ${if (user.enabled) "Enabled" else "Disabled"}",
+                        color = MorleyTextSecondary,
+                        fontSize = 11.sp
+                    )
+                }
+                Text(
+                    when {
+                        isSelf -> "YOU"
+                        user.enabled -> "ACTIVE"
+                        else -> "OFF"
+                    },
+                    color = if (user.enabled) MorleyAccent else MorleyTextMuted,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+
+            when {
+                isSelf -> Text(
+                    "Your active Admin account is protected from role and enabled-state changes in the app.",
+                    color = MorleyTextMuted,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp
+                )
+                !canManage -> Text(
+                    "Read-only for Manager accounts.",
+                    color = MorleyTextMuted,
+                    fontSize = 11.sp
+                )
+                else -> {
+                    AdminChoice(
+                        label = "Role",
+                        selected = requestedRole,
+                        choices = EmbeddedAdminClient.assignableRoles.map { it to it.replaceFirstChar { c -> c.uppercase() } },
+                        enabled = !busy,
+                    ) { requestedRole = it }
+                    OutlinedButton(
+                        onClick = { onAction("set_role", requestedRole) },
+                        enabled = roleChanged && !busy,
+                        modifier = Modifier.fillMaxWidth().height(46.dp)
+                    ) { Text("Save Role", fontWeight = FontWeight.Bold) }
+                    Button(
+                        onClick = { onAction(if (user.enabled) "disable" else "enable", null) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        colors = if (user.enabled) {
+                            ButtonDefaults.buttonColors(containerColor = Color(0xFF57202A), contentColor = Color(0xFFFFD9DE))
+                        } else ButtonDefaults.buttonColors()
+                    ) {
+                        if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        else Text(if (user.enabled) "Disable Account" else "Enable Account", fontWeight = FontWeight.Black)
+                    }
+                }
             }
         }
     }
