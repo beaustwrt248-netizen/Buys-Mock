@@ -1,7 +1,7 @@
 {
-  "versionCode": 80,
-  "versionName": "2.15.35",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.35/B-and-L-Morley-2.15.35.apk",
-  "sha256": "53e3804961f2e352cb75cd8b61d2748eca56ba77eee7aea6168af05a7b46d04c",
-  "notes": "Merge pull request #485 from beaustwrt248-netizen/fix/mandatory-update-status-contrast"
+  "versionCode": 81,
+  "versionName": "2.15.36",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.36/B-and-L-Morley-2.15.36.apk",
+  "sha256": "ec4ea08320b5da8bd79e175c6a7c27e6215e85a3979e9b5fe42ca77ff1a2b1e0",
+  "notes": "Merge pull request #492 from beaustwrt248-netizen/fix/android-gp-selected-chip-contrast-v2"
 }
