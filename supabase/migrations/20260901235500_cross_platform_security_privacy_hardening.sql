@@ -57,4 +57,58 @@ alter function public.search_laptop_models(text, integer) security invoker;
 create index if not exists invite_redemption_rate_limits_updated_idx
   on public.invite_redemption_rate_limits(updated_at);
 
+
+create extension if not exists pg_cron with schema pg_catalog;
+
+create or replace function public.purge_expired_privacy_data()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  rate_limit_rows integer;
+  team_invite_rows integer;
+  download_invite_rows integer;
+  telemetry_rows integer;
+begin
+  delete from public.invite_redemption_rate_limits where updated_at < now() - interval '7 days';
+  get diagnostics rate_limit_rows = row_count;
+
+  delete from public.app_invites
+  where (used_at is not null and used_at < now() - interval '30 days')
+     or (used_at is null and expires_at < now() - interval '30 days');
+  get diagnostics team_invite_rows = row_count;
+
+  delete from public.app_download_invites
+  where (redeemed_at is not null and redeemed_at < now() - interval '30 days')
+     or (revoked_at is not null and revoked_at < now() - interval '30 days')
+     or (redeemed_at is null and revoked_at is null and expires_at < now() - interval '30 days');
+  get diagnostics download_invite_rows = row_count;
+
+  delete from public.admin_error_events where created_at < now() - interval '90 days';
+  get diagnostics telemetry_rows = row_count;
+
+  return jsonb_build_object(
+    'rate_limits', rate_limit_rows,
+    'team_invites', team_invite_rows,
+    'download_invites', download_invite_rows,
+    'telemetry', telemetry_rows
+  );
+end;
+$function$;
+
+revoke all on function public.purge_expired_privacy_data() from public, anon, authenticated;
+grant execute on function public.purge_expired_privacy_data() to service_role;
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'buys-privacy-retention-daily';
+
+select cron.schedule(
+  'buys-privacy-retention-daily',
+  '17 3 * * *',
+  $cron$select public.purge_expired_privacy_data();$cron$
+);
+
 commit;
