@@ -26,6 +26,24 @@ class LaptopSearchQueryPlannerTest {
     }
 
     @Test
+    fun windowsLaptopAlsoGetsRetailerFriendlyVariants() {
+        val preset = LaptopPreset(
+            brand = "Dell",
+            model = "XPS 13 (2026)",
+            year = 2026,
+            processors = listOf("Intel Core Ultra 7"),
+            ramOptions = listOf("32GB"),
+            storageOptions = listOf("1TB")
+        )
+
+        val queries = LaptopSearchQueryPlanner.queries(preset, "Intel Core Ultra 7", "32GB", "1TB")
+
+        assertTrue(queries.any { it == "Dell XPS 13 Intel Core Ultra 7 32GB 1TB" })
+        assertTrue(queries.any { it.contains("32 GB") && it.contains("1 TB") && it.contains("Australia") })
+        assertEquals(queries.size, queries.distinctBy { it.lowercase() }.size)
+    }
+
+    @Test
     fun verifiedModelCodeGetsDedicatedLookupVariant() {
         val preset = LaptopPreset(
             brand = "ASUS",
