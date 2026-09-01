@@ -1,7 +1,7 @@
 {
-  "versionCode": 73,
-  "versionName": "2.15.28",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.28/B-and-L-Morley-2.15.28.apk",
-  "sha256": "8e782e24fe2d769b1359b9311e215974a39238fc1512f8c5f99953a90b3d7eff",
-  "notes": "Merge pull request #458 from beaustwrt248-netizen/fix/smart-workspace-contrast-copy"
+  "versionCode": 74,
+  "versionName": "2.15.29",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.29/B-and-L-Morley-2.15.29.apk",
+  "sha256": "a32961cd1c3173020f01e0581440f5d8fe7acb352ae3fd4207c0c46c662b7545",
+  "notes": "Merge pull request #461 from beaustwrt248-netizen/fix/test-buy-chip-contrast"
 }
