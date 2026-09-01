@@ -82,7 +82,7 @@ class UiCopyStyleTest {
     @Test fun smartWorkspacePrimaryActionsRemainReadableAndSellerAskCanonical() {
         val workspace = sourceFile("SmartWorkspaceSection.kt")
         val legacyContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary)"
-        val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = Color.White)"
+        val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White)"
         assertFalse("Low-contrast Smart Workspace primary action returned", workspace.contains(legacyContrast))
         assertTrue(
             "Both Smart Workspace primary actions must use white on strong emerald",
