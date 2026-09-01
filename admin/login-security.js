@@ -3,10 +3,20 @@
   const loginBtn=document.getElementById('loginBtn');
   const loginStatus=document.getElementById('loginStatus');
   const challengeStatus=document.getElementById('challengeStatus');
-  if(!frame||!loginBtn||!loginStatus||!challengeStatus)return;
+  const emailInput=document.getElementById('email');
+  const passwordInput=document.getElementById('password');
+  if(!frame||!loginBtn||!loginStatus||!challengeStatus||!emailInput||!passwordInput)return;
 
   let captchaToken='';
-  loginBtn.disabled=true;
+  let busy=false;
+
+  function credentialsReady(){
+    return emailInput.value.trim().length>0&&emailInput.checkValidity()&&passwordInput.value.length>0;
+  }
+
+  function syncLoginEnabled(){
+    loginBtn.disabled=busy||!captchaToken||!credentialsReady();
+  }
 
   function setChallengeState(text,ok){
     challengeStatus.textContent=text;
@@ -15,10 +25,14 @@
 
   function resetChallenge(reason){
     captchaToken='';
-    loginBtn.disabled=true;
+    syncLoginEnabled();
     if(reason)setChallengeState(reason,false);
     try{frame.contentWindow.location.reload();}catch(_){frame.src='turnstile.html?retry='+Date.now();}
   }
+
+  emailInput.addEventListener('input',syncLoginEnabled);
+  passwordInput.addEventListener('input',syncLoginEnabled);
+  syncLoginEnabled();
 
   window.addEventListener('message',function(event){
     const sameSource=event.source===frame.contentWindow;
@@ -29,15 +43,15 @@
     if(!payload||payload.source!=='morley-turnstile')return;
     if(payload.type==='token'&&payload.value){
       captchaToken=String(payload.value);
-      loginBtn.disabled=false;
+      syncLoginEnabled();
       setChallengeState('Security check complete.',true);
     }else if(payload.type==='expired'){
       captchaToken='';
-      loginBtn.disabled=true;
+      syncLoginEnabled();
       setChallengeState('Security check expired. Complete it again.',false);
     }else if(payload.type==='error'){
       captchaToken='';
-      loginBtn.disabled=true;
+      syncLoginEnabled();
       setChallengeState('Security check failed. Reloading…',false);
       setTimeout(function(){resetChallenge('Complete the security check to sign in.');},700);
     }
@@ -45,16 +59,18 @@
 
   frame.addEventListener('load',function(){
     if(!captchaToken)setChallengeState('Complete the security check to sign in.',false);
+    syncLoginEnabled();
   });
 
   loginBtn.onclick=async function(){
-    const email=document.getElementById('email').value.trim();
-    const password=document.getElementById('password').value;
-    if(!email||!password){loginStatus.textContent='Enter your email and password.';return;}
-    if(!captchaToken){loginStatus.textContent='Complete the security check first.';return;}
+    const email=emailInput.value.trim();
+    const password=passwordInput.value;
+    if(!credentialsReady()){loginStatus.textContent='Enter a valid email and password.';syncLoginEnabled();return;}
+    if(!captchaToken){loginStatus.textContent='Complete the security check first.';syncLoginEnabled();return;}
 
     const token=captchaToken;
-    loginBtn.disabled=true;
+    busy=true;
+    syncLoginEnabled();
     loginStatus.textContent='Signing in…';
     try{
       const {error}=await sb.auth.signInWithPassword({email,password,options:{captchaToken:token}});
@@ -68,7 +84,8 @@
       loginStatus.textContent=error&&error.message?error.message:'Sign in failed. Please retry.';
       resetChallenge('Complete a new security check to retry.');
     }finally{
-      if(captchaToken)loginBtn.disabled=false;
+      busy=false;
+      syncLoginEnabled();
     }
   };
 })();
