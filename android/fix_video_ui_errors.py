@@ -27,7 +27,7 @@ for name in ('MenuFeatureActivity.kt', 'NotificationCentreActivity.kt'):
         'android.graphics.Color.rgb(3, 7, 18)': 'android.graphics.Color.rgb(8, 11, 13)',
         'containerColor = Color(0xFF050B16)': 'containerColor = MorleySurfaceSoft',
         'containerColor = if (item.read) NCCard else Color(0xFF0E2038)': 'containerColor = if (item.read) NCCard else MorleyAccentSoft',
-        'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary)',
+        'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)',
     })
 
 # FVP-005: keep every GP grade label readable in both interaction states.
@@ -54,6 +54,10 @@ replace(root / 'TestBuyActivity.kt', {
     'selectedLabelColor = Color.White': 'selectedLabelColor = Color(0xFF1C2B26)',
 })
 
+# FVP-008: MenuFeature primary actions are migrated onto the strong emerald
+# surface. Keep their labels white rather than reintroducing dark-on-emerald
+# contrast. Inventory and scanner behaviour remain unchanged.
+
 # Installed update notices must never continue presenting themselves as available
 # updates. Preserve non-update history and future update notices.
 store = root / 'NotificationInboxStore.kt'
@@ -63,4 +67,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy, MenuFeature contrast and stale-update corrections')
