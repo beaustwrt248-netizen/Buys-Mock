@@ -1,7 +1,7 @@
 {
-  "versionCode": 71,
-  "versionName": "2.15.26",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.26/B-and-L-Morley-2.15.26.apk",
-  "sha256": "980332e0db8189649c417fbe2ab580d75fd57fae7fe9985eed17c1a3a6e4786e",
-  "notes": "Merge pull request #449 from beaustwrt248-netizen/fix/laptop-multi-query-retrieval"
+  "versionCode": 72,
+  "versionName": "2.15.27",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.27/B-and-L-Morley-2.15.27.apk",
+  "sha256": "50638e2c6a00c6359b56a1f379f5f9fac41292d9461881f27cd3e4075cd91793",
+  "notes": "Fix Android GP grade button contrast (#454)"
 }
