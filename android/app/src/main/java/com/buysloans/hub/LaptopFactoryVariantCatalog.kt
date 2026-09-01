@@ -79,10 +79,13 @@ object LaptopFactoryVariantCatalog {
 
     fun profile(preset: LaptopPreset?): LaptopFactoryProfile? {
         if (preset == null) return null
-        return profiles.firstOrNull {
-            it.brand.equals(preset.brand, ignoreCase = true) &&
-                preset.model.startsWith(it.modelPrefix, ignoreCase = true)
-        }
+        return profiles
+            .asSequence()
+            .filter {
+                it.brand.equals(preset.brand, ignoreCase = true) &&
+                    preset.model.startsWith(it.modelPrefix, ignoreCase = true)
+            }
+            .maxByOrNull { it.modelPrefix.length }
     }
 
     fun versionCodes(preset: LaptopPreset?): List<String> = profile(preset)?.versions?.map { it.code }.orEmpty()
