@@ -117,7 +117,7 @@ internal fun SupportOperationsPanel(
                 .onSuccess {
                     findSupportTicket(tickets, command.ticketId)?.apply {
                         put("status", command.status)
-                        put("priority", command.priority)
+                        if (canSetSupportTicketPriority(session)) put("priority", command.priority)
                         if (canAssignSupportTicket(session)) put("assigned_to", command.assignedTo ?: JSONObject.NULL)
                     }
                     feedback = "Ticket controls saved and audited."
@@ -361,8 +361,11 @@ private fun SupportTicketControlsPanel(
     var priority by remember(ticketId, currentPriority) { mutableStateOf(currentPriority) }
     var assignedTo by remember(ticketId, currentAssignee) { mutableStateOf(currentAssignee) }
     val canTriage = canUpdateSupportTicketTriage(session)
+    val canSetPriority = canSetSupportTicketPriority(session)
     val canAssign = canAssignSupportTicket(session)
-    val changed = status != currentStatus || priority != currentPriority || (canAssign && assignedTo != currentAssignee)
+    val changed = status != currentStatus ||
+        (canSetPriority && priority != currentPriority) ||
+        (canAssign && assignedTo != currentAssignee)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -373,7 +376,7 @@ private fun SupportTicketControlsPanel(
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Triage", fontWeight = FontWeight.Black)
             ChoiceMenu("Status", status, SUPPORT_TICKET_STATUSES.map { it to supportStatusLabel(it) }, canTriage && !busy) { status = it }
-            ChoiceMenu("Priority", priority, SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar { c -> c.uppercase() } }, canTriage && !busy) { priority = it }
+            ChoiceMenu("Priority", priority, SUPPORT_TICKET_PRIORITIES.map { it to it.replaceFirstChar { c -> c.uppercase() } }, canSetPriority && !busy) { priority = it }
             ChoiceMenu("Assigned to", assignedTo, listOf("" to "Unassigned") + assignees.map { it.id to "${it.label} · ${it.role}" }, canAssign && !busy) { assignedTo = it }
             Button(
                 onClick = { onSave(SupportTicketUpdateCommand(ticketId, status, priority, assignedTo.takeIf(String::isNotBlank))) },
