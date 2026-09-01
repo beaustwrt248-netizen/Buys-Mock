@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,7 +93,12 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
                 colors=TopAppBarDefaults.topAppBarColors(containerColor=MorleyBackground.copy(alpha=.98f),titleContentColor=MorleyTextPrimary),
                 navigationIcon={
                     IconButton(onClick={ if(showMenu) closeMenu() else openMenu() }){
-                        Text(if(showMenu)"×" else "☰",fontSize=28.sp,color=MorleyAccent,fontWeight=FontWeight.Black)
+                        MorleyIcon(
+                            imageVector = MorleyIcons.Menu,
+                            contentDescription = if(showMenu) "Close menu" else "Open menu",
+                            tint = MorleyAccent,
+                            modifier = Modifier.size(25.dp)
+                        )
                     }
                 },
                 title={Text("B&L Morley",fontSize=21.sp,fontWeight=FontWeight.Black,color=MorleyTextPrimary)},
@@ -115,22 +121,22 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
                     primaryPages.forEach{p->
                         val navLabel=when(p){
                             Page.Home->"Home"
-                            Page.Laptop->"Computer"
-                            Page.Desktop->"Console"
+                            Page.Laptop->"Laptop"
+                            Page.Desktop->"Desktop"
                             Page.GP->"GP"
                             else->p.label
                         }
                         val navIcon=when(p){
-                            Page.Home->"⌂"
-                            Page.Laptop->"▱"
-                            Page.Desktop->"◫"
-                            Page.GP->"$"
-                            else->p.icon
+                            Page.Home->MorleyIcons.Home
+                            Page.Laptop->MorleyIcons.Laptop
+                            Page.Desktop->MorleyIcons.Computer
+                            Page.GP->MorleyIcons.Money
+                            else->MorleyIcons.Home
                         }
                         NavigationBarItem(
                             selected=page==p,
                             onClick={page=p},
-                            icon={Text(navIcon,fontSize=20.sp,fontWeight=FontWeight.Bold)},
+                            icon={MorleyIcon(navIcon,navLabel,if(page==p) MorleyAccent else MorleyTextSecondary,Modifier.size(21.dp))},
                             label={Text(navLabel,fontSize=12.sp,fontWeight=FontWeight.Bold)},
                             alwaysShowLabel=true,
                             colors=NavigationBarItemDefaults.colors(
@@ -150,8 +156,8 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
-                Page.Laptop->ComputerPricingScreen()
-                Page.Desktop->ConsolePricingScreen()
+                Page.Laptop->LaptopGuidedScreen()
+                Page.Desktop->Desktop()
                 Page.GP->GPFix()
                 Page.More->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
             }
@@ -160,16 +166,16 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 }
 
 @Composable
-private fun ParityHome(onComputer:()->Unit,onConsole:()->Unit,onGp:()->Unit){
+private fun ParityHome(onLaptop:()->Unit,onDesktop:()->Unit,onGp:()->Unit){
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=12.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
         SmartWorkspaceSection()
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
             StatusTile("LIVE PRICING","READY",Modifier.weight(1f))
             StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))
         }
-        NavCard("▱","Computer Pricing","Laptop / MacBook or Desktop / Gaming PC",onComputer)
-        NavCard("◫","Console Pricing","PS4, PS5, Xbox and Nintendo grade pricing",onConsole)
-        NavCard("$","General buys & GP","A / B / C / Luxury buying targets",onGp)
+        NavCard(MorleyIcons.Laptop,"Laptop / MacBook","Guided exact-model laptop and MacBook valuation",onLaptop)
+        NavCard(MorleyIcons.Computer,"Desktop / Gaming PC","Desktop and gaming PC component-based valuation",onDesktop)
+        NavCard(MorleyIcons.Money,"General Buys / GP","A / B / C / Luxury buying targets",onGp)
         Spacer(Modifier.height(4.dp))
     }
 }
@@ -281,15 +287,15 @@ private fun MoreHub(onSignOut:()->Unit){
     }
 }
 
-@Composable private fun NavCard(icon:String,title:String,subtitle:String,onClick:()->Unit){
+@Composable private fun NavCard(icon:ImageVector,title:String,subtitle:String,onClick:()->Unit){
     Card(onClick=onClick,colors=CardDefaults.cardColors(containerColor=MorleySurface),border=BorderStroke(1.dp,MorleyBorder),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){
         Row(Modifier.padding(15.dp),horizontalArrangement=Arrangement.spacedBy(13.dp)){
             Surface(color=MorleyAccentSoft,shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,MorleyBorder)){
-                Text(icon,Modifier.padding(horizontal=12.dp,vertical=10.dp),color=MorleyAccent,fontSize=21.sp,fontWeight=FontWeight.Black)
+                MorleyIcon(icon,title,MorleyAccent,Modifier.padding(10.dp).size(25.dp))
             }
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
                 Text(title,color=MorleyTextPrimary,fontSize=18.sp,fontWeight=FontWeight.Black)
-                Text(subtitle,color=MorleyTextSecondary,fontSize=13.sp,lineHeight=18.sp)
+                Text(subtitle,color=MorleyTextPrimary.copy(alpha=.82f),fontSize=13.sp,lineHeight=18.sp)
             }
             Text("›",color=MorleyAccent,fontSize=25.sp,fontWeight=FontWeight.Black)
         }
