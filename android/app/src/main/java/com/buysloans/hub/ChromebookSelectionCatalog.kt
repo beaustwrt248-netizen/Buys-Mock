@@ -24,6 +24,7 @@ object ChromebookSelectionCatalog {
         "Intel Celeron N4500",
         "Intel Processor N50",
         "Intel Processor N100",
+        "Intel Processor N150",
         "Intel Processor N200",
         "Intel Pentium Silver N6000",
         "Intel Core i3",
@@ -57,6 +58,7 @@ object ChromebookSelectionCatalog {
         ChromeFamily("ASUS", "Chromebook CX14", 2025, 2026, listOf("Intel Processor N50", "Intel Core i3", "Intel Core 3 N355")),
         ChromeFamily("ASUS", "Chromebook CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("ASUS", "Chromebook Plus CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
+        ChromeFamily("ASUS", "Chromebook CM14", 2025, 2026, listOf("MediaTek Kompanio 540")),
         ChromeFamily("ASUS", "Chromebook Flip CM3", 2021, 2025, chromeArm),
         ChromeFamily("ASUS", "Chromebook Flip CM5", 2021, 2025, listOf("AMD Ryzen 3", "AMD Ryzen 5")),
         ChromeFamily("ASUS", "Chromebook Flip CX5", 2021, 2026, listOf("Intel Core i3", "Intel Core i5", "Intel Core i7")),
@@ -70,7 +72,7 @@ object ChromebookSelectionCatalog {
 
         ChromeFamily("HP", "Chromebook 11", 2013, 2024, intelEntry + chromeArm),
         ChromeFamily("HP", "Chromebook 14", 2013, 2026, intelEntry + chromeArm),
-        ChromeFamily("HP", "Chromebook x360 14", 2018, 2026, listOf("Intel Celeron N4500", "Intel Pentium Silver N6000", "Intel Core i3", "Intel Core i5")),
+        ChromeFamily("HP", "Chromebook x360 14", 2018, 2026, listOf("Intel Celeron N4500", "Intel Processor N150", "Intel Pentium Silver N6000", "Intel Core i3", "Intel Core i5")),
         ChromeFamily("HP", "Chromebook Plus x360 14", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
 
         ChromeFamily("Dell", "Chromebook 3100", 2019, 2024, listOf("Intel Celeron N4020")),
