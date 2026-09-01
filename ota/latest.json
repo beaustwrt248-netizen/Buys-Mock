@@ -1,7 +1,7 @@
 {
-  "versionCode": 65,
-  "versionName": "2.15.20",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.20/B-and-L-Morley-2.15.20.apk",
-  "sha256": "f86224fc1c1ebb74f868f7b6744beabc1bbb427c2a877504bf30c5d8d4f26a4a",
-  "notes": "Make web and Android theme light and inviting (#419)"
+  "versionCode": 66,
+  "versionName": "2.15.21",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.21/B-and-L-Morley-2.15.21.apk",
+  "sha256": "d08b0bd8f0c87b6deee276d44a94fa9e6fd208cfb3119523806e55bc7671c08d",
+  "notes": "Fix Morley support header contrast (#423)"
 }
