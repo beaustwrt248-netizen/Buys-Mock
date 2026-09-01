@@ -37,6 +37,28 @@ class AuRetailLaptopCatalogTest {
         }
     }
 
+    // Price corrections remain keyed to the full verified retailer configuration.
+    @Test
+    fun refreshedLivePricesStayBoundToExactConfigurations() {
+        val surface = AuRetailLaptopCatalog.listings.first {
+            it.retailer == "Microsoft Australia" &&
+                it.familyModel == "Surface Laptop 13.8-inch (8th Edition)" &&
+                it.processor == "Snapdragon X2 Plus 10 Core" &&
+                it.ram == "16GB" && it.storage == "512GB"
+        }
+        assertEquals(2799.0, surface.priceAud, 0.0)
+        assertTrue(surface.sourceUrl.contains("microsoft.com/en-au"))
+
+        val macBookPro = AuRetailLaptopCatalog.listings.first {
+            it.retailer == "Apple Australia" &&
+                it.familyModel == "MacBook Pro 14-inch (2026)" &&
+                it.processor == "Apple M5" &&
+                it.ram == "16GB" && it.storage == "1TB"
+        }
+        assertEquals(3199.0, macBookPro.priceAud, 0.0)
+        assertTrue(macBookPro.sourceUrl.contains("apple.com/au/shop/buy-mac/macbook-pro"))
+    }
+
     @Test
     fun guidedChromebookSupportIncludesVerified2026RetailFamilies() {
         val asus = LaptopSelectionCatalog.models("ASUS")

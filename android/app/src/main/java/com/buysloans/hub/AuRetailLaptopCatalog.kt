@@ -22,7 +22,7 @@ data class AuRetailLaptopListing(
  * These prices must never bypass exact-configuration matching, confidence or valuation protections.
  */
 object AuRetailLaptopCatalog {
-    const val CHECKED_AT = "2026-09-01T02:56:19+08:00"
+    const val CHECKED_AT = "2026-09-02T05:53:40+08:00"
 
     val listings = listOf(
         AuRetailLaptopListing(
@@ -98,8 +98,8 @@ object AuRetailLaptopCatalog {
         AuRetailLaptopListing(
             retailer = "Microsoft Australia", brand = "Microsoft", familyModel = "Surface Laptop 13.8-inch (8th Edition)",
             modelSku = null, processor = "Snapdragon X2 Plus 10 Core", ram = "16GB", storage = "512GB",
-            operatingSystem = "Windows 11 Home", priceAud = 2347.0,
-            sourceUrl = "https://www.microsoft.com/en-au/store/configure/surface-laptop-13-8-inch-8th-edition/8mzbmmcjzpmf",
+            operatingSystem = "Windows 11 Home", priceAud = 2799.0,
+            sourceUrl = "https://www.microsoft.com/en-au/store/b/Surface",
             checkedAtIso = CHECKED_AT
         ),
         AuRetailLaptopListing(
@@ -126,8 +126,8 @@ object AuRetailLaptopCatalog {
         AuRetailLaptopListing(
             retailer = "Apple Australia", brand = "Apple", familyModel = "MacBook Pro 14-inch (2026)",
             modelSku = null, processor = "Apple M5", ram = "16GB", storage = "1TB",
-            operatingSystem = "macOS", priceAud = 2699.0,
-            sourceUrl = "https://www.apple.com/au/newsroom/2026/03/apple-introduces-macbook-pro-with-all-new-m5-pro-and-m5-max/",
+            operatingSystem = "macOS", priceAud = 3199.0,
+            sourceUrl = "https://www.apple.com/au/shop/buy-mac/macbook-pro/14-inch-silver-standard-display-apple-m5-chip-10-core-cpu-10-core-gpu-16gb-memory-1tb-storage",
             checkedAtIso = CHECKED_AT
         )
     )
