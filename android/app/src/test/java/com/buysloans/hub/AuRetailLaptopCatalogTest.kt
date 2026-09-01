@@ -37,6 +37,7 @@ class AuRetailLaptopCatalogTest {
         }
     }
 
+    // Price corrections remain keyed to the full verified retailer configuration.
     @Test
     fun refreshedLivePricesStayBoundToExactConfigurations() {
         val surface = AuRetailLaptopCatalog.listings.first {
