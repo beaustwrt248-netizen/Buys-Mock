@@ -72,7 +72,7 @@ class AuthActivity:ComponentActivity(){
   }
   setContent{AuthRoot{continueToApp()}}
  }
- private fun continueToApp(){requestNotificationsAndRegister();startActivity(Intent(this,DashboardActivity::class.java));finish()}
+ private fun continueToApp(){requestNotificationsAndRegister();startActivity(Intent(this,TemporaryPasswordGateActivity::class.java));finish()}
  private fun requestNotificationsAndRegister(){if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) else registerDevice()}
  private fun registerDevice(){FirebaseMessaging.getInstance().token.addOnSuccessListener{DeviceRegistrar.register(this,it)}}
 }
