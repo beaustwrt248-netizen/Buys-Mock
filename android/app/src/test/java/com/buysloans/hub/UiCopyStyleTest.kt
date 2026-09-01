@@ -91,4 +91,24 @@ class UiCopyStyleTest {
         assertFalse("Legacy Quick Deal Seller Ask wording returned", workspace.contains("Seller asking price"))
         assertTrue("Canonical Quick Deal Seller Ask label is missing", workspace.contains("label = { Text(\"Seller Ask\") }"))
     }
+
+    @Test fun testBuyChecklistChipLabelsRemainReadableInBothStates() {
+        val testBuy = sourceFile("TestBuyActivity.kt")
+        assertFalse(
+            "Low-contrast Test & Buy unselected chip label returned",
+            testBuy.contains("labelColor = Color.White.copy(alpha = .86f)")
+        )
+        assertFalse(
+            "Low-contrast Test & Buy selected chip label returned",
+            testBuy.contains("selectedLabelColor = Color.White")
+        )
+        assertTrue(
+            "Test & Buy unselected chip label must use canonical dark text",
+            testBuy.contains("labelColor = Color(0xFF1C2B26)")
+        )
+        assertTrue(
+            "Test & Buy selected chip label must use canonical dark text",
+            testBuy.contains("selectedLabelColor = Color(0xFF1C2B26)")
+        )
+    }
 }

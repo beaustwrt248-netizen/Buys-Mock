@@ -46,6 +46,14 @@ replace(root / 'SmartWorkspaceSection.kt', {
     'label = { Text("Seller asking price") }': 'label = { Text("Seller Ask") }',
 })
 
+# FVP-007: Test & Buy checklist chips sit on very light status tints. Use the
+# canonical dark text for both selected and unselected states so labels remain
+# readable without changing green/red/yellow status mapping or test behaviour.
+replace(root / 'TestBuyActivity.kt', {
+    'labelColor = Color.White.copy(alpha = .86f),': 'labelColor = Color(0xFF1C2B26),',
+    'selectedLabelColor = Color.White': 'selectedLabelColor = Color(0xFF1C2B26)',
+})
+
 # Installed update notices must never continue presenting themselves as available
 # updates. Preserve non-update history and future update notices.
 store = root / 'NotificationInboxStore.kt'
@@ -55,4 +63,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI, GP contrast, Smart Workspace and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy and stale-update corrections')
