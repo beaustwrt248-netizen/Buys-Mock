@@ -18,6 +18,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,9 +28,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -48,7 +51,10 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
     var email by remember { mutableStateOf("") }
     val allowedRoles = TeamInvitePolicy.allowedRoles(session)
     var role by remember(session.role) { mutableStateOf(allowedRoles.firstOrNull() ?: "staff") }
+    var useTemporaryPassword by remember { mutableStateOf(false) }
+    var temporaryPassword by remember { mutableStateOf(TeamInviteApi.generateTemporaryPassword()) }
     var revealed by remember { mutableStateOf<TeamInviteSecret?>(null) }
+    var revealedTemporaryUser by remember { mutableStateOf<TemporaryUserSecret?>(null) }
     var pendingReissue by remember { mutableStateOf<TeamInvite?>(null) }
     var pendingRevoke by remember { mutableStateOf<TeamInvite?>(null) }
 
@@ -68,9 +74,9 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
     Text("Team & staff invitations", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
         if (session.role == "admin")
-            "Invite Staff or Managers. Invite codes are shown once; only their SHA-256 hash is stored."
+            "Invite Staff or Managers, or provision an account with a temporary password."
         else
-            "Managers can invite Staff only. Existing account access remains Admin-controlled.",
+            "Managers can invite or provision Staff only. Existing account access remains Admin-controlled.",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontSize = 12.sp
     )
@@ -107,27 +113,111 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                     )
                 }
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Temporary password", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Skip email verification and force a password change on first sign-in.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
+                Switch(
+                    checked = useTemporaryPassword,
+                    onCheckedChange = {
+                        useTemporaryPassword = it
+                        if (it && temporaryPassword.isBlank()) temporaryPassword = TeamInviteApi.generateTemporaryPassword()
+                    },
+                    enabled = !hostBusy && !loading
+                )
+            }
+
+            if (useTemporaryPassword) {
+                OutlinedTextField(
+                    value = temporaryPassword,
+                    onValueChange = { temporaryPassword = it.take(256) },
+                    label = { Text("Temporary password") },
+                    supportingText = { Text("Minimum 10 characters. It is shown once and is never stored in Admin logs.") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedButton(
+                    onClick = { temporaryPassword = TeamInviteApi.generateTemporaryPassword() },
+                    enabled = !hostBusy && !loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Generate secure temporary password") }
+            }
+
             Button(
                 onClick = {
                     error = ""
                     status = ""
                     loading = true
                     scope.launch {
-                        runCatching { TeamInviteApi.create(session, name, email, role) }
-                            .onSuccess { secret ->
-                                revealed = secret
-                                name = ""
-                                email = ""
-                                status = "Invite created. Copy the one-time code now."
-                                invites = TeamInviteApi.list(session)
-                            }
-                            .onFailure { error = it.message ?: "Team invite could not be created." }
+                        val result = if (useTemporaryPassword) {
+                            runCatching { TeamInviteApi.createTemporaryUser(session, name, email, role, temporaryPassword) }
+                                .onSuccess { secret ->
+                                    revealedTemporaryUser = secret
+                                    revealed = null
+                                    name = ""
+                                    email = ""
+                                    temporaryPassword = TeamInviteApi.generateTemporaryPassword()
+                                    status = "Account created. Copy the temporary password now."
+                                }
+                        } else {
+                            runCatching { TeamInviteApi.create(session, name, email, role) }
+                                .onSuccess { secret ->
+                                    revealed = secret
+                                    revealedTemporaryUser = null
+                                    name = ""
+                                    email = ""
+                                    status = "Invite created. Copy the one-time code now."
+                                    invites = TeamInviteApi.list(session)
+                                }
+                        }
+                        result.onFailure { error = it.message ?: "Account access could not be created." }
                         loading = false
                     }
                 },
-                enabled = !hostBusy && !loading && name.isNotBlank() && email.isNotBlank(),
+                enabled = !hostBusy && !loading && name.isNotBlank() && email.isNotBlank() &&
+                    (!useTemporaryPassword || temporaryPassword.length >= 10),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Create secure invite", fontWeight = FontWeight.Black) }
+            ) {
+                Text(
+                    if (useTemporaryPassword) "Create account with temporary password" else "Create secure invite",
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
+    }
+
+    revealedTemporaryUser?.let { secret ->
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("TEMPORARY PASSWORD — SHOWN ONCE", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                Text(secret.temporaryPassword, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text("${secret.displayName} • ${secret.email} • ${secret.role.uppercase()}", fontSize = 11.sp)
+                Text("Email is already verified. The user must choose a new password before entering Morley.", fontSize = 11.sp)
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Morley temporary password", secret.temporaryPassword))
+                        status = "Temporary password copied."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Copy temporary password") }
+                TextButton(onClick = { revealedTemporaryUser = null }, modifier = Modifier.fillMaxWidth()) { Text("Hide password") }
+            }
         }
     }
 
@@ -156,7 +246,7 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
 
     if (status.isNotBlank()) Text(status, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
     if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-    if (loading) Text("Updating team invitations…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+    if (loading) Text("Updating team access…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
 
     Text("Pending & previous invitations", fontWeight = FontWeight.Bold)
     if (!loading && invites.isEmpty()) {
