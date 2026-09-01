@@ -58,7 +58,7 @@ need(
 need(
     'android/adminapp/src/main/java/com/buysloans/admin/TeamInvitePanel.kt',
     'Temporary password',
-    'skip email verification',
+    'Skip email verification',
     'Create account with temporary password',
 )
 need(
