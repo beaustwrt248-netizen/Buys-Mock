@@ -69,6 +69,8 @@ for token in ['lightColorScheme', '0xFFF5F7F4', '0xFFFFFFFF', '0xFF1C2B26', '0xF
 support = read('android/app/src/main/java/com/buysloans/hub/SupportTicketActivity.kt')
 require('Text("B&L Morley Support", color = Color.White' in support, "Android Support top-bar title contrast regressed")
 require('containerColor = Color(0xFF050B16)' in support, "Android Support top-bar surface contract changed")
+require('color = if (admin) SupportAccent else MorleyTextPrimary' in support, "Android Support message author contrast regressed")
+require('Text(body, color = MorleyTextPrimary' in support, "Android Support message body contrast regressed")
 
 # Scan user-facing Kotlin strings for the same known spelling errors.
 for path in (ROOT / 'android/app/src/main/java/com/buysloans/hub').glob('*.kt'):
