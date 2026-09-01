@@ -30,6 +30,7 @@
                 <data android:scheme="bnlmorley" android:host="auth" android:path="/callback" />
             </intent-filter>
         </activity>
+        <activity android:name=".TemporaryPasswordGateActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".DashboardActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".ValuationHistoryActivity" android:exported="false" android:screenOrientation="portrait" />

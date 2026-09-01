@@ -25,9 +25,26 @@ internal data class TeamInvite(
 }
 
 internal data class TeamInviteSecret(val invite: TeamInvite, val code: String)
+internal data class TemporaryUserSecret(
+    val email: String,
+    val displayName: String,
+    val role: String,
+    val temporaryPassword: String
+)
+
+internal fun temporaryUserPayload(displayName: String, email: String, role: String, temporaryPassword: String): String =
+    JSONObject()
+        .put("action", "create_user")
+        .put("email", email.trim().lowercase())
+        .put("display_name", displayName.trim().replace(Regex("\\s+"), " "))
+        .put("role", role.trim().lowercase())
+        .put("temporary_password", temporaryPassword)
+        .put("skip_email_verification", true)
+        .toString()
 
 internal object TeamInviteApi {
     private const val CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    private const val PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%+-_"
 
     suspend fun list(session: AdminSession): List<TeamInvite> = withContext(Dispatchers.IO) {
         require(TeamInvitePolicy.canManage(session)) { "Team invites require an Admin or Manager session." }
@@ -60,6 +77,48 @@ internal object TeamInviteApi {
             val invite = JSONArray(response.second).optJSONObject(0)?.let(::parse) ?: error("Invite response was incomplete.")
             TeamInviteSecret(invite, code)
         }
+
+    suspend fun createTemporaryUser(
+        session: AdminSession,
+        displayName: String,
+        email: String,
+        role: String,
+        temporaryPassword: String
+    ): TemporaryUserSecret = withContext(Dispatchers.IO) {
+        TeamInvitePolicy.validate(session, displayName, email, role)
+        require(temporaryPassword.length in 10..256) { "Temporary password must be between 10 and 256 characters." }
+        val cleanName = displayName.trim().replace(Regex("\\s+"), " ")
+        val cleanEmail = email.trim().lowercase()
+        val response = request(
+            "/functions/v1/admin-user-control",
+            "POST",
+            session.accessToken,
+            temporaryUserPayload(cleanName, cleanEmail, role, temporaryPassword)
+        )
+        if (response.first !in 200..299) error(message(response.second, "Temporary-password account could not be created."))
+        val json = runCatching { JSONObject(response.second) }.getOrNull()
+        require(json?.optBoolean("ok") == true && json.optBoolean("requires_password_change")) {
+            "Temporary-password account creation was not confirmed."
+        }
+        TemporaryUserSecret(cleanEmail, cleanName, role, temporaryPassword)
+    }
+
+    fun generateTemporaryPassword(length: Int = 16): String {
+        val safeLength = length.coerceIn(12, 32)
+        val random = SecureRandom()
+        return buildString {
+            append('A' + random.nextInt(26))
+            append('a' + random.nextInt(26))
+            append('0' + random.nextInt(10))
+            append("!@#%+-_"[random.nextInt(7)])
+            repeat(safeLength - 4) { append(PASSWORD_CHARS[random.nextInt(PASSWORD_CHARS.length)]) }
+        }.toCharArray().also { chars ->
+            for (i in chars.indices.reversed()) {
+                val j = random.nextInt(i + 1)
+                val tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp
+            }
+        }.concatToString()
+    }
 
     suspend fun reissue(session: AdminSession, invite: TeamInvite): TeamInviteSecret = withContext(Dispatchers.IO) {
         require(TeamInvitePolicy.canManage(session)) { "Team invites require an Admin or Manager session." }
@@ -133,6 +192,6 @@ internal object TeamInviteApi {
 
     private fun message(body: String, fallback: String): String = runCatching {
         val json = JSONObject(body)
-        json.optString("message").ifBlank { json.optString("details") }.ifBlank { json.optString("hint") }.ifBlank { fallback }
+        json.optString("error").ifBlank { json.optString("message") }.ifBlank { json.optString("details") }.ifBlank { json.optString("hint") }.ifBlank { fallback }
     }.getOrDefault(fallback)
 }
