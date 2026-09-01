@@ -35,6 +35,7 @@ object ChromebookSelectionCatalog {
         "MediaTek Kompanio 500",
         "MediaTek Kompanio 520",
         "MediaTek Kompanio 528",
+        "MediaTek Kompanio 540",
         "MediaTek Kompanio 828",
         "MediaTek Kompanio Ultra 910",
         "Qualcomm Snapdragon 7c Gen 2"
