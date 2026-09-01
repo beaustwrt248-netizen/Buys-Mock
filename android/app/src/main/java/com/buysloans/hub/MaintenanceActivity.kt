@@ -82,10 +82,10 @@ private fun MaintenanceScreen(
     onRetry: () -> Unit,
     onSignOut: () -> Unit
 ) {
-    val bg = Color(0xFF030712)
-    val card = Color(0xFF0B1528)
-    val accent = Color(0xFF16C7FF)
-    MaterialTheme(colorScheme = darkColorScheme(primary = accent, background = bg, surface = card)) {
+    val bg = Color(0xFFF5F7F4)
+    val card = Color(0xFFEEF4F0)
+    val accent = Color(0xFF167A5A)
+    MaterialTheme(colorScheme = lightColorScheme(primary = accent, background = bg, surface = card)) {
         Surface(color = bg, modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(28.dp),

@@ -31,11 +31,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val MFAccent = Color(0xFF16C7FF)
-private val MFStrong = Color(0xFF2684FF)
-private val MFBg = Color(0xFF030712)
-private val MFCard = Color(0xFF0B1528)
-private val MFMuted = Color(0xFF8EA6C4)
+private val MFAccent = Color(0xFF167A5A)
+private val MFStrong = Color(0xFF0F684C)
+private val MFBg = Color(0xFFF5F7F4)
+private val MFCard = Color(0xFFEEF4F0)
+private val MFMuted = Color(0xFF52645D)
 
 class MenuFeatureActivity : ComponentActivity() {
     companion object { const val EXTRA_FEATURE = "feature" }
@@ -90,7 +90,7 @@ class MenuFeatureActivity : ComponentActivity() {
         val feature = intent.getStringExtra(EXTRA_FEATURE).orEmpty()
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
+                colorScheme = lightColorScheme(
                     primary = MFAccent,
                     secondary = MFStrong,
                     background = MFBg,

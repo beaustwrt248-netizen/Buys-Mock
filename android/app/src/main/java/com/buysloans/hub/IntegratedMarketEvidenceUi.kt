@@ -26,15 +26,15 @@ private fun integratedMoney(value: Double): String = NumberFormat.getCurrencyIns
 @Composable
 fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean = false) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF07172C)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
         border = BorderStroke(1.dp, Color(0xFF235A91)),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("MARKET EVIDENCE", color = Color(0xFF12C9FF), fontWeight = FontWeight.Black, fontSize = 11.sp)
+            Text("MARKET EVIDENCE", color = Color(0xFF77E9C4), fontWeight = FontWeight.Black, fontSize = 11.sp)
             if (loading) {
-                Text("Checking Australian market sources…", color = Color(0xFF8FA6C6))
+                Text("Checking Australian market sources…", color = MorleyTextMuted)
             } else {
                 val protectedReady = value.usedValue > 0.0 && value.confidence in setOf("MEDIUM", "HIGH")
                 Text(
@@ -54,7 +54,7 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
                 value.sources.forEach { source ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(source.source, color = Color(0xFFDCE9FF), fontWeight = FontWeight.SemiBold)
-                        Text("${integratedMoney(source.value)}  •  n=${source.sampleSize}", color = Color(0xFF8FA6C6))
+                        Text("${integratedMoney(source.value)}  •  n=${source.sampleSize}", color = MorleyTextMuted)
                     }
                 }
                 if (value.excludedSources.isNotEmpty()) {
@@ -63,7 +63,7 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
                 val confidenceColor = when (value.confidence) {
                     "HIGH", "MEDIUM" -> Color(0xFF25D991)
                     "LOW" -> Color(0xFFFFC266)
-                    else -> Color(0xFF8FA6C6)
+                    else -> MorleyTextMuted
                 }
                 Text("Confidence: ${value.confidence}", color = confidenceColor, fontWeight = FontWeight.Bold)
             }
@@ -75,7 +75,7 @@ fun IntegratedMarketEvidencePanel(value: IntegratedMarketValue, loading: Boolean
     val facebookExact = evidence.facebook.filter { it.exact }
     if (gumtreeExact.isNotEmpty() || facebookExact.isNotEmpty()) {
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF061327)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
             border = BorderStroke(1.dp, Color(0xFF143A63)),
             shape = RoundedCornerShape(20.dp),
             modifier = Modifier.fillMaxWidth()

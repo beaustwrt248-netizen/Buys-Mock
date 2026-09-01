@@ -21,12 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
-private val SupportBg = Color(0xFF030712)
-private val SupportCard = Color(0xFF0B1528)
-private val SupportAccent = Color(0xFF16C7FF)
-private val SupportMuted = Color(0xFF8EA6C4)
-private val SupportGood = Color(0xFF57E389)
-private val SupportWarn = Color(0xFFFFC857)
+private val SupportBg = Color(0xFFF5F7F4)
+private val SupportCard = Color(0xFFEEF4F0)
+private val SupportAccent = Color(0xFF167A5A)
+private val SupportMuted = Color(0xFF52645D)
+private val SupportGood = Color(0xFF238A63)
+private val SupportWarn = Color(0xFFA86A12)
 
 class SupportTicketActivity : ComponentActivity() {
     private var attachmentUri by mutableStateOf<Uri?>(null)
@@ -41,7 +41,7 @@ class SupportTicketActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
+                colorScheme = lightColorScheme(
                     primary = SupportAccent,
                     background = SupportBg,
                     surface = SupportCard
@@ -336,7 +336,7 @@ class SupportTicketActivity : ComponentActivity() {
                     }
                 }
                 Text("${SupportTicketLogic.statusLabel(ticket.status)} • ${ticket.category.replaceFirstChar { it.uppercase() }}", color = if (ticket.status == "waiting_on_user") SupportWarn else SupportMuted, fontSize = 12.sp)
-                Text(ticket.description, color = Color.LightGray, fontSize = 12.sp, maxLines = 2)
+                Text(ticket.description, color = MorleyTextSecondary, fontSize = 12.sp, maxLines = 2)
                 Text("Updated ${prettyTime(ticket.updatedAt)}", color = SupportMuted, fontSize = 10.sp)
             }
         }

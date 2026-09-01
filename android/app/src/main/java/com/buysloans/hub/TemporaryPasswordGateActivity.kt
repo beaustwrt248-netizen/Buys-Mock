@@ -19,7 +19,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,9 +42,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-private val TempPasswordBg = Color(0xFF030712)
-private val TempPasswordAccent = Color(0xFF2F7CFF)
-private val TempPasswordMuted = Color(0xFFA7BAD3)
+private val TempPasswordBg = Color(0xFFF5F7F4)
+private val TempPasswordAccent = Color(0xFF167A5A)
+private val TempPasswordMuted = MorleyTextSecondary
 
 internal fun temporaryPasswordRequired(userJson: String): Boolean = runCatching {
     JSONObject(userJson).optJSONObject("user_metadata")?.optBoolean("must_change_password", false) == true
@@ -54,7 +54,7 @@ class TemporaryPasswordGateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = TempPasswordAccent, background = TempPasswordBg)) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = TempPasswordAccent, background = TempPasswordBg)) {
                 Surface(Modifier.fillMaxSize(), color = TempPasswordBg) {
                     TemporaryPasswordGate(
                         onContinue = {

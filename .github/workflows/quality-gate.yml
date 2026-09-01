@@ -62,7 +62,7 @@ jobs:
             node --check "$file"
           done
 
-      - name: Verify Android cyber palette transform with Morley emerald contract
+      - name: Verify Android light palette transform with Morley emerald contract
         shell: bash
         run: |
           set -euo pipefail
@@ -72,10 +72,11 @@ jobs:
             echo 'Retired Android gold/blue/cyan token remains after Morley palette transform'
             exit 1
           fi
-          grep -q '0xFF38D6A3' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q '0xFF080B0D' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q '0xFF101619' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q '0xFFF4F7F6' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF167A5A' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFFF5F7F4' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFFFFFFFF' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF1C2B26' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q 'lightColorScheme' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q 'Computer Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'Console Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
@@ -160,6 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'reference-theme.css' index.html
+          grep -q 'morley-light-web.css' index.html
           grep -q 'no-gold.css' index.html
           grep -q 'web-auth.js' index.html
           grep -q 'signed-in-user.js' index.html

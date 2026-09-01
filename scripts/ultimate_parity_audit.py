@@ -45,11 +45,14 @@ require(dashboard, "Page.Laptop->ComputerPricingScreen()", "combined Computer Pr
 require(dashboard, "Page.Desktop->ConsolePricingScreen()", "separate Console Pricing route")
 require(dashboard, "MorleyIcons.Console", "Console vector icon")
 
-# Morley emerald/graphite theme contract across native and web surfaces.
-for token in ("0xFF080B0D", "0xFF101619", "0xFF38D6A3", "0xFFF4F7F6", "0xFF2B4540"):
+# Morley light/emerald theme contract across native and web surfaces.
+for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):
     require(android_theme, token, "Android Morley theme token")
-for token in ("#080b0d", "#101619", "#38d6a3", "#f4f7f6"):
-    if token.lower() not in (web_css + web_parity).lower():
+require(android_theme, "lightColorScheme", "Android light color scheme")
+web_light = read("morley-light-web.css")
+require(index, "morley-light-web.css?v=1", "web light theme layer")
+for token in ("#f5f7f4", "#ffffff", "#167a5a", "#1c2b26", "#cedbd5"):
+    if token.lower() not in web_light.lower():
         errors.append(f"Web Morley theme token missing: {token}")
 for retired in ("0xFF16C7FF", "0xFF2684FF", "0xFF030712", "0xFF0B1528"):
     forbid(android_help, retired, "Help-only blue/cyan theme token")

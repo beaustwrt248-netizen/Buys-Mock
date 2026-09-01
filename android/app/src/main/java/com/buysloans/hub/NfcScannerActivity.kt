@@ -24,12 +24,12 @@ import androidx.compose.ui.unit.sp
 import java.text.DateFormat
 import java.util.Date
 
-private val NfcBg = Color(0xFF030712)
-private val NfcCard = Color(0xFF0B1528)
-private val NfcAccent = Color(0xFF16C7FF)
-private val NfcMuted = Color(0xFF8EA6C4)
-private val NfcGood = Color(0xFF57E389)
-private val NfcWarn = Color(0xFFFFC857)
+private val NfcBg = Color(0xFFF5F7F4)
+private val NfcCard = Color(0xFFEEF4F0)
+private val NfcAccent = Color(0xFF167A5A)
+private val NfcMuted = Color(0xFF52645D)
+private val NfcGood = Color(0xFF238A63)
+private val NfcWarn = Color(0xFFA86A12)
 
 internal data class RecentNfcScan(
     val tagId: String,
@@ -52,7 +52,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         adapter = NfcAdapter.getDefaultAdapter(this)
         refreshCapability()
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = NfcAccent, background = NfcBg, surface = NfcCard)) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = NfcAccent, background = NfcBg, surface = NfcCard)) {
                 NfcScannerScreen()
             }
         }
@@ -188,7 +188,7 @@ class NfcScannerActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         val colour = when (capability) {
             NfcCapability.READY -> NfcGood
             NfcCapability.DISABLED -> NfcWarn
-            NfcCapability.UNAVAILABLE -> Color(0xFFFF6B7A)
+            NfcCapability.UNAVAILABLE -> Color(0xFFC74755)
         }
         Surface(
             color = NfcCard,

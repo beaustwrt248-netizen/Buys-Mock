@@ -41,10 +41,10 @@ import androidx.lifecycle.lifecycleScope
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
-private val AuthAccent=Color(0xFF12C9FF)
-private val AuthPrimary=Color(0xFF2F7CFF)
-private val AuthBg=Color(0xFF030712)
-private val AuthCard=Color(0xFF07172C)
+private val AuthAccent=Color(0xFF77E9C4)
+private val AuthPrimary=Color(0xFF167A5A)
+private val AuthBg=Color(0xFFF5F7F4)
+private val AuthCard=Color(0xFFFFFFFF)
 private const val TURNSTILE_PAGE="https://buyshub.me/admin/turnstile.html"
 private const val LOGIN_VIDEO_RESOURCE="morley_buys_login_bg_app"
 private const val LOGIN_PREFS="morley_login_preferences"
@@ -77,7 +77,7 @@ class AuthActivity:ComponentActivity(){
  private fun registerDevice(){FirebaseMessaging.getInstance().token.addOnSuccessListener{DeviceRegistrar.register(this,it)}}
 }
 
-@Composable private fun SessionCheckScreen(){MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){Surface(color=AuthBg,modifier=Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(28.dp),verticalArrangement=Arrangement.Center){CircularProgressIndicator(color=AuthAccent);Spacer(Modifier.height(18.dp));Text("B&L Morley",fontSize=30.sp,fontWeight=FontWeight.Black);Spacer(Modifier.height(6.dp));Text("Verifying your secure session…",color=Color(0xFFA7BAD3))}}}}
+@Composable private fun SessionCheckScreen(){MaterialTheme(colorScheme=lightColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){Surface(color=AuthBg,modifier=Modifier.fillMaxSize()){Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(28.dp),verticalArrangement=Arrangement.Center){CircularProgressIndicator(color=AuthPrimary);Spacer(Modifier.height(18.dp));Text("B&L Morley",fontSize=30.sp,fontWeight=FontWeight.Black);Spacer(Modifier.height(6.dp));Text("Verifying your secure session…",color=MorleyTextSecondary)}}}}
 
 private enum class AuthMode{SIGN_IN,SIGN_UP,RESET}
 
@@ -122,24 +122,24 @@ private class TurnstileBridge(private val onToken:(String)->Unit,private val onE
  val scope=rememberCoroutineScope()
  fun resetCaptcha(){captchaToken="";captchaRefresh++};fun changeMode(next:AuthMode){mode=next;message="";isError=false;resetCaptcha()}
  fun persistRememberChoice(){loginPrefs.edit().apply{putBoolean(PREF_REMEMBER_ME,rememberMe);if(rememberMe)putString(PREF_REMEMBERED_EMAIL,email.trim().lowercase()) else remove(PREF_REMEMBERED_EMAIL)}.apply()}
- MaterialTheme(colorScheme=darkColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){
+ MaterialTheme(colorScheme=lightColorScheme(primary=AuthPrimary,secondary=AuthAccent,background=AuthBg,surface=AuthCard)){
   Box(Modifier.fillMaxSize().background(AuthBg)){
-   LoginVideoBackground();Box(Modifier.fillMaxSize().background(Color(0xFF020611).copy(alpha=0.58f)))
-   Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).background(Color(0xFF030712).copy(alpha=0.06f)).padding(28.dp),verticalArrangement=Arrangement.Center){
-    Text("B&L Morley",fontSize=34.sp,fontWeight=FontWeight.Black,color=Color.White);Spacer(Modifier.height(8.dp))
+   LoginVideoBackground();Box(Modifier.fillMaxSize().background(MorleyBackground.copy(alpha=0.88f)))
+   Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(28.dp),verticalArrangement=Arrangement.Center){
+    Text("B&L Morley",fontSize=34.sp,fontWeight=FontWeight.Black,color=MorleyTextPrimary);Spacer(Modifier.height(8.dp))
     Text(when(mode){AuthMode.SIGN_IN->"Sign in";AuthMode.SIGN_UP->"Private sign up";AuthMode.RESET->"Forgot password"},color=AuthAccent,fontSize=26.sp,fontWeight=FontWeight.Bold)
-    if(mode==AuthMode.SIGN_UP)Text("Invite only — contact an administrator for access.",color=Color(0xFFA7BAD3))
+    if(mode==AuthMode.SIGN_UP)Text("Invite only — contact an administrator for access.",color=MorleyTextSecondary)
     Spacer(Modifier.height(18.dp));OutlinedTextField(email,{email=it},label={Text("Email")},singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Email,imeAction=ImeAction.Next),modifier=Modifier.fillMaxWidth())
     if(mode==AuthMode.SIGN_UP){Spacer(Modifier.height(12.dp));OutlinedTextField(inviteCode,{inviteCode=it.uppercase()},label={Text("Invite code")},singleLine=true,modifier=Modifier.fillMaxWidth())}
     if(mode!=AuthMode.RESET){Spacer(Modifier.height(12.dp));OutlinedTextField(password,{password=it},label={Text("Password")},singleLine=true,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password,imeAction=if(mode==AuthMode.SIGN_IN)ImeAction.Done else ImeAction.Next),modifier=Modifier.fillMaxWidth())}
     if(mode==AuthMode.SIGN_UP){Spacer(Modifier.height(12.dp));OutlinedTextField(confirmPassword,{confirmPassword=it},label={Text("Confirm password")},singleLine=true,visualTransformation=PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password,imeAction=ImeAction.Done),modifier=Modifier.fillMaxWidth())}
-    if(mode==AuthMode.SIGN_IN){Spacer(Modifier.height(8.dp));Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Checkbox(checked=rememberMe,onCheckedChange={rememberMe=it;persistRememberChoice()},colors=CheckboxDefaults.colors(checkedColor=AuthPrimary));Text("Remember me",color=Color.White,fontWeight=FontWeight.SemiBold)}}
+    if(mode==AuthMode.SIGN_IN){Spacer(Modifier.height(8.dp));Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Checkbox(checked=rememberMe,onCheckedChange={rememberMe=it;persistRememberChoice()},colors=CheckboxDefaults.colors(checkedColor=AuthPrimary));Text("Remember me",color=MorleyTextPrimary,fontWeight=FontWeight.SemiBold)}}
     Spacer(Modifier.height(10.dp));TurnstileChallenge(captchaRefresh,{captchaToken=it;message="Security check complete.";isError=false},{captchaToken="";message="Security check expired. Complete it again.";isError=true},{captchaToken="";message="Security check failed. Please retry.";isError=true})
     if(message.isNotBlank()){Spacer(Modifier.height(8.dp));Text(message,color=if(isError)MaterialTheme.colorScheme.error else Color(0xFF25D991))}
     Spacer(Modifier.height(14.dp))
     Button(onClick={busy=true;message="";isError=false;val token=captchaToken;scope.launch{runCatching{when(mode){AuthMode.SIGN_IN->{AuthManager.signIn(context,email,password,token);persistRememberChoice()};AuthMode.SIGN_UP->{require(password==confirmPassword){"Passwords do not match."};AuthManager.signUp(email,password,inviteCode,token)};AuthMode.RESET->AuthManager.sendPasswordReset(email,token)}}.onSuccess{when(mode){AuthMode.SIGN_IN->onSignedIn();AuthMode.SIGN_UP->{message="Account created. You can sign in now.";mode=AuthMode.SIGN_IN;inviteCode="";password="";confirmPassword="";resetCaptcha()};AuthMode.RESET->{message="Password reset email sent. Check your inbox.";mode=AuthMode.SIGN_IN;resetCaptcha()}}}.onFailure{message=it.message?:"Something went wrong.";isError=true;resetCaptcha()};busy=false}},enabled=!busy&&captchaToken.isNotBlank()&&email.isNotBlank()&&(mode==AuthMode.RESET||password.isNotBlank())&&(mode!=AuthMode.SIGN_UP||inviteCode.isNotBlank()),modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=AuthPrimary,contentColor=Color.White)){Text(if(busy)"Please wait…" else when(mode){AuthMode.SIGN_IN->"Sign in";AuthMode.SIGN_UP->"Create authorised account";AuthMode.RESET->"Send reset email"},fontWeight=FontWeight.Black)}
     Spacer(Modifier.height(12.dp));if(mode!=AuthMode.SIGN_IN)TextButton(onClick={changeMode(AuthMode.SIGN_IN)},modifier=Modifier.fillMaxWidth()){Text("Back to sign in")} else{OutlinedButton(onClick={changeMode(AuthMode.SIGN_UP)},modifier=Modifier.fillMaxWidth()){Text("Sign up with invite")};TextButton(onClick={changeMode(AuthMode.RESET)},modifier=Modifier.fillMaxWidth()){Text("Forgot password")}}
-    Spacer(Modifier.height(8.dp));Text("Private B&L Morley system. Access is limited to authorised accounts.",color=Color(0xFF8FA6C6))
+    Spacer(Modifier.height(8.dp));Text("Private B&L Morley system. Access is limited to authorised accounts.",color=MorleyTextMuted)
    }
   }
  }

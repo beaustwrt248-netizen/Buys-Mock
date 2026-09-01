@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import java.util.Locale
 
-private val SourceYellow = Color(0xFFFFD400)
+private val SourceYellow = Color(0xFF167A5A)
 private val SourceCard = Color(0xFF222222)
 
 data class SourceStats(
@@ -153,7 +153,7 @@ private fun SourcePanel(source: SourceStats) {
             Surface(
                 color = Color(0xFF151515),
                 shape = RoundedCornerShape(999.dp),
-                border = BorderStroke(1.dp, if (source.available) Color(0xFF57E389) else Color(0xFF666666))
+                border = BorderStroke(1.dp, if (source.available) Color(0xFF238A63) else Color(0xFF666666))
             ) {
                 Text(
                     if (source.available) "${source.count} verified" else "Unavailable",
@@ -162,9 +162,9 @@ private fun SourcePanel(source: SourceStats) {
                     fontWeight = FontWeight.Bold
                 )
             }
-            Text("ESTIMATED", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("ESTIMATED", color = MorleyTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text(if (source.estimated > 0) sourceMoney(source.estimated) else "—", fontSize = 24.sp, fontWeight = FontWeight.Black)
-            Text("AVERAGE", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("AVERAGE", color = MorleyTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text(if (source.average > 0) sourceMoney(source.average) else "—", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(source.note, color = Color(0xFFBEBEBE), fontSize = 13.sp)
         }

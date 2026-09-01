@@ -101,8 +101,8 @@ else:
 for token in ("0xFFFFD400", "0xFFC99A27", "0xFFDDB347"):
     if token not in palette:
         errors.append(f"Android palette transformer does not account for retired token {token}")
-if "Verify Android cyber palette transform" not in quality_gate:
-    errors.append("Quality gate does not verify the Android cyber palette transform")
+if "Verify Android light palette transform" not in quality_gate:
+    errors.append("Quality gate does not verify the Android light palette transform")
 if "palette-before.sha" not in quality_gate or "palette-after.sha" not in quality_gate:
     errors.append("Quality gate does not verify Android palette transform idempotence")
 if "Verify protected backend endpoints" not in quality_gate:
@@ -193,7 +193,7 @@ if ota_path.exists():
         errors.append(f"Invalid ota/latest.json: {exc}")
 
 index = (ROOT / "index.html").read_text(encoding="utf-8")
-for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "secure-pricing.js", "web-auth.js", "signed-in-user.js", "web-a11y.js"):
+for token in ("reference-theme.css", "premium-motion.css", "no-gold.css", "morley-light-web.css", "secure-pricing.js", "web-auth.js", "signed-in-user.js", "web-a11y.js"):
     if token not in index:
         errors.append(f"index.html does not load required layer: {token}")
 if "cache:'no-store'" not in index and 'cache:"no-store"' not in index:

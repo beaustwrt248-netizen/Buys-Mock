@@ -21,7 +21,7 @@ import java.util.Locale
 
 class ValuationHistoryActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{HistoryScreen{finish()}}}}
 
-private val HistAccent=Color(0xFF16C7FF);private val HistStrong=Color(0xFF2684FF);private val HistBg=Color(0xFF030712);private val HistCard=Color(0xFF0B1528);private val HistMuted=Color(0xFF8EA6C4);private val HistGood=Color(0xFF57E389);private val HistWarn=Color(0xFFFFC857);private val HistBad=Color(0xFFFF6B7A)
+private val HistAccent=Color(0xFF167A5A);private val HistStrong=Color(0xFF0F684C);private val HistBg=Color(0xFFF5F7F4);private val HistCard=Color(0xFFEEF4F0);private val HistMuted=Color(0xFF52645D);private val HistGood=Color(0xFF238A63);private val HistWarn=Color(0xFFA86A12);private val HistBad=Color(0xFFC74755)
 private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyInstance(Locale("en","AU")).apply{maximumFractionDigits=0}.format(v)
 
 @Composable private fun HistoryScreen(onBack:()->Unit){
@@ -30,7 +30,7 @@ private fun moneyHist(v:Double?)=if(v==null)"—" else NumberFormat.getCurrencyI
  fun toggleFavourite(id:String){favourites=if(id in favourites)favourites-id else favourites+id;favouritePrefs.edit().putStringSet("ids",favourites).apply()}
  fun reload(){scope.launch{loading=true;error="";runCatching{ValuationHistoryManager.list(context)}.onSuccess{items=it}.onFailure{error=it.message?:"Could not load history"};loading=false}}
  LaunchedEffect(Unit){reload()};if(showAdd)AddValuationDialog(onDismiss={showAdd=false},onSaved={showAdd=false;reload()})
- MaterialTheme(colorScheme=darkColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=HistCard)){
+ MaterialTheme(colorScheme=lightColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=HistCard)){
   Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("SMART WORKSPACE",color=HistAccent,fontSize=11.sp,fontWeight=FontWeight.Black);Text("Valuations & Deals",fontSize=28.sp,fontWeight=FontWeight.Black)};TextButton(onClick=onBack){Text("Back")}}
    Text("Review recent valuations, identify buy-zone deals and keep important opportunities on your watchlist.",color=HistMuted,lineHeight=20.sp)

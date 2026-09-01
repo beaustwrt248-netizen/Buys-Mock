@@ -14,8 +14,8 @@ def apply(path: Path, replacements: dict[str, str]) -> bool:
     return False
 
 
-# Presentation-only migration. Keep legacy and previous-blue tokens so repeated
-# preBuild execution converges on the current graphite/emerald visual contract.
+# Presentation-only migration. Keep legacy tokens so repeated preBuild execution
+# converges on the current light, welcoming Morley visual contract.
 main_changed = apply(root / 'MainActivity.kt', {
     '0xFFFFD400': '0xFF38D6A3',
     '0xFF2F7CFF': '0xFF38D6A3',
@@ -80,7 +80,7 @@ smart_changed = apply(root / 'SmartWorkspaceSection.kt', {
 
 # Catch older one-off surfaces that pre-date the shared theme. This generic pass
 # is intentionally presentation-only and keeps every Android screen inside the
-# same graphite/emerald family without changing valuation, auth, NFC or data logic.
+# same light/emerald family without changing valuation, auth, NFC or data logic.
 legacy_palette = {
     '0xFFFFD400': '0xFF38D6A3',
     '0xFFC99A27': '0xFF38D6A3',
@@ -105,5 +105,33 @@ legacy_changed = False
 for kotlin_file in root.glob('*.kt'):
     legacy_changed = apply(kotlin_file, legacy_palette) or legacy_changed
 
-changed = main_changed or dashboard_changed or smart_changed or legacy_changed
-print('Applied Morley graphite/emerald visual contract' if changed else 'Morley graphite/emerald visual contract already applied')
+light_palette = {
+    'import androidx.compose.material3.darkColorScheme': 'import androidx.compose.material3.lightColorScheme',
+    'darkColorScheme(': 'lightColorScheme(',
+    '0xFF080B0D': '0xFFF5F7F4',
+    '0xFF101619': '0xFFFFFFFF',
+    '0xFF151D20': '0xFFEEF4F0',
+    '0xFF0C1214': '0xFFE5EFEA',
+    '0xFF173C32': '0xFFD8EFE5',
+    '0xFF38D6A3': '0xFF167A5A',
+    '0xFF1FB887': '0xFF0F684C',
+    '0xFFF4F7F6': '0xFF1C2B26',
+    '0xFFB2C0BC': '0xFF52645D',
+    '0xFF81918C': '0xFF71827B',
+    '0xFF2B4540': '0xFFCEDBD5',
+    '0xFF63E6A6': '0xFF238A63',
+    '0xFFF5C76B': '0xFFA86A12',
+    '0xFFFF7B86': '0xFFC74755',
+    'android.graphics.Color.rgb(8,11,13)': 'android.graphics.Color.rgb(245,247,244)',
+    'Color.LightGray': 'MorleyTextSecondary',
+    'Color.Gray': 'MorleyTextMuted',
+    'Color(0xFFA7BAD3)': 'MorleyTextSecondary',
+    'Color(0xFF8FA6C6)': 'MorleyTextMuted',
+    'Color(0xFFE2E2E2)': 'MorleyTextPrimary',
+}
+light_changed = False
+for kotlin_file in root.glob('*.kt'):
+    light_changed = apply(kotlin_file, light_palette) or light_changed
+
+changed = main_changed or dashboard_changed or smart_changed or legacy_changed or light_changed
+print('Applied Morley light/emerald visual contract' if changed else 'Morley light/emerald visual contract already applied')

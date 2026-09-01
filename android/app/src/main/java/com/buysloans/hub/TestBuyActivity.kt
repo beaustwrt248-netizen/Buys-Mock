@@ -17,13 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val TBAccent = Color(0xFF16C7FF)
-private val TBBg = Color(0xFF030712)
-private val TBCard = Color(0xFF0B1528)
-private val TBMuted = Color(0xFF8EA6C4)
-private val TBGood = Color(0xFF57E389)
-private val TBBad = Color(0xFFFF6B7A)
-private val TBWarn = Color(0xFFFFC857)
+private val TBAccent = Color(0xFF167A5A)
+private val TBBg = Color(0xFFF5F7F4)
+private val TBCard = Color(0xFFEEF4F0)
+private val TBMuted = Color(0xFF52645D)
+private val TBGood = Color(0xFF238A63)
+private val TBBad = Color(0xFFC74755)
+private val TBWarn = Color(0xFFA86A12)
 
 private fun testResultColor(result: TestResult): Color = when (result) {
     TestResult.PASS -> TBGood
@@ -36,7 +36,7 @@ class TestBuyActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = TBAccent, background = TBBg, surface = TBCard)) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = TBAccent, background = TBBg, surface = TBCard)) {
                 TestBuyScreen(onBack = { finish() })
             }
         }
