@@ -44,6 +44,15 @@ function refreshLayout(){
   try{window.dispatchEvent(new CustomEvent('morley-initial-layout-ready'))}catch(_){ }
 }
 
+function loadMobileReadabilityFix(){
+  if(document.querySelector('script[data-morley-mobile-readability]'))return;
+  const script=document.createElement('script');
+  script.src='mobile-readability-fix.js?v=1';
+  script.defer=true;
+  script.dataset.morleyMobileReadability='1';
+  document.head.appendChild(script);
+}
+
 function sync(){
   if(finished)return;
   const requested=explicitRoute();
@@ -54,6 +63,7 @@ function sync(){
 }
 
 function boot(){
+  loadMobileReadabilityFix();
   sync();
   requestAnimationFrame(()=>{sync();requestAnimationFrame(sync)});
   [80,220,500,900].forEach(delay=>setTimeout(sync,delay));
