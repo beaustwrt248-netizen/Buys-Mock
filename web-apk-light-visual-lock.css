@@ -1,0 +1,53 @@
+/* Final screenshot-driven buyshub.me visual lock.
+   Loaded last so legacy cyber/blue selectors cannot override the light Morley component contract. */
+:root{color-scheme:light!important;--web-lock-bg:#f5f7f4;--web-lock-surface:#fff;--web-lock-raised:#eef4f0;--web-lock-line:#cedbd5;--web-lock-text:#1c2b26;--web-lock-muted:#52645d;--web-lock-accent:#167a5a;--web-lock-accent-strong:#0f684c;--web-lock-accent-soft:#d8efe5}
+html,body{background:linear-gradient(180deg,#f8faf7 0%,#f1f6f2 58%,#edf3ef 100%)!important;color:var(--web-lock-text)!important}
+
+/* Header and signed-in identity: match the native light Morley family. */
+body .top{background:rgba(245,247,244,.98)!important;background-image:none!important;color:var(--web-lock-text)!important;border:0!important;border-bottom:1px solid var(--web-lock-line)!important;box-shadow:none!important}
+body .top>b,body .top>strong,body .top h1,body .top h2{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
+body .morley-menu-trigger{background:var(--web-lock-raised)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
+body .morley-web-user{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:#28463a!important;-webkit-text-fill-color:#28463a!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
+
+/* Bottom navigation: native-style white rail with a pale emerald selected state. */
+body>nav{background:rgba(255,255,255,.98)!important;background-image:none!important;border:1px solid var(--web-lock-line)!important;box-shadow:0 -8px 24px rgba(38,72,58,.09)!important}
+body>nav:before{display:none!important}
+body>nav button{background:transparent!important;background-image:none!important;color:#5c6d66!important;-webkit-text-fill-color:#5c6d66!important;border-color:transparent!important;box-shadow:none!important;text-shadow:none!important}
+body>nav button small{color:inherit!important;-webkit-text-fill-color:inherit!important}
+body>nav button.active,body>nav button[data-page].active{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
+
+/* Menu: remove the leftover blue/cyan action-card layer. */
+body #morleyRelevantMore .morley-menu-row{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;border-color:#dce5e0!important;box-shadow:none!important}
+body #morleyRelevantMore .morley-menu-row:hover,body #morleyRelevantMore .morley-menu-row:focus-visible{background:#f2f7f4!important}
+body #morleyRelevantMore .morley-menu-copy b,body #morleyRelevantMore .morley-menu-chevron{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
+body #morleyRelevantMore .morley-menu-copy small{color:var(--web-lock-muted)!important;-webkit-text-fill-color:var(--web-lock-muted)!important}
+body #morleyRelevantMore .morley-menu-icon{background:var(--web-lock-accent-soft)!important;color:var(--web-lock-accent-strong)!important;border-color:#b8d5c8!important}
+body #morleyRelevantMore .morley-menu-signout{background:var(--web-lock-raised)!important;background-image:none!important;color:#28463a!important;border-color:#c4d4cc!important;box-shadow:none!important}
+body #morleyRelevantMore .morley-menu-group h3,body #morleyRelevantMore .morley-menu-head small{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
+
+/* Computer Pricing choices: readable light cards, never dark text on electric blue. */
+body #computer button.parity-choice,body #computer button.parity-choice.primary-choice{background:var(--web-lock-raised)!important;background-image:none!important;color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:0 8px 20px rgba(38,72,58,.07)!important;text-shadow:none!important}
+body #computer button.parity-choice:hover,body #computer button.parity-choice:focus-visible{background:#e5f1eb!important;border-color:#9fcbb8!important}
+body #computer button.parity-choice span{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
+body #computer button.parity-choice b{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
+body #computer button.parity-choice small{color:var(--web-lock-muted)!important;-webkit-text-fill-color:var(--web-lock-muted)!important}
+
+/* Console controls and supported-console rows: one light, high-contrast state system. */
+body #console .console-grade-row button{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:none!important;text-shadow:none!important}
+body #console .console-grade-row button.active{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border-color:#9ed1bb!important}
+body #console button.console-row{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:none!important;text-shadow:none!important}
+body #console button.console-row:hover,body #console button.console-row:focus-visible{background:#f2f7f4!important;border-color:#a9cfc0!important}
+body #console button.console-row span{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
+body #console button.console-row b{color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important}
+
+/* General Buys / GP: keep the native light form appearance and readable selected value. */
+body #general select#gpTarget{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid #b9cac2!important;box-shadow:none!important;color-scheme:light!important}
+body #general select#gpTarget option{background:#fff!important;color:var(--web-lock-text)!important}
+body #general .stats>div{background:var(--web-lock-surface)!important;color:var(--web-lock-text)!important;border-color:var(--web-lock-line)!important}
+body #general .stats b{color:#17372d!important;-webkit-text-fill-color:#17372d!important}
+body #general #gpMargin{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
+
+/* Preserve the already-correct green workspace actions while preventing legacy blue bleed. */
+body .morley-workspace-action,body .morley-native-action{background:var(--web-lock-accent)!important;background-image:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+
+@media(max-width:760px){body .top{padding-left:10px!important;padding-right:10px!important}body #computer button.parity-choice{min-height:132px!important}body #console button.console-row{min-height:48px!important}}
