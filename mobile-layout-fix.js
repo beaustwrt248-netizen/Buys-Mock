@@ -13,18 +13,17 @@ function mobileNav(){
   if(!isMobile()) return;
   const nav=$('nav');
   if(!nav) return;
-  const signature='home|computer|console|general';
+  const signature='home|laptop|desktop|general';
   const current=$$('button[data-page]',nav).map(b=>b.dataset.page).join('|');
   if(current!==signature && !writingNav){
     writingNav=true;
-    nav.innerHTML='<button data-page="home" class="active" type="button">⌂<small>Home</small></button><button data-page="computer" type="button">▱<small>Computer</small></button><button data-page="console" type="button">◫<small>Console</small></button><button data-page="general" type="button">$<small>GP</small></button>';
+    nav.innerHTML='<button data-page="home" class="active" type="button">⌂<small>Home</small></button><button data-page="laptop" type="button">▱<small>Laptop</small></button><button data-page="desktop" type="button">▦<small>Desktop</small></button><button data-page="general" type="button">$<small>GP</small></button>';
     $$('button[data-page]',nav).forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
-    nav.dataset.morleyMobileNav='v3';
+    nav.dataset.morleyMobileNav='v4';
     writingNav=false;
   }
   const active=$('.section.active')?.id||'home';
-  const mapped=(active==='laptop'||active==='desktop')?'computer':active;
-  $$('button[data-page]',nav).forEach(b=>b.classList.toggle('active',b.dataset.page===mapped));
+  $$('button[data-page]',nav).forEach(b=>b.classList.toggle('active',b.dataset.page===active));
 }
 
 function overlayState(){

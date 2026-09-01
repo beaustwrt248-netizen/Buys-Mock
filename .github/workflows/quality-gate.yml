@@ -51,6 +51,7 @@ jobs:
             premium-motion.js \
             web-a11y.js \
             ultimate-parity.js \
+            product-parity-v3.js \
             admin/app.js \
             admin/guardian.js \
             admin/guardian-health.js \
@@ -75,8 +76,15 @@ jobs:
           grep -q '0xFF080B0D' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q '0xFF101619' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q '0xFFF4F7F6' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q 'Computer Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'Console Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Laptop / MacBook' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Desktop / Gaming PC' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Page.Laptop->LaptopGuidedScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Page.Desktop->Desktop()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          if grep -q 'Page.Desktop->ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt; then
+            echo 'Legacy Console Pricing primary route remains in DashboardActivity'
+            exit 1
+          fi
           grep -q 'AuthManager.validAccessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
           grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
@@ -162,3 +170,4 @@ jobs:
           grep -q 'web-a11y.js' index.html
           grep -q 'quick-deal-grade.js' index.html
           grep -q 'ultimate-parity.js' index.html
+          grep -q 'product-parity-v3.js' index.html

@@ -23,9 +23,11 @@ build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
 admin_build = need('android/adminapp/build.gradle', "versionCode 19", "versionName '0.1.18'", 'applyAdminMorleyPalette')
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
-    'Computer Pricing',
-    'Console Pricing',
-    'General buys & GP',
+    'Laptop / MacBook',
+    'Desktop / Gaming PC',
+    'General Buys / GP',
+    'Page.Laptop->LaptopGuidedScreen()',
+    'Page.Desktop->Desktop()',
     'Admin mode',
     'consumeWindowInsets',
 )
@@ -57,7 +59,7 @@ need(
     'grid-template-columns:repeat(4,minmax(0,1fr))',
     '.modal.open,.morley-menu-dialog.open,.msw-dialog.open',
 )
-need('mobile-layout-fix.js', "home|computer|console|general", 'morley-mobile-overlay-active')
+need('mobile-layout-fix.js', "home|laptop|desktop|general", 'morley-mobile-overlay-active')
 need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
 need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC')
@@ -95,8 +97,8 @@ for bad in ('TODO', 'FIXME', 'HACK'):
             if bad in file.read_text(encoding='utf-8'):
                 errors.append(f'{file.relative_to(ROOT)}: contains {bad}')
 
-if 'Page.Laptop->ComputerPricingScreen()' not in dashboard or 'Page.Desktop->ConsolePricingScreen()' not in dashboard:
-    errors.append('DashboardActivity.kt: primary pricing routes drifted')
+if 'Page.Laptop->ComputerPricingScreen()' in dashboard or 'Page.Desktop->ConsolePricingScreen()' in dashboard:
+    errors.append('DashboardActivity.kt: legacy primary pricing routes remain')
 
 if errors:
     raise SystemExit('\n'.join(errors))

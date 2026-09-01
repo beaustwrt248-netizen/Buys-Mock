@@ -21,6 +21,8 @@ def forbid(text, needle, label):
 
 index = read("index.html")
 web_parity = read("ultimate-parity.js")
+web_product_parity = read("product-parity-v3.js")
+web_mobile_nav = read("mobile-layout-fix.js")
 web_css = read("morley-app-parity-v2.css")
 android_theme = read("android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt")
 android_help = read("android/app/src/main/java/com/buysloans/hub/HelpGuideActivity.kt")
@@ -34,13 +36,24 @@ guardian_health = read("admin/guardian-health.js")
 menu_js = read("more-menu-v2.js")
 
 # Shared product navigation and help terminology.
-for label in ("Computer Pricing", "Console Pricing", "General buys & GP"):
+for label in ("Laptop / MacBook", "Desktop / Gaming PC", "General Buys / GP"):
     require(dashboard, label, "Android primary navigation")
-for label in ("Computer Pricing", "Console Pricing", "General Buys & GP", "NFC", "Valuation"):
+for route in ("Page.Laptop->LaptopGuidedScreen()", "Page.Desktop->Desktop()"):
+    require(dashboard, route, "Android primary pricing route")
+for retired in ("Page.Laptop->ComputerPricingScreen()", "Page.Desktop->ConsolePricingScreen()"):
+    forbid(dashboard, retired, "Android legacy primary pricing route")
+for label in ("Laptop / MacBook", "Desktop / Gaming PC", "General Buys / GP", "NFC", "Valuation"):
     require(android_help, label, "Android Help/FAQ content")
-for label in ("Computer Pricing", "Console Pricing", "General Buys & GP", "NFC", "Valuation"):
+for label in ("Laptop / MacBook", "Desktop / Gaming PC", "General Buys / GP", "NFC", "Valuation"):
     require(web_parity, label, "web Help/FAQ content")
+for signature in ("home|laptop|desktop|general",):
+    require(web_product_parity, signature, "web product navigation signature")
+    require(web_mobile_nav, signature, "web mobile navigation signature")
+for retired in ("home|computer|console|general",):
+    forbid(web_product_parity, retired, "web legacy product navigation signature")
+    forbid(web_mobile_nav, retired, "web legacy mobile navigation signature")
 require(index, "ultimate-parity.js?v=1", "web parity bootstrap")
+require(index, "product-parity-v3.js?v=1", "web product parity bootstrap")
 
 # Morley emerald/graphite theme contract across native and web surfaces.
 for token in ("0xFF080B0D", "0xFF101619", "0xFF38D6A3", "0xFFF4F7F6", "0xFF2B4540"):
@@ -74,6 +87,8 @@ for path in (
 
 # Icon/menu loading contract.
 require(dashboard, "NavigationBarItem", "Android bottom navigation")
+require(dashboard, "MorleyIcons.Laptop", "Android Laptop vector icon")
+require(dashboard, "MorleyIcons.Computer", "Android Desktop vector icon")
 read("android/app/src/main/java/com/buysloans/hub/MorleyIcons.kt")
 for path in (
     "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
@@ -106,4 +121,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: navigation, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
+print("Ultimate parity audit passed: Laptop/Desktop navigation, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
