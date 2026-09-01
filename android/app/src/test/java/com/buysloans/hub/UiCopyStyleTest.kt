@@ -122,4 +122,16 @@ class UiCopyStyleTest {
             menu.split(accessibleContrast).size - 1 >= 2
         )
     }
+
+    @Test fun notificationBodiesRemainReadableOnLightCards() {
+        val notifications = sourceFile("NotificationCentreActivity.kt")
+        assertFalse(
+            "Low-contrast white Notification Centre body text returned",
+            notifications.contains("if (item.body.isNotBlank()) Text(item.body, color = Color.White)")
+        )
+        assertTrue(
+            "Notification Centre body text must use canonical dark text",
+            notifications.contains("if (item.body.isNotBlank()) Text(item.body, color = MorleyTextPrimary)")
+        )
+    }
 }
