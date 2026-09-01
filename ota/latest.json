@@ -1,7 +1,7 @@
 {
-  "versionCode": 74,
-  "versionName": "2.15.29",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.29/B-and-L-Morley-2.15.29.apk",
-  "sha256": "a32961cd1c3173020f01e0581440f5d8fe7acb352ae3fd4207c0c46c662b7545",
-  "notes": "Merge pull request #461 from beaustwrt248-netizen/fix/test-buy-chip-contrast"
+  "versionCode": 75,
+  "versionName": "2.15.30",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.30/B-and-L-Morley-2.15.30.apk",
+  "sha256": "a1dca6b9fbba5551650964122fe5cf5d7c26b702dfb40fcdf9a28d02659682bc",
+  "notes": "Merge pull request #466 from beaustwrt248-netizen/fix/menu-primary-button-contrast"
 }
