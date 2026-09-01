@@ -20,7 +20,7 @@ def semver(value: str):
 
 
 build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
-admin_build = need('android/adminapp/build.gradle', "versionCode 18", "versionName '0.1.17'", 'applyAdminMorleyPalette')
+admin_build = need('android/adminapp/build.gradle', "versionCode 19", "versionName '0.1.18'", 'applyAdminMorleyPalette')
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
     'Laptop / MacBook',

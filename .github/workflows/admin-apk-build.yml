@@ -253,7 +253,28 @@ jobs:
 
           gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
-          sleep 5
+
+          # GitHub can take several seconds to attach required checks to a freshly-created PR.
+          # Treat that registration lag as pending rather than a hard release failure.
+          checks_seen=false
+          for attempt in $(seq 1 18); do
+            if gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required >/tmp/required-checks.txt 2>/tmp/required-checks.err; then
+              checks_seen=true
+              break
+            fi
+            if grep -q "no checks reported" /tmp/required-checks.err; then
+              echo "Required checks not registered yet (attempt $attempt/18); retrying in 10s."
+              sleep 10
+              continue
+            fi
+            cat /tmp/required-checks.err >&2
+            exit 1
+          done
+          if [ "$checks_seen" != true ]; then
+            echo 'Required checks did not register within 3 minutes.' >&2
+            exit 1
+          fi
+
           gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required --watch --interval 10
           gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
 
