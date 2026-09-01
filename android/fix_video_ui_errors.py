@@ -30,6 +30,13 @@ for name in ('MenuFeatureActivity.kt', 'NotificationCentreActivity.kt'):
         'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary)',
     })
 
+# FVP-005: keep every GP grade label readable in both interaction states.
+# Selected uses white on emerald; unselected uses dark text on the white card.
+replace(root / 'MainActivity.kt', {
+    'contentColor=if(grade==g)Color(0xFF06251B) else Color.White':
+        'contentColor=if(grade==g)Color.White else MorleyTextPrimary',
+})
+
 # Installed update notices must never continue presenting themselves as available
 # updates. Preserve non-update history and future update notices.
 store = root / 'NotificationInboxStore.kt'
@@ -39,4 +46,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI and stale-update corrections')
+print('Applied video-review UI, GP contrast and stale-update corrections')
