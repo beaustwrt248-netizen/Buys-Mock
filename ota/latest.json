@@ -1,7 +1,7 @@
 {
-  "versionCode": 62,
-  "versionName": "2.15.17",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.17/B-and-L-Morley-2.15.17.apk",
-  "sha256": "27579ca89165616e70a629c4faac4a6f19ae5f8f3426e504f6d1c3e280e30bcc",
-  "notes": "Fix Morley video UI category and navigation defects"
+  "versionCode": 63,
+  "versionName": "2.15.18",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.18/B-and-L-Morley-2.15.18.apk",
+  "sha256": "a30fc731eafcf80301b188b08b6aea818167cdbb2ffb17ebc6088620fb7b97b9",
+  "notes": "Merge pull request #388 from beaustwrt248-netizen/fix/restore-computer-console-structure"
 }
