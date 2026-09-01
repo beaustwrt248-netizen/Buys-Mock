@@ -1,7 +1,7 @@
 {
-  "versionCode": 68,
-  "versionName": "2.15.23",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.23/B-and-L-Morley-2.15.23.apk",
-  "sha256": "86dc74c76077cd9aecabe5366139a9316286d38d62e1ca0c37736dd4e0dc4d70",
-  "notes": "Add verified laptop configuration selection and fix contrast (#438)"
+  "versionCode": 69,
+  "versionName": "2.15.24",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.24/B-and-L-Morley-2.15.24.apk",
+  "sha256": "64f42ecc6d90900be5f031c9b891df6cd8da7ba51f89b1432ed46bc1fcc0a6f4",
+  "notes": "Use Brave-first market search for Morley laptop analysis (#441)"
 }
