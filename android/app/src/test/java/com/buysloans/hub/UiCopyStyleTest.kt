@@ -111,4 +111,15 @@ class UiCopyStyleTest {
             testBuy.contains("selectedLabelColor = Color(0xFF1C2B26)")
         )
     }
+
+    @Test fun menuPrimaryActionsRemainReadableOnStrongEmerald() {
+        val menu = sourceFile("MenuFeatureActivity.kt")
+        val lowContrast = "ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary)"
+        val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)"
+        assertFalse("Low-contrast Menu primary action returned", menu.contains(lowContrast))
+        assertTrue(
+            "Inventory and scanner primary actions must use white on strong emerald",
+            menu.split(accessibleContrast).size - 1 >= 2
+        )
+    }
 }
