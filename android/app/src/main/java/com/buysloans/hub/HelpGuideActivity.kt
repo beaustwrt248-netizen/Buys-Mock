@@ -48,7 +48,7 @@ private fun HelpGuideScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("B&L Morley guide", fontSize = 28.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
-            Text("The same buying, valuation, Console Pricing and support workflow used across the Morley app and buyshub.me.", color = MorleyTextSecondary, lineHeight = 20.sp)
+            Text("The same buying, valuation, Laptop / MacBook, Desktop / Gaming PC and support workflow used across the Morley app and buyshub.me.", color = MorleyTextSecondary, lineHeight = 20.sp)
             TabRow(selectedTabIndex = tab, containerColor = MorleySurface, contentColor = MorleyAccent) {
                 listOf("How to use", "Features", "FAQ").forEachIndexed { index, label ->
                     Tab(selected = tab == index, onClick = { tab = index }, text = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold) })
@@ -67,8 +67,8 @@ private fun HelpGuideScreen(onBack: () -> Unit) {
 @Composable
 private fun HowToSection() {
     HelpIntro("Quick start", "Choose the correct pricing workflow, identify the item accurately, enter Seller Ask, select the correct grade, review market evidence and use the calculated Max Buy as the protected buying ceiling.")
-    StepCard("1", "Choose the right pricing area", "Computer Pricing contains Laptop / MacBook and Desktop / Gaming PC. Console Pricing covers PS4, PS5, Xbox and Nintendo. General Buys & GP covers other merchandise. Test & Buy adds hardware checks when required.")
-    StepCard("2", "Identify the item cleanly", "Use the clearest model, model code, console variant or hardware specification available. Exact identity improves comparable quality and protects the valuation from unrelated results.")
+    StepCard("1", "Choose the right pricing area", "Laptop / MacBook is the guided exact-model workflow. Desktop / Gaming PC is the component-based computer workflow. General Buys / GP covers consoles and other merchandise. Test & Buy adds hardware checks when required.")
+    StepCard("2", "Identify the item cleanly", "Use the clearest model, model code, variant or hardware specification available. Exact identity improves comparable quality and protects the valuation from unrelated results.")
     StepCard("3", "Enter Seller Ask", "Seller Ask is the amount requested by the seller. It stays user-entered and must never be invented by the app.")
     StepCard("4", "Select the correct grade", "A targets 30% GP, B 50%, C 70%, and Luxury 30%. Grade changes Max Buy, so confirm it before making a decision.")
     StepCard("5", "Review valuation evidence", "Exact matches carry the most weight. Similar/spec matches are supporting evidence. Review confidence, comparable titles and source quality before relying on the result.")
@@ -80,13 +80,13 @@ private fun HowToSection() {
 
 @Composable
 private fun FeatureBreakdown() {
-    FeatureCard("Computer Pricing", "One top-level computer workflow with Laptop / MacBook and Desktop / Gaming PC paths, live Australian evidence and grade-driven buying targets.")
-    FeatureCard("Console Pricing", "PS4, PS5, Xbox and Nintendo pricing with the same protected A/B/C grade logic used across Morley.")
+    FeatureCard("Laptop / MacBook", "Guided exact-model laptop and MacBook pricing with live Australian evidence and grade-driven buying targets.")
+    FeatureCard("Desktop / Gaming PC", "Desktop and gaming PC component-based valuation with live pricing and protected buying targets.")
     FeatureCard("Quick Deal", "Fast item, Seller Ask, market value and grade capture with automatic Max Buy and deal guidance.")
     FeatureCard("Test & Buy", "Category-specific hardware checks, recorded faults, NFC evidence boundaries and valuation guidance before purchase.")
     FeatureCard("Valuation engine", "Combines model resolution, comparable quality, confidence, condition/risk controls and protected target-margin rules. When trustworthy evidence is insufficient, Morley should say so rather than invent a value.")
     FeatureCard("NFC scanner", "Detects NFC availability, reads supported NDEF text/URI payloads, captures tag IDs and prevents accidental rapid duplicate reads.")
-    FeatureCard("General Buys & GP", "Calculates maximum buy from expected sale price using A 30%, B 50%, C 70% or Luxury 30% GP targets.")
+    FeatureCard("General Buys / GP", "Calculates maximum buy for consoles and other merchandise from expected sale price using A 30%, B 50%, C 70% or Luxury 30% GP targets.")
     FeatureCard("Valuations & Deals", "Stores useful valuation results and saved opportunities for later review.")
     FeatureCard("Inventory", "Tracks stock quantity, barcode/serial, cost, expected resale and potential profit.")
     FeatureCard("Sales History", "Records completed sales and realised gross profit.")
@@ -98,8 +98,8 @@ private fun FeatureBreakdown() {
 @Composable
 private fun FaqSection() {
     FaqCard("Why do the app and website look the same?", "Morley is one product across Android and buyshub.me. Shared navigation, colours, wording, pricing workflows and supported business rules are kept in parity; only platform-specific capabilities such as Android NFC or APK installation differ.")
-    FaqCard("Where did Laptop and Desktop go?", "They are inside Computer Pricing. Laptop / MacBook and Desktop / Gaming PC are sub-workflows rather than separate top-level product categories.")
-    FaqCard("Where is Console Pricing?", "Console Pricing is a primary Morley workflow for PS4, PS5, Xbox and Nintendo pricing.")
+    FaqCard("Where are Laptop and Desktop?", "Laptop / MacBook and Desktop / Gaming PC are separate primary pricing areas so you can go directly to the correct valuation workflow.")
+    FaqCard("Where do I price consoles?", "Use General Buys / GP and apply the appropriate item grade and buying target for the console.")
     FaqCard("What do A, B, C and Luxury mean?", "They are target gross-profit rules: A 30%, B 50%, C 70% and Luxury 30%. The selected grade controls Max Buy.")
     FaqCard("How is Max Buy calculated?", "Morley uses market or expected sale value × (1 − target GP). A/Luxury use 70% of value, B 50% and C 30%.")
     FaqCard("What is Seller Ask?", "Seller Ask is the price the seller actually wants. It is entered by the user and compared with Max Buy; Morley must not invent it.")
