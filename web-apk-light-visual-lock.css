@@ -1,22 +1,22 @@
 /* Final screenshot-driven buyshub.me visual lock.
-   Loaded last so legacy cyber/blue selectors cannot override the light Morley component contract. */
+   Loaded last so retired theme selectors cannot override the light Morley component contract. */
 :root{color-scheme:light!important;--web-lock-bg:#f5f7f4;--web-lock-surface:#fff;--web-lock-raised:#eef4f0;--web-lock-line:#cedbd5;--web-lock-text:#1c2b26;--web-lock-muted:#52645d;--web-lock-accent:#167a5a;--web-lock-accent-strong:#0f684c;--web-lock-accent-soft:#d8efe5}
 html,body{background:linear-gradient(180deg,#f8faf7 0%,#f1f6f2 58%,#edf3ef 100%)!important;color:var(--web-lock-text)!important}
 
-/* Header and signed-in identity: match the native light Morley family. */
+/* Header and signed-in identity. */
 body .top{background:rgba(245,247,244,.98)!important;background-image:none!important;color:var(--web-lock-text)!important;border:0!important;border-bottom:1px solid var(--web-lock-line)!important;box-shadow:none!important}
 body .top>b,body .top>strong,body .top h1,body .top h2{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
 body .morley-menu-trigger{background:var(--web-lock-raised)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
 body .morley-web-user{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:#28463a!important;-webkit-text-fill-color:#28463a!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
 
-/* Bottom navigation: force a native light rail over every legacy gradient selector. */
+/* Bottom navigation. */
 html body>nav,html body nav[aria-label="Primary navigation"]{background:rgba(255,255,255,.98)!important;background-image:none!important;border:1px solid var(--web-lock-line)!important;box-shadow:0 -8px 24px rgba(38,72,58,.09)!important}
 html body>nav:before{display:none!important}
 html body>nav button,html body nav[aria-label="Primary navigation"] button{background:transparent!important;background-image:none!important;color:#5c6d66!important;-webkit-text-fill-color:#5c6d66!important;border-color:transparent!important;box-shadow:none!important;text-shadow:none!important}
 html body>nav button small{color:inherit!important;-webkit-text-fill-color:inherit!important}
 html body>nav button.active,html body>nav button[data-page].active,html body nav[aria-label="Primary navigation"] button.active{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border:1px solid #b8d5c8!important;box-shadow:none!important}
 
-/* Menu: remove the leftover blue/cyan action-card layer. */
+/* Menu. */
 html body #morleyRelevantMore .morley-menu-card{background:var(--web-lock-surface)!important;background-image:none!important;border-color:#dce5e0!important;box-shadow:0 10px 28px rgba(26,72,56,.08)!important}
 html body #morleyRelevantMore .morley-menu-row{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;border-color:#dce5e0!important;box-shadow:none!important}
 html body #morleyRelevantMore .morley-menu-row:hover,html body #morleyRelevantMore .morley-menu-row:focus-visible{background:#f2f7f4!important}
@@ -26,14 +26,14 @@ html body #morleyRelevantMore .morley-menu-icon{background:var(--web-lock-accent
 html body #morleyRelevantMore .morley-menu-signout{background:var(--web-lock-raised)!important;background-image:none!important;color:#28463a!important;border-color:#c4d4cc!important;box-shadow:none!important}
 html body #morleyRelevantMore .morley-menu-group h3,html body #morleyRelevantMore .morley-menu-head small{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
 
-/* Computer Pricing choices: readable light cards, never dark text on electric blue. */
+/* Computer Pricing choices. */
 html body #computer button.parity-choice,html body #computer button.parity-choice.primary-choice{background:var(--web-lock-raised)!important;background-image:none!important;color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:0 8px 20px rgba(38,72,58,.07)!important;text-shadow:none!important}
 html body #computer button.parity-choice:hover,html body #computer button.parity-choice:focus-visible{background:#e5f1eb!important;border-color:#9fcbb8!important}
 html body #computer button.parity-choice span{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
 html body #computer button.parity-choice b{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
 html body #computer button.parity-choice small{color:var(--web-lock-muted)!important;-webkit-text-fill-color:var(--web-lock-muted)!important}
 
-/* Console controls and supported-console rows: one light, high-contrast state system. */
+/* Console controls. */
 html body #console .console-grade-row button{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:none!important;text-shadow:none!important}
 html body #console .console-grade-row button.active{background:var(--web-lock-accent-soft)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border-color:#9ed1bb!important}
 html body #console button.console-row{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid var(--web-lock-line)!important;box-shadow:none!important;text-shadow:none!important}
@@ -41,14 +41,41 @@ html body #console button.console-row:hover,html body #console button.console-ro
 html body #console button.console-row span{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
 html body #console button.console-row b{color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important}
 
-/* General Buys / GP: keep the native light form appearance and readable selected value. */
+/* General Buys / GP. */
 html body #general select#gpTarget{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid #b9cac2!important;box-shadow:none!important;color-scheme:light!important}
 html body #general select#gpTarget option{background:#fff!important;color:var(--web-lock-text)!important}
 html body #general .stats>div{background:var(--web-lock-surface)!important;background-image:none!important;color:var(--web-lock-text)!important;border-color:var(--web-lock-line)!important}
 html body #general .stats b{color:#17372d!important;-webkit-text-fill-color:#17372d!important}
 html body #general #gpMargin{color:var(--web-lock-accent)!important;-webkit-text-fill-color:var(--web-lock-accent)!important}
 
-/* Preserve the already-correct green workspace actions while preventing legacy blue bleed. */
+/* Universal sub-category action contract: inventory, scanner, sales, saved deals,
+   menu dialogs, account, backup, notifications, display, help, diagnostics,
+   support, updates, privacy and About. This deliberately removes any retired
+   electric-blue gradient injected by old CSS or inline menu builders. */
+html body .section button:not(.secondary):not(.danger):not(.link):not([data-page]),
+html body #morleyMenuDialog button:not(.secondary):not(.danger):not(.link),
+html body #morleyMoreBackBar button,
+html body .morley-section-back,
+html body button.morley-primary-action,
+html body button.primary{
+  background:var(--web-lock-accent)!important;
+  background-image:none!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  border:1px solid var(--web-lock-accent-strong)!important;
+  box-shadow:0 8px 18px rgba(22,122,90,.16)!important;
+  text-shadow:none!important;
+}
+html body .section button.secondary,html body #morleyMenuDialog button.secondary{background:var(--web-lock-raised)!important;background-image:none!important;color:#28463a!important;-webkit-text-fill-color:#28463a!important;border:1px solid #c4d4cc!important;box-shadow:none!important}
+html body .section button.danger,html body #morleyMenuDialog button.danger{background:#fff0f1!important;background-image:none!important;color:#a83242!important;-webkit-text-fill-color:#a83242!important;border:1px solid #e3b7bd!important}
+html body #morleyMenuDialog .morley-menu-dialog-close{background:var(--web-lock-raised)!important;background-image:none!important;color:var(--web-lock-accent-strong)!important;-webkit-text-fill-color:var(--web-lock-accent-strong)!important;border:1px solid #c4d4cc!important;box-shadow:none!important}
+html body #morleyMenuDialog input,html body #morleyMenuDialog select,html body #morleyMenuDialog textarea{background:#fff!important;background-image:none!important;color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important;border:1px solid #b9cac2!important;box-shadow:none!important}
+html body #morleyMenuDialog label,html body #morleyMenuDialog p,html body #morleyMenuDialog small{color:var(--web-lock-muted)!important;-webkit-text-fill-color:var(--web-lock-muted)!important}
+html body #morleyMenuDialog h2,html body #morleyMenuDialog h3,html body #morleyMenuDialog b,html body #morleyMenuDialog strong{color:var(--web-lock-text)!important;-webkit-text-fill-color:var(--web-lock-text)!important}
+
+/* The base app's primary actions also receive the same emerald state. */
+html body #inventory #addItem,html body #scanner #startScan,html body #scanner #findCode,html body #deals button:not(.danger):not(.secondary),html body #sales button:not(.danger):not(.secondary),html body #laptop button:not(.danger):not(.secondary),html body #desktop button:not(.danger):not(.secondary){background:var(--web-lock-accent)!important;background-image:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:var(--web-lock-accent-strong)!important}
+
 html body .morley-workspace-action,html body .morley-native-action{background:var(--web-lock-accent)!important;background-image:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
 
 @media(max-width:760px){body .top{padding-left:10px!important;padding-right:10px!important}body #computer button.parity-choice{min-height:132px!important}body #console button.console-row{min-height:48px!important}}
