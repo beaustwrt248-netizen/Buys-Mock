@@ -1,7 +1,7 @@
 {
-  "versionCode": 77,
-  "versionName": "2.15.32",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.32/B-and-L-Morley-2.15.32.apk",
-  "sha256": "7ae8a40016d02b45b0f277fc46b43d6cfe774e11b214bcfec4726c6cb0c30e58",
-  "notes": "Merge pull request #476 from beaustwrt248-netizen/fix/update-version-label-contrast"
+  "versionCode": 78,
+  "versionName": "2.15.33",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.33/B-and-L-Morley-2.15.33.apk",
+  "sha256": "742a512e09940208575b7ffc54249d04756fdf0334024026458084c591f8c6b1",
+  "notes": "Fix Maintenance mode copy contrast (#479)"
 }
