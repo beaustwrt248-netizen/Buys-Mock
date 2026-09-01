@@ -55,7 +55,10 @@
   }
 
   function addQuickDeal(){
-    const home=$('#home'); if(!home||$('#desktopQuickDeal')) return;
+    const home=$('#home'); if(!home) return;
+    const canonical=$('#quickCapture');
+    if(canonical){$('#desktopQuickDeal')?.remove();canonical.classList.add('desktop-quick-deal-canonical');return;}
+    if($('#desktopQuickDeal')) return;
     const hero=$('#home .hero');
     const card=document.createElement('div');
     card.id='desktopQuickDeal';

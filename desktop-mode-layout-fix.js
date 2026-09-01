@@ -10,7 +10,7 @@ const icons={
 function go(page){if(typeof window.morleyDesktopGo==='function')window.morleyDesktopGo(page);else if(typeof window.show==='function')window.show(page);}
 function navButton(page,label,icon){return `<button data-page="${page}" type="button" aria-label="${label}"><span class="morley-nav-icon">${icons[icon||page]}</span><small>${label}</small></button>`;}
 function fixNav(){
- const nav=$('nav');if(!nav)return;
+ const nav=$('body>nav');if(!nav)return;
  const signature=$$('button[data-page]',nav).map(b=>b.dataset.page).join('|');
  if(signature!=='home|computer|console|general'||!nav.querySelector('.morley-nav-icon')){
   nav.innerHTML=navButton('home','Home')+navButton('computer','Computer')+navButton('console','Console')+navButton('general','GP','gp');
@@ -31,9 +31,12 @@ body nav button[data-page="desktop"]{display:none!important}
 @media (min-width:1000px){
   #morleyDesktopShell{box-sizing:border-box!important;transform:translateX(calc(-100% - 2px))!important;visibility:hidden!important;pointer-events:none!important;transition:transform .2s ease,visibility 0s linear .2s!important}
   body.morley-desktop-menu-open #morleyDesktopShell{transform:translateX(0)!important;visibility:visible!important;pointer-events:auto!important;transition:transform .2s ease!important}
-  #morleyDesktopMenuScrim{display:none;position:fixed;inset:0;z-index:39;border:0;background:rgba(0,0,0,.48);cursor:default}
+  body #morleyDesktopMenuScrim{display:none;position:fixed;inset:0;z-index:39;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:rgba(0,0,0,.48)!important;box-shadow:none!important;transform:none!important;filter:none!important;cursor:default}
   body.morley-desktop-menu-open #morleyDesktopMenuScrim{display:block}
   body.morley-desktop-menu-open .app{box-sizing:border-box!important;width:auto!important;max-width:calc(100vw - 248px)!important;margin-left:248px!important;margin-right:0!important}
+  body #morleyDesktopShell .desktop-side-nav{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-auto-flow:row!important;width:100%!important;overflow:visible!important}
+  body #morleyDesktopShell .desktop-side-nav button{display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;width:100%!important;min-width:0!important;min-height:48px!important;height:auto!important;padding:12px 13px!important;text-align:left!important;font-size:15px!important}
+  body #morleyDesktopShell .desktop-side-nav button span{display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:15px!important}
 }
 @media (min-width:761px) and (max-width:1100px){
   body{font-size:16px!important}
@@ -72,6 +75,6 @@ function desktopMenu(){
 }
 let queued=false;function apply(){styles();fixNav();desktopMenu();}
 function schedule(){if(queued)return;queued=true;(requestAnimationFrame||setTimeout)(()=>{queued=false;apply();});}
-function boot(){apply();const nav=$('nav');if(nav)new MutationObserver(schedule).observe(nav,{childList:true,subtree:true});addEventListener('morley-product-parity-ready',schedule);addEventListener('resize',schedule,{passive:true});}
+function boot(){apply();const nav=$('body>nav');if(nav)new MutationObserver(schedule).observe(nav,{childList:true,subtree:true});addEventListener('morley-product-parity-ready',schedule);addEventListener('resize',schedule,{passive:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
