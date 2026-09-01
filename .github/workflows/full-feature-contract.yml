@@ -10,9 +10,11 @@ on:
       - 'admin/**'
       - 'android/**'
       - 'ota/**'
+      - 'supabase/functions/**'
       - 'UI_CHANGE_MASTER_CHECKLIST.md'
       - 'FULL_FEATURE_VALIDATION_*.md'
       - 'scripts/full_feature_contract_audit.py'
+      - 'scripts/brave_market_search_contract.py'
       - '.github/workflows/full-feature-contract.yml'
   push:
     branches: [ main ]
@@ -23,9 +25,11 @@ on:
       - 'admin/**'
       - 'android/**'
       - 'ota/**'
+      - 'supabase/functions/**'
       - 'UI_CHANGE_MASTER_CHECKLIST.md'
       - 'FULL_FEATURE_VALIDATION_*.md'
       - 'scripts/full_feature_contract_audit.py'
+      - 'scripts/brave_market_search_contract.py'
       - '.github/workflows/full-feature-contract.yml'
   workflow_dispatch:
 
@@ -45,7 +49,9 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Compile validation script
-        run: python3 -m py_compile scripts/full_feature_contract_audit.py
+      - name: Compile validation scripts
+        run: python3 -m py_compile scripts/full_feature_contract_audit.py scripts/brave_market_search_contract.py
       - name: Validate complete feature contract
         run: python3 scripts/full_feature_contract_audit.py
+      - name: Validate Brave-first market search contract
+        run: python3 scripts/brave_market_search_contract.py
