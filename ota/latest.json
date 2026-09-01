@@ -1,7 +1,7 @@
 {
-  "versionCode": 82,
-  "versionName": "2.15.37",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.37/B-and-L-Morley-2.15.37.apk",
-  "sha256": "84416baddb5f6e84bd35ea76364617829f04cda9ae4759400b946601589853b6",
-  "notes": "Merge pull request #499 from beaustwrt248-netizen/fix/valuation-history-light-responsive-v2"
+  "versionCode": 83,
+  "versionName": "2.15.38",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.38/B-and-L-Morley-2.15.38.apk",
+  "sha256": "50a310860655149d5f00846858431c159a66b7089e272e8113598553a4e80b06",
+  "notes": "Merge pull request #504 from beaustwrt248-netizen/morley/au-retail-laptop-refresh-2026-09-02"
 }
