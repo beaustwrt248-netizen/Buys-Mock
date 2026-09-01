@@ -47,13 +47,14 @@ jobs:
               'secure-pricing.js','web-auth.js','signed-in-user.js','desktop-parity.js',
               'smart-workspace.js','smart-workspace-plus.js','smart-insights.js','smart-input-polish.js',
               'connection-status.js','web-diagnostics.js','menu-parity-polish.js','menu-dialog-a11y.js',
-              'web-notification-centre.js','web-display-parity.js','web-issue-report.js','reference-theme.css','no-gold.css','premium-motion.css',
+              'web-notification-centre.js','web-display-parity.js','web-issue-report.js','reference-theme.css','no-gold.css','premium-motion.css','morley-light-web.css',
               'admin/index.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html','admin/login-security.js'
           ]
           absent = [p for p in required if not Path(p).is_file()]
           if absent: raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
           if 'no-gold.css' not in html: raise SystemExit('Final no-gold safeguard is not loaded by index.html')
           if html.rfind('no-gold.css') < html.rfind('reference-theme.css'): raise SystemExit('no-gold.css must load after the other theme layers')
+          if html.rfind('morley-light-web.css') < html.rfind('mobile-parity-v3.css'): raise SystemExit('morley-light-web.css must be the final visual theme layer')
           if 'secure-pricing.js' not in html: raise SystemExit('Production shell does not load authenticated pricing transport')
           for asset in ['smart-workspace.js','smart-workspace-plus.js','smart-insights.js','smart-input-polish.js','connection-status.js','web-diagnostics.js','web-notification-centre.js','web-display-parity.js','web-issue-report.js']:
               if asset not in html: raise SystemExit(f'Production shell does not load required smart workspace asset: {asset}')
@@ -79,7 +80,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          active = ['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','web-auth.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','web-issue-report.js','admin/styles.css','admin/index.html','admin/app.js']
+          active = ['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','morley-light-web.css','web-auth.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','web-issue-report.js','admin/styles.css','admin/index.html','admin/app.js']
           forbidden = ['#ffd400','#ffe65b','#ffd000','#ffc800','#ffe95a','#c99a27','#ddb347','#cda51d','#e0bb39','#caa21c','#e1bd3d','rgba(255,212,0','rgb(255,212,0']
           failures=[]
           for file in active:

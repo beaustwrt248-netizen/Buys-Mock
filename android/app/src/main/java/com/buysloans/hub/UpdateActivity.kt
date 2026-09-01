@@ -153,8 +153,8 @@ private fun UpdateScreen(versionName:String, apkUrl:String, releaseNotes:String,
         }
     }
 
-    MaterialTheme(colorScheme = darkColorScheme(primary=Color(0xFF2F7CFF),background=Color(0xFF030712),surface=Color(0xFF07172C))) {
-        Surface(color=Color(0xFF030712),modifier=Modifier.fillMaxSize()) {
+    MaterialTheme(colorScheme = lightColorScheme(primary=Color(0xFF167A5A),background=Color(0xFFF5F7F4),surface=Color(0xFFFFFFFF))) {
+        Surface(color=Color(0xFFF5F7F4),modifier=Modifier.fillMaxSize()) {
             Column(
                 Modifier
                     .fillMaxSize()
@@ -165,19 +165,19 @@ private fun UpdateScreen(versionName:String, apkUrl:String, releaseNotes:String,
                 Text("B&L Morley Update",fontSize=28.sp,fontWeight=FontWeight.Black)
                 Text(if(versionName.isBlank()) "New version" else versionName,color=Color(0xFF70DFFF),fontSize=20.sp,fontWeight=FontWeight.Bold)
                 if(releaseNotes.isNotBlank()) {
-                    Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
+                    Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFFFF)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                             Text("What’s new",fontWeight=FontWeight.Black,fontSize=18.sp)
-                            Text(releaseNotes,color=Color(0xFFA7BAD3),fontSize=14.sp,lineHeight=20.sp)
+                            Text(releaseNotes,color=MorleyTextSecondary,fontSize=14.sp,lineHeight=20.sp)
                         }
                     }
                 }
-                Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF07172C)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
+                Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFFFF)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                         Text(status,fontWeight=FontWeight.Black,fontSize=20.sp)
-                        LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(10.dp),color=Color(0xFF12C9FF),trackColor=Color(0xFF0A1B33))
-                        Text("${(progress*100).toInt()}%${if(details.isNotBlank())" • $details" else ""}",color=Color(0xFFA7BAD3))
-                        Text("The APK is downloaded from the B&L Morley GitHub release and its SHA-256 checksum is verified before Android is allowed to install it.",color=Color(0xFF8FA6C6),fontSize=13.sp)
+                        LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(10.dp),color=Color(0xFF77E9C4),trackColor=Color(0xFFEEF4F0))
+                        Text("${(progress*100).toInt()}%${if(details.isNotBlank())" • $details" else ""}",color=MorleyTextSecondary)
+                        Text("The APK is downloaded from the B&L Morley GitHub release and its SHA-256 checksum is verified before Android is allowed to install it.",color=MorleyTextMuted,fontSize=13.sp)
                     }
                 }
                 installUri?.let { uri ->
@@ -187,10 +187,10 @@ private fun UpdateScreen(versionName:String, apkUrl:String, releaseNotes:String,
                             setDataAndType(uri,"application/vnd.android.package-archive")
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                         })
-                    },modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF2F7CFF),contentColor=Color.White)) {
+                    },modifier=Modifier.fillMaxWidth().height(56.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF167A5A),contentColor=Color.White)) {
                         Text("Install Verified Update",fontWeight=FontWeight.Black)
                     }
-                    Text("After installation, reopen B&L Morley. The app will confirm the installed version on launch.",color=Color(0xFFA7BAD3),fontSize=13.sp)
+                    Text("After installation, reopen B&L Morley. The app will confirm the installed version on launch.",color=MorleyTextSecondary,fontSize=13.sp)
                 }
                 if(failed) {
                     Button(onClick={

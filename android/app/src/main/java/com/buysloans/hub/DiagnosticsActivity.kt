@@ -34,11 +34,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val DiagAccent = Color(0xFF16C7FF)
-private val DiagBg = Color(0xFF030712)
-private val DiagCard = Color(0xFF0B1528)
-private val DiagMuted = Color(0xFF8EA6C4)
-private val DiagOk = Color(0xFF57E389)
+private val DiagAccent = Color(0xFF167A5A)
+private val DiagBg = Color(0xFFF5F7F4)
+private val DiagCard = Color(0xFFEEF4F0)
+private val DiagMuted = Color(0xFF52645D)
+private val DiagOk = Color(0xFF238A63)
 
 class DiagnosticsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +47,7 @@ class DiagnosticsActivity : ComponentActivity() {
         window.navigationBarColor = android.graphics.Color.rgb(3, 7, 18)
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
+                colorScheme = lightColorScheme(
                     primary = DiagAccent,
                     background = DiagBg,
                     surface = DiagCard
@@ -231,7 +231,7 @@ class DiagnosticsActivity : ComponentActivity() {
                     onClick = { runLiveChecks() },
                     enabled = !liveBusy,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2684FF))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F684C))
                 ) { Text(if (liveBusy) "Running Live Checks…" else "Refresh Diagnostics", fontWeight = FontWeight.Black) }
 
                 if (liveBusy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

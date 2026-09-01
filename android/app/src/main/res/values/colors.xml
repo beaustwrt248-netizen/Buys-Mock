@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="morley_background">#080B0D</color>
-    <color name="morley_surface">#101619</color>
-    <color name="morley_surface_alt">#151D20</color>
-    <color name="morley_primary">#38D6A3</color>
-    <color name="morley_accent">#1FB887</color>
-    <color name="morley_accent_strong">#63E6A6</color>
-    <color name="morley_text_muted">#B2C0BC</color>
-    <color name="launcher_background">#080B0D</color>
+    <color name="morley_background">#F5F7F4</color>
+    <color name="morley_surface">#FFFFFF</color>
+    <color name="morley_surface_alt">#EEF4F0</color>
+    <color name="morley_primary">#167A5A</color>
+    <color name="morley_accent">#0F684C</color>
+    <color name="morley_accent_strong">#238A63</color>
+    <color name="morley_text_muted">#52645D</color>
+    <color name="launcher_background">#F5F7F4</color>
 </resources>

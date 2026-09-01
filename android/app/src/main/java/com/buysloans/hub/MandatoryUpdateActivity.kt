@@ -17,16 +17,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
-private val GateAccent = Color(0xFF16C7FF)
-private val GateBg = Color(0xFF030712)
-private val GateCard = Color(0xFF0B1528)
+private val GateAccent = Color(0xFF167A5A)
+private val GateBg = Color(0xFFF5F7F4)
+private val GateCard = Color(0xFFEEF4F0)
 
 class MandatoryUpdateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this) { }
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = GateAccent, background = GateBg, surface = GateCard)) {
+            MaterialTheme(colorScheme = lightColorScheme(primary = GateAccent, background = GateBg, surface = GateCard)) {
                 MandatoryUpdateScreen()
             }
         }
@@ -79,7 +79,7 @@ class MandatoryUpdateActivity : ComponentActivity() {
                                 val name = p.minimumVersionName.ifBlank { "version ${p.minimumVersionCode}" }
                                 "This install is below the minimum supported B&L Morley version ($name). Update before continuing."
                             } ?: "B&L Morley is verifying the minimum supported version.",
-                            color = Color.LightGray,
+                            color = MorleyTextSecondary,
                             lineHeight = 22.sp
                         )
                         if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

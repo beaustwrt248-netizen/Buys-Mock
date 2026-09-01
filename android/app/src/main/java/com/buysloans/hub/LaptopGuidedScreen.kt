@@ -32,7 +32,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-private val GuidedAccent = Color(0xFFFFD400)
+private val GuidedAccent = Color(0xFF167A5A)
 private const val GuidedApi = "https://ghdhairijqjqivqriigi.supabase.co/functions/v1/ebay-search"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +51,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
 
     Text(
         "Select the exact configuration before Morley searches the market. Different generations are excluded from the valuation.",
-        color = Color.LightGray
+        color = MorleyTextSecondary
     )
 
     GuidedDropdown("Brand", brand, LaptopSelectionCatalog.brands) { selected ->
@@ -130,7 +130,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
         Text(if (busy) "Searching…" else "Analyse Laptop", fontWeight = FontWeight.Black, fontSize = 17.sp)
     }
 
-    Text(status, color = Color.LightGray)
+    Text(status, color = MorleyTextSecondary)
     if (!busy) result?.let { Valuation(it, ask, 0.30, 0.58) }
 }
 

@@ -20,17 +20,17 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val NCAccent = Color(0xFF16C7FF)
-private val NCBg = Color(0xFF030712)
-private val NCCard = Color(0xFF0B1528)
-private val NCMuted = Color(0xFF8EA6C4)
+private val NCAccent = Color(0xFF167A5A)
+private val NCBg = Color(0xFFF5F7F4)
+private val NCCard = Color(0xFFEEF4F0)
+private val NCMuted = Color(0xFF52645D)
 
 class NotificationCentreActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
+                colorScheme = lightColorScheme(
                     primary = NCAccent,
                     background = NCBg,
                     surface = NCCard

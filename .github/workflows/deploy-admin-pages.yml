@@ -72,6 +72,7 @@ jobs:
           test -s site/product-parity-v3.js
           test -s site/ultimate-parity.js
           test -s site/mobile-parity-v3.css
+          test -s site/morley-light-web.css
           test -s site/mobile-layout-fix.js
           test -s site/admin/index.html
           test -s site/admin/app.js
@@ -151,6 +152,7 @@ jobs:
           grep -q 'web-base.html' "$RUNNER_TEMP/page-index.html"
           grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
           grep -q 'mobile-parity-v3.css' "$RUNNER_TEMP/page-index.html"
+          grep -q 'morley-light-web.css' "$RUNNER_TEMP/page-index.html"
           grep -q 'mobile-layout-fix.js' "$RUNNER_TEMP/page-index.html"
           if curl --fail --silent --show-error --location --max-time 15 \
             -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
@@ -179,6 +181,9 @@ jobs:
           grep -q '@media(max-width:760px)' "$RUNNER_TEMP/mobile-parity-v3.css"
           grep -q 'grid-template-columns:repeat(4,minmax(0,1fr))' "$RUNNER_TEMP/mobile-parity-v3.css"
           grep -q '.modal.open,.morley-menu-dialog.open,.msw-dialog.open' "$RUNNER_TEMP/mobile-parity-v3.css"
+          fetch_with_retry "$BASE/morley-light-web.css" "$RUNNER_TEMP/morley-light-web.css"
+          grep -q 'color-scheme:light' "$RUNNER_TEMP/morley-light-web.css"
+          grep -q '#morleyWebAuth' "$RUNNER_TEMP/morley-light-web.css"
           fetch_with_retry "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/desktop-oem.js"
           grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/desktop-oem.js"

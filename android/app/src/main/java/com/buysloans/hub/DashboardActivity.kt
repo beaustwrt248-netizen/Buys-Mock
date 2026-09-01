@@ -32,8 +32,8 @@ class DashboardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(8,11,13)
-        window.navigationBarColor = android.graphics.Color.rgb(8,11,13)
+        window.statusBarColor = android.graphics.Color.rgb(245,247,244)
+        window.navigationBarColor = android.graphics.Color.rgb(245,247,244)
         if(getSharedPreferences("display_settings",MODE_PRIVATE).getBoolean("keep_awake",false)) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         NotificationHelper.createChannels(this)
         if (!AuthManager.isSignedIn(this)) {

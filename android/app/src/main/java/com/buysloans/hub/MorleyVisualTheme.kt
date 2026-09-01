@@ -1,34 +1,34 @@
 package com.buysloans.hub
 
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /**
  * Shared high-contrast visual tokens for the Morley Android client.
  * These are presentation-only: pricing, valuation, authentication, NFC and data boundaries stay unchanged.
  */
-internal val MorleyBackground = Color(0xFF080B0D)
-internal val MorleySurface = Color(0xFF101619)
-internal val MorleySurfaceRaised = Color(0xFF151D20)
-internal val MorleySurfaceSoft = Color(0xFF0C1214)
-internal val MorleyAccent = Color(0xFF38D6A3)
-internal val MorleyAccentStrong = Color(0xFF1FB887)
-internal val MorleyAccentSoft = Color(0xFF173C32)
-internal val MorleyTextPrimary = Color(0xFFF4F7F6)
-internal val MorleyTextSecondary = Color(0xFFB2C0BC)
-internal val MorleyTextMuted = Color(0xFF81918C)
-internal val MorleyBorder = Color(0xFF2B4540)
-internal val MorleySuccess = Color(0xFF63E6A6)
-internal val MorleyWarning = Color(0xFFF5C76B)
-internal val MorleyDanger = Color(0xFFFF7B86)
+internal val MorleyBackground = Color(0xFFF5F7F4)
+internal val MorleySurface = Color(0xFFFFFFFF)
+internal val MorleySurfaceRaised = Color(0xFFEEF4F0)
+internal val MorleySurfaceSoft = Color(0xFFE5EFEA)
+internal val MorleyAccent = Color(0xFF167A5A)
+internal val MorleyAccentStrong = Color(0xFF0F684C)
+internal val MorleyAccentSoft = Color(0xFFD8EFE5)
+internal val MorleyTextPrimary = Color(0xFF1C2B26)
+internal val MorleyTextSecondary = Color(0xFF52645D)
+internal val MorleyTextMuted = Color(0xFF71827B)
+internal val MorleyBorder = Color(0xFFCEDBD5)
+internal val MorleySuccess = Color(0xFF238A63)
+internal val MorleyWarning = Color(0xFFA86A12)
+internal val MorleyDanger = Color(0xFFC74755)
 
-internal val MorleyColorScheme = darkColorScheme(
+internal val MorleyColorScheme = lightColorScheme(
     primary = MorleyAccent,
-    onPrimary = Color(0xFF06251B),
+    onPrimary = Color.White,
     primaryContainer = MorleyAccentSoft,
     onPrimaryContainer = MorleyTextPrimary,
     secondary = MorleyAccentStrong,
-    onSecondary = Color(0xFF031E16),
+    onSecondary = Color.White,
     background = MorleyBackground,
     onBackground = MorleyTextPrimary,
     surface = MorleySurface,
@@ -37,5 +37,5 @@ internal val MorleyColorScheme = darkColorScheme(
     onSurfaceVariant = MorleyTextSecondary,
     outline = MorleyBorder,
     error = MorleyDanger,
-    onError = Color(0xFF2A0408)
+    onError = Color.White
 )

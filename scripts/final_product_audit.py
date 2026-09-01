@@ -67,8 +67,10 @@ need(
     'ultimate-parity.js',
     'web-admin-mode.js',
     'mobile-parity-v3.css',
+    'morley-light-web.css?v=1',
     'mobile-layout-fix.js',
 )
+need('morley-light-web.css', 'color-scheme:light', '#f5f7f4', '#167a5a', '#1c2b26', '#morleyWebAuth')
 need(
     'mobile-parity-v3.css',
     '@media(max-width:760px)',
