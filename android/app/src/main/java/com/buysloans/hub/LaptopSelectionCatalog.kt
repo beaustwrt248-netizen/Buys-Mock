@@ -22,7 +22,7 @@ object LaptopSelectionCatalog {
     )
 
     private val families = listOf(
-        Family("Dell", "XPS 13", 2012, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "Snapdragon X Elite")),
+        Family("Dell", "XPS 13", 2012, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core 5", "Intel Core Ultra 5", "Intel Core Ultra 7", "Snapdragon X Elite")),
         Family("Dell", "Latitude", 2006, 2026, listOf("Intel Core 2 Duo", "Intel Core i3", "Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7")),
         Family("Dell", "Inspiron", 2006, 2026, listOf("Intel Core 2 Duo", "Intel Core i3", "Intel Core i5", "Intel Core i7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("Lenovo", "ThinkPad", 2006, 2026, listOf("Intel Core 2 Duo", "Intel Core i3", "Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "AMD Ryzen 5", "AMD Ryzen 7")),
@@ -34,6 +34,7 @@ object LaptopSelectionCatalog {
         Family("HP", "Pavilion", 2006, 2026, listOf("Intel Core 2 Duo", "Intel Core i3", "Intel Core i5", "Intel Core i7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("HP", "Spectre x360", 2015, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7")),
         Family("HP", "Envy", 2009, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "AMD Ryzen 5", "AMD Ryzen 7")),
+        Family("HP", "OmniBook", 2024, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "Intel Core Ultra 7 356H", "AMD Ryzen AI 5", "AMD Ryzen AI 7", "Snapdragon X", "Snapdragon X Plus")),
         Family("ASUS", "ZenBook", 2011, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("ASUS", "VivoBook", 2011, 2026, listOf("Intel Core i3", "Intel Core i5", "Intel Core i7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("ASUS", "ROG Zephyrus", 2017, 2026, listOf("Intel Core i7", "Intel Core i9", "AMD Ryzen 7", "AMD Ryzen 9")),
@@ -41,7 +42,7 @@ object LaptopSelectionCatalog {
         Family("Acer", "Aspire", 2006, 2026, listOf("Intel Core 2 Duo", "Intel Core i3", "Intel Core i5", "Intel Core i7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("Acer", "Swift", 2016, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "AMD Ryzen 5", "AMD Ryzen 7")),
         Family("Acer", "Nitro", 2015, 2026, listOf("Intel Core i5", "Intel Core i7", "AMD Ryzen 5", "AMD Ryzen 7")),
-        Family("Microsoft", "Surface Laptop", 2017, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "Snapdragon X Plus", "Snapdragon X Elite")),
+        Family("Microsoft", "Surface Laptop", 2017, 2026, listOf("Intel Core i5", "Intel Core i7", "Intel Core Ultra 5", "Intel Core Ultra 7", "Snapdragon X Plus", "Snapdragon X Elite", "Snapdragon X2 Plus", "Snapdragon X2 Elite")),
         Family("Microsoft", "Surface Book", 2015, 2020, listOf("Intel Core i5", "Intel Core i7")),
         Family("MSI", "Stealth", 2013, 2026, listOf("Intel Core i7", "Intel Core i9", "Intel Core Ultra 7", "Intel Core Ultra 9")),
         Family("MSI", "Raider", 2016, 2026, listOf("Intel Core i7", "Intel Core i9", "Intel Core Ultra 9")),
@@ -86,7 +87,7 @@ object LaptopSelectionCatalog {
 
     val presets: List<LaptopPreset> = (apple + ChromebookSelectionCatalog.presets + families.flatMap { family ->
         (family.from..family.to).map { year ->
-            LaptopPreset(family.brand, "${family.name} ($year)", year, family.processors, modernRam, modernStorage)
+            LaptopPreset(family.brand, "${family.name} (${year})", year, family.processors, modernRam, modernStorage)
         }
     }).filter { it.year in 2006..2026 }
 
