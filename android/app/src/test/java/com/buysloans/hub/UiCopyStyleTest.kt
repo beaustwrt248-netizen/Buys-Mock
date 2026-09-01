@@ -55,6 +55,12 @@ class UiCopyStyleTest {
         }
     }
 
+    @Test fun pricingSellerAskCopyRemainsCanonical() {
+        val pricing = sourceFile("MainActivity.kt")
+        assertFalse("Legacy Seller Ask wording returned", pricing.contains("Seller asking price"))
+        assertTrue("Canonical Seller Ask wording is missing", pricing.contains("Field(\"Seller Ask\""))
+    }
+
     @Test fun gpLuxuryControlIsSingleLineResponsive() {
         val gp = sourceFile("GPFix.kt")
         assertTrue("Luxury grade needs a wider responsive weight", gp.contains("if (option == \"Luxury\") 1.35f else 1f"))
