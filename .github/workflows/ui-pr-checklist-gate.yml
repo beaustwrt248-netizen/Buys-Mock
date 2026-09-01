@@ -1,0 +1,36 @@
+name: UI PR Checklist Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'admin/**'
+      - 'android/app/src/main/java/com/buysloans/hub/**.kt'
+      - 'android/app/src/main/res/**'
+      - 'UI_CHANGE_MASTER_CHECKLIST.md'
+      - '.github/pull_request_template.md'
+      - 'scripts/ui_pr_checklist_gate.py'
+      - '.github/workflows/ui-pr-checklist-gate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-pr-checklist-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate UI checklist completion
+        run: python3 scripts/ui_pr_checklist_gate.py
