@@ -28,6 +28,13 @@ body nav .morley-nav-icon{display:grid!important;place-items:center!important;wi
 body nav .morley-nav-icon svg{display:block!important;width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 body nav button::before,body nav button::after{content:none!important;display:none!important}
 body nav button[data-page="desktop"]{display:none!important}
+@media (min-width:1000px){
+  #morleyDesktopShell{box-sizing:border-box!important;transform:translateX(calc(-100% - 2px))!important;visibility:hidden!important;pointer-events:none!important;transition:transform .2s ease,visibility 0s linear .2s!important}
+  body.morley-desktop-menu-open #morleyDesktopShell{transform:translateX(0)!important;visibility:visible!important;pointer-events:auto!important;transition:transform .2s ease!important}
+  #morleyDesktopMenuScrim{display:none;position:fixed;inset:0;z-index:39;border:0;background:rgba(0,0,0,.48);cursor:default}
+  body.morley-desktop-menu-open #morleyDesktopMenuScrim{display:block}
+  body.morley-desktop-menu-open .app{box-sizing:border-box!important;width:auto!important;max-width:calc(100vw - 248px)!important;margin-left:248px!important;margin-right:0!important}
+}
 @media (min-width:761px) and (max-width:1100px){
   body{font-size:16px!important}
   main.app,.app{padding-left:18px!important;padding-right:18px!important;padding-bottom:104px!important}
@@ -49,8 +56,22 @@ body nav button[data-page="desktop"]{display:none!important}
   .morley-web-user{font-size:12px!important}
 }
 `;document.head.appendChild(s);}
-let queued=false;function apply(){styles();fixNav();}
+function desktopMenu(){
+ const trigger=$('#morleyMenuTrigger'),shell=$('#morleyDesktopShell');if(!trigger||!shell)return;
+ let scrim=$('#morleyDesktopMenuScrim');
+ if(!scrim){scrim=document.createElement('button');scrim.id='morleyDesktopMenuScrim';scrim.type='button';scrim.tabIndex=-1;scrim.setAttribute('aria-label','Close B&L Morley menu');document.body.insertBefore(scrim,shell);}
+ const setOpen=open=>{document.body.classList.toggle('morley-desktop-menu-open',open);trigger.setAttribute('aria-expanded',String(open));shell.setAttribute('aria-hidden',String(!open));};
+ if(trigger.dataset.desktopMenuBound!=='1'){
+  trigger.dataset.desktopMenuBound='1';trigger.setAttribute('aria-controls',shell.id);trigger.setAttribute('aria-expanded','false');
+  trigger.addEventListener('click',event=>{if(innerWidth<1000)return;event.preventDefault();event.stopImmediatePropagation();setOpen(!document.body.classList.contains('morley-desktop-menu-open'));},true);
+  scrim.addEventListener('click',()=>setOpen(false));
+  shell.addEventListener('click',event=>{if(event.target.closest('[data-target]'))setOpen(false);});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape')setOpen(false);});
+ }
+ if(innerWidth<1000)setOpen(false);
+}
+let queued=false;function apply(){styles();fixNav();desktopMenu();}
 function schedule(){if(queued)return;queued=true;(requestAnimationFrame||setTimeout)(()=>{queued=false;apply();});}
-function boot(){apply();const nav=$('nav');if(nav)new MutationObserver(schedule).observe(nav,{childList:true,subtree:true});const main=$('main.app')||$('main');if(main)new MutationObserver(schedule).observe(main,{subtree:true,attributes:true,attributeFilter:['class']});addEventListener('morley-product-parity-ready',schedule);addEventListener('resize',schedule,{passive:true});}
+function boot(){apply();const nav=$('nav');if(nav)new MutationObserver(schedule).observe(nav,{childList:true,subtree:true});addEventListener('morley-product-parity-ready',schedule);addEventListener('resize',schedule,{passive:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
