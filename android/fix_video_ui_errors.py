@@ -27,7 +27,7 @@ for name in ('MenuFeatureActivity.kt', 'NotificationCentreActivity.kt'):
         'android.graphics.Color.rgb(3, 7, 18)': 'android.graphics.Color.rgb(8, 11, 13)',
         'containerColor = Color(0xFF050B16)': 'containerColor = MorleySurfaceSoft',
         'containerColor = if (item.read) NCCard else Color(0xFF0E2038)': 'containerColor = if (item.read) NCCard else MorleyAccentSoft',
-        'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary)',
+        'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)',
     })
 
 # FVP-005: keep every GP grade label readable in both interaction states.
