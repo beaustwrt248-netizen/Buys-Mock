@@ -186,4 +186,12 @@ class UiCopyStyleTest {
             diagnostics.contains("else DiagError.copy(alpha = .65f)")
         )
     }
+
+    @Test fun mandatoryUpdateStatusRemainsReadableOnLightCards() {
+        val gate = sourceFile("MandatoryUpdateActivity.kt")
+        assertFalse("Low-contrast white mandatory-update status returned", gate.contains("else Color.White"))
+        assertFalse("Pale mandatory-update error status returned", gate.contains("Color(0xFFFFC0C8)"))
+        assertTrue("Mandatory-update error status must use darker semantic red", gate.contains("private val GateError = Color(0xFFB42318)"))
+        assertTrue("Mandatory-update status must map to readable light-theme colours", gate.contains("Text(status, color = if (update == null && !busy) GateError else MorleyTextPrimary)"))
+    }
 }
