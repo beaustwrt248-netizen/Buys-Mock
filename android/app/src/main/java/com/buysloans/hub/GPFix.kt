@@ -169,7 +169,7 @@ private fun MetricGrid(items: List<Triple<String, String, Boolean>>) {
                                 fontWeight = FontWeight.Black
                             )
                         }
-                    )
+                    }
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
