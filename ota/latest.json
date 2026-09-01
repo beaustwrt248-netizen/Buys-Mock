@@ -1,7 +1,7 @@
 {
-  "versionCode": 66,
-  "versionName": "2.15.21",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.21/B-and-L-Morley-2.15.21.apk",
-  "sha256": "d08b0bd8f0c87b6deee276d44a94fa9e6fd208cfb3119523806e55bc7671c08d",
-  "notes": "Fix Morley support header contrast (#423)"
+  "versionCode": 67,
+  "versionName": "2.15.22",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.22/B-and-L-Morley-2.15.22.apk",
+  "sha256": "7182b2939145b655dc9c7424fae5c806fa9da58b8540b96c663061cdfc141433",
+  "notes": "Fix Android Support conversation contrast (#434)"
 }
