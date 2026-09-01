@@ -37,6 +37,15 @@ replace(root / 'MainActivity.kt', {
         'contentColor=if(grade==g)Color.White else MorleyTextPrimary',
 })
 
+# FVP-006: Smart Workspace primary actions use the same strong emerald surface
+# as the rest of Morley, so keep their labels white and preserve canonical
+# Seller Ask wording in Quick Deal Mode. No deal calculation logic is changed.
+replace(root / 'SmartWorkspaceSection.kt', {
+    'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary)':
+        'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = Color.White)',
+    'label = { Text("Seller asking price") }': 'label = { Text("Seller Ask") }',
+})
+
 # Installed update notices must never continue presenting themselves as available
 # updates. Preserve non-update history and future update notices.
 store = root / 'NotificationInboxStore.kt'
@@ -46,4 +55,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI, GP contrast and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace and stale-update corrections')
