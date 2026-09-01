@@ -108,7 +108,7 @@ require_markers("ota/latest.json", "versionCode", "versionName", "apkUrl", "sha2
 
 # Admin Control contracts
 require_markers("admin/index.html", "inviteName", "First and last name")
-require_markers("admin/login-security.js", "turnstile")
+require_markers("admin/login-security.js", "turnstile", "credentialsReady", "syncLoginEnabled", "emailInput.checkValidity()", "options:{captchaToken:token}")
 require_file("admin/styles.css")
 require_file("admin/support-tickets.js")
 require_file("admin/audit-triage.js")
