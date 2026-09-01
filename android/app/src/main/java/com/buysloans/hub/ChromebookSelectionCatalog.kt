@@ -54,7 +54,7 @@ object ChromebookSelectionCatalog {
         ChromeFamily("Acer", "Chromebook Plus Spin 714", 2023, 2026, listOf("Intel Core i3", "Intel Core i5", "Intel Core Ultra 5")),
 
         ChromeFamily("ASUS", "Chromebook CX1", 2021, 2026, intelEntry),
-        ChromeFamily("ASUS", "Chromebook CX14", 2025, 2026, listOf("Intel Processor N50", "Intel Core i3")),
+        ChromeFamily("ASUS", "Chromebook CX14", 2025, 2026, listOf("Intel Processor N50", "Intel Core i3", "Intel Core 3 N355")),
         ChromeFamily("ASUS", "Chromebook CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("ASUS", "Chromebook Plus CX34", 2023, 2026, listOf("Intel Core i3", "Intel Core i5")),
         ChromeFamily("ASUS", "Chromebook Flip CM3", 2021, 2025, chromeArm),
@@ -89,7 +89,7 @@ object ChromebookSelectionCatalog {
         (family.from..family.to).map { year ->
             LaptopPreset(
                 brand = family.brand,
-                model = "${family.name} ($year)",
+                model = "${family.name} (${year})",
                 year = year,
                 processors = family.processors.distinct(),
                 ramOptions = chromeRam,
