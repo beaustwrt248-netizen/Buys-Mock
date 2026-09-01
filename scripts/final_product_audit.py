@@ -20,7 +20,7 @@ def semver(value: str):
 
 
 build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
-admin_build = need('android/adminapp/build.gradle', "versionCode 19", "versionName '0.1.18'", 'applyAdminMorleyPalette')
+admin_build = need('android/adminapp/build.gradle', "versionCode 20", "versionName '0.1.19'", 'applyAdminMorleyPalette')
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
     'Computer Pricing',
@@ -50,6 +50,18 @@ need(
     'updateUserAccess',
 )
 need(
+    'android/app/src/main/java/com/buysloans/hub/TemporaryPasswordGateActivity.kt',
+    'must_change_password',
+    'Change temporary password',
+    'Change password & continue',
+)
+need(
+    'android/adminapp/src/main/java/com/buysloans/admin/TeamInvitePanel.kt',
+    'Temporary password',
+    'skip email verification',
+    'Create account with temporary password',
+)
+need(
     'index.html',
     'product-parity-v3.js',
     'ultimate-parity.js',
@@ -67,7 +79,7 @@ need('mobile-layout-fix.js', "home|computer|console|general", 'morley-mobile-ove
 need('product-parity-v3.js', 'Computer Pricing', 'Console Pricing', 'Laptop / MacBook', 'Desktop / Gaming PC')
 need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
-need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC')
+need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC', 'TemporaryPasswordGateActivity')
 
 code_match = re.search(r'\bversionCode\s+(\d+)', build)
 name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", build)
