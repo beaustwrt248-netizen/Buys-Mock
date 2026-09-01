@@ -109,10 +109,17 @@ jobs:
         run: |
           set -euo pipefail
           BASE="${PAGE_URL%/}"
+          echo "Waiting briefly for custom-domain/CDN propagation after successful Pages deployment."
+          sleep 20
           fetch_with_retry() {
             local url="$1" out="$2"
             for attempt in 1 2 3 4 5 6; do
-              if curl --fail --silent --show-error --location --max-time 30 --output "$out" "$url"; then return 0; fi
+              local sep='?'
+              [[ "$url" == *\?* ]] && sep='&'
+              if curl --fail --silent --show-error --location --max-time 30 \
+                -H 'Cache-Control: no-cache' \
+                -H 'Pragma: no-cache' \
+                --output "$out" "${url}${sep}morley_sha=${GITHUB_SHA}&attempt=${attempt}"; then return 0; fi
               echo "Waiting for Pages propagation ($attempt/6): $url"
               sleep 10
             done
