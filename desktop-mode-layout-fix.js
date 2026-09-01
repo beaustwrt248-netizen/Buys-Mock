@@ -26,7 +26,28 @@ function styles(){if($('#morleyDesktopModeLayoutFix'))return;const s=document.cr
 .morley-home-tile-icon svg,.morley-choice-icon svg{display:block!important;width:32px!important;height:32px!important;max-width:32px!important;max-height:32px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 body nav .morley-nav-icon{display:grid!important;place-items:center!important;width:24px!important;height:24px!important;min-width:24px!important;min-height:24px!important;color:inherit!important}
 body nav .morley-nav-icon svg{display:block!important;width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+body nav button::before,body nav button::after{content:none!important;display:none!important}
 body nav button[data-page="desktop"]{display:none!important}
+@media (min-width:761px) and (max-width:1100px){
+  body{font-size:16px!important}
+  main.app,.app{padding-left:18px!important;padding-right:18px!important;padding-bottom:104px!important}
+  .top{min-height:68px!important;padding-top:10px!important;padding-bottom:10px!important}
+  #home .card,#home .msw-card,#home .mswp-card{margin-bottom:14px!important}
+  #home .muted,#home p,#home small,.card .muted,.card small{line-height:1.5!important}
+  #home .muted,.card .muted{color:#aebbb7!important;opacity:1!important}
+  #home .tiles{gap:14px!important}
+  #home .tiles button{min-height:170px!important;padding:20px!important}
+  #home .tiles button b{font-size:18px!important;line-height:1.25!important}
+  #home .tiles button small{font-size:13px!important;line-height:1.45!important;color:rgba(255,255,255,.86)!important;opacity:1!important}
+  .morley-home-tile-icon{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
+  .morley-home-tile-icon svg{width:34px!important;height:34px!important;max-width:34px!important;max-height:34px!important}
+  body nav{left:16px!important;right:16px!important;bottom:12px!important;width:auto!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;padding:8px!important;border-radius:18px!important}
+  body nav button,body nav button.active{min-height:66px!important;height:66px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;font-size:0!important}
+  body nav button small{display:block!important;font-size:12px!important;line-height:14px!important;font-weight:800!important;color:inherit!important}
+  body nav .morley-nav-icon{width:25px!important;height:25px!important;min-width:25px!important;min-height:25px!important}
+  body nav .morley-nav-icon svg{width:25px!important;height:25px!important;max-width:25px!important;max-height:25px!important}
+  .morley-web-user{font-size:12px!important}
+}
 `;document.head.appendChild(s);}
 let queued=false;function apply(){styles();fixNav();}
 function schedule(){if(queued)return;queued=true;(requestAnimationFrame||setTimeout)(()=>{queued=false;apply();});}
