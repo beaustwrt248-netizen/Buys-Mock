@@ -5,17 +5,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AuRetailLaptopRefresh20260902Test {
+    private fun key(it: AuRetailLaptopListing) =
+        listOf(it.retailer, it.brand, it.familyModel, it.modelSku.orEmpty(), it.processor, it.ram, it.storage).joinToString("|")
+
     @Test
     fun refreshHasUniqueVerifiedConfigurations() {
-        val keys = AuRetailLaptopRefresh20260902.listings.map {
-            listOf(it.retailer, it.brand, it.familyModel, it.modelSku.orEmpty(), it.processor, it.ram, it.storage).joinToString("|")
-        }
+        val keys = AuRetailLaptopRefresh20260902.listings.map(::key)
         assertEquals(keys.distinct().size, keys.size)
         AuRetailLaptopRefresh20260902.listings.forEach {
             assertEquals(AuRetailLaptopRefresh20260902.CHECKED_AT, it.checkedAtIso)
+            assertEquals(RetailListingStatus.CURRENT, it.status)
             assertTrue(it.priceAud > 0.0)
             assertTrue(it.sourceUrl.startsWith("https://"))
         }
+    }
+
+    @Test
+    fun refreshDoesNotDuplicatePriorSnapshotConfigurations() {
+        val previous = AuRetailLaptopCatalog.listings.map(::key).toSet()
+        assertTrue(AuRetailLaptopRefresh20260902.listings.none { key(it) in previous })
     }
 
     @Test
