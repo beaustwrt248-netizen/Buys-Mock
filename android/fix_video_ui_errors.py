@@ -27,6 +27,7 @@ for name in ('MenuFeatureActivity.kt', 'NotificationCentreActivity.kt'):
         'android.graphics.Color.rgb(3, 7, 18)': 'android.graphics.Color.rgb(8, 11, 13)',
         'containerColor = Color(0xFF050B16)': 'containerColor = MorleySurfaceSoft',
         'containerColor = if (item.read) NCCard else Color(0xFF0E2038)': 'containerColor = if (item.read) NCCard else MorleyAccentSoft',
+        'if (item.body.isNotBlank()) Text(item.body, color = Color.White)': 'if (item.body.isNotBlank()) Text(item.body, color = MorleyTextPrimary)',
         'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)',
     })
 
@@ -63,4 +64,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy, Notification Centre and stale-update corrections')
