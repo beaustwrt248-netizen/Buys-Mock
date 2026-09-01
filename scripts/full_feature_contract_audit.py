@@ -31,7 +31,7 @@ def require_markers(path: str, *markers: str):
 # Governance / canonical presentation
 require_file("UI_CHANGE_MASTER_CHECKLIST.md")
 require_markers("morley-ui-baseline.css", "--morley-ui-font", "#1c2b26", "#167a5a", ".decisionGrid", "#livePricing", "#onlineStatus")
-require_markers("morley-ui-baseline.js", "ensureViewport", "normaliseSpelling", "Buying Decision", "Seller Ask")
+require_markers("morley-ui-baseline.js", "ensureViewport", "normaliseSpelling", "BUYING DECISION", "Seller Ask")
 require_markers("mobile-readability-fix.js", "max-width:100vw")
 require_markers("web-initial-render-fix.js", "refreshLayout")
 require_markers("web-a11y.js", "focus-visible")
