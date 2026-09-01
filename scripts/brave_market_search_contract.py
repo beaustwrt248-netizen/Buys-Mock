@@ -1,0 +1,25 @@
+from pathlib import Path
+
+root = Path(__file__).resolve().parents[1]
+edge = (root / "supabase/functions/market-search-v2/index.ts").read_text(encoding="utf-8")
+android = (root / "android/app/src/main/java/com/buysloans/hub/LaptopGuidedScreen.kt").read_text(encoding="utf-8")
+
+required_edge = [
+    'Deno.env.get("BRAVE_SEARCH_API_KEY")',
+    '"X-Subscription-Token":key',
+    'country","AU"',
+    'retail:["brave","serpapi-google-shopping"]',
+    'marketplaces:["brave","serpapi"]',
+    'site:gumtree.com.au',
+    'site:facebook.com/marketplace/item',
+]
+for marker in required_edge:
+    assert marker in edge, f"missing Brave market-search contract marker: {marker}"
+
+assert "BRAVE_SEARCH_API_KEY=" not in edge, "Brave API key must never be committed"
+assert "functions/v1/market-search-v2" in android, "Laptop flow must use Brave-first market search endpoint"
+assert "Google/eBay:" not in android, "Provider attribution must not hard-code Google when Brave is primary"
+assert "Google Shopping fallback" in android, "SerpApi/Google Shopping must be labelled as fallback"
+assert "Gumtree" in android and "Facebook" in android, "Marketplace discovery counts must remain visible"
+
+print("Brave-first market search contract: PASS")
