@@ -138,7 +138,7 @@ class SupportTicketActivity : ComponentActivity() {
             topBar = {
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF050B16)),
-                    title = { Text("B&L Morley Support", fontWeight = FontWeight.Black) },
+                    title = { Text("B&L Morley Support", color = Color.White, fontWeight = FontWeight.Black) },
                     navigationIcon = {
                         TextButton(onClick = {
                             if (selectedTicketId != null) selectedTicketId = null else finish()
@@ -477,7 +477,6 @@ class SupportTicketActivity : ComponentActivity() {
                 Switch(checked = includeDiagnostics, onCheckedChange = onDiagnosticsChanged, enabled = !busy)
             }
         }
-
         OutlinedButton(onClick = onPickAttachment, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
             Text(if (attachmentUri == null) "Add Optional Attachment" else "Change Attachment")
         }
