@@ -71,6 +71,9 @@ jobs:
             node --check "$file"
           done
 
+      - name: Validate web asset cache versions
+        run: python3 scripts/web_asset_cache_audit.py
+
       - name: Reject legacy gold in active web UI layers
         shell: bash
         run: |
