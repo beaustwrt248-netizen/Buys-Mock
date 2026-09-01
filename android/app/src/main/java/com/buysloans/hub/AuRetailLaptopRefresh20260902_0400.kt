@@ -4,6 +4,7 @@ package com.buysloans.hub
  * Incremental Australian retail observations verified 2026-09-02 04:00 AWST.
  * Prices are observational only and must not bypass exact-configuration matching,
  * confidence, valuation or max-buy protections.
+ * Prior snapshots remain historical; availability is never silently rewritten here.
  */
 object AuRetailLaptopRefresh20260902_0400 {
     const val CHECKED_AT = "2026-09-02T04:00:00+08:00"
