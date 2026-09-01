@@ -146,4 +146,24 @@ class UiCopyStyleTest {
             update.contains("color=MorleyAccentStrong")
         )
     }
+
+    @Test fun maintenanceCopyRemainsReadableOnLightSurfaces() {
+        val maintenance = sourceFile("MaintenanceActivity.kt")
+        assertFalse(
+            "Low-contrast white maintenance message returned",
+            maintenance.contains("Text(message, color = Color.White")
+        )
+        assertFalse(
+            "Legacy pale maintenance supporting copy returned",
+            maintenance.contains("color = Color(0xFF9BB0C9)")
+        )
+        assertTrue(
+            "Maintenance message must use canonical primary text",
+            maintenance.contains("Text(message, color = MorleyTextPrimary")
+        )
+        assertTrue(
+            "Maintenance supporting/status copy must use canonical secondary text",
+            maintenance.split("color = MorleyTextSecondary").size - 1 >= 2
+        )
+    }
 }
