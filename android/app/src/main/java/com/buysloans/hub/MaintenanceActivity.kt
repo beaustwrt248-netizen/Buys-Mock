@@ -92,7 +92,7 @@ private fun MaintenanceScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("B&L Morley", fontSize = 30.sp, fontWeight = FontWeight.Black)
+                Text("B&L Morley", fontSize = 30.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
                 Spacer(Modifier.height(10.dp))
                 Text("Maintenance mode", color = accent, fontSize = 25.sp, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(18.dp))
@@ -102,13 +102,13 @@ private fun MaintenanceScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(message, color = Color.White, lineHeight = 22.sp)
-                        Text("Your account and saved data are not changed while maintenance mode is active.", color = Color(0xFF9BB0C9), fontSize = 13.sp)
+                        Text(message, color = MorleyTextPrimary, lineHeight = 22.sp)
+                        Text("Your account and saved data are not changed while maintenance mode is active.", color = MorleyTextSecondary, fontSize = 13.sp)
                     }
                 }
                 if (status.isNotBlank()) {
                     Spacer(Modifier.height(14.dp))
-                    Text(status, color = Color(0xFF9BB0C9), fontSize = 13.sp)
+                    Text(status, color = MorleyTextSecondary, fontSize = 13.sp)
                 }
                 Spacer(Modifier.height(18.dp))
                 Button(onClick = onRetry, enabled = !checking, modifier = Modifier.fillMaxWidth().height(54.dp)) {
