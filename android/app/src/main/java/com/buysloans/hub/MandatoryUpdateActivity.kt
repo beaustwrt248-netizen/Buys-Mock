@@ -84,7 +84,10 @@ class MandatoryUpdateActivity : ComponentActivity() {
                             lineHeight = 22.sp
                         )
                         if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        Text(status, color = if (update == null && !busy) GateError else MorleyTextPrimary)
+                        Text(
+                            status,
+                            color = if (update == null && !busy) GateError else MorleyTextPrimary
+                        )
                         update?.let { available ->
                             Button(
                                 onClick = {
