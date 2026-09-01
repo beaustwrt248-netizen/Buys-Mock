@@ -2,7 +2,7 @@
 'use strict';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 let queued=false,observer=null;
-const SPELLING=new Map([['ANALYZE LAPTOP','Analyse Laptop'],['ANALYZE DESKTOP','Analyse Desktop'],['ANALYZE NOW','Analyse Now'],['Analyze Laptop','Analyse Laptop'],['Analyze Desktop','Analyse Desktop'],['Analyze Now','Analyse Now'],['Reccomended Offer','Recommended Offer'],['Recommened Offer','Recommended Offer'],['Comparibles','Comparables'],['Valutation','Valuation'],['Availible','Available']]);
+const SPELLING=new Map([['ANALYZE LAPTOP','Analyse Laptop'],['ANALYZE DESKTOP','Analyse Desktop'],['ANALYZE NOW','Analyse Now'],['Analyze Laptop','Analyse Laptop'],['Analyze Desktop','Analyse Desktop'],['Analyze Now','Analyse Now'],['Seller asking price','Seller Ask'],['SELLER ASKING PRICE','Seller Ask'],['Reccomended Offer','Recommended Offer'],['Recommened Offer','Recommended Offer'],['Comparibles','Comparables'],['Valutation','Valuation'],['Availible','Available']]);
 const STATUS_LABELS=new Set(['LIVE PRICING','ONLINE STATUS']);
 const DECISION_LABELS=new Set(['ADJUSTED RESALE','RECOMMENDED OFFER','ABSOLUTE MAX BUY','EXPECTED PROFIT']);
 const cleanText=s=>String(s||'').trim().replace(/\s+/g,' ');
