@@ -1,7 +1,7 @@
 {
-  "versionCode": 86,
-  "versionName": "2.15.41",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.41/B-and-L-Morley-2.15.41.apk",
-  "sha256": "bee477f1f8d358b22dbbb2d6e6201a494569e00e83839394df1d435c77d2cd5f",
-  "notes": "Merge pull request #512 from beaustwrt248-netizen/morley/au-retail-refresh-20260902-0553"
+    "versionCode": 86,
+    "versionName": "2.15.41",
+    "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.41/B-and-L-Morley-2.15.41.apk",
+    "sha256": "bee477f1f8d358b22dbbb2d6e6201a494569e00e83839394df1d435c77d2cd5f",
+    "notes": "Merge pull request #512 from beaustwrt248-netizen/morley/au-retail-refresh-20260902-0553"
 }
