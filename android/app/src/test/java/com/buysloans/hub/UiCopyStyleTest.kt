@@ -134,4 +134,16 @@ class UiCopyStyleTest {
             notifications.contains("if (item.body.isNotBlank()) Text(item.body, color = MorleyTextPrimary)")
         )
     }
+
+    @Test fun updateVersionLabelRemainsReadableOnLightBackground() {
+        val update = sourceFile("UpdateActivity.kt")
+        assertFalse(
+            "Legacy cyan Update Centre version label returned",
+            update.contains("color=Color(0xFF70DFFF)")
+        )
+        assertTrue(
+            "Update Centre version label must use canonical strong emerald",
+            update.contains("color=MorleyAccentStrong")
+        )
+    }
 }
