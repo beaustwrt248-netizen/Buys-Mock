@@ -42,7 +42,7 @@ replace(root / 'MainActivity.kt', {
 # Seller Ask wording in Quick Deal Mode. No deal calculation logic is changed.
 replace(root / 'SmartWorkspaceSection.kt', {
     'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary)':
-        'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = Color.White)',
+        'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White)',
     'label = { Text("Seller asking price") }': 'label = { Text("Seller Ask") }',
 })
 
