@@ -39,6 +39,7 @@ private val DiagBg = Color(0xFFF5F7F4)
 private val DiagCard = Color(0xFFEEF4F0)
 private val DiagMuted = Color(0xFF52645D)
 private val DiagOk = Color(0xFF238A63)
+private val DiagError = Color(0xFFB42318)
 
 class DiagnosticsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -265,12 +266,12 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun DiagnosticCard(title: String, detail: String, ok: Boolean) {
         Card(
             colors = CardDefaults.cardColors(containerColor = DiagCard),
-            border = BorderStroke(1.dp, if (ok) DiagOk.copy(alpha = .30f) else Color(0xFFFF8A9B).copy(alpha = .35f)),
+            border = BorderStroke(1.dp, if (ok) DiagOk.copy(alpha = .30f) else DiagError.copy(alpha = .65f)),
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(Modifier.fillMaxWidth().padding(15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (ok) "●" else "!", color = if (ok) DiagOk else Color(0xFFFF8A9B), fontWeight = FontWeight.Black)
+                Text(if (ok) "●" else "!", color = if (ok) DiagOk else DiagError, fontWeight = FontWeight.Black)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 16.sp)
                     Text(detail, color = DiagMuted, fontSize = 12.sp, lineHeight = 18.sp)
