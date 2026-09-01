@@ -48,9 +48,13 @@ jobs:
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
           grep -q '/rest/v1/support_tickets?id=eq.' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
-          grep -q 'request(path, "PATCH", session.accessToken, payload, preferMinimal = true)' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
+          grep -q 'authorizedRequest(session, path, "PATCH", payload, preferMinimal = true)' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
+          grep -q 'grant_type=refresh_token' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho 'PATCH' android/adminapp/src/main/java | wc -l)" = "1"
-          ! grep -REq 'force_signout|admin-user-control|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' android/adminapp/src/main/java
+          test "$(grep -Rlo '/functions/v1/admin-user-control' android/adminapp/src/main/java | wc -l)" = "2"
+          grep -q '/functions/v1/admin-user-control' android/adminapp/src/main/java/com/buysloans/admin/UserControlApi.kt
+          grep -q '/functions/v1/admin-user-control' android/adminapp/src/main/java/com/buysloans/admin/TeamInviteApi.kt
+          ! grep -REq 'force_signout|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' android/adminapp/src/main/java
           ! grep -REqi 'service[_-]?role|SUPABASE_SECRET_KEY' android/adminapp
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
