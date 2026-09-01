@@ -61,6 +61,18 @@ class UiCopyStyleTest {
         assertTrue("Canonical Seller Ask wording is missing", pricing.contains("Field(\"Seller Ask\""))
     }
 
+    @Test fun gpGradeButtonsRemainReadableInBothStates() {
+        val pricing = sourceFile("MainActivity.kt")
+        assertFalse(
+            "Legacy GP grade contrast returned",
+            pricing.contains("contentColor=if(grade==g)Color(0xFF06251B) else Color.White")
+        )
+        assertTrue(
+            "Accessible GP grade contrast mapping is missing",
+            pricing.contains("contentColor=if(grade==g)Color.White else MorleyTextPrimary")
+        )
+    }
+
     @Test fun gpLuxuryControlIsSingleLineResponsive() {
         val gp = sourceFile("GPFix.kt")
         assertTrue("Luxury grade needs a wider responsive weight", gp.contains("if (option == \"Luxury\") 1.35f else 1f"))
