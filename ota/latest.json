@@ -1,7 +1,7 @@
 {
-  "versionCode": 63,
-  "versionName": "2.15.18",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.18/B-and-L-Morley-2.15.18.apk",
-  "sha256": "a30fc731eafcf80301b188b08b6aea818167cdbb2ffb17ebc6088620fb7b97b9",
-  "notes": "Merge pull request #388 from beaustwrt248-netizen/fix/restore-computer-console-structure"
+  "versionCode": 64,
+  "versionName": "2.15.19",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.19/B-and-L-Morley-2.15.19.apk",
+  "sha256": "9b7bea62312deec471d7df7fbc4a2129aee9d1a067a713d6da6d6e5b56b00459",
+  "notes": "Fix Admin JWT expiry and add temporary-password provisioning (#395)"
 }
