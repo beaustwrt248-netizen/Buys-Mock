@@ -166,4 +166,24 @@ class UiCopyStyleTest {
             maintenance.split("color = MorleyTextSecondary").size - 1 >= 2
         )
     }
+
+    @Test fun diagnosticsFailureStateRemainsReadableOnLightCards() {
+        val diagnostics = sourceFile("DiagnosticsActivity.kt")
+        assertFalse(
+            "Low-contrast diagnostics failure colour returned",
+            diagnostics.contains("Color(0xFFFF8A9B)")
+        )
+        assertTrue(
+            "Diagnostics failure state must use darker semantic error colour",
+            diagnostics.contains("private val DiagError = Color(0xFFB42318)")
+        )
+        assertTrue(
+            "Diagnostics failure marker must use semantic error colour",
+            diagnostics.contains("color = if (ok) DiagOk else DiagError")
+        )
+        assertTrue(
+            "Diagnostics failure border must use semantic error colour",
+            diagnostics.contains("else DiagError.copy(alpha = .65f)")
+        )
+    }
 }
