@@ -84,7 +84,7 @@ fun GPFix() {
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MorleyAccentStrong,
-                        selectedLabelColor = MorleyTextPrimary,
+                        selectedLabelColor = androidx.compose.ui.graphics.Color.White,
                         containerColor = MorleySurfaceRaised,
                         labelColor = MorleyTextPrimary
                     ),
