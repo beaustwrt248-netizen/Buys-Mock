@@ -10,10 +10,10 @@ import java.net.URL
 
 internal data class AdminSession(
     var accessToken: String,
-    var refreshToken: String,
     val userId: String,
     val displayName: String,
-    val role: String
+    val role: String,
+    var refreshToken: String = ""
 )
 internal data class AdminSnapshot(
     val tickets: JSONArray,
@@ -70,7 +70,13 @@ internal object AdminApi {
         val profile = JSONArray(profileResponse.second).optJSONObject(0) ?: error("This account is not authorised for Admin access.")
         val role = profile.optString("role")
         require(AdminAppAccessPolicy.canEnter(role, profile.optBoolean("is_enabled"))) { "This account is not authorised for Admin access." }
-        AdminSession(token, refreshToken, userId, profile.optString("display_name").ifBlank { email.substringBefore('@') }, role)
+        AdminSession(
+            accessToken = token,
+            userId = userId,
+            displayName = profile.optString("display_name").ifBlank { email.substringBefore('@') },
+            role = role,
+            refreshToken = refreshToken
+        )
     }
 
     suspend fun load(session: AdminSession): AdminSnapshot = withContext(Dispatchers.IO) {
