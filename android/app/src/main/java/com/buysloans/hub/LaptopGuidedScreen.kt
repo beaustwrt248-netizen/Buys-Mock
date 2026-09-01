@@ -33,7 +33,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private val GuidedAccent = Color(0xFF167A5A)
-private const val GuidedApi = "https://ghdhairijqjqivqriigi.supabase.co/functions/v1/ebay-search"
+private const val GuidedApi = "https://ghdhairijqjqivqriigi.supabase.co/functions/v1/market-search-v2"
+
+private data class GuidedMarketResponse(
+    val market: MarketResult,
+    val retailProvider: String,
+    val gumtreeCount: Int,
+    val facebookCount: Int
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,11 +182,16 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
             status = "Searching exact configuration evidence…"
             scope.launch {
                 runCatching { guidedMarket(selected!!, processor, ram, storage, versionCode) }
-                    .onSuccess {
-                        result = it
-                        val exact = it.exactGoogle.size + it.exactEbay.size
-                        val similar = it.similarGoogle.size + it.similarEbay.size
-                        status = "Google/eBay: $exact exact • $similar similar • ${it.rejected.size} rejected"
+                    .onSuccess { response ->
+                        result = response.market
+                        val exact = response.market.exactGoogle.size + response.market.exactEbay.size
+                        val similar = response.market.similarGoogle.size + response.market.similarEbay.size
+                        val provider = when (response.retailProvider) {
+                            "brave" -> "Brave"
+                            "serpapi-google-shopping" -> "Google Shopping fallback"
+                            else -> "Web retail"
+                        }
+                        status = "$provider/eBay: $exact exact • $similar similar • ${response.market.rejected.size} rejected • Gumtree ${response.gumtreeCount} • Facebook ${response.facebookCount}"
                     }
                     .onFailure { status = it.message ?: "Search failed" }
                 busy = false
@@ -242,22 +254,28 @@ private suspend fun guidedMarket(
     ram: String,
     storage: String,
     versionCode: String = ""
-): MarketResult {
+): GuidedMarketResponse {
     val query = if (versionCode.isNotBlank()) {
         LaptopFactoryVariantCatalog.canonicalQuery(preset, versionCode, processor, ram, storage)
     } else {
         LaptopSelectionCatalog.canonicalQuery(preset, processor, ram, storage)
     }
     val root = guidedRequest(query)
-    val google = guidedParse(root.optJSONObject("google"), preset, processor, ram, storage)
+    val retail = guidedParse(root.optJSONObject("webRetail") ?: root.optJSONObject("google"), preset, processor, ram, storage)
     val ebay = guidedParse(root.optJSONObject("ebay"), preset, processor, ram, storage)
-    return MarketResult(
-        exactGoogle = google.filter { it.tier == MatchTier.EXACT }.distinctBy { it.title.lowercase() to it.price.toInt() },
+    val market = MarketResult(
+        exactGoogle = retail.filter { it.tier == MatchTier.EXACT }.distinctBy { it.title.lowercase() to it.price.toInt() },
         exactEbay = ebay.filter { it.tier == MatchTier.EXACT }.distinctBy { it.title.lowercase() to it.price.toInt() },
-        similarGoogle = google.filter { it.tier == MatchTier.SIMILAR }.distinctBy { it.title.lowercase() to it.price.toInt() },
+        similarGoogle = retail.filter { it.tier == MatchTier.SIMILAR }.distinctBy { it.title.lowercase() to it.price.toInt() },
         similarEbay = ebay.filter { it.tier == MatchTier.SIMILAR }.distinctBy { it.title.lowercase() to it.price.toInt() },
-        rejected = (google + ebay).filter { it.tier == MatchTier.REJECTED }.distinctBy { it.title.lowercase() to it.price.toInt() },
+        rejected = (retail + ebay).filter { it.tier == MatchTier.REJECTED }.distinctBy { it.title.lowercase() to it.price.toInt() },
         searches = listOf(query)
+    )
+    return GuidedMarketResponse(
+        market = market,
+        retailProvider = root.optString("retailProvider", ""),
+        gumtreeCount = root.optJSONObject("gumtree")?.optJSONArray("items")?.length() ?: 0,
+        facebookCount = root.optJSONObject("facebook")?.optJSONArray("items")?.length() ?: 0
     )
 }
 
@@ -276,7 +294,7 @@ private suspend fun guidedRequest(query: String): JSONObject = withContext(Dispa
     try {
         val body = JSONObject()
             .put("query", query)
-            .put("limit", 50)
+            .put("limit", 40)
             .put("australiaOnly", true)
             .put("mode", "device")
             .toString()
