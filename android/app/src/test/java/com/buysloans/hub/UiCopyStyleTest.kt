@@ -202,8 +202,8 @@ class UiCopyStyleTest {
             gate.contains("private val GateError = Color(0xFFB42318)")
         )
         assertTrue(
-            "Mandatory update normal status must use canonical dark text",
-            gate.contains("Text(status, color = if (update == null && !busy) GateError else MorleyTextPrimary)")
+            "Mandatory update error status must use the semantic error colour",
+            gate.contains("color = if (update == null && !busy) GateError else MorleyTextPrimary")
         )
     }
 }
