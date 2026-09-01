@@ -40,6 +40,7 @@ private const val GuidedApi = "https://ghdhairijqjqivqriigi.supabase.co/function
 fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     var brand by remember { mutableStateOf("") }
     var preset by remember { mutableStateOf<LaptopPreset?>(null) }
+    var versionCode by remember { mutableStateOf("") }
     var processor by remember { mutableStateOf("") }
     var ram by remember { mutableStateOf("") }
     var storage by remember { mutableStateOf("") }
@@ -57,6 +58,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     GuidedDropdown("Brand", brand, LaptopSelectionCatalog.brands) { selected ->
         brand = selected
         preset = null
+        versionCode = ""
         processor = ""
         ram = ""
         storage = ""
@@ -71,6 +73,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
         enabled = brand.isNotBlank()
     ) { modelName ->
         preset = modelOptions.firstOrNull { it.model == modelName }
+        versionCode = ""
         processor = ""
         ram = ""
         storage = ""
@@ -78,15 +81,69 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     }
 
     val selected = preset
-    GuidedDropdown("Processor", processor, selected?.processors.orEmpty(), selected != null) {
+    val factoryProfile = LaptopFactoryVariantCatalog.profile(selected)
+    val versionOptions = LaptopFactoryVariantCatalog.versionCodes(selected)
+
+    if (factoryProfile != null) {
+        GuidedDropdown(
+            label = "Verified version / model code",
+            value = versionCode,
+            options = versionOptions,
+            enabled = selected != null
+        ) {
+            versionCode = it
+            processor = ""
+            ram = ""
+            storage = ""
+            result = null
+        }
+        if (versionCode.isNotBlank()) {
+            LaptopFactoryVariantCatalog.sourceLabel(selected, versionCode)?.let { source ->
+                Text("Manufacturer-verified configuration • $source", color = MorleyTextSecondary, fontSize = 12.sp)
+            }
+        }
+    } else if (selected != null) {
+        Text(
+            "Factory configuration verification is still being expanded for this catalogue model. Legacy options remain available but are not labelled manufacturer-verified.",
+            color = MorleyTextSecondary,
+            fontSize = 12.sp
+        )
+    }
+
+    val processorOptions = when {
+        selected == null -> emptyList()
+        factoryProfile != null && versionCode.isNotBlank() -> LaptopFactoryVariantCatalog.processors(selected, versionCode)
+        factoryProfile != null -> emptyList()
+        else -> selected.processors
+    }
+    GuidedDropdown("Processor", processor, processorOptions, selected != null && (factoryProfile == null || versionCode.isNotBlank())) {
         processor = it
+        ram = ""
+        storage = ""
         result = null
     }
-    GuidedDropdown("RAM", ram, selected?.ramOptions.orEmpty(), selected != null) {
+
+    val ramOptions = when {
+        selected == null -> emptyList()
+        factoryProfile != null && versionCode.isNotBlank() && processor.isNotBlank() ->
+            LaptopFactoryVariantCatalog.ramOptions(selected, versionCode, processor)
+        factoryProfile != null -> emptyList()
+        else -> selected.ramOptions
+    }
+    GuidedDropdown("RAM", ram, ramOptions, processor.isNotBlank()) {
         ram = it
+        storage = ""
         result = null
     }
-    GuidedDropdown("Storage", storage, selected?.storageOptions.orEmpty(), selected != null) {
+
+    val storageOptions = when {
+        selected == null -> emptyList()
+        factoryProfile != null && versionCode.isNotBlank() && processor.isNotBlank() && ram.isNotBlank() ->
+            LaptopFactoryVariantCatalog.storageOptions(selected, versionCode, processor, ram)
+        factoryProfile != null -> emptyList()
+        else -> selected.storageOptions
+    }
+    GuidedDropdown("Storage", storage, storageOptions, ram.isNotBlank()) {
         storage = it
         result = null
     }
@@ -94,15 +151,21 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     OutlinedTextField(
         value = ask,
         onValueChange = { ask = it.filter { ch -> ch.isDigit() || ch == '.' } },
-        label = { Text("Seller asking price") },
+        label = { Text("Seller Ask") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth()
     )
 
-    val ready = selected != null && processor.isNotBlank() && ram.isNotBlank() && storage.isNotBlank()
-    val canonical = if (ready) LaptopSelectionCatalog.canonicalQuery(selected!!, processor, ram, storage) else ""
+    val basicReady = selected != null && processor.isNotBlank() && ram.isNotBlank() && storage.isNotBlank()
+    val ready = basicReady && if (factoryProfile != null) {
+        versionCode.isNotBlank() && LaptopFactoryVariantCatalog.configurationVerified(selected, versionCode, processor, ram, storage)
+    } else true
     val displayProcessor = if (ready) processor.removePrefix("${selected!!.brand} ") else ""
-    val displayConfiguration = if (ready) listOf(selected!!.brand, selected.model, displayProcessor, ram, storage).joinToString(" ") else ""
+    val displayConfiguration = if (ready) {
+        listOf(selected!!.brand, selected.model, versionCode.takeIf { it.isNotBlank() }, displayProcessor, ram, storage)
+            .filterNotNull()
+            .joinToString(" ")
+    } else ""
     if (displayConfiguration.isNotBlank()) Block("SELECTED CONFIGURATION", displayConfiguration)
 
     Button(
@@ -111,7 +174,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
             busy = true
             status = "Searching exact configuration evidence…"
             scope.launch {
-                runCatching { guidedMarket(selected!!, processor, ram, storage) }
+                runCatching { guidedMarket(selected!!, processor, ram, storage, versionCode) }
                     .onSuccess {
                         result = it
                         val exact = it.exactGoogle.size + it.exactEbay.size
@@ -124,7 +187,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
         },
         enabled = ready && !busy,
         modifier = Modifier.fillMaxWidth().height(56.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = GuidedAccent, contentColor = Color.Black),
+        colors = ButtonDefaults.buttonColors(containerColor = GuidedAccent, contentColor = Color.White),
         shape = RoundedCornerShape(16.dp)
     ) {
         Text(if (busy) "Searching…" else "Analyse Laptop", fontWeight = FontWeight.Black, fontSize = 17.sp)
@@ -177,9 +240,14 @@ private suspend fun guidedMarket(
     preset: LaptopPreset,
     processor: String,
     ram: String,
-    storage: String
+    storage: String,
+    versionCode: String = ""
 ): MarketResult {
-    val query = LaptopSelectionCatalog.canonicalQuery(preset, processor, ram, storage)
+    val query = if (versionCode.isNotBlank()) {
+        LaptopFactoryVariantCatalog.canonicalQuery(preset, versionCode, processor, ram, storage)
+    } else {
+        LaptopSelectionCatalog.canonicalQuery(preset, processor, ram, storage)
+    }
     val root = guidedRequest(query)
     val google = guidedParse(root.optJSONObject("google"), preset, processor, ram, storage)
     val ebay = guidedParse(root.optJSONObject("ebay"), preset, processor, ram, storage)

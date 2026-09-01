@@ -30,6 +30,7 @@ def require_markers(path: str, *markers: str):
 
 # Governance / canonical presentation
 require_file("UI_CHANGE_MASTER_CHECKLIST.md")
+require_file("UI_CHANGE_CHECKLIST_LAPTOP_FACTORY_VARIANTS.md")
 require_markers("morley-ui-baseline.css", "--morley-ui-font", "#1c2b26", "#167a5a", ".decisionGrid", "#livePricing", "#onlineStatus")
 require_markers("morley-ui-baseline.js", "ensureViewport", "normaliseSpelling", "BUYING DECISION", "Seller Ask")
 require_markers("mobile-readability-fix.js", "max-width:100vw")
@@ -90,6 +91,25 @@ require_markers(
     "ConsolePricingScreen",
 )
 require_file("android/app/src/main/java/com/buysloans/hub/ComputerConsolePricingScreens.kt")
+require_markers(
+    "android/app/src/main/java/com/buysloans/hub/LaptopGuidedScreen.kt",
+    "Verified version / model code",
+    "Manufacturer-verified configuration",
+    "Seller Ask",
+    "contentColor = Color.White",
+    "LaptopFactoryVariantCatalog.configurationVerified",
+)
+require_markers(
+    "android/app/src/main/java/com/buysloans/hub/LaptopFactoryVariantCatalog.kt",
+    "LaptopFactoryProfile",
+    "LaptopFactoryVersion",
+    "exactVariants",
+    "configurationVerified",
+    "canonicalQuery",
+    "CX1400",
+    "CX1405CTA",
+)
+require_file("android/app/src/test/java/com/buysloans/hub/LaptopFactoryVariantCatalogTest.kt")
 require_file("android/app/src/main/java/com/buysloans/hub/SmartWorkspaceSection.kt")
 require_file("android/app/src/main/java/com/buysloans/hub/ComparableEvidenceDecisionAdapter.kt")
 require_file("android/app/src/main/java/com/buysloans/hub/ComparableSalesQuality.kt")
