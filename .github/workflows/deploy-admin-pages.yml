@@ -128,6 +128,24 @@ jobs:
             done
             return 1
           }
+          fetch_until_contains() {
+            local url="$1" out="$2" pattern="$3"
+            for attempt in 1 2 3 4 5 6; do
+              local sep='?'
+              [[ "$url" == *\?* ]] && sep='&'
+              if curl --fail --silent --show-error --location --max-time 30 \
+                -H 'Cache-Control: no-cache' \
+                -H 'Pragma: no-cache' \
+                --output "$out" "${url}${sep}morley_sha=${GITHUB_SHA}&content_attempt=${attempt}" \
+                && grep -Fq -- "$pattern" "$out"; then
+                return 0
+              fi
+              echo "Waiting for expected deployed content ($attempt/6): $url :: $pattern"
+              sleep 10
+            done
+            echo "::error::Expected deployed content not observed after propagation window: $url :: $pattern"
+            return 1
+          }
           fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/page-index.html"
           grep -q 'web-base.html' "$RUNNER_TEMP/page-index.html"
@@ -143,8 +161,7 @@ jobs:
             cp site/web-base.html "$RUNNER_TEMP/web-base.html"
           fi
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/web-base.html"
-          fetch_with_retry "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js"
-          grep -q 'verifyAuthorised' "$RUNNER_TEMP/web-auth.js"
+          fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
           fetch_with_retry "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js"
           grep -q "localStorage.getItem(STORE)" "$RUNNER_TEMP/secure-pricing.js"
           grep -q "'Authorization':'Bearer '+s.access_token" "$RUNNER_TEMP/secure-pricing.js"
