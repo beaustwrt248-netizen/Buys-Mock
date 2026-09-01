@@ -27,29 +27,29 @@ function ensureStyles(){
   style.id='morleyMobileLayoutFinal';
   style.textContent=`
 @media(max-width:760px){
-  main.app,.app{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
-  .top{min-height:62px!important;padding:9px 152px 9px 122px!important;display:flex!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important}
-  .top>b{font-size:18px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;margin:0!important}
-  .morley-menu-trigger-fixed{left:12px!important;top:10px!important;width:102px!important;min-width:102px!important;max-width:102px!important;height:42px!important;min-height:42px!important;padding:0 10px!important;border-radius:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;box-sizing:border-box!important}
-  .morley-menu-trigger-label{font-size:12px!important;line-height:1!important}
-  .morley-web-user{top:10px!important;right:12px!important;width:132px!important;max-width:132px!important;min-height:42px!important;height:42px!important;padding:0 10px!important;font-size:11px!important;border-radius:999px!important;box-sizing:border-box!important}
-  body nav{left:10px!important;right:10px!important;bottom:8px!important;width:auto!important;height:auto!important;min-height:0!important;max-height:82px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;padding:6px calc(6px) calc(6px + env(safe-area-inset-bottom))!important;border:1px solid rgba(56,214,163,.22)!important;border-radius:20px!important;background:rgba(8,11,13,.97)!important;box-shadow:0 12px 34px rgba(0,0,0,.42)!important;box-sizing:border-box!important;overflow:hidden!important}
-  body nav button,body nav button.active{position:relative!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;width:100%!important;min-width:0!important;height:62px!important;min-height:62px!important;max-height:62px!important;margin:0!important;padding:6px 3px!important;border-radius:14px!important;border:1px solid transparent!important;background:transparent!important;background-image:none!important;box-shadow:none!important;transform:none!important;color:#a9b9b4!important;font-size:0!important;line-height:1!important;box-sizing:border-box!important;overflow:hidden!important}
+  main.app,.app{padding-bottom:calc(86px + env(safe-area-inset-bottom))!important}
+  .top{min-height:58px!important;padding:8px 136px 8px 104px!important;display:flex!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important}
+  .top>b{font-size:17px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;margin:0!important;color:#f4f7f6!important;text-shadow:0 1px 1px rgba(0,0,0,.22)!important}
+  .morley-menu-trigger-fixed{left:12px!important;top:9px!important;width:88px!important;min-width:88px!important;max-width:88px!important;height:40px!important;min-height:40px!important;padding:0 9px!important;border-radius:13px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;box-sizing:border-box!important}
+  .morley-menu-trigger-label{font-size:11px!important;line-height:1!important}
+  .morley-web-user{top:9px!important;right:12px!important;width:120px!important;max-width:120px!important;min-height:40px!important;height:40px!important;padding:0 9px!important;font-size:11px!important;border-radius:999px!important;box-sizing:border-box!important}
+  body nav{left:12px!important;right:12px!important;bottom:9px!important;width:auto!important;height:auto!important;min-height:0!important;max-height:74px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:5px 5px calc(5px + env(safe-area-inset-bottom))!important;border:1px solid rgba(56,214,163,.22)!important;border-radius:18px!important;background:rgba(8,11,13,.97)!important;box-shadow:0 10px 28px rgba(0,0,0,.36)!important;box-sizing:border-box!important;overflow:hidden!important}
+  body nav button,body nav button.active{position:relative!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;width:100%!important;min-width:0!important;height:52px!important;min-height:52px!important;max-height:52px!important;margin:0!important;padding:5px 3px!important;border-radius:12px!important;border:1px solid transparent!important;background:transparent!important;background-image:none!important;box-shadow:none!important;transform:none!important;color:#a9b9b4!important;font-size:0!important;line-height:1!important;box-sizing:border-box!important;overflow:hidden!important}
   body nav button.active{background:rgba(56,214,163,.13)!important;border-color:rgba(56,214,163,.3)!important;color:#77e9c4!important}
   body nav button::before,body nav button::after{content:none!important;display:none!important;background:none!important}
-  body nav .morley-nav-icon{display:grid!important;place-items:center!important;width:24px!important;height:24px!important;min-width:24px!important;min-height:24px!important;margin:0!important;padding:0!important;color:inherit!important}
-  body nav .morley-nav-icon svg{display:block!important;width:24px!important;height:24px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important;overflow:visible!important}
-  body nav button small{display:block!important;margin:0!important;padding:0!important;font-size:11px!important;font-weight:700!important;line-height:13px!important;color:inherit!important;white-space:nowrap!important}
+  body nav .morley-nav-icon{display:grid!important;place-items:center!important;width:22px!important;height:22px!important;min-width:22px!important;min-height:22px!important;margin:0!important;padding:0!important;color:inherit!important}
+  body nav .morley-nav-icon svg{display:block!important;width:22px!important;height:22px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important;overflow:visible!important}
+  body nav button small{display:block!important;margin:0!important;padding:0!important;font-size:10px!important;font-weight:700!important;line-height:12px!important;color:inherit!important;white-space:nowrap!important}
   body nav button[data-page="desktop"]{display:none!important}
 }
 @media(max-width:390px){
-  .top{padding-left:112px!important;padding-right:126px!important}
-  .morley-menu-trigger-fixed{width:94px!important;min-width:94px!important;max-width:94px!important}
-  .morley-web-user{width:108px!important;max-width:108px!important}
-  .top>b{font-size:16px!important}
-  body nav{left:7px!important;right:7px!important;gap:4px!important;padding-left:5px!important;padding-right:5px!important}
-  body nav button,body nav button.active{height:60px!important;min-height:60px!important;max-height:60px!important}
-  body nav button small{font-size:10px!important}
+  .top{padding-left:98px!important;padding-right:116px!important}
+  .morley-menu-trigger-fixed{width:82px!important;min-width:82px!important;max-width:82px!important}
+  .morley-web-user{width:104px!important;max-width:104px!important}
+  .top>b{font-size:15px!important}
+  body nav{left:8px!important;right:8px!important;gap:4px!important;padding-left:4px!important;padding-right:4px!important}
+  body nav button,body nav button.active{height:50px!important;min-height:50px!important;max-height:50px!important}
+  body nav button small{font-size:9px!important}
 }
 `;
   document.head.appendChild(style);
