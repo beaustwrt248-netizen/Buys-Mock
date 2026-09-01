@@ -78,4 +78,17 @@ class UiCopyStyleTest {
         assertTrue("Luxury grade needs a wider responsive weight", gp.contains("if (option == \"Luxury\") 1.35f else 1f"))
         assertTrue("Luxury grade label must remain single line", gp.contains("maxLines = 1"))
     }
+
+    @Test fun smartWorkspacePrimaryActionsRemainReadableAndSellerAskCanonical() {
+        val workspace = sourceFile("SmartWorkspaceSection.kt")
+        val legacyContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary)"
+        val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White)"
+        assertFalse("Low-contrast Smart Workspace primary action returned", workspace.contains(legacyContrast))
+        assertTrue(
+            "Both Smart Workspace primary actions must use white on strong emerald",
+            workspace.split(accessibleContrast).size - 1 == 2
+        )
+        assertFalse("Legacy Quick Deal Seller Ask wording returned", workspace.contains("Seller asking price"))
+        assertTrue("Canonical Quick Deal Seller Ask label is missing", workspace.contains("label = { Text(\"Seller Ask\") }"))
+    }
 }
