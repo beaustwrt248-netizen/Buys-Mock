@@ -1,12 +1,13 @@
 (()=>{
 'use strict';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const ROUTES=new Set(['home','computer','console','general']);
 let finished=false;
 
 function explicitRoute(){
   const hash=(location.hash||'').replace(/^#/,'').trim();
-  return ROUTES.has(hash)?hash:null;
+  if(!hash)return null;
+  const target=document.getElementById(hash);
+  return target?.classList.contains('section')?hash:null;
 }
 
 function currentSection(){
