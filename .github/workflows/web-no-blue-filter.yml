@@ -1,0 +1,52 @@
+name: Web No-Blue Theme Filter
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.css'
+      - '*.js'
+      - 'index.html'
+      - '.github/workflows/web-no-blue-filter.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '*.css'
+      - '*.js'
+      - 'index.html'
+      - '.github/workflows/web-no-blue-filter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-blue-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject retired electric blue and cyan theme tokens
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          forbidden=['#2f7cff','#1f5fd8','#12c9ff','#2468dd','#2875ff','#16c7ff','#70dfff','#7bdfff','rgba(47,124,255','rgba(18,201,255','rgb(47,124,255','rgb(18,201,255']
+          active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css']
+          failures=[]
+          for file in active:
+              text=Path(file).read_text(encoding='utf-8').lower()
+              found=[token for token in forbidden if token in text]
+              if found: failures.append(f'{file}: {", ".join(found)}')
+          if failures: raise SystemExit('Retired electric blue/cyan theme token detected:\n'+'\n'.join(failures))
+          for legacy in ['cyber-ui.css','cyber-spectrum.css','reference-theme.css']:
+              if 'Retired production theme shim' not in Path(legacy).read_text(encoding='utf-8'):
+                  raise SystemExit(f'{legacy} must remain retired and neutral')
+          lock=Path('web-apk-light-visual-lock.css').read_text(encoding='utf-8')
+          required=['#inventory #addItem','#scanner #startScan','#scanner #findCode','#morleyMenuDialog button','#morleyMoreBackBar button','nav[aria-label="Primary navigation"]','button.secondary','button.danger']
+          missing=[needle for needle in required if needle not in lock]
+          if missing: raise SystemExit('Sub-category no-blue coverage missing: '+', '.join(missing))
+          loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
+          if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader: raise SystemExit('Final visual lock cache version is stale')
+          print('No retired electric blue/cyan theme tokens in active theme layers')
+          print('Sub-category coverage verified')
+          PY
