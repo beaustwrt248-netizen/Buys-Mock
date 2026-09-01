@@ -403,9 +403,9 @@ class SupportTicketActivity : ComponentActivity() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(author, fontWeight = FontWeight.Black, color = if (admin) SupportAccent else Color.White)
+                Text(author, fontWeight = FontWeight.Black, color = if (admin) SupportAccent else MorleyTextPrimary)
                 Text(label, color = SupportMuted, fontSize = 10.sp)
-                Text(body, color = Color.White, lineHeight = 20.sp)
+                Text(body, color = MorleyTextPrimary, lineHeight = 20.sp)
                 Text(prettyTime(createdAt), color = SupportMuted, fontSize = 10.sp)
             }
         }
