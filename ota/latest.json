@@ -1,7 +1,7 @@
 {
-  "versionCode": 76,
-  "versionName": "2.15.31",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.31/B-and-L-Morley-2.15.31.apk",
-  "sha256": "f2e90ae3459eda1c0355f0bf6c772c6e936139e86627685b46b3c290cd681b17",
-  "notes": "Merge pull request #471 from beaustwrt248-netizen/fix/notification-body-contrast"
+  "versionCode": 77,
+  "versionName": "2.15.32",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.32/B-and-L-Morley-2.15.32.apk",
+  "sha256": "7ae8a40016d02b45b0f277fc46b43d6cfe774e11b214bcfec4726c6cb0c30e58",
+  "notes": "Merge pull request #476 from beaustwrt248-netizen/fix/update-version-label-contrast"
 }
