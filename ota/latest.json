@@ -1,7 +1,7 @@
 {
-  "versionCode": 61,
-  "versionName": "2.15.16",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.16/B-and-L-Morley-2.15.16.apk",
-  "sha256": "6c7f1094d524cef5d7be7949a96fdd3c904c3c9c18c05e28221ba91756942998",
-  "notes": "Refresh AU laptop and Chromebook retail catalog (#375)"
+  "versionCode": 62,
+  "versionName": "2.15.17",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.17/B-and-L-Morley-2.15.17.apk",
+  "sha256": "27579ca89165616e70a629c4faac4a6f19ae5f8f3426e504f6d1c3e280e30bcc",
+  "notes": "Fix Morley video UI category and navigation defects"
 }
