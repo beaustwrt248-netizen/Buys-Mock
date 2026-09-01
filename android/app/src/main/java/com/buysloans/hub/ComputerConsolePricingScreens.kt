@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,7 +54,7 @@ fun ComputerPricingScreen() {
                     Button(
                         onClick = { type = ComputerType.LAPTOP },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White),
                         shape = RoundedCornerShape(16.dp)
                     ) { Text("Laptop / MacBook", fontWeight = FontWeight.Black) }
                     OutlinedButton(
