@@ -7,6 +7,7 @@ import org.junit.Test
 class AuRetailLaptopRefresh20260902_0256Test {
     @Test
     fun `refresh records verified configurations and availability`() {
+        // Keep retail observations exact and status-aware; valuation/confidence rules remain elsewhere.
         val listings = AuRetailLaptopRefresh20260902_0256.listings
         assertEquals(4, listings.size)
 
