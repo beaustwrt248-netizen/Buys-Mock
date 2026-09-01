@@ -187,6 +187,7 @@ class UiCopyStyleTest {
         )
     }
 
+    // FVP-013: keep the mandatory-update state readable without changing update enforcement.
     @Test fun mandatoryUpdateStatusRemainsReadableOnLightCards() {
         val gate = sourceFile("MandatoryUpdateActivity.kt")
         assertFalse("Low-contrast white mandatory-update status returned", gate.contains("else Color.White"))
