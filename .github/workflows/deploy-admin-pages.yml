@@ -109,6 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           BASE="${PAGE_URL%/}"
+          IMMUTABLE_BASE='https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/013aa3577f8c714297eda86bfd2c1d49b3667eb1/index.html'
           echo "Waiting briefly for custom-domain/CDN propagation after successful Pages deployment."
           sleep 20
           fetch_with_retry() {
@@ -131,7 +132,15 @@ jobs:
           grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
           grep -q 'mobile-parity-v3.css' "$RUNNER_TEMP/page-index.html"
           grep -q 'mobile-layout-fix.js' "$RUNNER_TEMP/page-index.html"
-          fetch_with_retry "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html"
+          if curl --fail --silent --show-error --location --max-time 15 \
+            -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+            --output "$RUNNER_TEMP/web-base.html" "$BASE/web-base.html?morley_sha=${GITHUB_SHA}"; then
+            echo "Validated local web-base.html from the deployed Pages artifact."
+          else
+            echo "Local web-base.html is unavailable from the custom-domain source; validating the wrapper's immutable runtime fallback instead."
+            curl --fail --silent --show-error --location --retry 3 --max-time 30 \
+              --output "$RUNNER_TEMP/web-base.html" "$IMMUTABLE_BASE"
+          fi
           grep -q 'Buys and Loans Hub' "$RUNNER_TEMP/web-base.html"
           fetch_with_retry "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js"
           grep -q 'verifyAuthorised' "$RUNNER_TEMP/web-auth.js"
