@@ -1,7 +1,7 @@
 {
-  "versionCode": 70,
-  "versionName": "2.15.25",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.25/B-and-L-Morley-2.15.25.apk",
-  "sha256": "9e631386f840d2299ab2eee31b932a721b52991cccb6a8de0b1c001983d41e68",
-  "notes": "Standardise Android Seller Ask copy (#445)"
+  "versionCode": 71,
+  "versionName": "2.15.26",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.26/B-and-L-Morley-2.15.26.apk",
+  "sha256": "980332e0db8189649c417fbe2ab580d75fd57fae7fe9985eed17c1a3a6e4786e",
+  "notes": "Merge pull request #449 from beaustwrt248-netizen/fix/laptop-multi-query-retrieval"
 }
