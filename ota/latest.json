@@ -1,7 +1,7 @@
 {
-  "versionCode": 69,
-  "versionName": "2.15.24",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.24/B-and-L-Morley-2.15.24.apk",
-  "sha256": "64f42ecc6d90900be5f031c9b891df6cd8da7ba51f89b1432ed46bc1fcc0a6f4",
-  "notes": "Use Brave-first market search for Morley laptop analysis (#441)"
+  "versionCode": 70,
+  "versionName": "2.15.25",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.25/B-and-L-Morley-2.15.25.apk",
+  "sha256": "9e631386f840d2299ab2eee31b932a721b52991cccb6a8de0b1c001983d41e68",
+  "notes": "Standardise Android Seller Ask copy (#445)"
 }
