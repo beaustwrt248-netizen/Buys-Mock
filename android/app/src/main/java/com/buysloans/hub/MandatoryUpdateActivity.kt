@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 private val GateAccent = Color(0xFF167A5A)
 private val GateBg = Color(0xFFF5F7F4)
 private val GateCard = Color(0xFFEEF4F0)
+private val GateError = Color(0xFFB42318)
 
 class MandatoryUpdateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,7 +84,7 @@ class MandatoryUpdateActivity : ComponentActivity() {
                             lineHeight = 22.sp
                         )
                         if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        Text(status, color = if (update == null && !busy) Color(0xFFFFC0C8) else Color.White)
+                        Text(status, color = if (update == null && !busy) GateError else MorleyTextPrimary)
                         update?.let { available ->
                             Button(
                                 onClick = {
