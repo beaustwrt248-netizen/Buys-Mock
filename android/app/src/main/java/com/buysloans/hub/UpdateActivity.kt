@@ -163,7 +163,7 @@ private fun UpdateScreen(versionName:String, apkUrl:String, releaseNotes:String,
                 verticalArrangement=Arrangement.spacedBy(18.dp)
             ) {
                 Text("B&L Morley Update",fontSize=28.sp,fontWeight=FontWeight.Black)
-                Text(if(versionName.isBlank()) "New version" else versionName,color=Color(0xFF70DFFF),fontSize=20.sp,fontWeight=FontWeight.Bold)
+                Text(if(versionName.isBlank()) "New version" else versionName,color=MorleyAccentStrong,fontSize=20.sp,fontWeight=FontWeight.Bold)
                 if(releaseNotes.isNotBlank()) {
                     Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFFFFF)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
