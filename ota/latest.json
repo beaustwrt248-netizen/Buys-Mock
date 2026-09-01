@@ -1,7 +1,7 @@
 {
-  "versionCode": 72,
-  "versionName": "2.15.27",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.27/B-and-L-Morley-2.15.27.apk",
-  "sha256": "50638e2c6a00c6359b56a1f379f5f9fac41292d9461881f27cd3e4075cd91793",
-  "notes": "Fix Android GP grade button contrast (#454)"
+  "versionCode": 73,
+  "versionName": "2.15.28",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.28/B-and-L-Morley-2.15.28.apk",
+  "sha256": "8e782e24fe2d769b1359b9311e215974a39238fc1512f8c5f99953a90b3d7eff",
+  "notes": "Merge pull request #458 from beaustwrt248-netizen/fix/smart-workspace-contrast-copy"
 }
