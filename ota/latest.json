@@ -1,7 +1,7 @@
 {
-  "versionCode": 79,
-  "versionName": "2.15.34",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.34/B-and-L-Morley-2.15.34.apk",
-  "sha256": "946cac566df4e9eaf858bd974413d5fec81250570f0a0d58bd711cc795286913",
-  "notes": "Fix diagnostics failure-state contrast (#482)"
+  "versionCode": 80,
+  "versionName": "2.15.35",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.35/B-and-L-Morley-2.15.35.apk",
+  "sha256": "53e3804961f2e352cb75cd8b61d2748eca56ba77eee7aea6168af05a7b46d04c",
+  "notes": "Merge pull request #485 from beaustwrt248-netizen/fix/mandatory-update-status-contrast"
 }
