@@ -86,7 +86,7 @@ begin
      or (redeemed_at is null and revoked_at is null and expires_at < now() - interval '30 days');
   get diagnostics download_invite_rows = row_count;
 
-  delete from public.admin_error_events where created_at < now() - interval '90 days';
+  delete from public.admin_error_events where received_at < now() - interval '90 days';
   get diagnostics telemetry_rows = row_count;
 
   return jsonb_build_object(
