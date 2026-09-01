@@ -1,0 +1,51 @@
+name: Full Feature Contract Audit
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'admin/**'
+      - 'android/**'
+      - 'ota/**'
+      - 'UI_CHANGE_MASTER_CHECKLIST.md'
+      - 'FULL_FEATURE_VALIDATION_*.md'
+      - 'scripts/full_feature_contract_audit.py'
+      - '.github/workflows/full-feature-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'admin/**'
+      - 'android/**'
+      - 'ota/**'
+      - 'UI_CHANGE_MASTER_CHECKLIST.md'
+      - 'FULL_FEATURE_VALIDATION_*.md'
+      - 'scripts/full_feature_contract_audit.py'
+      - '.github/workflows/full-feature-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-feature-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Compile validation script
+        run: python3 -m py_compile scripts/full_feature_contract_audit.py
+      - name: Validate complete feature contract
+        run: python3 scripts/full_feature_contract_audit.py
