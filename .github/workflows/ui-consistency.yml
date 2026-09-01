@@ -1,0 +1,45 @@
+name: Morley UI Consistency
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'scripts/ui_consistency_audit.py'
+      - '.github/workflows/ui-consistency.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - '*.css'
+      - '*.js'
+      - 'scripts/ui_consistency_audit.py'
+      - '.github/workflows/ui-consistency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-consistency-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check morley-ui-baseline.js
+          node --check mobile-readability-fix.js
+          node --check web-initial-render-fix.js
+      - name: Presentation contract audit
+        run: python3 scripts/ui_consistency_audit.py
