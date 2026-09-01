@@ -1,7 +1,7 @@
 {
-    "versionCode": 85,
-    "versionName": "2.15.40",
-    "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.40/B-and-L-Morley-2.15.40.apk",
-    "sha256": "abbf85ed5d7e76989a5b723186b519e88d92d0348deb892e1e3770d018a3c3cb",
-    "notes": "Refresh AU laptop retail catalog 2026-09-02 04:54 (#510)"
+  "versionCode": 86,
+  "versionName": "2.15.41",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.41/B-and-L-Morley-2.15.41.apk",
+  "sha256": "bee477f1f8d358b22dbbb2d6e6201a494569e00e83839394df1d435c77d2cd5f",
+  "notes": "Merge pull request #512 from beaustwrt248-netizen/morley/au-retail-refresh-20260902-0553"
 }
