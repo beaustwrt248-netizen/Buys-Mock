@@ -1,4 +1,4 @@
-# OTA enforcement
+# OTA enforcement — 2.15.44
 
 - Background OTA checks run every 6 hours instead of every 12 hours.
 - The app still performs an immediate update check when scheduling starts.
