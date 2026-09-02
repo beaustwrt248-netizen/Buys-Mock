@@ -13,6 +13,7 @@ const layout = read('desktop-mode-layout-fix.js');
 const desktop = read('desktop-parity.js');
 const diagnostics = read('web-diagnostics.js');
 const quickDealGrade = read('quick-deal-grade.js');
+const smartWorkspace = read('smart-workspace.js');
 
 for (const label of ['Home', 'Computer', 'Console', 'GP']) assert.match(layout, new RegExp(`'${label}'`));
 assert.match(desktop, /const VALID=\['home','computer','console','laptop','desktop','general','settings'/);
@@ -55,5 +56,10 @@ assert.match(quickDealGrade, /market\*\(MAX_BUY_FACTOR\[grade\]/);
 assert.match(quickDealGrade, /mswDealMarket[\\s\\S]*addEventListener\('input'/);
 assert.match(quickDealGrade, /mswDealGrade[\\s\\S]*addEventListener\('change'/);
 assert.match(quickDealGrade, /max\.readOnly=true/);
+assert.match(smartWorkspace, /function paintDealVerdict\(panel,verdict\)/);
+for (const colour of ['#e7f6ee', '#74c9a5', '#0f684c', '#fff7dd', '#dfbe5b', '#755600', '#fff0f1', '#d88e98', '#a83242']) assert.ok(smartWorkspace.includes(colour));
+assert.match(smartWorkspace, /\['GREAT BUY','GOOD BUY'\]\.includes\(verdict\)\?'buy'/);
+assert.match(smartWorkspace, /verdict==='MARGINAL'\?'warning'/);
+assert.match(smartWorkspace, /verdict==='AVOID'\?'danger'/);
 
 console.log('Web release readiness contract OK');
