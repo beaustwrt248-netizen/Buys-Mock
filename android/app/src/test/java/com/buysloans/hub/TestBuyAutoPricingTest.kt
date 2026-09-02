@@ -53,10 +53,10 @@ class TestBuyAutoPricingTest {
     }
     @Test
     fun formattedAustralianCurrencyInputsRemainReliable() {
-        assertEquals(1200.0, parseMorleyCurrencyInput("1,200"), 0.001)
-        assertEquals(1200.0, parseMorleyCurrencyInput("\$1,200"), 0.001)
-        assertEquals(1200.0, parseMorleyCurrencyInput("A\$1,200.00"), 0.001)
-        assertEquals(799.77, parseMorleyCurrencyInput(" 799.77 "), 0.001)
+        assertEquals(1200.0, parseMorleyCurrencyInput("1,200")!!, 0.001)
+        assertEquals(1200.0, parseMorleyCurrencyInput("\$1,200")!!, 0.001)
+        assertEquals(1200.0, parseMorleyCurrencyInput("A\$1,200.00")!!, 0.001)
+        assertEquals(799.77, parseMorleyCurrencyInput(" 799.77 ")!!, 0.001)
         assertEquals(null, parseMorleyCurrencyInput("not a price"))
     }
 
