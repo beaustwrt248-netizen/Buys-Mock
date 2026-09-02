@@ -2,6 +2,7 @@ package com.buysloans.hub
 
 import android.content.Context
 import android.util.Base64
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -29,6 +30,8 @@ data class SavedValuation(
     val createdAt: String,
     val itemGrade: String? = null
 )
+
+private class ValuationHistoryLoadException(message: String) : IllegalStateException(message)
 
 object ValuationHistoryManager {
     private const val CACHE_PREFS = "valuation_history_cache"
@@ -61,14 +64,36 @@ object ValuationHistoryManager {
         }
     }
 
-    private fun parseList(text:String):List<SavedValuation>{
-        val a=JSONArray(text)
-        return List(a.length()){i-> val j=a.getJSONObject(i); SavedValuation(
-            id=j.optString("id"),itemType=j.optString("item_type"),itemSummary=j.optString("item_summary"),specs=j.optString("specs"),
-            askingPrice=j.optDoubleOrNull("asking_price"),marketValue=j.optDoubleOrNull("market_value"),maxBuy=j.optDoubleOrNull("max_buy"),expectedProfit=j.optDoubleOrNull("expected_profit"),
-            confidence=j.optString("confidence"),status=j.optString("status"),boughtPrice=j.optDoubleOrNull("bought_price"),soldPrice=j.optDoubleOrNull("sold_price"),actualProfit=j.optDoubleOrNull("actual_profit"),notes=j.optString("notes"),createdAt=j.optString("created_at"),
-            itemGrade=j.optString("item_grade").takeIf{it in setOf("A","B","C")}
-        )}
+    private fun parseList(text:String):List<SavedValuation> = try {
+        val array=JSONArray(text)
+        buildList {
+            for(i in 0 until array.length()) {
+                val value=array.opt(i)
+                val item=value as? JSONObject ?: throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
+                add(SavedValuation(
+                    id=item.requiredString("id"),
+                    itemType=item.optionalString("item_type"),
+                    itemSummary=item.optionalString("item_summary"),
+                    specs=item.optionalString("specs"),
+                    askingPrice=item.optionalDouble("asking_price"),
+                    marketValue=item.optionalDouble("market_value"),
+                    maxBuy=item.optionalDouble("max_buy"),
+                    expectedProfit=item.optionalDouble("expected_profit"),
+                    confidence=item.optionalString("confidence"),
+                    status=item.optionalString("status"),
+                    boughtPrice=item.optionalDouble("bought_price"),
+                    soldPrice=item.optionalDouble("sold_price"),
+                    actualProfit=item.optionalDouble("actual_profit"),
+                    notes=item.optionalString("notes"),
+                    createdAt=item.optionalString("created_at"),
+                    itemGrade=item.optionalString("item_grade").takeIf{it in setOf("A","B","C")}
+                ))
+            }
+        }
+    } catch(error: ValuationHistoryLoadException) {
+        throw error
+    } catch(error: Exception) {
+        throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
     }
 
     private fun cache(context:Context,text:String){
@@ -113,17 +138,27 @@ object ValuationHistoryManager {
     suspend fun list(context:Context):List<SavedValuation>{
         return try {
             val (code,text)=request(context,"GET","valuation_history?select=*&order=created_at.desc&limit=100")
-            if(code !in 200..299) {
-                if(code == 429 || code >= 500) {
-                    cachedList(context)?.let { return it }
+            when {
+                code in 200..299 -> {
+                    val items=parseList(text)
+                    cache(context,text)
+                    items
                 }
-                throw IllegalStateException("Could not load valuation history: $text")
+                code == 401 -> throw ValuationHistoryLoadException("Your session has expired. Sign in again.")
+                code == 403 -> throw ValuationHistoryLoadException("You do not have access to valuation history.")
+                code == 429 || code >= 500 -> {
+                    cachedList(context) ?: throw ValuationHistoryLoadException("Valuation history is temporarily unavailable. Try again shortly.")
+                }
+                else -> throw ValuationHistoryLoadException("Valuation history could not be loaded. Try again later.")
             }
-            val items=parseList(text)
-            cache(context,text)
-            items
+        } catch(error: CancellationException) {
+            throw error
         } catch(error: IOException) {
-            cachedList(context) ?: throw error
+            cachedList(context) ?: throw ValuationHistoryLoadException("Unable to reach valuation history. Check your connection and try again.")
+        } catch(error: ValuationHistoryLoadException) {
+            throw error
+        } catch(error: Exception) {
+            throw ValuationHistoryLoadException("Valuation history could not be loaded. Try again later.")
         }
     }
 
@@ -140,4 +175,24 @@ object ValuationHistoryManager {
     }
 }
 
-private fun JSONObject.optDoubleOrNull(key:String):Double? = if(isNull(key)||!has(key))null else optDouble(key).takeUnless{it.isNaN()}
+private fun JSONObject.requiredString(key:String):String {
+    val value=optionalString(key)
+    if(value.isBlank()) throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
+    return value
+}
+
+private fun JSONObject.optionalString(key:String):String {
+    if(!has(key)||isNull(key)) return ""
+    return opt(key) as? String ?: throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
+}
+
+private fun JSONObject.optionalDouble(key:String):Double? {
+    if(!has(key)||isNull(key)) return null
+    val value=when(val raw=opt(key)) {
+        is Number -> raw.toDouble()
+        is String -> raw.toDoubleOrNull()
+        else -> null
+    } ?: throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
+    if(value.isNaN()||value.isInfinite()) throw ValuationHistoryLoadException("Valuation history data has an invalid format. Try again later.")
+    return value
+}
