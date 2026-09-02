@@ -88,3 +88,13 @@ body:not(.morley-physical-phone) .morley-web-signout{top:24px!important;right:24
 body:not(.morley-physical-phone) .desktop-workspace-header{padding-right:360px!important;min-height:72px!important;align-items:flex-start!important}
 body:not(.morley-physical-phone) #morleyDesktopShell .desktop-side-status{margin-top:auto!important;padding:16px 12px!important;background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.09)!important;border-radius:16px!important;box-shadow:none!important}
 }
+
+
+/* Deterministic sidebar icon and status contrast lock. */
+@media (min-width:1000px){
+body:not(.morley-physical-phone) #morleyDesktopShell .morley-dashboard-nav-icon svg{display:block!important;width:19px!important;height:19px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+body:not(.morley-physical-phone) #morleyDesktopShell .desktop-side-status small{color:#9cc8b8!important;-webkit-text-fill-color:#9cc8b8!important;opacity:1!important}
+body:not(.morley-physical-phone) #morleyDesktopShell .desktop-side-status strong,
+body:not(.morley-physical-phone) #morleyDesktopShell #desktopPricingState,
+body:not(.morley-physical-phone) #morleyDesktopShell #desktopOnlineState{color:#7fe2bb!important;-webkit-text-fill-color:#7fe2bb!important;opacity:1!important;text-shadow:none!important}
+}
