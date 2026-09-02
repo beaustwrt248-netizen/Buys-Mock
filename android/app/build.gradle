@@ -13,8 +13,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 35
-        versionCode 91
-        versionName '2.15.47'
+        versionCode 92
+        versionName '2.15.48'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -85,25 +85,24 @@ tasks.matching { it.name == 'preBuild' }.configureEach {
     dependsOn tasks.named('restructurePricingNavigation')
     dependsOn tasks.named('fixVideoUiErrors')
 }
-tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
+
+afterEvaluate {
+    tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') }
+}
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.18.0')
+    implementation platform('com.google.firebase:firebase-bom:33.10.0')
     implementation 'com.google.firebase:firebase-messaging'
-    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+    implementation 'com.google.android.play:integrity:1.4.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
     implementation 'androidx.activity:activity-compose:1.10.1'
-    implementation platform('androidx.compose:compose-bom:2025.06.00')
+    implementation platform('androidx.compose:compose-bom:2025.04.00')
+    implementation 'androidx.compose.material3:material3'
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-tooling-preview'
-    implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
-    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
-    implementation 'androidx.work:work-runtime-ktx:2.10.2'
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.json:json:20250517'
-    androidTestImplementation platform('androidx.compose:compose-bom:2025.06.00')
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    implementation 'androidx.compose.material:material-icons-extended'
     debugImplementation 'androidx.compose.ui:ui-tooling'
-    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }
