@@ -8,7 +8,7 @@ const REPO=Deno.env.get("GUARDIAN_GITHUB_REPO")||"beaustwrt248-netizen/Buys-Mock
 const sb=createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}});
 const json=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const uuid=/^[0-9a-f-]{36}$/i;
-const gh=async(path:string,init:RequestInit={})=>fetch(`https://api.github.com/repos/${REPO}${path}`,{...init,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:`Bearer ${WRITE_TOKEN}`,"Content-Type":"application/json",...(init.headers||{})}});
+const gh=async(path:string,init:RequestInit={})=>fetch(`https://api.github.com/repos/${REPO}${path}`,{...init,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(WRITE_TOKEN?{Authorization:`Bearer ${WRITE_TOKEN}`}:{}) ,"Content-Type":"application/json",...(init.headers||{})}});
 async function activity(id:string,status:string,summary:string,detail:string,progress:number){await sb.from("guardian_activity").insert({incident_id:id,phase:"testing",status,summary,detail,visibility:"admin",progress,actor:"repair-executor"})}
 async function role(token:string){const {data}=await sb.auth.getUser(token);if(!data?.user)return false;const {data:p}=await sb.from("profiles").select("role,is_enabled").eq("id",data.user.id).single();return !!p?.is_enabled&&["admin","manager"].includes(p.role)}
 
@@ -16,6 +16,10 @@ Deno.serve(async req=>{
  if(req.method!=="POST")return json({error:"method_not_allowed"},405);
  const token=(req.headers.get("authorization")||"").replace(/^Bearer\s+/i,"");if(!token||!(await role(token)))return json({error:"admin_or_manager_required"},403);
  let body:any;try{body=await req.json()}catch{return json({error:"invalid_json"},400)}
+ if(body?.action==="readiness"){
+  if(!WRITE_TOKEN)return json({ok:true,ready:false,code:"GITHUB_WRITE_NOT_CONFIGURED",repository:REPO,detail:"Protected GitHub write credential is not configured. Candidate generation remains available; branch execution is blocked."});
+  try{const r=await gh("");return json({ok:true,ready:r.ok,code:r.ok?"READY":`GITHUB_AUTH_${r.status}`,repository:REPO,detail:r.ok?"Protected GitHub credential is configured and accepted for repository access. Write permission is still enforced again during isolated branch execution.":"GitHub rejected the configured credential."})}catch{return json({ok:true,ready:false,code:"GITHUB_UNREACHABLE",repository:REPO,detail:"GitHub could not be reached from the repair executor."})}
+ }
  const repairId=String(body?.repair_id||"");if(!uuid.test(repairId))return json({error:"invalid_repair"},400);
  const {data:r,error}=await sb.from("guardian_repairs").select("id,incident_id,status,candidate_files,patch_summary,base_ref,branch_name,github_pr_number").eq("id",repairId).single();if(error||!r)return json({error:"repair_not_found"},404);
  if(r.status!=="testing")return json({ok:true,skipped:`repair_${r.status}`});
