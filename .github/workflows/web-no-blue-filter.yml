@@ -80,6 +80,8 @@ jobs:
           if 'morley-light-web.css?v=2' not in index_text: raise SystemExit('Morley light theme cache version is stale')
 
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
+          for needle in ['.morley-menu-dialog-close{','place-items:center!important','padding:0!important','line-height:1!important']:
+              if needle not in loader: raise SystemExit('Dialog close alignment contract missing: '+needle)
           if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader:
               raise SystemExit('Final visual lock cache version is stale')
           print('Morley emerald, desktop dashboard, and mobile preservation contracts verified')
