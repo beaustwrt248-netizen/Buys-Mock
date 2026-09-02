@@ -1,5 +1,6 @@
 name: Support Ticket Query Contract
 
+# Keep this contract attached to support-ticket query changes so PR metadata and query safety are revalidated together.
 on:
   pull_request:
     branches: [ main ]
