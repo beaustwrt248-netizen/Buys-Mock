@@ -48,10 +48,8 @@ class AdminActivity : ComponentActivity() {
                 userAgentString = userAgentString + ADMIN_USER_AGENT_TOKEN
             }
 
-            CookieManager.getInstance().apply {
-                setAcceptCookie(true)
-                setAcceptThirdPartyCookies(this@apply, true)
-            }
+            CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
             webChromeClient = WebChromeClient()
             webViewClient = object : WebViewClient() {
@@ -65,7 +63,7 @@ class AdminActivity : ComponentActivity() {
         }
 
         setContentView(webView)
-        savedInstanceState ?: webView.loadUrl(ADMIN_HOME)
+        if (savedInstanceState == null) webView.loadUrl(ADMIN_HOME)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
