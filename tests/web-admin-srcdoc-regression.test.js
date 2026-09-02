@@ -6,6 +6,7 @@ const source = fs.readFileSync(path.resolve(__dirname, '..', 'web-admin-mode.js'
 
 assert.match(source, /function adminHref\(\)/);
 assert.match(source, /\^https\?:\$/i);
+assert.match(source, /location\.protocol/);
 assert.match(source, /location\.origin/);
 assert.match(source, /catch\{return '\/admin\/'\}/);
 assert.match(source, /location\.assign\(adminHref\(\)\)/);
