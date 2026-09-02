@@ -73,6 +73,12 @@ jobs:
           if 'morley-desktop-dashboard.js?v=1' not in index:
               raise SystemExit('Desktop dashboard behaviour is not loaded')
 
+          auth_theme=Path('morley-light-web.css').read_text(encoding='utf-8')
+          for needle in ['#morleyWebAuth video{opacity:.82!important','brightness(.82)','rgba(5,24,18,.38)','background:rgba(255,255,255,.90)']:
+              if needle not in auth_theme: raise SystemExit('Login video visibility contract missing: '+needle)
+          index_text=Path('index.html').read_text(encoding='utf-8')
+          if 'morley-light-web.css?v=2' not in index_text: raise SystemExit('Morley light theme cache version is stale')
+
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
           if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader:
               raise SystemExit('Final visual lock cache version is stale')
