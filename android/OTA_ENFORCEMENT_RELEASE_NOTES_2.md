@@ -1,0 +1,1 @@
+This release changes OTA reminder checks to every 6 hours and requires signed-in clients to install any verified newer OTA release before continuing. Existing trusted download URL and SHA-256 validation remain unchanged, and transient network failures do not create a false lockout.
