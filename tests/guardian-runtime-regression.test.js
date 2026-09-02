@@ -25,9 +25,12 @@ test('repository-owned srcdoc base binds recent activity to an explicit DOM targ
 
 test('about:srcdoc repair discovery prioritises the generating sources and keeps protection gates',()=>{
   const worker=read('supabase/functions/guardian-repair-worker/index.ts');
-  assert.match(worker,/isSrcdocIncident\(input\)\?\["web-base\.html","index\.html"/);
-  assert.match(worker,/hints\.push\("web-base\.html","index\.html"\)/);
+  assert.match(worker,/isSrcdocIncident\(input\)\?\["web-base\.html","web-admin-mode\.js","index\.html","tests\/web-admin-srcdoc-regression\.test\.js","tests\/guardian-runtime-regression\.test\.js"/);
+  assert.match(worker,/hints\.push\("web-base\.html","web-admin-mode\.js","index\.html","tests\/web-admin-srcdoc-regression\.test\.js","tests\/guardian-runtime-regression\.test\.js"\)/);
   assert.match(worker,/diagnostic_kind,diagnostic_message,diagnostic_metadata/);
+  assert.match(worker,/decode\(bytes\)\.slice\(0,90000\)/);
+  assert.match(worker,/JSON\.stringify\(repo\)\.slice\(0,180000\)/);
+  assert.match(worker,/Number\(x\.size\|\|0\)<=100000/);
   assert.match(worker,/if\(!allowed\.has\(f\.path\)\|\|!safeRepairPath\(f\.path\)\)/);
   assert.match(worker,/PROTECTED_CHANGE_BLOCKED/);
   assert.match(worker,/authorized=!!profile\?\.is_enabled&&\["admin","manager"\]\.includes\(profile\.role\)/);
