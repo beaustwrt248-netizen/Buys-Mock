@@ -1,7 +1,7 @@
 {
-    "versionCode": 87,
-    "versionName": "2.15.43",
-    "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.43/B-and-L-Morley-2.15.43.apk",
-    "sha256": "4670fb1a39bdf858187e647c216c7a516902bb68ec2f3face40d5024e1d534ec",
-    "notes": "Make Android Max Buy calculations consistently reliable across Quick Deal and Test Buy, including formatted Australian currency inputs."
+  "versionCode": 88,
+  "versionName": "2.15.44",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.44/B-and-L-Morley-2.15.44.apk",
+  "sha256": "3adfce7693791a266351454f305ab76b86bbb0e070c9af33c081571b2c9e5fe9",
+  "notes": "Enforce latest OTA release and 6-hour update checks (#557)"
 }
