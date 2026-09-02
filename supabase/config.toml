@@ -1,0 +1,2 @@
+[functions.guardian-repair-worker]
+verify_jwt = false
