@@ -28,17 +28,19 @@ import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import java.util.Locale
 
-private enum class PhoneBrand { APPLE }
+private enum class PhoneBrand(val catalogName: String, val title: String) {
+    APPLE(MobilePhonePricingCatalog.APPLE, "Apple iPhone"),
+    SAMSUNG(MobilePhonePricingCatalog.SAMSUNG, "Samsung Galaxy")
+}
 
 @Composable
 fun MobilePhonePricingScreen() {
     var brand by remember { mutableStateOf<PhoneBrand?>(null) }
-
     if (brand == null) {
         Screen("Mobile Phones") {
             Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 14.sp)
             BrandCard("Apple", "iPhone price-sheet pricing", highlighted = true) { brand = PhoneBrand.APPLE }
-            BrandCard("Samsung", "Coming next") {}
+            BrandCard("Samsung", "Galaxy S & Z price-sheet pricing") { brand = PhoneBrand.SAMSUNG }
             BrandCard("Google", "Coming next") {}
             BrandCard("OnePlus", "Coming next") {}
             BrandCard("Xiaomi", "Coming next") {}
@@ -47,33 +49,20 @@ fun MobilePhonePricingScreen() {
     } else {
         Column {
             Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
-                OutlinedButton(
-                    onClick = { brand = null },
-                    border = BorderStroke(1.dp, MorleyBorder),
-                    shape = RoundedCornerShape(14.dp)
-                ) { Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold) }
+                OutlinedButton(onClick = { brand = null }, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(14.dp)) {
+                    Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+                }
             }
-            when (brand) {
-                PhoneBrand.APPLE -> ApplePhonePricingScreen()
-                null -> Unit
-            }
+            PhoneBrandPricingScreen(brand!!)
         }
     }
 }
 
 @Composable
 private fun BrandCard(title: String, subtitle: String, highlighted: Boolean = false, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .45f) else MorleySurface),
-        border = BorderStroke(1.dp, if (highlighted) MorleyAccent else MorleyBorder),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .45f) else MorleySurface), border = BorderStroke(1.dp, if (highlighted) MorleyAccent else MorleyBorder), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(10.dp)) {
-                Text(if (title == "Apple") "●" else "•", Modifier.padding(horizontal = 11.dp, vertical = 8.dp), color = MorleyAccent, fontWeight = FontWeight.Black)
-            }
+            Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(10.dp)) { MorleyIcon(MorleyIcons.Phone, title, MorleyAccent, Modifier.padding(8.dp)) }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 15.sp)
                 Text(subtitle, color = MorleyTextSecondary, fontSize = 11.sp)
@@ -84,44 +73,24 @@ private fun BrandCard(title: String, subtitle: String, highlighted: Boolean = fa
 }
 
 @Composable
-private fun ApplePhonePricingScreen() {
-    var query by remember { mutableStateOf("") }
-    var selectedModel by remember { mutableStateOf<String?>(null) }
-    var selectedEntry by remember { mutableStateOf<MobilePhonePriceEntry?>(null) }
-    var grade by remember { mutableStateOf("A") }
+private fun PhoneBrandPricingScreen(brand: PhoneBrand) {
+    var query by remember(brand) { mutableStateOf("") }
+    var selectedModel by remember(brand) { mutableStateOf<String?>(null) }
+    var selectedEntry by remember(brand) { mutableStateOf<MobilePhonePriceEntry?>(null) }
+    var grade by remember(brand) { mutableStateOf("A") }
     val money = remember { NumberFormat.getCurrencyInstance(Locale("en", "AU")).apply { maximumFractionDigits = 0 } }
-    val allModels = remember { MobilePhonePricingCatalog.models(MobilePhonePricingCatalog.APPLE) }
-    val visibleModels = remember(query, allModels) {
-        if (query.isBlank()) allModels else allModels.filter { it.contains(query, ignoreCase = true) }
-    }
+    val allModels = remember(brand) { MobilePhonePricingCatalog.models(brand.catalogName) }
+    val visibleModels = remember(query, allModels) { if (query.isBlank()) allModels else allModels.filter { it.contains(query, ignoreCase = true) } }
 
     if (selectedModel == null) {
-        Screen("Apple iPhone") {
+        Screen(brand.title) {
             Text("Select a model to view the A-B-C price-sheet pricing.", color = MorleyTextSecondary, fontSize = 14.sp)
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Search iPhone model") },
-                shape = RoundedCornerShape(16.dp)
-            )
+            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search ${if (brand == PhoneBrand.APPLE) "iPhone" else "Galaxy"} model") }, shape = RoundedCornerShape(16.dp))
             visibleModels.forEach { model ->
-                val variants = MobilePhonePricingCatalog.variants(MobilePhonePricingCatalog.APPLE, model)
-                Card(
-                    onClick = {
-                        selectedModel = model
-                        selectedEntry = variants.firstOrNull()
-                    },
-                    colors = CardDefaults.cardColors(containerColor = MorleySurface),
-                    border = BorderStroke(1.dp, MorleyBorder),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                val variants = MobilePhonePricingCatalog.variants(brand.catalogName, model)
+                Card(onClick = { selectedModel = model; selectedEntry = variants.firstOrNull() }, colors = CardDefaults.cardColors(containerColor = MorleySurface), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(9.dp)) {
-                            MorleyIcon(MorleyIcons.Phone, model, MorleyAccent, Modifier.padding(8.dp))
-                        }
+                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(9.dp)) { MorleyIcon(MorleyIcons.Phone, model, MorleyAccent, Modifier.padding(8.dp)) }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(model, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 15.sp)
                             Text(variants.joinToString(" • ") { it.storage }, color = MorleyTextSecondary, fontSize = 11.sp)
@@ -132,74 +101,41 @@ private fun ApplePhonePricingScreen() {
             }
         }
     } else {
-        val variants = MobilePhonePricingCatalog.variants(MobilePhonePricingCatalog.APPLE, selectedModel!!)
+        val variants = MobilePhonePricingCatalog.variants(brand.catalogName, selectedModel!!)
         val current = selectedEntry ?: variants.firstOrNull()
         Screen(selectedModel!!) {
-            OutlinedButton(
-                onClick = { selectedModel = null; selectedEntry = null },
-                border = BorderStroke(1.dp, MorleyBorder),
-                shape = RoundedCornerShape(14.dp)
-            ) { Text("‹  Apple iPhone", color = MorleyTextPrimary, fontWeight = FontWeight.Bold) }
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
-                border = BorderStroke(1.dp, MorleyBorder),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            OutlinedButton(onClick = { selectedModel = null; selectedEntry = null }, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(14.dp)) {
+                Text("‹  ${brand.title}", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+            }
+            Card(colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) {
-                            MorleyIcon(MorleyIcons.Phone, selectedModel!!, MorleyAccent, Modifier.padding(14.dp))
-                        }
+                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) { MorleyIcon(MorleyIcons.Phone, selectedModel!!, MorleyAccent, Modifier.padding(14.dp)) }
                         Column(Modifier.weight(1f)) {
                             Text(selectedModel!!, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 21.sp)
                             Text("Select storage and condition grade", color = MorleyTextSecondary, fontSize = 12.sp)
                         }
                     }
-
                     Text("Select Storage Capacity", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        variants.forEach { entry ->
-                            FilterChip(
-                                selected = current?.storage == entry.storage,
-                                onClick = { selectedEntry = entry },
-                                label = { Text(entry.storage.replace(" ", "")) }
-                            )
-                        }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        variants.forEach { entry -> FilterChip(selected = current?.storage == entry.storage, onClick = { selectedEntry = entry }, label = { Text(entry.storage.replace(" ", "")) }) }
                     }
-
                     Text("Select Condition Grade", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MobilePhonePricingCatalog.grades.forEach { option ->
                             val label = when (option) { "A" -> "Excellent"; "B" -> "Good"; else -> "Fair" }
-                            FilterChip(
-                                selected = grade == option,
-                                onClick = { grade = option },
-                                label = { Text("$option  $label") }
-                            )
+                            FilterChip(selected = grade == option, onClick = { grade = option }, label = { Text("$option  $label") })
                         }
                     }
                 }
             }
-
             current?.let { entry ->
                 val buyPrice = MobilePhonePricingCatalog.buyPrice(entry, grade)
                 val percentage = (MobilePhonePricingCatalog.gradeBuyPercent.getValue(grade) * 100).toInt()
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
-                    border = BorderStroke(1.dp, MorleyBorder),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Card(colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         Text("Quick Summary", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        SummaryRow("Brand", entry.brand)
                         SummaryRow("Model", entry.model)
                         SummaryRow("Storage", entry.storage)
                         SummaryRow("Grade", "$grade — ${when (grade) { "A" -> "Excellent"; "B" -> "Good"; else -> "Fair" }}")
@@ -210,13 +146,7 @@ private fun ApplePhonePricingScreen() {
                     }
                 }
             }
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MorleySurface),
-                border = BorderStroke(1.dp, MorleyBorder),
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MorleySurface), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("Grade Guide", color = MorleyTextPrimary, fontWeight = FontWeight.Black)
                     Text("A — Excellent: like new, fully functional, no material damage.", color = MorleyTextSecondary, fontSize = 12.sp)
