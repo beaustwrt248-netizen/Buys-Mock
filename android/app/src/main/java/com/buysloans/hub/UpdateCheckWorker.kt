@@ -42,7 +42,7 @@ object UpdateCheckScheduler {
     fun schedule(context: Context) {
         val workManager = WorkManager.getInstance(context)
 
-        val periodic = PeriodicWorkRequestBuilder<UpdateCheckWorker>(12, TimeUnit.HOURS)
+        val periodic = PeriodicWorkRequestBuilder<UpdateCheckWorker>(6, TimeUnit.HOURS)
             .build()
         workManager.enqueueUniquePeriodicWork(
             PERIODIC_WORK,
