@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "name": "B&L Morley Web UI Contract",
+  "palette": {
+    "background": "#f5f7f4",
+    "surface": "#ffffff",
+    "surfaceSoft": "#eef4f0",
+    "text": "#1c2b26",
+    "textMuted": "#52645d",
+    "accent": "#167a5a",
+    "accentStrong": "#0f684c",
+    "accentSoft": "#d8efe5",
+    "danger": "#a92f3d",
+    "warning": "#8a5a00"
+  },
+  "layout": {
+    "phoneMaxPx": 600,
+    "contentMaxPx": 760,
+    "space": [4, 8, 12, 16, 20, 24, 32],
+    "radius": [10, 12, 16, 20, 24],
+    "touchTargetMinPx": 44,
+    "bottomNavItems": 4
+  },
+  "components": {
+    "header": "morley-header",
+    "primaryNav": "morley-primary-nav",
+    "card": "morley-card",
+    "button": "morley-button",
+    "chip": "morley-chip",
+    "input": "morley-input",
+    "status": "morley-status"
+  },
+  "forbidden": {
+    "colors": [
+      "#2f7cff",
+      "#1f5fd8",
+      "#12c9ff",
+      "#2468dd",
+      "#2875ff",
+      "#16c7ff",
+      "#70dfff",
+      "#7bdfff"
+    ],
+    "activeLegacyThemeFiles": [
+      "cyber-ui.css",
+      "cyber-spectrum.css",
+      "reference-theme.css",
+      "no-gold.css",
+      "mobile-menu-theme-lock.css",
+      "mobile-viewport-lock.css",
+      "web-apk-light-visual-lock.css"
+    ]
+  }
+}
