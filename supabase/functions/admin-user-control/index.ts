@@ -3,14 +3,19 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ADMIN_ORIGIN = 'https://beaustwrt248-netizen.github.io';
+const ADMIN_ORIGINS = new Set([
+  'https://buyshub.me',
+  'https://www.buyshub.me',
+  'https://beaustwrt248-netizen.github.io',
+]);
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('Origin') || '';
+  const allowedOrigin = ADMIN_ORIGINS.has(origin) ? origin : 'https://buyshub.me';
   return {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin === ADMIN_ORIGIN ? origin : ADMIN_ORIGIN,
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
