@@ -11,10 +11,12 @@ function syncMaxBuy(d){
   if(!max)return;
   const margin=GP[grade]??GP.B;
   const next=market>0?Math.max(0,market*(1-margin)):0;
+  // Preserve cents so decimal market values calculate an exact usable buy ceiling.
   max.value=next?String(Math.round(next*100)/100):'0';
   max.readOnly=true;
   max.setAttribute('aria-readonly','true');
   max.dispatchEvent(new Event('input',{bubbles:true}));
+  max.dispatchEvent(new Event('change',{bubbles:true}));
 }
 function ensure(){
   const d=$('#morleyQuickDealDialog');
@@ -39,9 +41,11 @@ function ensure(){
   if(marketInput&&!marketInput.dataset.autoMaxHook){
     marketInput.dataset.autoMaxHook='1';
     marketInput.addEventListener('input',()=>syncMaxBuy(d));
+    marketInput.addEventListener('change',()=>syncMaxBuy(d));
   }
   if(grade&&!grade.dataset.autoMaxHook){
     grade.dataset.autoMaxHook='1';
+    grade.addEventListener('input',()=>syncMaxBuy(d));
     grade.addEventListener('change',()=>syncMaxBuy(d));
   }
   syncMaxBuy(d);
