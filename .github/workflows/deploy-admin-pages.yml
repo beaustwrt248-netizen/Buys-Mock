@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'index.html'
+      - 'web-base.html'
       - '*.css'
       - '*.js'
       - 'admin/**'
@@ -55,12 +56,11 @@ jobs:
           rm -rf site
           mkdir -p site
           cp index.html site/
+          cp web-base.html site/
           cp -v ./*.css site/
           cp -v ./*.js site/
           cp -R admin site/admin
           if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
-          BASE_SOURCE='https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/013aa3577f8c714297eda86bfd2c1d49b3667eb1/index.html'
-          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$BASE_SOURCE" --output site/web-base.html
           touch site/.nojekyll
           test -f site/.nojekyll
           test -s site/index.html
