@@ -7,6 +7,8 @@ on:
       - '*.css'
       - '*.js'
       - 'index.html'
+      - 'web-ui-contract.json'
+      - 'scripts/web_ui_contract_audit.py'
       - '.github/workflows/web-no-blue-filter.yml'
   pull_request:
     branches: [ main ]
@@ -14,6 +16,8 @@ on:
       - '*.css'
       - '*.js'
       - 'index.html'
+      - 'web-ui-contract.json'
+      - 'scripts/web_ui_contract_audit.py'
       - '.github/workflows/web-no-blue-filter.yml'
   workflow_dispatch:
 
@@ -25,7 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Reject retired electric blue and cyan theme tokens
+
+      - name: Preserve legacy no-blue safety during rebuild
         shell: bash
         run: |
           python3 - <<'PY'
@@ -47,6 +52,8 @@ jobs:
           if missing: raise SystemExit('Sub-category no-blue coverage missing: '+', '.join(missing))
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
           if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader: raise SystemExit('Final visual lock cache version is stale')
-          print('No retired electric blue/cyan theme tokens in active theme layers')
-          print('Sub-category coverage verified')
+          print('Legacy no-blue safety passed')
           PY
+
+      - name: Enforce canonical Morley web UI contract
+        run: python3 scripts/web_ui_contract_audit.py
