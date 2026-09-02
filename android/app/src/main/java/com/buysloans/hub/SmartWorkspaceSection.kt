@@ -62,16 +62,10 @@ private fun swPotentialMargin(item: SavedValuation): Double {
     return (market - ask).coerceAtLeast(0.0)
 }
 
-private fun quickDealTargetGp(grade: String): Double = when (grade) {
-    "B" -> 50.0
-    "C" -> 70.0
-    else -> 30.0
-}
+private fun quickDealTargetGp(grade: String): Double = targetGpForGradeLabel(grade)
 
-private fun quickDealMaxBuy(marketValue: Double?, grade: String): Double? {
-    val market = marketValue?.takeIf { it.isFinite() && it > 0.0 } ?: return null
-    return market * (1.0 - quickDealTargetGp(grade) / 100.0)
-}
+private fun quickDealMaxBuy(marketValue: Double?, grade: String): Double? =
+    calculatedMorleyMaxBuy(marketValue, grade)
 
 @Composable
 fun SmartWorkspaceSection() {
@@ -217,8 +211,8 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     var marketText by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val ask = askText.toDoubleOrNull()?.takeIf { it >= 0.0 }
-    val market = marketText.toDoubleOrNull()?.takeIf { it > 0.0 }
+    val ask = parseMorleyCurrencyInput(askText)
+    val market = parseMorleyCurrencyInput(marketText)?.takeIf { it > 0.0 }
     val maxBuy = quickDealMaxBuy(market, grade)
     val targetGp = quickDealTargetGp(grade)
     val verdict = swDealVerdict(ask, market, maxBuy)
