@@ -17,7 +17,11 @@ import java.util.TimeZone
 object SupportTicketClient {
     private const val ATTACHMENT_BUCKET = "support-ticket-attachments"
 
-    data class SubmitResult(val ticketId: String, val attachmentWarning: String? = null)
+    data class SubmitResult(
+        val ticketId: String,
+        val attachmentWarning: String? = null,
+        val emailWarning: String? = null
+    )
 
     data class TicketSummary(
         val id: String,
@@ -91,7 +95,7 @@ object SupportTicketClient {
         }.filter { it.id.isNotBlank() && it.ticketId.isNotBlank() }
     }
 
-    suspend fun reply(context: Context, ticketId: String, body: String) {
+    suspend fun reply(context: Context, ticketId: String, body: String): String? {
         val cleanTicketId = ticketId.trim()
         require(cleanTicketId.isNotBlank()) { "Choose a support ticket first." }
         val cleanBody = SupportTicketLogic.validateReply(body)
@@ -102,14 +106,25 @@ object SupportTicketClient {
             put("body", cleanBody)
         }
         val (code, response) = request(
-            path = "/rest/v1/support_ticket_messages",
+            path = "/rest/v1/support_ticket_messages?select=id",
             method = "POST",
             token = token,
             contentType = "application/json",
             body = payload.toString().toByteArray(),
-            prefer = "return=minimal"
+            prefer = "return=representation"
         )
         if (code !in 200..299) throw IllegalStateException(apiError(code, response, "Reply could not be sent."))
+        val messageId = runCatching { JSONArray(response).getJSONObject(0).getString("id") }.getOrDefault("")
+        if (messageId.isBlank()) return "Reply saved, but its email notification reference was not returned."
+        return runCatching {
+            sendTransactionalEmail(
+                token,
+                JSONObject()
+                    .put("action", "support_ticket_reply")
+                    .put("ticket_id", cleanTicketId)
+                    .put("message_id", messageId)
+            )
+        }.exceptionOrNull()?.message
     }
 
     suspend fun submit(
@@ -126,9 +141,6 @@ object SupportTicketClient {
         val userId = jwtSubject(token)
         require(userId.isNotBlank()) { "Could not identify the signed-in account." }
 
-        // Diagnostics are genuinely opt-in. When the switch is off the ticket contains
-        // no device/runtime diagnostic payload and the diagnostic top-level fields are
-        // null. Authentication/session material is never added to either path.
         val diagnostics = if (includeDiagnostics) JSONObject().apply {
             put("schema", 3)
             put("platform", "android")
@@ -182,10 +194,30 @@ object SupportTicketClient {
         val ticketId = runCatching { JSONArray(body).getJSONObject(0).getString("id") }.getOrDefault("")
         require(ticketId.isNotBlank()) { "Ticket was created but its reference was not returned." }
 
-        if (attachment == null) return SubmitResult(ticketId)
-        val warning = runCatching { uploadAttachment(context, token, userId, ticketId, attachment) }
+        val emailWarning = runCatching {
+            sendTransactionalEmail(
+                token,
+                JSONObject().put("action", "support_ticket_created").put("ticket_id", ticketId)
+            )
+        }.exceptionOrNull()?.message
+
+        if (attachment == null) return SubmitResult(ticketId, emailWarning = emailWarning)
+        val attachmentWarning = runCatching { uploadAttachment(context, token, userId, ticketId, attachment) }
             .exceptionOrNull()?.message
-        return SubmitResult(ticketId, warning)
+        return SubmitResult(ticketId, attachmentWarning, emailWarning)
+    }
+
+    private suspend fun sendTransactionalEmail(token: String, payload: JSONObject) {
+        val (code, body) = request(
+            path = "/functions/v1/send-morley-email",
+            method = "POST",
+            token = token,
+            contentType = "application/json",
+            body = payload.toString().toByteArray()
+        )
+        if (code !in 200..299) throw IllegalStateException(apiError(code, body, "Email notification could not be sent."))
+        val confirmed = runCatching { JSONObject(body).optBoolean("ok") }.getOrDefault(false)
+        if (!confirmed) throw IllegalStateException("Email delivery was not confirmed.")
     }
 
     private suspend fun uploadAttachment(context: Context, token: String, userId: String, ticketId: String, uri: Uri) {
