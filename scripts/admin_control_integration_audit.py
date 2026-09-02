@@ -37,6 +37,7 @@ targeted_notifications = read("admin/targeted-notifications.js")
 invites = read("admin/invites.js")
 audit_triage = read("admin/audit-triage.js")
 admin_activity = read("android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt")
+admin_web_policy = read("android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt")
 admin_api = read("android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt")
 update_manager = read("android/app/src/main/java/com/buysloans/hub/UpdateManager.kt")
 update_activity = read("android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt")
@@ -75,15 +76,40 @@ require("admin_audit_log" in audit_triage or "admin_audit_log" in admin_app, "Au
 require("redeem-app-invite" in invites or "app_invites" in invites, "Invite governance wiring is incomplete")
 require("target_installation_id" in targeted_notifications or "notifTarget" in targeted_notifications, "Targeted notification wiring is incomplete")
 
-# Android Admin Control: section coverage and server-backed operations.
-for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
-    require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")
+# Android Admin Control: either the legacy native dashboard must implement each
+# section directly, or the app must use the canonical HTTPS Admin surface behind
+# a hardened path/origin boundary. The latter intentionally makes web Admin the
+# single functional implementation so filters, permissions and Guardian changes
+# cannot drift between browser and APK releases.
+web_parity_shell = (
+    "WebView" in admin_activity
+    and "AdminWebParityPolicy.HOME_URL" in admin_activity
+    and "AdminWebParityPolicy.isTrustedAdminUrl" in admin_activity
+    and 'HOME_URL = "https://buyshub.me/admin/"' in admin_web_policy
+    and 'private const val ADMIN_HOST = "buyshub.me"' in admin_web_policy
+    and 'uri.scheme.equals("https"' in admin_web_policy
+    and '(path == "/admin" || path.startsWith("/admin/"))' in admin_web_policy
+    and "MIXED_CONTENT_NEVER_ALLOW" in admin_activity
+    and "allowFileAccess = false" in admin_activity
+    and "allowContentAccess = false" in admin_activity
+)
+
+if web_parity_shell:
+    require("javaScriptEnabled = true" in admin_activity, "Android Admin parity shell must enable the canonical Admin JavaScript application")
+    require("domStorageEnabled = true" in admin_activity, "Android Admin parity shell must enable DOM storage for web authentication state")
+    require("setAcceptCookie(true)" in admin_activity, "Android Admin parity shell must enable required authentication cookies")
+else:
+    for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
+        require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")
+    require("UserManagementPanel" in admin_activity, "Android Admin user-management panel is missing")
+
+# Native Admin APIs remain covered because they are still part of the package and
+# provide the legacy/fallback implementation and independently tested policies.
 require("updateMaintenanceConfig" in admin_api, "Android Admin maintenance write path is missing")
 require("updateSupportTicket" in admin_api, "Android Admin ticket update path is missing")
 require("sendSupportReply" in admin_api, "Android Admin support reply path is missing")
 require("loadSupportNotes" in admin_api, "Android Admin internal-note read path is missing")
 require("admin_audit_log" in admin_api, "Android Admin audit read path is missing")
-require("UserManagementPanel" in admin_activity, "Android Admin user-management panel is missing")
 
 # OTA: normal main is exact-match. A release PR may be exactly one monotonic
 # versionCode ahead while the signed manifest still points to the last release.
