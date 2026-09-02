@@ -84,6 +84,10 @@ jobs:
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
           for needle in ['.morley-menu-dialog-close{','place-items:center!important','padding:0!important','line-height:1!important','#morleySessionSnapshot','#morleyNotificationStatus','#morleyDiagnosticsSnapshot','background:#edf5f1!important','#morleyWebDiagnostics .morley-settings-body button','#morleyWebDiagnostics .morley-settings-body button:disabled','-webkit-text-fill-color:#fff!important']:
               if needle not in loader: raise SystemExit('Dialog close alignment contract missing: '+needle)
+          smart_workspace=Path('smart-workspace.js').read_text(encoding='utf-8')
+          for needle in ['function paintDealVerdict(panel,verdict)','#e7f6ee','#0f684c','#fff7dd','#755600','#fff0f1','#a83242',"verdict==='MARGINAL'?'warning'","verdict==='AVOID'?'danger'"]:
+              if needle not in smart_workspace: raise SystemExit('Quick Deal verdict colour contract missing: '+needle)
+
           quick_deal_grade=Path('quick-deal-grade.js').read_text(encoding='utf-8')
           for needle in ['MAX_BUY_FACTOR=Object.freeze({A:.70,B:.50,C:.30})','max.readOnly=true',"addEventListener('input',()=>syncMaxBuy(d))","addEventListener('change',()=>syncMaxBuy(d))"]:
               if needle not in quick_deal_grade: raise SystemExit('Quick Deal grade/max-buy contract missing: '+needle)
