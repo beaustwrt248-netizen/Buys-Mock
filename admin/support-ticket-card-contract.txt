@@ -5,3 +5,4 @@ Admin Support ticket card contract
 - Status pills remain independent from the card background.
 - Ticket selection opens the existing detail workflow without changing permissions, filters, or backend state.
 - Mobile widths 360px, 390px, and 412-430px must not inherit global primary-button emerald fill.
+- This contract documents the production regression fixed by PR #580.
