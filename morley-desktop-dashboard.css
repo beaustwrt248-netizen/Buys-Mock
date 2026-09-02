@@ -67,3 +67,24 @@ body:not(.morley-physical-phone) .desktop-workspace-header{display:flex!importan
 body:not(.morley-physical-phone) .tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 body:not(.morley-physical-phone) .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Screenshot QA: keep desktop chrome clear and the insight language emerald. */
+@media (min-width:761px){
+body:not(.morley-physical-phone) .msi-panel{background:linear-gradient(135deg,#fff 68%,#edf8f3)!important;border:1px solid #bddfce!important;color:var(--morley-dash-ink)!important;box-shadow:var(--morley-dash-shadow)!important}
+body:not(.morley-physical-phone) .msi-score{color:var(--morley-dash-emerald)!important;background:var(--morley-dash-soft)!important;border-color:#a9d9c4!important}
+body:not(.morley-physical-phone) .msi-bar{background:#e5eee9!important}
+body:not(.morley-physical-phone) .msi-fill{background:linear-gradient(90deg,#087a55,#20aa79,#69d8b0)!important}
+body:not(.morley-physical-phone) .msi-tile{background:#f4f9f6!important;border-color:#d5e8df!important}
+body:not(.morley-physical-phone) .msi-copy{color:var(--morley-dash-muted)!important}
+}
+@media (min-width:1000px){
+body:not(.morley-physical-phone) #morleyMenuTrigger,
+body:not(.morley-physical-phone) .morley-menu-trigger,
+body:not(.morley-physical-phone) .morley-menu-trigger-fixed{display:none!important}
+body:not(.morley-physical-phone) .desktop-header-actions{display:none!important}
+body:not(.morley-physical-phone) .morley-web-user{top:24px!important;right:132px!important;height:42px!important;max-width:210px!important;padding:0 14px!important;background:#e3f4ec!important;color:#29493d!important;border:1px solid #b9dcca!important;box-shadow:0 8px 22px rgba(25,64,51,.08)!important}
+body:not(.morley-physical-phone) .morley-web-signout{top:24px!important;right:24px!important;height:42px!important;padding:0 18px!important;background:var(--morley-dash-emerald)!important;color:#fff!important;border:1px solid #066b4a!important;box-shadow:0 8px 18px rgba(8,122,85,.14)!important}
+body:not(.morley-physical-phone) .desktop-workspace-header{padding-right:360px!important;min-height:72px!important;align-items:flex-start!important}
+body:not(.morley-physical-phone) #morleyDesktopShell .desktop-side-status{margin-top:auto!important;padding:16px 12px!important;background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.09)!important;border-radius:16px!important;box-shadow:none!important}
+}
