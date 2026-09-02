@@ -38,6 +38,7 @@ assert.match(dashboard, /\.section\.active/);
 assert.match(mobile, /html\.morley-physical-phone/);
 assert.match(mobile, /max-height:60px/);
 assert.ok(index.indexOf('morley-desktop-dashboard.css') > index.indexOf('mobile-viewport-lock.css'));
+assert.match(index, /morley-desktop-dashboard\.css\?v=2/);
 assert.match(index, /morley-desktop-dashboard\.js\?v=1/);
 
 console.log('Desktop finance dashboard and mobile boundary contract OK');
