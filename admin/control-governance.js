@@ -38,4 +38,11 @@
   }
 
   governFeatureControls();
+  if(!document.getElementById('adminV2Script')){
+    const script=document.createElement('script');
+    script.id='adminV2Script';
+    script.src='admin-v2.js?v=1';
+    script.defer=true;
+    document.body.appendChild(script);
+  }
 })();
