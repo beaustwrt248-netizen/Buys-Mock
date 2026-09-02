@@ -60,13 +60,13 @@ private fun TestBuyScreen(onBack: () -> Unit) {
     var completedOutcome by remember { mutableStateOf<BuyOutcome?>(null) }
     var saveError by remember { mutableStateOf("") }
 
-    val valuationValue = valuationText.toDoubleOrNull() ?: 0.0
+    val valuationValue = parseMorleyCurrencyInput(valuationText) ?: 0.0
     val automaticMaxBuy = calculatedTestBuyMaxBuy(valuationValue, pricingGrade)
     val draft = TestBuyDraft(
         itemName = itemName.trim(),
         scanValue = scanValue.trim(),
         category = category,
-        askingPrice = askingText.toDoubleOrNull() ?: 0.0,
+        askingPrice = parseMorleyCurrencyInput(askingText) ?: 0.0,
         currentValuation = valuationValue,
         maxBuyPrice = automaticMaxBuy,
         faults = faults.trim(),
