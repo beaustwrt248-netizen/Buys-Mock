@@ -21,21 +21,13 @@ fun LaptopFairBuyZonePanel(
     modelCode: String,
     market: MarketResult
 ) {
-    val evidence = buildList {
-        market.exactGoogle.forEach { add(it.toLiveEvidence("Google", "exact")) }
-        market.exactEbay.forEach { add(it.toLiveEvidence("eBay AU", "exact")) }
-        market.similarGoogle.forEach { add(it.toLiveEvidence("Google", "similar")) }
-        market.similarEbay.forEach { add(it.toLiveEvidence("eBay AU", "similar")) }
-        market.rejected.forEach { add(it.toLiveEvidence(it.source.ifBlank { "Rejected" }, "rejected")) }
-    }
-
-    val shadow = LaptopLiveIntelligenceAdapter.shadowEvaluate(
+    val shadow = LaptopMarketResultIntelligence.evaluateShadow(
         preset = preset,
         processor = processor,
         ram = ram,
         storage = storage,
         modelCode = modelCode,
-        evidence = evidence
+        market = market
     )
     val zone = shadow.fairBuyZone
     val accepted = zone.comparables.filter { it.accepted }
@@ -92,7 +84,7 @@ fun LaptopFairBuyZonePanel(
             }
         }
 
-        if (evidence.isNotEmpty() && evidence.none { it.sold }) {
+        if (zone.comparables.isNotEmpty() && zone.comparables.none { it.comparable.sold }) {
             Text(
                 "Sold-history evidence is not verified by the current live search contract, so active asking prices cannot authorize an automatic buy.",
                 color = MorleyTextSecondary,
@@ -101,15 +93,3 @@ fun LaptopFairBuyZonePanel(
         }
     }
 }
-
-private fun Listing.toLiveEvidence(sourceLabel: String, evidenceTier: String): LiveLaptopEvidence =
-    LiveLaptopEvidence(
-        id = url.ifBlank { "$evidenceTier:$title" },
-        title = title,
-        priceAud = price,
-        source = source.ifBlank { sourceLabel },
-        condition = condition,
-        sellerKey = source.takeIf { it.isNotBlank() },
-        sold = false,
-        ageDays = 0
-    )
