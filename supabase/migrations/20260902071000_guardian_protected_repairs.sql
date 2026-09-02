@@ -45,9 +45,6 @@ create policy guardian_repairs_admin_read
   to authenticated
   using (private.is_admin_or_manager());
 
--- Approval creates exactly one protected repair request. The worker may generate a
--- candidate, but code merges/deployments remain outside this RPC and require a
--- separate human-controlled step.
 create or replace function public.guardian_decide_incident(incident_id uuid, decision text)
 returns void
 language plpgsql
@@ -58,70 +55,63 @@ declare
   target public.guardian_incidents%rowtype;
   repair_id uuid;
 begin
-  if not private.is_admin_or_manager() then
-    raise exception 'Admin or Manager access required';
-  end if;
-  if decision not in ('approve','reject','retry') then
-    raise exception 'Invalid Guardian decision';
-  end if;
-
+  if not private.is_admin_or_manager() then raise exception 'Admin or Manager access required'; end if;
+  if decision not in ('approve','reject','retry') then raise exception 'Invalid Guardian decision'; end if;
   select * into target from public.guardian_incidents where id=incident_id for update;
   if not found then raise exception 'Guardian incident not found'; end if;
 
   if decision='approve' then
-    if target.state not in ('proposed','awaiting_approval') then
-      raise exception 'Incident is not awaiting approval';
-    end if;
-
+    if target.state not in ('proposed','awaiting_approval') then raise exception 'Incident is not awaiting approval'; end if;
     insert into public.guardian_repairs(incident_id, requested_by, status, base_ref)
     values(incident_id, auth.uid(), 'requested', 'main')
     on conflict (incident_id) do update
-      set status = case
-        when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then 'requested'
-        else public.guardian_repairs.status
-      end,
-      requested_by = auth.uid(),
-      requested_at = case
-        when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then now()
-        else public.guardian_repairs.requested_at
-      end,
-      last_error_code = case
-        when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then null
-        else public.guardian_repairs.last_error_code
-      end,
-      updated_at = now()
+      set status = case when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then 'requested' else public.guardian_repairs.status end,
+          requested_by = auth.uid(),
+          requested_at = case when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then now() else public.guardian_repairs.requested_at end,
+          last_error_code = case when public.guardian_repairs.status in ('failed','cancelled','tests_failed') then null else public.guardian_repairs.last_error_code end,
+          updated_at = now()
     returning id into repair_id;
-
-    update public.guardian_incidents
-      set state='applying', approved_by=auth.uid(), approved_at=now(), last_error_code=null
-      where id=incident_id;
-
-    insert into public.guardian_activity(incident_id, phase, status, summary, detail, visibility, progress, actor)
-    values(
-      incident_id,
-      'applying',
-      'waiting',
-      'Repair approved. Guardian is preparing an isolated candidate patch.',
-      'The repair job may generate and test a candidate, but merge and deployment remain human-controlled.',
-      'admin',
-      68,
-      'approval'
-    );
+    update public.guardian_incidents set state='applying', approved_by=auth.uid(), approved_at=now(), last_error_code=null where id=incident_id;
+    insert into public.guardian_activity(incident_id,phase,status,summary,detail,visibility,progress,actor)
+    values(incident_id,'applying','waiting','Repair approved. Guardian is preparing an isolated candidate patch.','No repository write occurs during candidate generation. Branch/test execution requires a second approval.','admin',68,'approval');
   elsif decision='reject' then
-    update public.guardian_incidents
-      set state='ignored', approved_by=auth.uid(), approved_at=now()
-      where id=incident_id;
-
-    update public.guardian_repairs
-      set status='cancelled', completed_at=now(), updated_at=now()
-      where incident_id=incident_id and status not in ('merged','cancelled');
+    update public.guardian_incidents set state='ignored', approved_by=auth.uid(), approved_at=now() where id=incident_id;
+    update public.guardian_repairs set status='cancelled', completed_at=now(), updated_at=now() where incident_id=incident_id and status not in ('merged','cancelled');
   else
-    update public.guardian_incidents
-      set state='queued', last_error_code=null, attempt_count=attempt_count+1
-      where id=incident_id;
+    update public.guardian_incidents set state='queued', last_error_code=null, attempt_count=attempt_count+1 where id=incident_id;
   end if;
 end;
 $$;
-
 revoke all on function public.guardian_decide_incident(uuid,text) from public;
 grant execute on function public.guardian_decide_incident(uuid,text) to authenticated;
+
+create or replace function public.guardian_decide_repair(repair_id uuid, decision text)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private
+as $$
+declare
+  target public.guardian_repairs%rowtype;
+begin
+  if not private.is_admin_or_manager() then raise exception 'Admin or Manager access required'; end if;
+  if decision not in ('approve_tests','reject_candidate') then raise exception 'Invalid repair decision'; end if;
+  select * into target from public.guardian_repairs where id=repair_id for update;
+  if not found then raise exception 'Guardian repair not found'; end if;
+  if target.status <> 'candidate_ready' then raise exception 'Repair candidate is not awaiting review'; end if;
+
+  if decision='approve_tests' then
+    update public.guardian_repairs set status='testing', updated_at=now(), last_error_code=null where id=repair_id;
+    update public.guardian_incidents set state='applying', approved_by=auth.uid(), approved_at=now(), last_error_code=null where id=target.incident_id;
+    insert into public.guardian_activity(incident_id,phase,status,summary,detail,visibility,progress,actor)
+    values(target.incident_id,'testing','waiting','Candidate approved for isolated branch and test execution.','Guardian may write only the reviewed candidate files to an isolated repair branch. Merge and deployment remain prohibited.','admin',80,'approval');
+  else
+    update public.guardian_repairs set status='cancelled', completed_at=now(), updated_at=now() where id=repair_id;
+    update public.guardian_incidents set state='proposed', last_error_code=null where id=target.incident_id;
+    insert into public.guardian_activity(incident_id,phase,status,summary,detail,visibility,progress,actor)
+    values(target.incident_id,'preparing_fix','warning','Repair candidate rejected.','The incident remains open for a new diagnosis or candidate.','admin',70,'approval');
+  end if;
+end;
+$$;
+revoke all on function public.guardian_decide_repair(uuid,text) from public;
+grant execute on function public.guardian_decide_repair(uuid,text) to authenticated;
