@@ -22,6 +22,26 @@ enum class TestBuyPricingGrade(val label:String, val targetGpPct:Double) {
     LUXURY("Luxury", 30.0)
 }
 
+fun parseMorleyCurrencyInput(raw:String):Double? {
+    val normalized = raw.trim()
+        .replace("A$", "", ignoreCase = true)
+        .replace("$", "")
+        .replace(",", "")
+        .replace(" ", "")
+    return normalized.toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
+}
+
+fun targetGpForGradeLabel(label:String):Double = when (label.trim().uppercase()) {
+    "B" -> 50.0
+    "C" -> 70.0
+    else -> 30.0
+}
+
+fun calculatedMorleyMaxBuy(marketValue:Double?, gradeLabel:String):Double? {
+    val market = marketValue?.takeIf { it.isFinite() && it > 0.0 } ?: return null
+    return market * (1.0 - targetGpForGradeLabel(gradeLabel) / 100.0)
+}
+
 enum class TestBuyGuidanceState {
     COMPLETE_TEST_AND_PRICING,
     REJECT_ASK_ABOVE_MAX,
@@ -62,10 +82,8 @@ fun checklistFor(category:DeviceCategory):List<HardwareCheck> =
  * max cost = expected sale value × (1 - target GP%). This is deliberately local to Test & Buy
  * and does not alter Valuation 3.0 or its evidence/decision algorithms.
  */
-fun calculatedTestBuyMaxBuy(currentValuation:Double, grade:TestBuyPricingGrade):Double {
-    if (!currentValuation.isFinite() || currentValuation <= 0.0) return 0.0
-    return currentValuation * (1.0 - grade.targetGpPct / 100.0)
-}
+fun calculatedTestBuyMaxBuy(currentValuation:Double, grade:TestBuyPricingGrade):Double =
+    calculatedMorleyMaxBuy(currentValuation, grade.label) ?: 0.0
 
 fun testBuyGuidanceState(draft:TestBuyDraft):TestBuyGuidanceState {
     if (draft.itemName.isBlank() || draft.hasUntestedChecks || draft.currentValuation <= 0.0 || draft.maxBuyPrice <= 0.0) {
