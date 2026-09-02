@@ -27,11 +27,16 @@ assert.match(index, /morley-light-web\.css\?v=2/);
 assert.ok(index.lastIndexOf('morley-light-web.css') > index.lastIndexOf('mobile-parity-v3.css'));
 
 const lightTheme = read('morley-light-web.css');
+const menuTheme = read('mobile-menu-theme-lock.css');
 for (const token of ['color-scheme:light', '#f5f7f4', '#ffffff', '#167a5a', '#1c2b26', '#cedbd5']) {
   assert.ok(lightTheme.toLowerCase().includes(token), `missing light theme token ${token}`);
 }
 assert.match(lightTheme, /#morleyWebAuth/);
 assert.match(lightTheme, /#morleyWebAuth video\{opacity:\.82!important/);
 assert.match(lightTheme, /rgba\(5,24,18,\.38\)/);
+assert.match(index, /mobile-menu-theme-lock\.css\?v=2/);
+assert.match(menuTheme, /\.morley-menu-dialog-close\{[\s\S]*place-items:center!important/);
+assert.match(menuTheme, /padding:0!important/);
+assert.match(menuTheme, /line-height:1!important/);
 
 console.log('Web release readiness contract OK');
