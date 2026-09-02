@@ -36,3 +36,18 @@ test('about:srcdoc repair discovery prioritises the generating sources and keeps
   assert.match(worker,/authorized=!!profile\?\.is_enabled&&\["admin","manager"\]\.includes\(profile\.role\)/);
   assert.match(worker,/state:"awaiting_approval"/);
 });
+
+test('Guardian canonicalises volatile runtime fingerprints and suppresses same-build terminal replay',()=>{
+  const migration=read('supabase/migrations/20260903161500_guardian_runtime_diagnostic_dedup.sql');
+  assert.match(migration,/regexp_replace\(coalesce\(trim\(p_route\),''\), '\\\?\.\*\$', ''\)/);
+  assert.match(migration,/about:srcdoc\\\?\[\^:@\[:space:\]\]\*/);
+  assert.match(migration,/v_fingerprint := left\('srv-' \|\| md5\(v_kind \|\| '\|' \|\| v_normalized_message \|\| '\|' \|\| v_normalized_route\),128\)/);
+  assert.match(migration,/state not in \('resolved','ignored'\)/);
+  assert.doesNotMatch(migration,/last_seen_at > now\(\) - interval '24 hours'/);
+  assert.match(migration,/state in \('resolved','ignored'\)/);
+  assert.match(migration,/app_version = left\(p_app_version,80\)/);
+  assert.match(migration,/interval '30 minutes'/);
+  assert.match(migration,/Superseded by the canonical Guardian incident/);
+  assert.match(migration,/grant execute on function public\.guardian_report_diagnostic[^;]+to authenticated;/s);
+  assert.match(migration,/if auth\.uid\(\) is null then raise exception 'Authentication required'; end if;/);
+});
