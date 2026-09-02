@@ -17,6 +17,7 @@ class TemporaryPasswordGateTest {
         assertFalse(temporaryPasswordRequired("{\"user_metadata\":{}}"))
     }
 
+    // Regression coverage: Supabase can require the current temporary password for password changes.
     @Test
     fun passwordChangePayloadIncludesCurrentPassword() {
         val payload = temporaryPasswordChangePayload("Temporary123!", "NewPassword123!")
