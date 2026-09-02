@@ -6,10 +6,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 internal data class TeamInvite(
     val id: String,
@@ -43,7 +41,6 @@ internal fun temporaryUserPayload(displayName: String, email: String, role: Stri
         .toString()
 
 internal object TeamInviteApi {
-    private const val CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     private const val PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%+-_"
 
     suspend fun list(session: AdminSession): List<TeamInvite> = withContext(Dispatchers.IO) {
@@ -62,20 +59,15 @@ internal object TeamInviteApi {
     suspend fun create(session: AdminSession, displayName: String, email: String, role: String): TeamInviteSecret =
         withContext(Dispatchers.IO) {
             TeamInvitePolicy.validate(session, displayName, email, role)
-            val code = makeCode()
-            val hash = sha256(code)
-            val expiresAt = Instant.now().plus(7, ChronoUnit.DAYS).toString()
             val payload = JSONObject()
-                .put("invite_email", email.trim().lowercase())
-                .put("invite_display_name", displayName.trim().replace(Regex("\\s+"), " "))
-                .put("invite_role", role)
-                .put("invite_code_hash", hash)
-                .put("invite_expires_at", expiresAt)
+                .put("action", "create_invite")
+                .put("email", email.trim().lowercase())
+                .put("display_name", displayName.trim().replace(Regex("\\s+"), " "))
+                .put("role", role.trim().lowercase())
                 .toString()
-            val response = request("/rest/v1/rpc/admin_create_team_invite", "POST", session.accessToken, payload)
-            if (response.first !in 200..299) error(message(response.second, "Team invite could not be created."))
-            val invite = JSONArray(response.second).optJSONObject(0)?.let(::parse) ?: error("Invite response was incomplete.")
-            TeamInviteSecret(invite, code)
+            val response = request("/functions/v1/send-morley-email", "POST", session.accessToken, payload)
+            if (response.first !in 200..299) error(message(response.second, "Team invite could not be created or emailed."))
+            emailedInviteSecret(response.second, "Invite response was incomplete.")
         }
 
     suspend fun createTemporaryUser(
@@ -124,17 +116,13 @@ internal object TeamInviteApi {
         require(TeamInvitePolicy.canManage(session)) { "Team invites require an Admin or Manager session." }
         require(!invite.isUsed) { "Used invites cannot be reissued." }
         require(invite.role in TeamInvitePolicy.allowedRoles(session)) { "You are not allowed to reissue this role." }
-        val code = makeCode()
-        val expiresAt = Instant.now().plus(7, ChronoUnit.DAYS).toString()
         val payload = JSONObject()
+            .put("action", "reissue_invite")
             .put("invite_id", invite.id)
-            .put("invite_code_hash", sha256(code))
-            .put("invite_expires_at", expiresAt)
             .toString()
-        val response = request("/rest/v1/rpc/admin_reissue_team_invite", "POST", session.accessToken, payload)
-        if (response.first !in 200..299) error(message(response.second, "Invite could not be reissued."))
-        val updated = JSONArray(response.second).optJSONObject(0)?.let(::parse) ?: error("Invite is no longer active.")
-        TeamInviteSecret(updated, code)
+        val response = request("/functions/v1/send-morley-email", "POST", session.accessToken, payload)
+        if (response.first !in 200..299) error(message(response.second, "Invite could not be reissued or emailed."))
+        emailedInviteSecret(response.second, "Invite is no longer active.")
     }
 
     suspend fun revoke(session: AdminSession, invite: TeamInvite) = withContext(Dispatchers.IO) {
@@ -146,6 +134,15 @@ internal object TeamInviteApi {
         if (response.first !in 200..299) error(message(response.second, "Invite could not be revoked."))
     }
 
+    private fun emailedInviteSecret(body: String, fallback: String): TeamInviteSecret {
+        val json = runCatching { JSONObject(body) }.getOrNull() ?: error(fallback)
+        require(json.optBoolean("ok")) { message(body, fallback) }
+        val invite = json.optJSONObject("invite")?.let(::parse) ?: error(fallback)
+        val code = json.optString("invite_code").trim()
+        require(code.isNotBlank()) { "Invite was emailed, but the one-time backup code was not returned." }
+        return TeamInviteSecret(invite, code)
+    }
+
     private fun parse(json: JSONObject) = TeamInvite(
         id = json.optString("id"),
         email = json.optString("email"),
@@ -155,17 +152,6 @@ internal object TeamInviteApi {
         usedAt = json.optString("used_at").takeIf { it.isNotBlank() && it != "null" },
         createdAt = json.optString("created_at")
     )
-
-    private fun makeCode(): String {
-        val random = SecureRandom()
-        return "BLM-" + List(3) {
-            buildString { repeat(4) { append(CODE_CHARS[random.nextInt(CODE_CHARS.length)]) } }
-        }.joinToString("-")
-    }
-
-    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-        .digest(value.trim().toByteArray())
-        .joinToString("") { "%02x".format(it) }
 
     private fun request(path: String, method: String, token: String, body: String?): Pair<Int, String> {
         val connection = (URL("${BuildConfig.SUPABASE_URL}$path").openConnection() as HttpURLConnection).apply {
