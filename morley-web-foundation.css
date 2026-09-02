@@ -1,0 +1,74 @@
+:root{
+  color-scheme:light;
+  --morley-bg:#f5f7f4;
+  --morley-surface:#ffffff;
+  --morley-surface-soft:#eef4f0;
+  --morley-text:#1c2b26;
+  --morley-text-muted:#52645d;
+  --morley-accent:#167a5a;
+  --morley-accent-strong:#0f684c;
+  --morley-accent-soft:#d8efe5;
+  --morley-danger:#a92f3d;
+  --morley-warning:#8a5a00;
+  --morley-space-1:4px;
+  --morley-space-2:8px;
+  --morley-space-3:12px;
+  --morley-space-4:16px;
+  --morley-space-5:20px;
+  --morley-space-6:24px;
+  --morley-space-8:32px;
+  --morley-radius-sm:10px;
+  --morley-radius-md:16px;
+  --morley-radius-lg:24px;
+  --morley-touch:44px;
+  --morley-content-max:760px;
+  --morley-font:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--morley-bg);color:var(--morley-text);font-family:var(--morley-font);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-x:hidden}
+
+.morley-shell{width:100%;max-width:var(--morley-content-max);margin:0 auto;padding:0 var(--morley-space-3) calc(76px + env(safe-area-inset-bottom))}
+.morley-header{min-height:56px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--morley-space-3);padding:var(--morley-space-2) 0;border-bottom:1px solid #d7e0db}
+.morley-header__title{margin:0;font-size:18px;line-height:1.2;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.morley-header__menu,.morley-header__account{min-height:var(--morley-touch);border:1px solid #c9d8d1;border-radius:999px;background:var(--morley-surface);color:var(--morley-text);font:inherit;font-weight:700;padding:0 var(--morley-space-3)}
+.morley-header__menu{border-radius:14px;background:var(--morley-accent-soft);color:var(--morley-accent-strong)}
+
+.morley-page-title{margin:var(--morley-space-4) 0 var(--morley-space-3);font-size:clamp(24px,7vw,34px);line-height:1.08;font-weight:900;letter-spacing:-.02em}
+.morley-card{background:var(--morley-surface);border:1px solid #d7e0db;border-radius:var(--morley-radius-md);padding:var(--morley-space-4);box-shadow:0 8px 24px rgba(28,43,38,.05)}
+.morley-stack{display:grid;gap:var(--morley-space-3)}
+.morley-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--morley-space-3)}
+
+.morley-button{min-height:var(--morley-touch);border:0;border-radius:14px;padding:10px 14px;font:inherit;font-weight:800;cursor:pointer;background:var(--morley-accent);color:#fff}
+.morley-button--secondary{background:var(--morley-surface-soft);color:var(--morley-text);border:1px solid #cad7d1}
+.morley-button--danger{background:var(--morley-danger);color:#fff}
+.morley-button:disabled{opacity:.55;cursor:not-allowed}
+.morley-button:focus-visible,.morley-chip:focus-visible,.morley-input:focus-visible,.morley-header__menu:focus-visible,.morley-header__account:focus-visible{outline:3px solid var(--morley-accent-soft);outline-offset:2px}
+
+.morley-chip{min-height:40px;border:1px solid #cad7d1;border-radius:12px;background:var(--morley-surface);color:var(--morley-text);padding:8px 12px;font:inherit;font-weight:700;white-space:nowrap}
+.morley-chip[aria-pressed="true"],.morley-chip.is-selected{background:var(--morley-accent-strong);border-color:var(--morley-accent-strong);color:#fff}
+
+.morley-input{width:100%;min-height:var(--morley-touch);border:1px solid #bccdc5;border-radius:12px;background:var(--morley-surface);color:var(--morley-text);font:inherit;padding:10px 12px}
+.morley-input::placeholder{color:var(--morley-text-muted)}
+.morley-status{display:inline-flex;align-items:center;gap:8px;color:var(--morley-text);font-weight:800}
+.morley-status::before{content:"";width:9px;height:9px;border-radius:999px;background:var(--morley-accent)}
+
+.morley-primary-nav{position:fixed;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));z-index:50;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;max-width:740px;margin:0 auto;padding:4px;border:1px solid #cad7d1;border-radius:18px;background:rgba(255,255,255,.97);box-shadow:0 10px 28px rgba(28,43,38,.12);backdrop-filter:blur(12px)}
+.morley-primary-nav button{min-width:0;min-height:48px;border:0;border-radius:13px;background:transparent;color:var(--morley-text-muted);font:inherit;font-size:11px;font-weight:800;padding:5px 4px}
+.morley-primary-nav button[aria-current="page"],.morley-primary-nav button.is-active{background:var(--morley-accent-soft);color:var(--morley-accent-strong)}
+
+@media (max-width:600px){
+  .morley-shell{padding-left:12px;padding-right:12px}
+  .morley-header{min-height:52px;gap:8px}
+  .morley-header__title{font-size:16px}
+  .morley-header__menu,.morley-header__account{min-height:40px;padding:0 10px;font-size:12px}
+  .morley-page-title{font-size:24px;margin-top:12px}
+  .morley-card{padding:14px;border-radius:16px}
+  .morley-primary-nav{left:8px;right:8px;bottom:max(6px,env(safe-area-inset-bottom))}
+}
+
+@media (max-width:380px){
+  .morley-grid-2{grid-template-columns:1fr}
+  .morley-header__account{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
