@@ -16,10 +16,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 
-private const val ADMIN_ORIGIN = "https://buyshub.me"
-private const val ADMIN_HOME = "$ADMIN_ORIGIN/admin/"
-private const val ADMIN_HOST = "buyshub.me"
-private const val ADMIN_USER_AGENT_TOKEN = " MorleyAdminAndroid/${BuildConfig.VERSION_NAME}"
+private val ADMIN_USER_AGENT_TOKEN = " MorleyAdminAndroid/${BuildConfig.VERSION_NAME}"
 
 class AdminActivity : ComponentActivity() {
     private lateinit var webView: WebView
@@ -55,7 +52,13 @@ class AdminActivity : ComponentActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     if (!request.isForMainFrame) return false
-                    return handleTopLevelNavigation(request.url)
+                    val target = request.url.toString()
+                    if (AdminWebParityPolicy.isTrustedAdminUrl(target)) return false
+
+                    if (AdminWebParityPolicy.isExternallyRoutableScheme(request.url.scheme)) {
+                        openExternal(request.url)
+                    }
+                    return true
                 }
             }
 
@@ -63,31 +66,13 @@ class AdminActivity : ComponentActivity() {
         }
 
         setContentView(webView)
-        if (savedInstanceState == null) webView.loadUrl(ADMIN_HOME)
+        if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) webView.goBack() else finish()
             }
         })
-    }
-
-    private fun handleTopLevelNavigation(uri: Uri): Boolean {
-        val scheme = uri.scheme?.lowercase()
-        if (scheme == "https" && uri.host.equals(ADMIN_HOST, ignoreCase = true) && isAdminPath(uri.path)) {
-            return false
-        }
-
-        when (scheme) {
-            "http", "https", "mailto", "tel", "sms", "smsto" -> openExternal(uri)
-            else -> return true
-        }
-        return true
-    }
-
-    private fun isAdminPath(path: String?): Boolean {
-        val normalized = path ?: return false
-        return normalized == "/admin" || normalized.startsWith("/admin/")
     }
 
     private fun openExternal(uri: Uri) {
