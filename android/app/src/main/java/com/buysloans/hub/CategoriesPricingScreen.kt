@@ -87,7 +87,7 @@ fun CategoriesPricingScreen() {
                 PricingCategory.LAPTOPS -> LaptopGuidedScreen()
                 PricingCategory.DESKTOPS -> Desktop()
                 PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()
-                PricingCategory.MOBILE_PHONES -> MobilePhoneCategoryPlaceholder()
+                PricingCategory.MOBILE_PHONES -> MobilePhonePricingScreen()
                 null -> Unit
             }
         }
@@ -120,26 +120,6 @@ private fun CategoryButton(
             shape = RoundedCornerShape(999.dp)
         ) {
             Text(label, color = MorleyTextPrimary, fontWeight = FontWeight.Black)
-        }
-    }
-}
-
-@Composable
-private fun MobilePhoneCategoryPlaceholder() = Screen("Mobile Phone Pricing") {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
-        border = BorderStroke(1.dp, MorleyBorder),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("MOBILE PHONES", color = MorleyAccent, fontSize = 11.sp, fontWeight = FontWeight.Black)
-            Text("Phone pricing is being connected to the category workflow.", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 19.sp)
-            Text(
-                "This category is now part of the navigation structure without changing any existing valuation authority or permissions.",
-                color = MorleyTextSecondary,
-                fontSize = 13.sp
-            )
         }
     }
 }
