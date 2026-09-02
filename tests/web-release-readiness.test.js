@@ -38,5 +38,9 @@ assert.match(index, /mobile-menu-theme-lock\.css\?v=1/);
 assert.match(menuTheme, /\.morley-menu-dialog-close\{[\s\S]*place-items:center!important/);
 assert.match(menuTheme, /padding:0!important/);
 assert.match(menuTheme, /line-height:1!important/);
+assert.match(menuTheme, /#morleySessionSnapshot/);
+assert.match(menuTheme, /#morleyNotificationStatus/);
+assert.match(menuTheme, /#morleyDiagnosticsSnapshot/);
+assert.match(menuTheme, /background:#edf5f1!important/);
 
 console.log('Web release readiness contract OK');
