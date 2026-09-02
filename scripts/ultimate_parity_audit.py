@@ -25,6 +25,9 @@ web_css = read("morley-app-parity-v2.css")
 android_theme = read("android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt")
 android_help = read("android/app/src/main/java/com/buysloans/hub/HelpGuideActivity.kt")
 dashboard = read("android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt")
+categories = read("android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt")
+phones = read("android/app/src/main/java/com/buysloans/hub/MobilePhonePricingScreen.kt")
+phone_catalog = read("android/app/src/main/java/com/buysloans/hub/MobilePhonePricingCatalog.kt")
 manifest = read("android/app/src/main/AndroidManifest.xml")
 nfc_logic = read("android/app/src/main/java/com/buysloans/hub/NfcScanLogic.kt")
 nfc_activity = read("android/app/src/main/java/com/buysloans/hub/NfcScannerActivity.kt")
@@ -34,16 +37,25 @@ guardian_health = read("admin/guardian-health.js")
 menu_js = read("more-menu-v2.js")
 
 # Shared product navigation and help terminology.
-for label in ("Computer Pricing", "Console Pricing", "General Buys / GP"):
+for label in ("Categories", "Console Pricing", "General Buys / GP"):
     require(dashboard, label, "Android primary navigation")
+# Help/web retain their descriptive Computer Pricing terminology for the computer-specific feature.
 for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
     require(android_help, label, "Android Help/FAQ content")
 for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
     require(web_parity, label, "web Help/FAQ content")
 require(index, "ultimate-parity.js?v=1", "web parity bootstrap")
-require(dashboard, "Page.Laptop->ComputerPricingScreen()", "combined Computer Pricing route")
+require(dashboard, "Page.Laptop->CategoriesPricingScreen()", "Categories pricing route")
 require(dashboard, "Page.Desktop->ConsolePricingScreen()", "separate Console Pricing route")
+require(dashboard, "MorleyIcons.Categories", "Categories vector icon")
 require(dashboard, "MorleyIcons.Console", "Console vector icon")
+for label in ("Laptops", "Desktops", "Mobile Phones", "Gaming Consoles"):
+    require(categories, label, f"Categories subcategory {label}")
+require(categories, "MobilePhonePricingScreen()", "Mobile Phones route")
+for label in ("Apple iPhone", "Samsung Galaxy", "Select Storage Capacity", "Select Condition Grade"):
+    require(phones, label, f"mobile pricing UI {label}")
+for label in ("Galaxy S25 Ultra", "Galaxy Z Fold 7", '"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
+    require(phone_catalog, label, f"mobile pricing catalog {label}")
 
 # Morley light/emerald theme contract across native and web surfaces.
 for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):
@@ -101,7 +113,7 @@ for needle in ("human-controlled", "Stale open incidents", "kill_switch", "requi
     require(guardian_health, needle, "Guardian health safety signal")
 
 # Basic copy-quality sentinels for recurring user-visible mistakes.
-combined = "\n".join((android_help, dashboard, web_parity, guardian_html))
+combined = "\n".join((android_help, dashboard, categories, phones, web_parity, guardian_html))
 for typo in ("Valution", "Consol Pricing", "Macbook", "signout everywhere", "Seller ask is the price quoted by the seller seller"):
     if typo in combined:
         errors.append(f"Copy-quality sentinel found: {typo}")
@@ -112,4 +124,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: Computer/Console navigation, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
+print("Ultimate parity audit passed: Categories/Console navigation, mobile price sheets, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
