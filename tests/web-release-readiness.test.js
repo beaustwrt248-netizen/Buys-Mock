@@ -24,6 +24,7 @@ assert.match(watchlist, /localStorage\.setItem\(W/);
 assert.match(deals, /localStorage\.setItem\(KEY/);
 assert.doesNotMatch(layout, /observe\(main,\{subtree:true,attributes:true/);
 assert.match(index, /smart-workspace-plus\.js\?v=3/);
+assert.match(index, /quick-deal-grade\.js\?v=2/);
 assert.match(index, /desktop-parity\.js\?v=5/);
 assert.match(index, /morley-light-web\.css\?v=2/);
 assert.ok(index.lastIndexOf('morley-light-web.css') > index.lastIndexOf('mobile-parity-v3.css'));
