@@ -51,4 +51,26 @@ class TestBuyAutoPricingTest {
         )
         assertEquals(TestBuyGuidanceState.READY_CLEAN, testBuyGuidanceState(draft))
     }
+    @Test
+    fun formattedAustralianCurrencyInputsRemainReliable() {
+        assertEquals(1200.0, parseMorleyCurrencyInput("1,200"), 0.001)
+        assertEquals(1200.0, parseMorleyCurrencyInput("$1,200"), 0.001)
+        assertEquals(1200.0, parseMorleyCurrencyInput("A$1,200.00"), 0.001)
+        assertEquals(799.77, parseMorleyCurrencyInput(" 799.77 "), 0.001)
+        assertEquals(null, parseMorleyCurrencyInput("not a price"))
+    }
+
+    @Test
+    fun quickDealAndTestBuyShareOneGradePolicy() {
+        assertEquals(30.0, targetGpForGradeLabel("A"), 0.001)
+        assertEquals(50.0, targetGpForGradeLabel("B"), 0.001)
+        assertEquals(70.0, targetGpForGradeLabel("C"), 0.001)
+        assertEquals(30.0, targetGpForGradeLabel("Luxury"), 0.001)
+        assertEquals(350.0, calculatedMorleyMaxBuy(500.0, "A")!!, 0.001)
+        assertEquals(250.0, calculatedMorleyMaxBuy(500.0, "B")!!, 0.001)
+        assertEquals(150.0, calculatedMorleyMaxBuy(500.0, "C")!!, 0.001)
+        assertEquals(350.0, calculatedMorleyMaxBuy(500.0, "Luxury")!!, 0.001)
+        assertEquals(600.0, calculatedMorleyMaxBuy(parseMorleyCurrencyInput("$1,200"), "B")!!, 0.001)
+    }
+
 }
