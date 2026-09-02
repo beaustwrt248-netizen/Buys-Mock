@@ -1,6 +1,16 @@
 (()=>{
 const HISTORY='buysmock_valuation_history_v1';
 const $=(s,r=document)=>r.querySelector(s);
+const MAX_BUY_FACTOR=Object.freeze({A:.70,B:.50,C:.30});
+function syncMaxBuy(d){
+  const market=Number($('#mswDealMarket',d)?.value)||0;
+  const grade=$('#mswDealGrade',d)?.value||'B';
+  const field=$('#mswDealMax',d);
+  if(!field)return;
+  const maxBuy=Math.round(market*(MAX_BUY_FACTOR[grade]??MAX_BUY_FACTOR.B)*100)/100;
+  field.value=market?String(maxBuy):'';
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+}
 function read(){try{return JSON.parse(localStorage.getItem(HISTORY)||'[]')}catch{return[]}}
 function write(v){localStorage.setItem(HISTORY,JSON.stringify(v.slice(0,30)))}
 function ensure(){
@@ -12,6 +22,11 @@ function ensure(){
   label.className='msw-field';
   label.innerHTML='<span>ITEM GRADE</span><select id="mswDealGrade" style="box-sizing:border-box;width:100%;padding:11px 12px;border-radius:12px;border:1px solid rgba(22,199,255,.28);background:#041024;color:#fff"><option value="A">A Grade</option><option value="B" selected>B Grade</option><option value="C">C Grade</option></select>';
   market.insertAdjacentElement('beforebegin',label);
+  const max=$('#mswDealMax',d);
+  if(max){max.readOnly=true;max.setAttribute('aria-label','Calculated maximum buy price')}
+  $('#mswDealMarket',d)?.addEventListener('input',()=>syncMaxBuy(d));
+  $('#mswDealGrade',d)?.addEventListener('change',()=>syncMaxBuy(d));
+  syncMaxBuy(d);
   const save=$('#mswDealSave',d);
   if(save&&!save.dataset.gradeHook){
     save.dataset.gradeHook='1';
