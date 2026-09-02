@@ -47,6 +47,15 @@ internal object MorleyIcons {
         }
     }.build()
 
+    val Categories: ImageVector = iconBuilder("Categories").apply {
+        strokePath {
+            moveTo(4f, 4f); lineTo(10f, 4f); lineTo(10f, 10f); lineTo(4f, 10f); close()
+            moveTo(14f, 4f); lineTo(20f, 4f); lineTo(20f, 10f); lineTo(14f, 10f); close()
+            moveTo(4f, 14f); lineTo(10f, 14f); lineTo(10f, 20f); lineTo(4f, 20f); close()
+            moveTo(14f, 14f); lineTo(20f, 14f); lineTo(20f, 20f); lineTo(14f, 20f); close()
+        }
+    }.build()
+
     val Console: ImageVector = iconBuilder("Console").apply {
         strokePath {
             moveTo(7f, 9f); lineTo(17f, 9f)
