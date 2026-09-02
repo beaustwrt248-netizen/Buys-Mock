@@ -1,1 +1,6 @@
-Support ticket cards are semantic interactive rows, not primary action buttons.
+Admin Support ticket card contract
+
+- Queue tickets render as neutral interactive cards, not primary-action buttons.
+- Ticket cards remain keyboard-operable with role=button, tabindex=0, Enter and Space activation.
+- Status pills remain independent from the card background.
+- Ticket selection opens the existing detail workflow without changing permissions, filters, or backend state.
