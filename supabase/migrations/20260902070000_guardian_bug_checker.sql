@@ -78,7 +78,12 @@ begin
         route = coalesce(left(p_route,300),route),
         diagnostic_message = v_message,
         diagnostic_metadata = diagnostic_metadata || v_meta,
-        risk_level = case when v_severity = 'critical' then 'critical' when v_severity = 'warning' then risk_level else greatest(risk_level,'medium') end,
+        risk_level = case
+          when v_severity = 'critical' then 'critical'
+          when risk_level in ('critical','high') then risk_level
+          when v_severity = 'error' and risk_level = 'low' then 'medium'
+          else risk_level
+        end,
         updated_at = now()
     where id = v_id;
     return v_id;
