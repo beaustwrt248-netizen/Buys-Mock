@@ -1,0 +1,41 @@
+name: Morley Email Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  email-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Run email integration regression contract
+        run: node --test tests/resend-email-contract.test.js
+
+      - name: Run release audit
+        run: python3 scripts/release_audit.py
+
+      - name: Verify email endpoint rejects anonymous callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output "$RUNNER_TEMP/send-morley-email.json" --write-out '%{http_code}' --max-time 20 \
+            -X POST 'https://ghdhairijqjqivqriigi.supabase.co/functions/v1/send-morley-email' \
+            -H 'Content-Type: application/json' \
+            --data '{"action":"notification_job","job_id":"00000000-0000-0000-0000-000000000000"}')"
+          if [ "$code" != '401' ]; then
+            echo "send-morley-email accepted or mishandled an unauthenticated request (HTTP $code)"
+            cat "$RUNNER_TEMP/send-morley-email.json" || true
+            exit 1
+          fi

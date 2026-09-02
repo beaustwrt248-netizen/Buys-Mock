@@ -22,6 +22,8 @@ async function refreshNotificationTargets(){
 const originalRefreshAll=refreshAll;
 refreshAll=async function(){ await originalRefreshAll(); await refreshNotificationTargets(); };
 
+async function notificationErrorMessage(error){let msg=error?.message||'Delivery failed.';try{const ctx=await error?.context?.json();if(ctx?.error)msg=ctx.error}catch{}return msg}
+
 $('queueNotifBtn').onclick=async()=>{
   const title=$('notifTitle').value.trim(),body=$('notifBody').value.trim(),target=$('notifTarget').value;
   if(!title||!body){$('notifStatus').textContent='Enter a title and message.';return}
@@ -36,9 +38,15 @@ $('queueNotifBtn').onclick=async()=>{
   const {data:job,error}=await sb.from('notification_jobs').insert(payload).select('id').single();
   if(error){$('notifStatus').textContent=error.message;return}
   await sb.from('admin_audit_log').insert({actor_user_id:me.id,action:'notification_queued',target_type:target_user_id?'user':target_installation_id?'device':'audience',target_id:target_user_id||target_installation_id||audience,details:{title}});
-  $('notifStatus').textContent='Sending to registered devices…';
+  $('notifStatus').textContent='Sending notification…';
   const {data:delivery,error:deliveryError}=await sb.functions.invoke('send-admin-notification',{body:{job_id:job.id}});
-  if(deliveryError){let msg=deliveryError.message||'Delivery failed.';try{const ctx=await deliveryError.context?.json();if(ctx?.error)msg=ctx.error}catch{}$('notifStatus').textContent=`Not sent: ${msg}`}
-  else {$('notifStatus').textContent=`Sent to ${delivery?.sent??0} device${delivery?.sent===1?'':'s'}${delivery?.failed?` (${delivery.failed} failed)`:''}.`;$('notifBody').value=''}
+  let pushText=deliveryError?`Push not sent: ${await notificationErrorMessage(deliveryError)}`:`Push sent to ${delivery?.sent??0} device${delivery?.sent===1?'':'s'}${delivery?.failed?` (${delivery.failed} failed)`:''}.`;
+  let emailText='';
+  if(!target_installation_id){
+    const {data:mail,error:mailError}=await sb.functions.invoke('send-morley-email',{body:{action:'notification_job',job_id:job.id}});
+    emailText=mailError?` Email not sent: ${await notificationErrorMessage(mailError)}`:mail?.ok?` Email sent to ${mail.recipients??0} recipient${mail.recipients===1?'':'s'}.`:' Email delivery was not confirmed.';
+  }else emailText=' Device-only targets are push-only.';
+  $('notifStatus').textContent=pushText+emailText;
+  if(!deliveryError)$('notifBody').value='';
   await Promise.all([loadMetrics(),loadNotifications(),loadAudit(),loadDevices(),refreshNotificationTargets()]);
 };
