@@ -12,6 +12,8 @@ data class MobilePhonePriceEntry(
 object MobilePhonePricingCatalog {
     const val APPLE = "Apple"
 
+    // Maintained price-sheet values supplied by Morley. These are deliberately
+    // non-live so they can be changed independently of marketplace pricing.
     val entries = listOf(
         MobilePhonePriceEntry(APPLE, "iPhone Air", "256 GB", 1399.0),
         MobilePhonePriceEntry(APPLE, "iPhone Air", "512 GB", 1799.0),
