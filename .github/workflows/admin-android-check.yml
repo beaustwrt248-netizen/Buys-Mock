@@ -44,7 +44,26 @@ jobs:
           set -euo pipefail
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
-          grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+
+          # The Admin app may use the legacy native surface or the canonical
+          # web Admin surface. When web parity is active, fail closed unless the
+          # privileged WebView is pinned to HTTPS buyshub.me/admin and disables
+          # mixed, file and content access.
+          if grep -q 'AdminWebParityPolicy.HOME_URL' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
+            grep -q 'const val HOME_URL = "https://buyshub.me/admin/"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            grep -q 'private const val ADMIN_HOST = "buyshub.me"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            grep -q 'uri.scheme.equals("https"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            grep -q 'path == "/admin" || path.startsWith("/admin/")' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            grep -q 'AdminWebParityPolicy.isTrustedAdminUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'javaScriptCanOpenWindowsAutomatically = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            ! grep -REq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java
+          else
+            grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+          fi
+
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
           grep -q '/rest/v1/support_tickets?id=eq.' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
