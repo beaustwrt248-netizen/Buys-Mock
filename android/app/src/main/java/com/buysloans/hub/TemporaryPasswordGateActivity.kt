@@ -50,6 +50,12 @@ internal fun temporaryPasswordRequired(userJson: String): Boolean = runCatching 
     JSONObject(userJson).optJSONObject("user_metadata")?.optBoolean("must_change_password", false) == true
 }.getOrDefault(false)
 
+internal fun temporaryPasswordChangePayload(currentPassword: String, newPassword: String): JSONObject =
+    JSONObject()
+        .put("current_password", currentPassword)
+        .put("password", newPassword)
+        .put("data", JSONObject().put("must_change_password", false))
+
 class TemporaryPasswordGateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,22 +84,23 @@ class TemporaryPasswordGateActivity : ComponentActivity() {
         var checking by remember { mutableStateOf(true) }
         var required by remember { mutableStateOf(false) }
         var busy by remember { mutableStateOf(false) }
+        var currentPassword by remember { mutableStateOf("") }
         var newPassword by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
-        var error by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf("") }
 
         LaunchedEffect(Unit) {
             runCatching {
                 val token = AuthManager.validAccessToken(this@TemporaryPasswordGateActivity)
                 val response = authUserRequest("GET", token, null)
-                if (response.first !in 200..299) error("Could not verify your password status.")
+                if (response.first !in 200..299) kotlin.error("Could not verify your password status.")
                 temporaryPasswordRequired(response.second)
             }.onSuccess { needsChange ->
                 required = needsChange
                 checking = false
                 if (!needsChange) onContinue()
             }.onFailure {
-                error = it.message ?: "Could not verify your account."
+                errorMessage = it.message ?: "Could not verify your account."
                 checking = false
             }
         }
@@ -114,8 +121,18 @@ class TemporaryPasswordGateActivity : ComponentActivity() {
                 Spacer(Modifier.height(6.dp))
                 Text("Change temporary password", color = TempPasswordAccent, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text("Your account was created with a temporary password. Choose a new password before continuing.", color = TempPasswordMuted)
+                Text("Your account was created with a temporary password. Enter that temporary password, then choose a new password before continuing.", color = TempPasswordMuted)
                 Spacer(Modifier.height(18.dp))
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it.take(256) },
+                    label = { Text("Current temporary password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it.take(256) },
@@ -135,55 +152,66 @@ class TemporaryPasswordGateActivity : ComponentActivity() {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (error.isNotBlank()) {
+                if (errorMessage.isNotBlank()) {
                     Spacer(Modifier.height(10.dp))
-                    Text(error, color = MaterialTheme.colorScheme.error)
+                    Text(errorMessage, color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        error = ""
+                        errorMessage = ""
+                        if (currentPassword.isBlank()) {
+                            errorMessage = "Enter the temporary password you used to sign in."
+                            return@Button
+                        }
                         if (newPassword.length < 10) {
-                            error = "New password must be at least 10 characters."
+                            errorMessage = "New password must be at least 10 characters."
                             return@Button
                         }
                         if (newPassword != confirmPassword) {
-                            error = "Passwords do not match."
+                            errorMessage = "Passwords do not match."
+                            return@Button
+                        }
+                        if (newPassword == currentPassword) {
+                            errorMessage = "New password must be different from your temporary password."
                             return@Button
                         }
                         busy = true
                         scope.launch {
                             runCatching {
                                 val token = AuthManager.validAccessToken(this@TemporaryPasswordGateActivity)
-                                val payload = JSONObject()
-                                    .put("password", newPassword)
-                                    .put("data", JSONObject().put("must_change_password", false))
+                                val payload = temporaryPasswordChangePayload(currentPassword, newPassword)
                                 val response = authUserRequest("PUT", token, payload)
                                 if (response.first !in 200..299) {
                                     val message = runCatching {
                                         JSONObject(response.second).optString("msg")
                                             .ifBlank { JSONObject(response.second).optString("message") }
+                                            .ifBlank { JSONObject(response.second).optString("error_description") }
                                     }.getOrDefault("")
-                                    error(message.ifBlank { "Password could not be changed." })
+                                    throw IllegalStateException(message.ifBlank { "Password could not be changed." })
                                 }
                             }.onSuccess {
+                                currentPassword = ""
+                                newPassword = ""
+                                confirmPassword = ""
                                 busy = false
                                 onContinue()
                             }.onFailure {
-                                error = it.message ?: "Password could not be changed."
+                                currentPassword = ""
+                                errorMessage = it.message ?: "Password could not be changed."
                                 busy = false
                             }
                         }
                     },
-                    enabled = !busy && newPassword.length >= 10 && confirmPassword.isNotBlank(),
+                    enabled = !busy && currentPassword.isNotBlank() && newPassword.length >= 10 && confirmPassword.isNotBlank(),
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) { Text(if (busy) "Changing password…" else "Change password & continue", fontWeight = FontWeight.Black) }
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(onClick = onSignOut, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
-            } else if (error.isNotBlank()) {
+            } else if (errorMessage.isNotBlank()) {
                 Text("Account security check failed", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text(error, color = MaterialTheme.colorScheme.error)
+                Text(errorMessage, color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(14.dp))
                 OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) { Text("Return to sign in") }
             }
