@@ -42,5 +42,8 @@ assert.match(menuTheme, /#morleySessionSnapshot/);
 assert.match(menuTheme, /#morleyNotificationStatus/);
 assert.match(menuTheme, /#morleyDiagnosticsSnapshot/);
 assert.match(menuTheme, /background:#edf5f1!important/);
+assert.match(menuTheme, /#morleyWebDiagnostics \.morley-settings-body button/);
+assert.match(menuTheme, /#morleyWebDiagnostics \.morley-settings-body button:disabled/);
+assert.match(menuTheme, /-webkit-text-fill-color:#fff!important/);
 
 console.log('Web release readiness contract OK');
