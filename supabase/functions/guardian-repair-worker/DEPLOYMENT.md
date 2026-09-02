@@ -1,0 +1,1 @@
+Deploy `guardian-repair-worker` with gateway JWT verification disabled. The function itself authorizes every POST using either a valid Admin/Manager session JWT or the matching Guardian incident dispatch nonce; unauthenticated requests are rejected.
