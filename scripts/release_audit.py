@@ -19,7 +19,9 @@ required = [
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
-    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/styles.css", "admin/turnstile.html", "admin/login-security.js",
+    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/support-tickets.js",
+    "admin/targeted-notifications.js", "admin/styles.css", "admin/turnstile.html", "admin/login-security.js",
+    "supabase/functions/send-morley-email/index.ts",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
     "android/app/src/main/AndroidManifest.xml",
     "android/app/src/main/java/com/buysloans/hub/AuthActivity.kt",
@@ -152,12 +154,43 @@ if "sb.rpc('admin_set_user_role'" in admin_app:
 
 admin_index = (ROOT / "admin/index.html").read_text(encoding="utf-8")
 admin_invites = (ROOT / "admin/invites.js").read_text(encoding="utf-8")
+admin_support = (ROOT / "admin/support-tickets.js").read_text(encoding="utf-8")
+admin_notifications = (ROOT / "admin/targeted-notifications.js").read_text(encoding="utf-8")
+email_function = (ROOT / "supabase/functions/send-morley-email/index.ts").read_text(encoding="utf-8")
 for token in ('id="inviteName"', 'placeholder="First and last name"', 'app.js?v=4', 'invites.js?v=3'):
     if token not in admin_index:
         errors.append(f"Admin account/invite UI is missing approved full-name control: {token}")
-for token in ("inviteName", "display_name:name", "crypto.getRandomValues", "sha256Hex"):
+for token in ("inviteName", "send-morley-email", "action:'create_invite'", "display_name:name"):
     if token not in admin_invites:
-        errors.append(f"Admin invite logic is missing secure full-name handling: {token}")
+        errors.append(f"Admin invite logic is missing server-side emailed-invite control: {token}")
+for forbidden in ("crypto.getRandomValues", "sha256Hex", "admin_create_team_invite"):
+    if forbidden in admin_invites:
+        errors.append(f"Admin invite UI still creates or hashes invite secrets client-side: {forbidden}")
+for token in ("send-morley-email", "action:'support_ticket_reply'", ".select('id').single()"):
+    if token not in admin_support:
+        errors.append(f"Admin support UI is missing transactional reply email control: {token}")
+for token in ("send-morley-email", "action:'notification_job'", "target_installation_id"):
+    if token not in admin_notifications:
+        errors.append(f"Admin notification UI is missing safe email-mirroring control: {token}")
+for token in (
+    "RESEND_API_KEY", "RESEND_FROM_EMAIL", "getCaller", "activeAdminEmails", "create_invite",
+    "support_ticket_created", "support_ticket_reply", "notification_job", "target_installation_id",
+    "Device-only target is not linked to an email recipient", "email_invite_sent",
+):
+    if token not in email_function:
+        errors.append(f"Resend edge function is missing required security/delivery contract: {token}")
+for forbidden in ("body?.to", "body.to", "reqBody.to"):
+    if forbidden in email_function:
+        errors.append(f"Resend edge function must not accept arbitrary client recipients: {forbidden}")
+if "SUPABASE_SERVICE_ROLE_KEY" in admin_invites or "RESEND_API_KEY" in admin_invites or "RESEND_API_KEY" in admin_notifications:
+    errors.append("Admin client contains a server-only email/service credential name")
+
+team_invite_api = (ROOT / "android/adminapp/src/main/java/com/buysloans/admin/TeamInviteApi.kt")
+if team_invite_api.exists():
+    text = team_invite_api.read_text(encoding="utf-8")
+    for token in ("/functions/v1/send-morley-email", 'put("action", "create_invite")', 'put("action", "reissue_invite")'):
+        if token not in text:
+            errors.append(f"Android Admin team invites are missing shared emailed-invite contract: {token}")
 
 signed_user = (ROOT / "signed-in-user.js").read_text(encoding="utf-8")
 if "display_name" not in signed_user or "morley-web-user" not in signed_user:
