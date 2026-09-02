@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,58 +19,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private enum class PricingCategory {
-    LAPTOPS,
-    DESKTOPS,
-    MOBILE_PHONES,
-    GAMING_CONSOLES
-}
+private enum class PricingCategory { LAPTOPS, DESKTOPS, MOBILE_PHONES, GAMING_CONSOLES }
 
 @Composable
 fun CategoriesPricingScreen() {
     var selected by remember { mutableStateOf<PricingCategory?>(null) }
 
     if (selected == null) {
-        Screen("B&L Morley Pricing") {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
-                border = BorderStroke(1.dp, MorleyBorder),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "CHOOSE CATEGORY TYPE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MorleyAccent
-                    )
-                    Text(
-                        "What type of device are you pricing?",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MorleyTextPrimary
-                    )
-                    Text(
-                        "Select a sub-category below to continue.",
-                        color = MorleyTextSecondary,
-                        fontSize = 13.sp
-                    )
-
-                    CategoryButton("Laptops", primary = true) { selected = PricingCategory.LAPTOPS }
-                    CategoryButton("Desktops") { selected = PricingCategory.DESKTOPS }
-                    CategoryButton("Mobile Phones") { selected = PricingCategory.MOBILE_PHONES }
-                    CategoryButton("Gaming Consoles") { selected = PricingCategory.GAMING_CONSOLES }
-                }
-            }
+        Screen("Categories") {
+            Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 14.sp)
+            CategoryCard(MorleyIcons.Laptop, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
+            CategoryCard(MorleyIcons.Computer, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
+            CategoryCard(MorleyIcons.Phone, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
+            CategoryCard(MorleyIcons.Console, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
         }
     } else {
         Column {
@@ -79,9 +45,7 @@ fun CategoriesPricingScreen() {
                     onClick = { selected = null },
                     border = BorderStroke(1.dp, MorleyBorder),
                     shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("← Categories", color = MorleyTextPrimary)
-                }
+                ) { Text("‹  Categories", color = MorleyTextPrimary, fontWeight = FontWeight.Bold) }
             }
             when (selected) {
                 PricingCategory.LAPTOPS -> LaptopGuidedScreen()
@@ -95,31 +59,36 @@ fun CategoriesPricingScreen() {
 }
 
 @Composable
-private fun CategoryButton(
-    label: String,
-    primary: Boolean = false,
+private fun CategoryCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    highlighted: Boolean = false,
     onClick: () -> Unit
 ) {
-    if (primary) {
-        Button(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MorleyAccentStrong,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(999.dp)
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .45f) else MorleySurface),
+        border = BorderStroke(1.dp, if (highlighted) MorleyAccent else MorleyBorder),
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 17.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(label, fontWeight = FontWeight.Black)
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, MorleyBorder),
-            shape = RoundedCornerShape(999.dp)
-        ) {
-            Text(label, color = MorleyTextPrimary, fontWeight = FontWeight.Black)
+            Surface(
+                color = MorleySurfaceRaised,
+                border = BorderStroke(1.dp, MorleyBorder),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                MorleyIcon(icon, title, MorleyTextPrimary, Modifier.padding(10.dp).size(25.dp))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                Text(subtitle, color = MorleyTextSecondary, fontSize = 12.sp)
+            }
+            Text("›", color = MorleyTextSecondary, fontSize = 25.sp, fontWeight = FontWeight.Black)
         }
     }
 }
