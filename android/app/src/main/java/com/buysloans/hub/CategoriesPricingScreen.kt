@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,11 +30,11 @@ fun CategoriesPricingScreen() {
 
     if (selected == null) {
         Screen("Categories") {
-            Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 14.sp)
-            CategoryCard(MorleyIcons.Laptop, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
-            CategoryCard(MorleyIcons.Computer, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
-            CategoryCard(MorleyIcons.Phone, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
-            CategoryCard(MorleyIcons.Console, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
+            Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 15.sp)
+            CategoryCard(PricingVisual.LAPTOP, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
+            CategoryCard(PricingVisual.DESKTOP, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
+            CategoryCard(PricingVisual.PHONE, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
+            CategoryCard(PricingVisual.CONSOLE, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
         }
     } else {
         Column {
@@ -60,7 +58,7 @@ fun CategoriesPricingScreen() {
 
 @Composable
 private fun CategoryCard(
-    icon: ImageVector,
+    visual: PricingVisual,
     title: String,
     subtitle: String,
     highlighted: Boolean = false,
@@ -70,25 +68,19 @@ private fun CategoryCard(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .45f) else MorleySurface),
         border = BorderStroke(1.dp, if (highlighted) MorleyAccent else MorleyBorder),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 17.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
-                color = MorleySurfaceRaised,
-                border = BorderStroke(1.dp, MorleyBorder),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                MorleyIcon(icon, title, MorleyTextPrimary, Modifier.padding(10.dp).size(25.dp))
+            PricingCategoryVisual(visual, Modifier.size(54.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text(subtitle, color = MorleyTextSecondary, fontSize = 13.sp)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                Text(subtitle, color = MorleyTextSecondary, fontSize = 12.sp)
-            }
-            Text("›", color = MorleyTextSecondary, fontSize = 25.sp, fontWeight = FontWeight.Black)
+            Text("›", color = if (highlighted) MorleyAccent else MorleyTextSecondary, fontSize = 28.sp, fontWeight = FontWeight.Black)
         }
     }
 }
