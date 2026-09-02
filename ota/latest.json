@@ -1,7 +1,7 @@
 {
-  "versionCode": 89,
-  "versionName": "2.15.45",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.45/B-and-L-Morley-2.15.45.apk",
-  "sha256": "4f606fa149afbd5cfdabfb612808efe55fbfcbfc437804e2ae659fb58b50a141",
-  "notes": "Add secure Resend transactional email integration (#561)"
+  "versionCode": 90,
+  "versionName": "2.15.46",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.46/B-and-L-Morley-2.15.46.apk",
+  "sha256": "1cb420a053a14a59a7a54ad1d1961835b9563afb5eb7043abcac6e284c396888",
+  "notes": "Add laptop comparable and buy intelligence engine (#581)"
 }
