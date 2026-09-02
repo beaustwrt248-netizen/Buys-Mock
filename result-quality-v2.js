@@ -1,0 +1,9 @@
+(()=>{
+const innerFetch=window.fetch.bind(window);
+const price=x=>Number(x?.deliveredPrice||x?.price||x?.itemPrice)||0;
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((a,b)=>a-b),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2};
+function qualityScore(x){return Number(x?.matchQuality?.score)||0}
+function tighten(items){if(!Array.isArray(items)||!items.length)return items||[];const sorted=[...items].sort((a,b)=>qualityScore(b)-qualityScore(a)||price(a)-price(b));const strong=sorted.filter(x=>qualityScore(x)>=55);let selected=strong.length>=2?strong:sorted.filter(x=>qualityScore(x)>=40);if(!selected.length)selected=sorted.slice(0,3);const prices=selected.map(price).filter(v=>v>0);if(prices.length>=4){const m=median(prices),lower=m*.52,upper=m*1.75,filtered=selected.filter(x=>{const p=price(x);return !p||(p>=lower&&p<=upper)});if(filtered.length>=2)selected=filtered}return selected.slice(0,20)}
+function recalc(src,key){if(!src?.items)return;src.items=tighten(src.items);src.analysedListings=src.items.length;src.qualityEligible=src.items.filter(x=>qualityScore(x)>=55).length;const ps=src.items.map(price).filter(Boolean);if(!ps.length)return;src.pricing=src.pricing||{};const m=median(ps);if(key==='ebay'){src.pricing.typicalUsed=m;src.pricing.lowest=Math.min(...ps);src.pricing.highest=Math.max(...ps)}else{src.pricing.typicalNew=m;src.pricing.competitiveLow=Math.min(...ps);src.pricing.competitiveHigh=Math.max(...ps)}}
+window.fetch=async function(input,init){const r=await innerFetch(input,init),url=typeof input==='string'?input:input?.url||'';if(!/\/functions\/v1\/(?:ebay-search|oem-search)/.test(url))return r;try{const d=await r.clone().json();if(!d?.success||!d?.matchQualityApplied)return r;recalc(d.ebay,'ebay');recalc(d.google,'google');d.resultQualityV2=true;return new Response(JSON.stringify(d),{status:r.status,statusText:r.statusText,headers:r.headers})}catch{return r}}
+})();
