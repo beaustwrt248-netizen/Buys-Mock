@@ -42,3 +42,25 @@ html body .morley-menu-dialog-close{
 }
 html body .morley-menu-dialog-close::before,
 html body .morley-menu-dialog-close::after{content:none!important}
+
+/* Dialog status summaries: keep legacy inline dark panels readable in the light theme. */
+html body #morleyMenuDialog #morleySessionSnapshot,
+html body #morleyMenuDialog #morleyNotificationStatus,
+html body #morleyMenuDialog #morleyDiagnosticsSnapshot{
+  background:#edf5f1!important;
+  border-color:#b8d5c8!important;
+  color:#1c2b26!important;
+  -webkit-text-fill-color:#1c2b26!important;
+}
+html body #morleyMenuDialog #morleySessionSnapshot b,
+html body #morleyMenuDialog #morleyNotificationStatus b,
+html body #morleyMenuDialog #morleyDiagnosticsSnapshot b{
+  color:#17372d!important;
+  -webkit-text-fill-color:#17372d!important;
+}
+html body #morleyMenuDialog #morleySessionSnapshot span,
+html body #morleyMenuDialog #morleyNotificationStatus span,
+html body #morleyMenuDialog #morleyDiagnosticsSnapshot span{
+  color:#52645d!important;
+  -webkit-text-fill-color:#52645d!important;
+}
