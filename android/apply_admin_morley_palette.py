@@ -26,7 +26,10 @@ palette = {
 changed = []
 for path in root.glob('*.kt'):
     text = path.read_text(encoding='utf-8')
-    updated = text.replace('darkColorScheme(', 'lightColorScheme(')
+    updated = text.replace(
+        'import androidx.compose.material3.darkColorScheme',
+        'import androidx.compose.material3.lightColorScheme'
+    ).replace('darkColorScheme(', 'lightColorScheme(')
     for old, new in palette.items():
         updated = updated.replace(old, new)
     if updated != text:
