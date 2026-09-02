@@ -50,7 +50,7 @@ for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD
     require(android_theme, token, "Android Morley theme token")
 require(android_theme, "lightColorScheme", "Android light color scheme")
 web_light = read("morley-light-web.css")
-require(index, "morley-light-web.css?v=1", "web light theme layer")
+require(index, "morley-light-web.css?v=2", "web light theme layer")
 for token in ("#f5f7f4", "#ffffff", "#167a5a", "#1c2b26", "#cedbd5"):
     if token.lower() not in web_light.lower():
         errors.append(f"Web Morley theme token missing: {token}")
