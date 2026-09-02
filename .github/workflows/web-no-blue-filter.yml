@@ -82,6 +82,9 @@ jobs:
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
           for needle in ['.morley-menu-dialog-close{','place-items:center!important','padding:0!important','line-height:1!important','#morleySessionSnapshot','#morleyNotificationStatus','#morleyDiagnosticsSnapshot','background:#edf5f1!important','#morleyWebDiagnostics .morley-settings-body button','#morleyWebDiagnostics .morley-settings-body button:disabled','-webkit-text-fill-color:#fff!important']:
               if needle not in loader: raise SystemExit('Dialog close alignment contract missing: '+needle)
+          diagnostics=Path('web-diagnostics.js').read_text(encoding='utf-8')
+          for needle in ['id="morleyDiagRefresh"','id="morleyDiagCopy"','color:#fff!important;-webkit-text-fill-color:#fff!important']:
+              if needle not in diagnostics: raise SystemExit('Guardian diagnostics source contrast missing: '+needle)
           if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader:
               raise SystemExit('Final visual lock cache version is stale')
           print('Morley emerald, desktop dashboard, and mobile preservation contracts verified')
