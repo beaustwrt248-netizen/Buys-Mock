@@ -62,6 +62,7 @@ jobs:
           BASE_SOURCE='https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/013aa3577f8c714297eda86bfd2c1d49b3667eb1/index.html'
           curl --fail --silent --show-error --location --retry 3 --max-time 30 "$BASE_SOURCE" --output site/web-base.html
           touch site/.nojekyll
+          test -f site/.nojekyll
           test -s site/index.html
           test -s site/web-base.html
           grep -q 'Buys and Loans Hub' site/web-base.html
@@ -95,10 +96,11 @@ jobs:
           enablement: true
 
       - name: Upload web site
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           name: github-pages-${{ github.run_attempt }}
           path: site
+          include-hidden-files: true
 
       - name: Deploy to GitHub Pages
         id: deployment
