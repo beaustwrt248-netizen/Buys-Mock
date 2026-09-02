@@ -23,11 +23,21 @@ test('repository-owned srcdoc base binds recent activity to an explicit DOM targ
   assert.doesNotMatch(source,/(?<![A-Za-z0-9_$])recent\.(?:innerHTML|insertAdjacentHTML)/);
 });
 
-test('about:srcdoc repair discovery prioritises the generating sources and keeps protection gates',()=>{
+test('srcdoc repair discovery prioritises the generating sources and keeps protection gates',()=>{
   const worker=read('supabase/functions/guardian-repair-worker/index.ts');
-  assert.match(worker,/isSrcdocIncident\(input\)\?\["web-base\.html","index\.html"/);
-  assert.match(worker,/hints\.push\("web-base\.html","index\.html"\)/);
-  assert.match(worker,/diagnostic_kind,diagnostic_message,diagnostic_metadata/);
+  assert.match(worker,/\(\?:about:\)\?srcdoc/);
+  assert.match(worker,/diagnosis_summary/);
+  assert.match(worker,/proposed_action/);
+  for(const path of [
+    'web-base.html',
+    'web-admin-mode.js',
+    'tests/web-admin-srcdoc-regression.test.js',
+    'tests/guardian-runtime-regression.test.js',
+  ]) assert.ok(worker.includes(`\"${path}\"`),`missing srcdoc repair source ${path}`);
+  assert.match(worker,/p\.startsWith\("\.github\/"\)/);
+  assert.match(worker,/p\.startsWith\("supabase\/"\)/);
+  assert.match(worker,/p\.includes\("\/auth\/"\)/);
+  assert.match(worker,/p\.includes\("\/security\/"\)/);
   assert.match(worker,/if\(!allowed\.has\(f\.path\)\|\|!safeRepairPath\(f\.path\)\)/);
   assert.match(worker,/PROTECTED_CHANGE_BLOCKED/);
   assert.match(worker,/authorized=!!profile\?\.is_enabled&&\["admin","manager"\]\.includes\(profile\.role\)/);
