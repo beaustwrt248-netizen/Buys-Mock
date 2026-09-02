@@ -98,3 +98,16 @@ body:not(.morley-physical-phone) #morleyDesktopShell .desktop-side-status strong
 body:not(.morley-physical-phone) #morleyDesktopShell #desktopPricingState,
 body:not(.morley-physical-phone) #morleyDesktopShell #desktopOnlineState{color:#7fe2bb!important;-webkit-text-fill-color:#7fe2bb!important;opacity:1!important;text-shadow:none!important}
 }
+
+
+/* Desktop sign-out actions use the reserved danger treatment, not the primary emerald action colour. */
+@media (min-width:761px){
+body:not(.morley-physical-phone) .morley-menu-signout{background:#b44552!important;background-image:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #963744!important;box-shadow:0 8px 18px rgba(150,55,68,.16)!important}
+body:not(.morley-physical-phone) .morley-menu-signout:hover,
+body:not(.morley-physical-phone) .morley-menu-signout:focus-visible{background:#963744!important;border-color:#7f2d39!important}
+}
+@media (min-width:1000px){
+body:not(.morley-physical-phone) .morley-web-signout{background:#b44552!important;background-image:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#963744!important;box-shadow:0 8px 18px rgba(150,55,68,.16)!important}
+body:not(.morley-physical-phone) .morley-web-signout:hover,
+body:not(.morley-physical-phone) .morley-web-signout:focus-visible{background:#963744!important;border-color:#7f2d39!important}
+}
