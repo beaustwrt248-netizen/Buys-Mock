@@ -1,92 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PROJECT_URL=Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const OPENAI_API_KEY=Deno.env.get("OPENAI_API_KEY")||"";
-const MODEL=Deno.env.get("GUARDIAN_OPENAI_MODEL")||"gpt-5.6-terra";
-const GITHUB_TOKEN=Deno.env.get("GUARDIAN_GITHUB_READ_TOKEN")||"";
-const GITHUB_REPO=Deno.env.get("GUARDIAN_GITHUB_REPO")||"beaustwrt248-netizen/Buys-Mock";
-const GITHUB_REF=Deno.env.get("GUARDIAN_GITHUB_REF")||"main";
-const sb=createClient(PROJECT_URL,SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PROJECT_URL=Deno.env.get("SUPABASE_URL")!,SERVICE_ROLE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,OPENAI_API_KEY=Deno.env.get("OPENAI_API_KEY")||"",MODEL=Deno.env.get("GUARDIAN_OPENAI_MODEL")||"gpt-5.6-terra",GITHUB_TOKEN=Deno.env.get("GUARDIAN_GITHUB_READ_TOKEN")||"",GITHUB_REPO=Deno.env.get("GUARDIAN_GITHUB_REPO")||"beaustwrt248-netizen/Buys-Mock",GITHUB_REF=Deno.env.get("GUARDIAN_GITHUB_REF")||"main";
+const sb=createClient(PROJECT_URL,SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}),json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}}),uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const clip=(v:unknown,n:number)=>String(v??"").replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi,"Bearer [REDACTED]").replace(/(password|token|secret|authorization|cookie|credential)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]").slice(0,n);
-
-async function activity(incidentId:string,phase:string,status:string,summary:string,detail:string|null,progress:number){
-  await sb.from("guardian_activity").insert({incident_id:incidentId,phase,status,summary:clip(summary,500),detail:detail?clip(detail,3000):null,visibility:"admin",progress,actor:"repair-worker"});
-}
-
-function safeRepairPath(path:string){
-  const p=path.replace(/\\/g,"/");
-  if(!/\.(html|css|js|ts|tsx|jsx|kt|kts|java|json)$/i.test(p))return false;
-  if(p.startsWith(".github/")||p.startsWith("supabase/")||p.includes("/auth/")||p.includes("/security/"))return false;
-  if(/(secret|credential|\.env|keystore|private[-_]?key|service[-_]?account|signing)/i.test(p))return false;
-  return true;
-}
-
-function unsafeContent(content:string){
-  return /(SUPABASE_SERVICE_ROLE_KEY|service_role|BEGIN\s+PRIVATE\s+KEY|security\s+definer|drop\s+(table|database|schema)|alter\s+role|create\s+role|grant\s+.+\s+to\s+anon|revoke\s+.+\s+from\s+authenticated)/i.test(content);
-}
-
-function keywords(input:any){
-  return Array.from(new Set(`${input?.classification||""} ${input?.route||""} ${input?.diagnosis_summary||""} ${input?.proposed_action||""}`.toLowerCase().split(/[^a-z0-9_-]+/).filter((x:string)=>x.length>=4))).slice(0,18);
-}
-
-async function repoContext(input:any){
-  const headers:Record<string,string>={Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"morley-guardian-repair-readonly"};
-  if(GITHUB_TOKEN)headers.Authorization=`Bearer ${GITHUB_TOKEN}`;
-  const treeRes=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${encodeURIComponent(GITHUB_REF)}?recursive=1`,{headers});
-  if(!treeRes.ok)throw new Error(`repository tree ${treeRes.status}`);
-  const tree=await treeRes.json();const ks=keywords(input);
-  const candidates=(tree.tree||[])
-    .filter((x:any)=>x.type==="blob"&&safeRepairPath(String(x.path||""))&&Number(x.size||0)<=100000)
-    .map((x:any)=>({path:String(x.path),score:ks.reduce((s:number,k:string)=>s+(String(x.path).toLowerCase().includes(k)?3:0),0)+(String(x.path).startsWith("admin/")&&String(input?.route||"").includes("admin")?2:0)}))
-    .filter((x:any)=>x.score>0).sort((a:any,b:any)=>b.score-a.score).slice(0,8);
-  const out:any[]=[];
-  for(const c of candidates){
-    const r=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${c.path}?ref=${encodeURIComponent(GITHUB_REF)}`,{headers});
-    if(!r.ok)continue;const d=await r.json();if(d.encoding!=="base64"||!d.content)continue;
-    try{const bytes=Uint8Array.from(atob(String(d.content).replace(/\n/g,"")),c=>c.charCodeAt(0));out.push({path:c.path,content:new TextDecoder().decode(bytes).slice(0,18000)})}catch{}
-  }
-  return out;
-}
-
+async function activity(incidentId:string,phase:string,status:string,summary:string,detail:string|null,progress:number){await sb.from("guardian_activity").insert({incident_id:incidentId,phase,status,summary:clip(summary,500),detail:detail?clip(detail,3000):null,visibility:"admin",progress,actor:"repair-worker"})}
+function safeRepairPath(path:string){const p=path.replace(/\\/g,"/");if(!/\.(html|css|js|ts|tsx|jsx|kt|kts|java|json)$/i.test(p))return false;if(p.startsWith(".github/")||p.startsWith("supabase/")||p.includes("/auth/")||p.includes("/security/"))return false;if(/(secret|credential|\.env|keystore|private[-_]?key|service[-_]?account|signing)/i.test(p))return false;return true}
+function unsafeContent(content:string){return /(SUPABASE_SERVICE_ROLE_KEY|service_role|BEGIN\s+PRIVATE\s+KEY|security\s+definer|drop\s+(table|database|schema)|alter\s+role|create\s+role|grant\s+.+\s+to\s+anon|revoke\s+.+\s+from\s+authenticated)/i.test(content)}
+function keywords(input:any){return Array.from(new Set(`${input?.classification||""} ${input?.route||""} ${input?.diagnosis_summary||""} ${input?.proposed_action||""}`.toLowerCase().split(/[^a-z0-9_-]+/).filter((x:string)=>x.length>=4))).slice(0,18)}
+async function repoContext(input:any){const headers:Record<string,string>={Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"morley-guardian-repair-readonly"};if(GITHUB_TOKEN)headers.Authorization=`Bearer ${GITHUB_TOKEN}`;const treeRes=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${encodeURIComponent(GITHUB_REF)}?recursive=1`,{headers});if(!treeRes.ok)throw new Error(`repository tree ${treeRes.status}`);const tree=await treeRes.json(),ks=keywords(input),route=String(input?.route||"").toLowerCase(),all=(tree.tree||[]).filter((x:any)=>x.type==="blob"&&safeRepairPath(String(x.path||""))&&Number(x.size||0)<=100000);let candidates=all.map((x:any)=>({path:String(x.path),score:ks.reduce((s:number,k:string)=>s+(String(x.path).toLowerCase().includes(k)?3:0),0)+(String(x.path).startsWith("admin/")&&route.includes("admin")?4:0)})).filter((x:any)=>x.score>0).sort((a:any,b:any)=>b.score-a.score).slice(0,8);const fallback=route.includes("admin")?["admin/guardian.html","admin/guardian.js","admin/guardian-live.js","admin/styles.css","admin/index.html"]:["web-base.html","web-diagnostics.js","web-guardian-live.js","app.css","index.html","mobile-layout-fix.js","morley-ui-baseline.js"];for(const p of fallback){if(candidates.length>=8)break;if(!candidates.some((x:any)=>x.path===p)&&all.some((x:any)=>String(x.path)===p))candidates.push({path:p,score:1})}const out:any[]=[];for(const c of candidates){const r=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${c.path}?ref=${encodeURIComponent(GITHUB_REF)}`,{headers});if(!r.ok)continue;const d=await r.json();if(d.encoding!=="base64"||!d.content)continue;try{const bytes=Uint8Array.from(atob(String(d.content).replace(/\n/g,"")),c=>c.charCodeAt(0));out.push({path:c.path,content:new TextDecoder().decode(bytes).slice(0,18000)})}catch{}}return out}
 function responseText(data:any){for(const item of data?.output||[]){for(const c of item?.content||[]){if(typeof c?.text==="string")return c.text}}return""}
-
-async function generateCandidate(incident:any,repo:any[]){
-  if(!OPENAI_API_KEY)throw new Error("OPENAI_API_KEY_UNAVAILABLE");
-  const prompt=`You are Morley Guardian's protected repair generator. Produce a minimal candidate code repair only from the supplied allowlisted files. Do not create new files. Do not modify auth, authorization, RLS, Supabase schema/functions, workflows, secrets, signing, deployment, payments, or destructive database behavior. Do not claim tests ran. Return JSON only with keys: summary (string <=1200), files (array max 3 of {path,content,reason}), tests (array max 8 of strings). Every path MUST exactly match one path supplied in ALLOWLISTED FILES. Full replacement file content is required for each proposed file. If no safe repair can be proposed, return files=[] and explain why in summary.\n\nINCIDENT:\n${JSON.stringify(incident).slice(0,18000)}\n\nALLOWLISTED FILES:\n${JSON.stringify(repo).slice(0,70000)}`;
-  const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,input:prompt,reasoning:{effort:"high"},max_output_tokens:12000})});
-  if(!r.ok)throw new Error(`AI response ${r.status}`);
-  const text=responseText(await r.json()).trim();const a=text.indexOf("{"),b=text.lastIndexOf("}");if(a<0||b<=a)throw new Error("AI returned no repair JSON");
-  const data=JSON.parse(text.slice(a,b+1));const allowed=new Map(repo.map(x=>[x.path,x.content]));
-  const files=(Array.isArray(data.files)?data.files:[]).slice(0,3).map((x:any)=>({path:String(x?.path||""),content:String(x?.content||""),reason:clip(x?.reason,1200)}));
-  for(const f of files){if(!allowed.has(f.path)||!safeRepairPath(f.path))throw new Error(`DISALLOWED_REPAIR_PATH:${f.path}`);if(!f.content||f.content.length>120000)throw new Error(`INVALID_REPAIR_CONTENT:${f.path}`);if(unsafeContent(f.content))throw new Error(`PROTECTED_CHANGE_BLOCKED:${f.path}`)}
-  return {summary:clip(data.summary,1200),files,tests:(Array.isArray(data.tests)?data.tests:[]).slice(0,8).map((x:any)=>clip(x,500))};
-}
-
-Deno.serve(async(req:Request)=>{
-  if(req.method!=="POST")return json({error:"method_not_allowed"},405);
-  const auth=req.headers.get("authorization")||"";const token=auth.replace(/^Bearer\s+/i,"");if(!token)return json({error:"authentication_required"},401);
-  const {data:userData,error:userError}=await sb.auth.getUser(token);if(userError||!userData?.user)return json({error:"invalid_session"},401);
-  const {data:profile}=await sb.from("profiles").select("role,is_enabled").eq("id",userData.user.id).single();if(!profile?.is_enabled||!["admin","manager"].includes(profile.role))return json({error:"admin_or_manager_required"},403);
-  let body:any;try{body=await req.json()}catch{return json({error:"invalid_json"},400)}
-  const incidentId=String(body?.incident_id||"");if(!uuid.test(incidentId))return json({error:"invalid_incident"},400);
-  const {data:repair,error:repairError}=await sb.from("guardian_repairs").select("id,incident_id,status,base_ref").eq("incident_id",incidentId).single();if(repairError||!repair)return json({error:"repair_not_requested"},404);
-  if(repair.status!=="requested")return json({ok:true,skipped:`repair_${repair.status}`,repair_id:repair.id});
-  const {data:claimed}=await sb.from("guardian_repairs").update({status:"generating",updated_at:new Date().toISOString(),last_error_code:null}).eq("id",repair.id).eq("status","requested").select("id").maybeSingle();if(!claimed)return json({ok:true,skipped:"already_claimed",repair_id:repair.id});
-  await activity(incidentId,"preparing_fix","working","Generating a protected candidate patch.","Guardian is limited to a small allowlist of existing non-sensitive source files. No repository write occurs in this step.",70);
-  try{
-    const {data:incident,error:incidentError}=await sb.from("guardian_incidents").select("id,classification,route,diagnosis_summary,proposed_action,reproduction_summary,test_plan,risk_level,confidence,state").eq("id",incidentId).single();if(incidentError||!incident)throw new Error("INCIDENT_LOOKUP_FAILED");
-    const repo=await repoContext(incident);if(!repo.length)throw new Error("NO_SAFE_REPOSITORY_CONTEXT");
-    await activity(incidentId,"preparing_fix","working","Safe repair scope identified.",repo.map(x=>x.path).join(" • "),73);
-    const candidate=await generateCandidate(incident,repo);
-    if(!candidate.files.length)throw new Error(`NO_SAFE_CANDIDATE:${candidate.summary||"No safe candidate generated"}`);
-    const patchText=candidate.files.map((f:any)=>`FILE: ${f.path}\nREASON: ${f.reason}\n`).join("\n");
-    const {error:updateError}=await sb.from("guardian_repairs").update({status:"candidate_ready",candidate_files:candidate.files,patch_summary:candidate.summary,patch_text:patchText,test_plan:candidate.tests,generated_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",repair.id);if(updateError)throw new Error("REPAIR_UPDATE_FAILED");
-    await sb.from("guardian_incidents").update({state:"awaiting_approval"}).eq("id",incidentId);
-    await activity(incidentId,"awaiting_approval","waiting","Candidate repair is ready for review.",`${candidate.summary}\nFiles: ${candidate.files.map((f:any)=>f.path).join(" • ")}\nNo code has been written to the repository.`,78);
-    return json({ok:true,repair_id:repair.id,status:"candidate_ready",files:candidate.files.map((f:any)=>f.path),tests:candidate.tests});
-  }catch(e){const message=clip(e instanceof Error?e.message:e,500);await sb.from("guardian_repairs").update({status:"failed",last_error_code:message,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",repair.id);await sb.from("guardian_incidents").update({state:"failed",last_error_code:message}).eq("id",incidentId);await activity(incidentId,"preparing_fix","error","Guardian could not generate a safe candidate repair.",message,72);return json({error:"candidate_generation_failed",detail:message},500)}
-});
+async function generateCandidate(incident:any,repo:any[]){if(!OPENAI_API_KEY)throw new Error("OPENAI_API_KEY_UNAVAILABLE");const prompt=`You are Morley Guardian's protected repair generator. Produce a minimal candidate code repair only from the supplied allowlisted files. Do not create new files. Do not modify auth, authorization, RLS, Supabase schema/functions, workflows, secrets, signing, deployment, payments, or destructive database behavior. Do not claim tests ran. Return JSON only with keys: summary (string <=1200), files (array max 3 of {path,content,reason}), tests (array max 8 of strings). Every path MUST exactly match one path supplied in ALLOWLISTED FILES. Full replacement file content is required for each proposed file. If no safe repair can be proposed, return files=[] and explain why in summary.\n\nINCIDENT:\n${JSON.stringify(incident).slice(0,18000)}\n\nALLOWLISTED FILES:\n${JSON.stringify(repo).slice(0,70000)}`;const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,input:prompt,reasoning:{effort:"high"},max_output_tokens:12000})});if(!r.ok)throw new Error(`AI response ${r.status}`);const text=responseText(await r.json()).trim(),a=text.indexOf("{"),b=text.lastIndexOf("}");if(a<0||b<=a)throw new Error("AI returned no repair JSON");const data=JSON.parse(text.slice(a,b+1)),allowed=new Map(repo.map(x=>[x.path,x.content])),files=(Array.isArray(data.files)?data.files:[]).slice(0,3).map((x:any)=>({path:String(x?.path||""),content:String(x?.content||""),reason:clip(x?.reason,1200)}));for(const f of files){if(!allowed.has(f.path)||!safeRepairPath(f.path))throw new Error(`DISALLOWED_REPAIR_PATH:${f.path}`);if(!f.content||f.content.length>120000)throw new Error(`INVALID_REPAIR_CONTENT:${f.path}`);if(unsafeContent(f.content))throw new Error(`PROTECTED_CHANGE_BLOCKED:${f.path}`)}return{summary:clip(data.summary,1200),files,tests:(Array.isArray(data.tests)?data.tests:[]).slice(0,8).map((x:any)=>clip(x,500))}}
+Deno.serve(async(req:Request)=>{if(req.method!=="POST")return json({error:"method_not_allowed"},405);const token=(req.headers.get("authorization")||"").replace(/^Bearer\s+/i,"");if(!token)return json({error:"authentication_required"},401);const {data:userData,error:userError}=await sb.auth.getUser(token);if(userError||!userData?.user)return json({error:"invalid_session"},401);const {data:profile}=await sb.from("profiles").select("role,is_enabled").eq("id",userData.user.id).single();if(!profile?.is_enabled||!["admin","manager"].includes(profile.role))return json({error:"admin_or_manager_required"},403);let body:any;try{body=await req.json()}catch{return json({error:"invalid_json"},400)}const incidentId=String(body?.incident_id||"");if(!uuid.test(incidentId))return json({error:"invalid_incident"},400);const {data:repair,error:repairError}=await sb.from("guardian_repairs").select("id,incident_id,status,base_ref").eq("incident_id",incidentId).single();if(repairError||!repair)return json({error:"repair_not_requested"},404);if(repair.status!=="requested")return json({ok:true,skipped:`repair_${repair.status}`,repair_id:repair.id});const {data:claimed}=await sb.from("guardian_repairs").update({status:"generating",updated_at:new Date().toISOString(),last_error_code:null}).eq("id",repair.id).eq("status","requested").select("id").maybeSingle();if(!claimed)return json({ok:true,skipped:"already_claimed",repair_id:repair.id});await activity(incidentId,"preparing_fix","working","Generating a protected candidate patch.","Guardian is limited to a small allowlist of existing non-sensitive source files. No repository write occurs in this step.",70);try{const {data:incident,error:incidentError}=await sb.from("guardian_incidents").select("id,classification,route,diagnosis_summary,proposed_action,reproduction_summary,test_plan,risk_level,confidence,state").eq("id",incidentId).single();if(incidentError||!incident)throw new Error("INCIDENT_LOOKUP_FAILED");const repo=await repoContext(incident);if(!repo.length)throw new Error("NO_SAFE_REPOSITORY_CONTEXT");await activity(incidentId,"preparing_fix","working","Safe repair scope identified.",repo.map(x=>x.path).join(" • "),73);const candidate=await generateCandidate(incident,repo);if(!candidate.files.length)throw new Error(`NO_SAFE_CANDIDATE:${candidate.summary||"No safe candidate generated"}`);const patchText=candidate.files.map((f:any)=>`FILE: ${f.path}\nREASON: ${f.reason}\n`).join("\n"),{error:updateError}=await sb.from("guardian_repairs").update({status:"candidate_ready",candidate_files:candidate.files,patch_summary:candidate.summary,patch_text:patchText,test_plan:candidate.tests,generated_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",repair.id);if(updateError)throw new Error("REPAIR_UPDATE_FAILED");await sb.from("guardian_incidents").update({state:"awaiting_approval"}).eq("id",incidentId);await activity(incidentId,"awaiting_approval","waiting","Candidate repair is ready for review.",`${candidate.summary}\nFiles: ${candidate.files.map((f:any)=>f.path).join(" • ")}\nNo code has been written to the repository.`,78);return json({ok:true,repair_id:repair.id,status:"candidate_ready",files:candidate.files.map((f:any)=>f.path),tests:candidate.tests})}catch(e){const message=clip(e instanceof Error?e.message:e,500);await sb.from("guardian_repairs").update({status:"failed",last_error_code:message,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",repair.id);await sb.from("guardian_incidents").update({state:"failed",last_error_code:message}).eq("id",incidentId);await activity(incidentId,"preparing_fix","error","Guardian could not generate a safe candidate repair.",message,72);return json({error:"candidate_generation_failed",detail:message},500)}});
