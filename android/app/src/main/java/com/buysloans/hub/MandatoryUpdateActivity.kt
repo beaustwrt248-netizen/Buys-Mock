@@ -38,16 +38,24 @@ class MandatoryUpdateActivity : ComponentActivity() {
         val scope = rememberCoroutineScope()
         var policy by remember { mutableStateOf<ReleaseSupportPolicy?>(null) }
         var update by remember { mutableStateOf<AppUpdate?>(null) }
-        var status by remember { mutableStateOf("Checking required app version…") }
+        var status by remember { mutableStateOf("Checking latest app version…") }
         var busy by remember { mutableStateOf(true) }
 
         fun refresh() {
             if (busy) return
             busy = true
-            status = "Checking required app version…"
+            status = "Checking latest app version…"
             scope.launch {
                 runGateCheck(
-                    onReady = { p, u -> policy = p; update = u; status = if (u == null) "A required update is not currently available from the verified OTA feed." else "Version ${u.versionName} is ready to install." },
+                    onReady = { p, u ->
+                        policy = p
+                        update = u
+                        status = if (u == null) {
+                            "No newer verified OTA release is currently available."
+                        } else {
+                            "Version ${u.versionName} is ready to install."
+                        }
+                    },
                     onError = { status = it },
                     onComplete = { busy = false }
                 )
@@ -56,7 +64,15 @@ class MandatoryUpdateActivity : ComponentActivity() {
 
         LaunchedEffect(Unit) {
             runGateCheck(
-                onReady = { p, u -> policy = p; update = u; status = if (u == null) "A required update is not currently available from the verified OTA feed." else "Version ${u.versionName} is ready to install." },
+                onReady = { p, u ->
+                    policy = p
+                    update = u
+                    status = if (u == null) {
+                        "No newer verified OTA release is currently available."
+                    } else {
+                        "Version ${u.versionName} is ready to install."
+                    }
+                },
                 onError = { status = it },
                 onComplete = { busy = false }
             )
@@ -76,10 +92,12 @@ class MandatoryUpdateActivity : ComponentActivity() {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text("Update required", fontSize = 28.sp, fontWeight = FontWeight.Black)
                         Text(
-                            policy?.let { p ->
+                            update?.let {
+                                "A newer B&L Morley release (${it.versionName}) is available. Update before continuing so every device uses the same supported software version."
+                            } ?: policy?.takeIf { it.requiresMandatoryUpdate() }?.let { p ->
                                 val name = p.minimumVersionName.ifBlank { "version ${p.minimumVersionCode}" }
                                 "This install is below the minimum supported B&L Morley version ($name). Update before continuing."
-                            } ?: "B&L Morley is verifying the minimum supported version.",
+                            } ?: "B&L Morley is verifying the latest supported version.",
                             color = MorleyTextSecondary,
                             lineHeight = 22.sp
                         )
@@ -113,11 +131,11 @@ class MandatoryUpdateActivity : ComponentActivity() {
     ) {
         try {
             val currentPolicy = ReleasePolicyManager.load(this)
-            if (!currentPolicy.requiresMandatoryUpdate()) {
+            val available = UpdateManager.check()
+            if (!currentPolicy.requiresMandatoryUpdate() && available == null) {
                 finish()
                 return
             }
-            val available = UpdateManager.check()
             onReady(currentPolicy, available)
         } catch (error: Exception) {
             onError(error.message ?: "Could not verify the required update. Check your connection and try again.")
