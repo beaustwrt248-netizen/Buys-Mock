@@ -85,7 +85,7 @@ internal fun AdminPasswordResetPanel(session: AdminSession, profiles: JSONArray?
                     password = ""
                     status = "Generating secure temporary password…"
                     scope.launch {
-                        runCatching { AdminPasswordResetApi.reset(session, target.id) }
+                        runCatching { UserControlApi.resetPassword(session, target.id) }
                             .onSuccess { result ->
                                 password = result.temporaryPassword
                                 status = "Temporary password created. It is shown only on this screen."
