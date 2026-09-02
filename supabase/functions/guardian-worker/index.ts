@@ -31,14 +31,15 @@ function fallback(input:any){
 function keywords(input:any){return Array.from(new Set(`${input?.category||""} ${input?.classification||""} ${input?.subject||""} ${input?.description||""} ${input?.route||""} ${input?.diagnostic_kind||""}`.toLowerCase().split(/[^a-z0-9_-]+/).filter((x:string)=>x.length>=4))).slice(0,14)}
 function safePath(path:string){return /\.(html|css|js|ts|tsx|jsx|kt|kts|java|json|yml|yaml|md|sql)$/i.test(path)&&!/(secret|credential|\.env|keystore|private[-_]?key|service[-_]?account)/i.test(path)}
 async function repoContext(input:any,enabled:boolean){
-  if(!enabled||!GITHUB_TOKEN)return[];
-  const headers={Authorization:`Bearer ${GITHUB_TOKEN}`,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
+  if(!enabled)return[];
+  const headers:Record<string,string>={Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","User-Agent":"morley-guardian-readonly"};
+  if(GITHUB_TOKEN)headers.Authorization=`Bearer ${GITHUB_TOKEN}`;
   const treeRes=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/git/trees/${encodeURIComponent(GITHUB_REF)}?recursive=1`,{headers});
   if(!treeRes.ok)return[];
   const tree=await treeRes.json();const ks=keywords(input);
   const candidates=(tree.tree||[]).filter((x:any)=>x.type==="blob"&&safePath(String(x.path||""))&&Number(x.size||0)<=80000).map((x:any)=>({path:String(x.path),score:ks.reduce((s:number,k:string)=>s+(String(x.path).toLowerCase().includes(k)?3:0),0)+(String(x.path).startsWith("admin/")&&String(input?.route||"").includes("admin")?2:0)})).filter((x:any)=>x.score>0).sort((a:any,b:any)=>b.score-a.score).slice(0,6);
   const out=[] as any[];
-  for(const c of candidates){const r=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${c.path}?ref=${encodeURIComponent(GITHUB_REF)}`,{headers});if(!r.ok)continue;const d=await r.json();if(d.encoding!=="base64"||!d.content)continue;try{const text=atob(String(d.content).replace(/\n/g,""));out.push({path:c.path,content:clip(text,12000)})}catch{}}
+  for(const c of candidates){const r=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${c.path}?ref=${encodeURIComponent(GITHUB_REF)}`,{headers});if(!r.ok)continue;const d=await r.json();if(d.encoding!=="base64"||!d.content)continue;try{const bytes=Uint8Array.from(atob(String(d.content).replace(/\n/g,"")),c=>c.charCodeAt(0));const text=new TextDecoder().decode(bytes);out.push({path:c.path,content:clip(text,12000)})}catch{}}
   return out;
 }
 
@@ -63,7 +64,7 @@ Deno.serve(async(req:Request)=>{
   const visibility=incident.ticket_id?"user":"admin";await activity(incidentId,"diagnosing","working","Guardian started a live diagnosis.","Correlating incident evidence, diagnostics and current application context.",25,visibility);
   let ticket:any=null;if(incident.ticket_id){const r=await sb.from("support_tickets").select("id,category,subject,description,priority,app_version,device_model,android_version,diagnostics,created_at").eq("id",incident.ticket_id).single();if(!r.error)ticket=r.data;}
   const input=ticket?{...ticket,classification:incident.classification,route:incident.route}:{category:incident.classification,classification:incident.classification,description:incident.diagnostic_message,diagnostic_kind:incident.diagnostic_kind,diagnostic_message:incident.diagnostic_message,diagnostics:incident.diagnostic_metadata,diagnostic_metadata:incident.diagnostic_metadata,route:incident.route,app_version:incident.app_version,source:incident.source};
-  await activity(incidentId,"inspecting","working","Inspecting relevant source context.",settings.repository_read_enabled?"Guardian is using its read-only repository capability. No code changes are permitted in this step.":"Repository inspection is disabled in Guardian controls.",38,visibility);
+  await activity(incidentId,"inspecting","working","Inspecting relevant source context.",settings.repository_read_enabled?`Guardian is using its read-only ${GITHUB_TOKEN?"authenticated":"public"} repository capability. No code changes are permitted in this step.`:"Repository inspection is disabled in Guardian controls.",38,visibility);
   let repo:any[]=[];try{repo=await repoContext(input,settings.repository_read_enabled!==false)}catch{}
   if(repo.length)await activity(incidentId,"inspecting","success","Relevant source files identified.",repo.map(x=>x.path).join(" • "),45,"admin");
   let triage:any=null;try{await activity(incidentId,"diagnosing","working","AI-assisted diagnosis is running.",settings.ai_enabled!==false?`Model: ${settings.agent_model||DEFAULT_MODEL}`:"AI assistance is disabled; Guardian will use deterministic triage.",50,visibility);triage=await aiDiagnosis(input,repo,settings.ai_enabled!==false,String(settings.agent_model||DEFAULT_MODEL))}catch(e){await activity(incidentId,"diagnosing","warning","AI diagnosis was unavailable; Guardian continued safely.",clip(e instanceof Error?e.message:e,500),52,"admin");}
