@@ -1,0 +1,43 @@
+name: Support Ticket Query Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'admin/support-tickets.js'
+      - '.github/workflows/support-ticket-query-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'admin/support-tickets.js'
+      - '.github/workflows/support-ticket-query-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  support-ticket-query-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate support ticket admin query contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check admin/support-tickets.js
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('admin/support-tickets.js').read_text(encoding='utf-8')
+          if "profiles:user_id" in text:
+              raise SystemExit('Support admin must not embed profiles through support_tickets.user_id; that FK targets auth.users and PostgREST returns HTTP 400.')
+          required = [
+              "sb.from('support_tickets').select('*')",
+              "async function attachTicketProfiles",
+              "sb.from('profiles').select('id,display_name,email').in('id',ids)",
+              "profilesById.get(t.user_id)",
+          ]
+          missing = [needle for needle in required if needle not in text]
+          if missing:
+              raise SystemExit(f'Support ticket profile hydration contract missing: {missing}')
+          print('Support ticket query contract OK')
+          PY
