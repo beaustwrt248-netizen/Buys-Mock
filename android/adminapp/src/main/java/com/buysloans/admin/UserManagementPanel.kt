@@ -42,11 +42,12 @@ internal fun UserManagementPanel(
 
     ManualNotificationPanel(session = session, profiles = profiles, hostBusy = busy)
     TeamInvitePanel(session = session, hostBusy = busy)
+    AdminPasswordResetPanel(session = session, profiles = profiles, hostBusy = busy)
 
     Text("User access", fontSize = 21.sp, fontWeight = FontWeight.Black)
     Text(
         when (session.role) {
-            "admin" -> "Admin-only audited controls. Android can change role, enable, or disable an existing account; delete and force-signout are not exposed."
+            "admin" -> "Admin-only audited controls. Android can change role, enable, disable, or issue a temporary password for an existing account; delete and force-signout are not exposed."
             "manager" -> "Managers may invite new Staff above, but existing account role and enable/disable controls remain Admin-only."
             else -> "Read-only user visibility. Staff cannot invite or change account access."
         },
