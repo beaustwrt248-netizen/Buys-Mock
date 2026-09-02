@@ -5,22 +5,20 @@
   .guardian-page .guardian-metric-card{min-height:116px;align-items:center}
   .guardian-page .guardian-metric-card>span:nth-child(2){min-width:0}
   .guardian-page .guardian-metric-card em{display:block;margin-top:3px}
-  .guardian-page .guardian-history-card:not([open])>summary,
-  .guardian-page .guardian-quarantine-card:not([open])>summary,
-  .guardian-page .guardian-compact-details:not([open])>summary,
-  .guardian-page .guardian-control-card:not([open])>summary{min-height:82px;align-items:center!important}
-  .guardian-page .guardian-history-card:not([open])>summary p,
-  .guardian-page .guardian-quarantine-card:not([open])>summary p,
-  .guardian-page .guardian-compact-details:not([open])>summary p{margin-top:3px}
+  .guardian-page .guardian-history-card:not([open])>summary,.guardian-page .guardian-quarantine-card:not([open])>summary,.guardian-page .guardian-compact-details:not([open])>summary,.guardian-page .guardian-control-card:not([open])>summary{min-height:82px;align-items:center!important}
+  .guardian-page .guardian-history-card:not([open])>summary p,.guardian-page .guardian-quarantine-card:not([open])>summary p,.guardian-page .guardian-compact-details:not([open])>summary p{margin-top:3px}
   .guardian-page .guardian-history-card[open]{scroll-margin-top:14px}
-  .guardian-page .guardian-history-body{padding-top:2px}
-  .guardian-page .guardian-history-filters{padding:12px;border-radius:16px;background:#f6faf8;border:1px solid #e0e9e4}
-  .guardian-page .guardian-history-row{padding:13px 14px;margin-bottom:9px;box-shadow:none;content-visibility:auto;contain-intrinsic-size:88px}
-  .guardian-page .guardian-history-detail{content-visibility:auto;contain-intrinsic-size:180px}
+  .guardian-page .guardian-history-body{padding-top:2px;min-width:0;overflow:hidden}
+  .guardian-page .guardian-history-filters{padding:12px;border-radius:16px;background:#f6faf8;border:1px solid #e0e9e4;min-width:0}
+  .guardian-page .guardian-history-table{width:100%;min-width:0;overflow:hidden!important}
+  .guardian-page .guardian-history-row{box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:13px 14px;margin-bottom:9px;box-shadow:none;content-visibility:auto;contain-intrinsic-size:88px;overflow:hidden}
+  .guardian-page .guardian-history-row>*{min-width:0;max-width:100%}
+  .guardian-page .guardian-history-item,.guardian-page .guardian-history-item strong,.guardian-page .guardian-history-item small{overflow-wrap:anywhere;word-break:break-word}
+  .guardian-page .guardian-history-detail{box-sizing:border-box;width:100%;max-width:100%;min-width:0;content-visibility:auto;contain-intrinsic-size:180px;overflow:hidden}
   .guardian-page .guardian-history-item strong{font-size:14px;line-height:1.25}
   .guardian-page .guardian-history-item small{margin-top:3px;font-size:10px}
-  .guardian-page .guardian-history-row>.guardian-history-actions{margin-top:0}
-  .guardian-page .guardian-history-row>.guardian-history-actions button{min-height:42px!important}
+  .guardian-page .guardian-history-row>.guardian-history-actions{box-sizing:border-box;width:100%;min-width:0;margin-top:0;overflow:visible}
+  .guardian-page .guardian-history-row>.guardian-history-actions button,.guardian-page .guardian-history-detail>.guardian-history-actions button{box-sizing:border-box;width:100%!important;max-width:100%;min-width:0!important;min-height:46px!important;white-space:normal;overflow-wrap:anywhere}
   .guardian-page .guardian-repair-needs-review{margin-top:2px!important}
   .guardian-page .guardian-repair-needs-review>summary{min-height:104px}
   .guardian-page #guardianHealthPanel,.guardian-page #guardianQuarantinePanel,.guardian-page #guardianLiveSessions,.guardian-page #guardianHistoryPanel,.guardian-page #guardianControlPanel{scroll-margin-top:14px}
@@ -39,4 +37,9 @@
   .guardian-page .guardian-metric-card strong{font-size:24px}
   .guardian-page .guardian-metric-card em{font-size:10px}
   .guardian-page .guardian-history-card,.guardian-page .guardian-quarantine-card,.guardian-page .guardian-compact-details,.guardian-page .guardian-control-card,#guardianHealthPanel{margin-bottom:14px!important}
+  .guardian-page .guardian-history-row{display:block!important;padding:12px!important}
+  .guardian-page .guardian-history-row>.guardian-state-chip,.guardian-page .guardian-history-row>.guardian-risk-chip{display:inline-flex!important;margin:7px 6px 0 0}
+  .guardian-page .guardian-history-row>:nth-child(4),.guardian-page .guardian-history-row>:nth-child(5){display:none!important}
+  .guardian-page .guardian-history-row>.guardian-history-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px;margin-top:10px!important}
+  .guardian-page .guardian-history-detail>.guardian-history-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px}
 }
