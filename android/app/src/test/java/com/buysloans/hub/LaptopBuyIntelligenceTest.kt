@@ -14,6 +14,18 @@ class LaptopBuyIntelligenceTest {
         assertFalse(LaptopBuyIntelligence.classify(target, part).accepted)
     }
 
+    @Test fun rejectsProcessorContradictionEvenWhenModelFamilyMatches() {
+        val wrongCpu = LaptopComparable(
+            "Apple MacBook Pro 14 A2442 M2 Pro",
+            target.copy(cpu = "M2 Pro"),
+            1250.0,
+            true
+        )
+        val decision = LaptopBuyIntelligence.classify(target, wrongCpu)
+        assertFalse(decision.accepted)
+        assertEquals("wrong processor", decision.reason)
+    }
+
     @Test fun soldExactComparablesDriveBuyZone() {
         val comps = listOf(
             LaptopComparable("a", target, 1100.0, true, 4, "ebay", "s1"),
