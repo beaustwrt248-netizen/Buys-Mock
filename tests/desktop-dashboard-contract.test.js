@@ -23,6 +23,10 @@ assert.match(css, /\.desktop-header-actions\{display:none!important/);
 assert.match(css, /\.morley-web-user\{top:24px!important;right:132px/);
 assert.match(css, /\.msi-fill\{background:linear-gradient\(90deg,#087a55/);
 assert.match(css, /\.desktop-side-status\{margin-top:auto!important/);
+assert.match(css, /\.morley-dashboard-nav-icon svg\{display:block!important/);
+assert.match(css, /#desktopPricingState[\s\S]*color:#7fe2bb!important/);
+assert.match(dashboard, /const icon=paths=>/);
+assert.match(dashboard, /<svg viewBox="0 0 24 24"/);
 
 for (const route of ['Dashboard','Computer Pricing','Console Pricing','General Buys','Saved Deals','Inventory','Scanner','Sales','More']) {
   assert.ok(dashboard.includes(route), `missing desktop route: ${route}`);
