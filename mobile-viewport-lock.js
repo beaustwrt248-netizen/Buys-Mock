@@ -2,7 +2,7 @@
 'use strict';
 const ROOT=document.documentElement;
 const CLASS='morley-physical-phone';
-const LOCK_HREF='mobile-viewport-lock.css?v=20260902-1';
+const LOCK_HREF='mobile-viewport-lock.css?v=202609021';
 
 function physicalPhone(){
   const sw=Number(screen?.width)||Infinity;
