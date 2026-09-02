@@ -15,7 +15,8 @@
   .guardian-page .guardian-history-card[open]{scroll-margin-top:14px}
   .guardian-page .guardian-history-body{padding-top:2px}
   .guardian-page .guardian-history-filters{padding:12px;border-radius:16px;background:#f6faf8;border:1px solid #e0e9e4}
-  .guardian-page .guardian-history-row{padding:13px 14px;margin-bottom:9px;box-shadow:none}
+  .guardian-page .guardian-history-row{padding:13px 14px;margin-bottom:9px;box-shadow:none;content-visibility:auto;contain-intrinsic-size:88px}
+  .guardian-page .guardian-history-detail{content-visibility:auto;contain-intrinsic-size:180px}
   .guardian-page .guardian-history-item strong{font-size:14px;line-height:1.25}
   .guardian-page .guardian-history-item small{margin-top:3px;font-size:10px}
   .guardian-page .guardian-history-row>.guardian-history-actions{margin-top:0}
