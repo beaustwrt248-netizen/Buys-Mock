@@ -68,6 +68,8 @@ jobs:
           index=Path('index.html').read_text(encoding='utf-8')
           if index.index('morley-desktop-dashboard.css') < index.index('mobile-viewport-lock.css'):
               raise SystemExit('Desktop dashboard must load after the mobile viewport lock')
+          if 'morley-desktop-dashboard.css?v=2' not in index:
+              raise SystemExit('Desktop dashboard stylesheet cache version is stale')
           if 'morley-desktop-dashboard.js?v=1' not in index:
               raise SystemExit('Desktop dashboard behaviour is not loaded')
 
