@@ -47,6 +47,15 @@ internal object MorleyIcons {
         }
     }.build()
 
+    val Categories: ImageVector = iconBuilder("Categories").apply {
+        strokePath {
+            moveTo(4f, 4f); lineTo(10f, 4f); lineTo(10f, 10f); lineTo(4f, 10f); close()
+            moveTo(14f, 4f); lineTo(20f, 4f); lineTo(20f, 10f); lineTo(14f, 10f); close()
+            moveTo(4f, 14f); lineTo(10f, 14f); lineTo(10f, 20f); lineTo(4f, 20f); close()
+            moveTo(14f, 14f); lineTo(20f, 14f); lineTo(20f, 20f); lineTo(14f, 20f); close()
+        }
+    }.build()
+
     val Console: ImageVector = iconBuilder("Console").apply {
         strokePath {
             moveTo(7f, 9f); lineTo(17f, 9f)
@@ -62,6 +71,17 @@ internal object MorleyIcons {
             moveTo(6.25f, 13.25f); lineTo(9.75f, 13.25f)
             moveTo(16.5f, 12.5f); lineTo(16.6f, 12.5f)
             moveTo(18.5f, 14.5f); lineTo(18.6f, 14.5f)
+        }
+    }.build()
+
+    val Phone: ImageVector = iconBuilder("Phone").apply {
+        strokePath {
+            moveTo(7f, 3f); lineTo(17f, 3f); curveTo(18.1f, 3f, 19f, 3.9f, 19f, 5f)
+            lineTo(19f, 19f); curveTo(19f, 20.1f, 18.1f, 21f, 17f, 21f)
+            lineTo(7f, 21f); curveTo(5.9f, 21f, 5f, 20.1f, 5f, 19f)
+            lineTo(5f, 5f); curveTo(5f, 3.9f, 5.9f, 3f, 7f, 3f); close()
+            moveTo(10f, 6f); lineTo(14f, 6f)
+            moveTo(11.5f, 18f); lineTo(12.5f, 18f)
         }
     }.build()
 

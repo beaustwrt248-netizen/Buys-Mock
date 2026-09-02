@@ -84,11 +84,39 @@ require_markers(
 )
 require_markers(
     "android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt",
-    "Computer Pricing",
+    "Categories",
     "Console Pricing",
     "General Buys / GP",
-    "ComputerPricingScreen",
+    "CategoriesPricingScreen",
     "ConsolePricingScreen",
+)
+require_markers(
+    "android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt",
+    "Laptops",
+    "Desktops",
+    "Mobile Phones",
+    "Gaming Consoles",
+    "LaptopGuidedScreen",
+    "MobilePhonePricingScreen",
+)
+require_markers(
+    "android/app/src/main/java/com/buysloans/hub/MobilePhonePricingScreen.kt",
+    "Apple iPhone",
+    "Samsung Galaxy",
+    "Select Storage Capacity",
+    "Select Condition Grade",
+    "Quick Summary",
+    "Grade Guide",
+)
+require_markers(
+    "android/app/src/main/java/com/buysloans/hub/MobilePhonePricingCatalog.kt",
+    "APPLE",
+    "SAMSUNG",
+    "Galaxy S25 Ultra",
+    "Galaxy Z Fold 7",
+    '"A" to 0.70',
+    '"B" to 0.50',
+    '"C" to 0.30',
 )
 require_file("android/app/src/main/java/com/buysloans/hub/ComputerConsolePricingScreens.kt")
 require_markers(

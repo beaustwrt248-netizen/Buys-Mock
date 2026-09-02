@@ -121,14 +121,14 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
                     primaryPages.forEach{p->
                         val navLabel=when(p){
                             Page.Home->"Home"
-                            Page.Laptop->"Computer"
+                            Page.Laptop->"Categories"
                             Page.Desktop->"Console"
                             Page.GP->"GP"
                             else->p.label
                         }
                         val navIcon=when(p){
                             Page.Home->MorleyIcons.Home
-                            Page.Laptop->MorleyIcons.Computer
+                            Page.Laptop->MorleyIcons.Categories
                             Page.Desktop->MorleyIcons.Console
                             Page.GP->MorleyIcons.Money
                             else->MorleyIcons.Home
@@ -156,7 +156,7 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
             if(showMenu) MoreHub(onSignOut={confirmSignOut=true})
             else when(page){
                 Page.Home->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
-                Page.Laptop->ComputerPricingScreen()
+                Page.Laptop->CategoriesPricingScreen()
                 Page.Desktop->ConsolePricingScreen()
                 Page.GP->GPFix()
                 Page.More->ParityHome({page=Page.Laptop},{page=Page.Desktop},{page=Page.GP})
@@ -166,14 +166,14 @@ private fun DashboardApp(showUpdatedInitially:Boolean=false) {
 }
 
 @Composable
-private fun ParityHome(onComputer:()->Unit,onConsole:()->Unit,onGp:()->Unit){
+private fun ParityHome(onCategories:()->Unit,onConsole:()->Unit,onGp:()->Unit){
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=12.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
         SmartWorkspaceSection()
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
             StatusTile("LIVE PRICING","READY",Modifier.weight(1f))
             StatusTile("ONLINE STATUS","ONLINE",Modifier.weight(1f))
         }
-        NavCard(MorleyIcons.Computer,"Computer Pricing","Laptop / MacBook or Desktop / Gaming PC",onComputer)
+        NavCard(MorleyIcons.Categories,"Categories","Laptops, desktops, mobile phones and gaming consoles",onCategories)
         NavCard(MorleyIcons.Console,"Console Pricing","PS4, PS5, Xbox and Nintendo grade pricing",onConsole)
         NavCard(MorleyIcons.Money,"General Buys / GP","A / B / C / Luxury buying targets",onGp)
         Spacer(Modifier.height(4.dp))
