@@ -43,7 +43,8 @@ html body .morley-menu-dialog-close{
 html body .morley-menu-dialog-close::before,
 html body .morley-menu-dialog-close::after{content:none!important}
 
-/* Dialog status summaries: keep legacy inline dark panels readable in the light theme. */
+/* Dialog status summaries: keep legacy inline dark panels readable in the light theme.
+   These explicit IDs override their legacy inline colour declarations without changing layout. */
 html body #morleyMenuDialog #morleySessionSnapshot,
 html body #morleyMenuDialog #morleyNotificationStatus,
 html body #morleyMenuDialog #morleyDiagnosticsSnapshot{
