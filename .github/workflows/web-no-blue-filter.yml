@@ -30,23 +30,107 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           forbidden=['#2f7cff','#1f5fd8','#12c9ff','#2468dd','#2875ff','#16c7ff','#70dfff','#7bdfff','rgba(47,124,255','rgba(18,201,255','rgb(47,124,255','rgb(18,201,255']
           active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css']
           failures=[]
           for file in active:
               text=Path(file).read_text(encoding='utf-8').lower()
               found=[token for token in forbidden if token in text]
-              if found: failures.append(f'{file}: {", ".join(found)}')
-          if failures: raise SystemExit('Retired electric blue/cyan theme token detected:\n'+'\n'.join(failures))
+              if found:
+                  failures.append(f'{file}: {", ".join(found)}')
+          if failures:
+              raise SystemExit('Retired electric blue/cyan theme token detected:\n'+'\n'.join(failures))
+
           for legacy in ['cyber-ui.css','cyber-spectrum.css','reference-theme.css']:
               if 'Retired production theme shim' not in Path(legacy).read_text(encoding='utf-8'):
                   raise SystemExit(f'{legacy} must remain retired and neutral')
+
           lock=Path('web-apk-light-visual-lock.css').read_text(encoding='utf-8')
           required=['#inventory #addItem','#scanner #startScan','#scanner #findCode','#morleyMenuDialog button','#morleyMoreBackBar button','nav[aria-label="Primary navigation"]','button.secondary','button.danger']
           missing=[needle for needle in required if needle not in lock]
-          if missing: raise SystemExit('Sub-category no-blue coverage missing: '+', '.join(missing))
+          if missing:
+              raise SystemExit('Sub-category no-blue coverage missing: '+', '.join(missing))
+
           loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
-          if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader: raise SystemExit('Final visual lock cache version is stale')
+          if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader:
+              raise SystemExit('Final visual lock cache version is stale')
+
           print('No retired electric blue/cyan theme tokens in active theme layers')
           print('Sub-category coverage verified')
+          PY
+
+      - name: Enforce Morley light and mobile layout contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def compact(text):
+              return ''.join(text.lower().split())
+
+          visual_raw=Path('web-apk-light-visual-lock.css').read_text(encoding='utf-8')
+          menu_raw=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
+          visual=compact(visual_raw)
+          menu=compact(menu_raw)
+
+          visual_contract={
+              'light color scheme': ':root{color-scheme:light!important',
+              'approved emerald accent': '--web-lock-accent:#167a5a',
+              'approved strong emerald accent': '--web-lock-accent-strong:#0f684c',
+              'light app background': 'html,body{background:linear-gradient(180deg,#f8faf7',
+              'header light treatment': 'body.top{background:rgba(245,247,244,.98)!important',
+              'primary navigation contract': 'nav[aria-label="primarynavigation"]',
+              'active navigation emerald state': 'button.active{background:var(--web-lock-accent-soft)!important',
+              'primary button contract': 'button.morley-primary-action',
+              'secondary button contract': 'button.secondary',
+              'danger button contract': 'button.danger',
+              'inventory action coverage': '#inventory#additem',
+              'scanner start coverage': '#scanner#startscan',
+              'scanner lookup coverage': '#scanner#findcode',
+              'saved deals coverage': '#dealsbutton',
+              'sales coverage': '#salesbutton',
+              'menu dialog coverage': '#morleymenudialogbutton',
+              'back to more coverage': '#morleymorebackbarbutton',
+              'mobile breakpoint': '@media(max-width:760px)',
+              'mobile header side spacing': 'padding-left:10px!important;padding-right:10px!important',
+              'computer choice mobile height': '#computerbutton.parity-choice{min-height:132px!important',
+              'console row mobile height': '#consolebutton.console-row{min-height:48px!important',
+          }
+
+          menu_contract={
+              'final visual lock loader': '@importurl("web-apk-light-visual-lock.css?v=20260902-3")',
+              'menu maximum width': '#morleyrelevantmore{max-width:860px',
+              'menu card radius': 'border-radius:18px!important',
+              'settings legacy renderer hidden': '#settings>.morley-legacy-menu-hidden{display:none!important',
+              'mobile menu breakpoint': '@media(max-width:760px)',
+              'mobile menu row height': '.morley-menu-row{min-height:76px!important',
+              'mobile menu trigger height': '.morley-menu-trigger{min-height:44px!important;height:44px!important',
+              'mobile menu trigger label size': '.morley-menu-trigger-label{font-size:13px!important',
+          }
+
+          failures=[]
+          for label, needle in visual_contract.items():
+              if needle not in visual:
+                  failures.append(f'web-apk-light-visual-lock.css: {label}')
+          for label, needle in menu_contract.items():
+              if needle not in menu:
+                  failures.append(f'mobile-menu-theme-lock.css: {label}')
+
+          # These are intentional scheme rules, not just selector-presence checks.
+          semantic_rules=[
+              ('primary actions remain emerald', 'background:var(--web-lock-accent)!important'),
+              ('secondary actions remain light', 'background:var(--web-lock-raised)!important'),
+              ('danger actions remain red', 'background:#fff0f1!important'),
+              ('navigation remains light', 'background:rgba(255,255,255,.98)!important'),
+          ]
+          for label, needle in semantic_rules:
+              if needle not in visual:
+                  failures.append(f'web-apk-light-visual-lock.css: {label}')
+
+          if failures:
+              raise SystemExit('Morley visual/layout contract regression detected:\n- '+'\n- '.join(failures))
+
+          print('Morley light/emerald scheme contract verified')
+          print('Mobile layout, menu, navigation and action contracts verified')
           PY
