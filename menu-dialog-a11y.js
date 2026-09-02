@@ -33,7 +33,8 @@
 
   function restore(dialog){
     delete dialog.dataset.morleyFocused;
-    if(lastTrigger&&document.contains(lastTrigger))requestAnimationFrame(()=>lastTrigger.focus?.());
+    const trigger=lastTrigger;
+    if(trigger&&document.contains(trigger))requestAnimationFrame(()=>trigger.focus?.());
     lastTrigger=null;
   }
 
