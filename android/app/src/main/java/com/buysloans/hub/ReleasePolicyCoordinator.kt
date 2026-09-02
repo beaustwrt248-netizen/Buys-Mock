@@ -27,8 +27,9 @@ object ReleasePolicyCoordinator : Application.ActivityLifecycleCallbacks {
         scope.launch {
             try {
                 val policy = ReleasePolicyManager.load(activity.applicationContext)
+                val update = UpdateManager.check()
                 lastCheckedAt = System.currentTimeMillis()
-                if (policy.requiresMandatoryUpdate() && !activity.isFinishing) {
+                if ((policy.requiresMandatoryUpdate() || update != null) && !activity.isFinishing) {
                     activity.startActivity(
                         Intent(activity, MandatoryUpdateActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -43,8 +44,8 @@ object ReleasePolicyCoordinator : Application.ActivityLifecycleCallbacks {
                     activity.finish()
                 }
             } catch (_: Exception) {
-                // Transient failures are handled by ReleasePolicyManager's verified local cache.
-                // With no prior policy, the app remains usable rather than risking a bad remote lockout.
+                // Transient failures never create a false lockout. A verified remote OTA or
+                // cached mandatory support policy must be available before the update gate opens.
             } finally {
                 checking = false
             }
