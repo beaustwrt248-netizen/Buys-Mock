@@ -111,13 +111,16 @@ jobs:
             'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
             'admin/index.html':['id="inviteName"','First and last name','styles.css?v=3','app.js?v=4','invites.js?v=3'],
             'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
-            'admin/invites.js':['crypto.getRandomValues','sha256Hex','display_name:name','inviteName'],
+            'admin/invites.js':['send-morley-email',"action:'create_invite'",'display_name:name','inviteName'],
             'admin/turnstile.html':["const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",'postMessage(payload,postMessageOrigin)'],
             'admin/login-security.js':['event.source===frame.contentWindow','event.origin===window.location.origin',"window.location.origin==='null'&&event.origin==='null'"],
           }
           for file,needles in checks.items():
               text=Path(file).read_text(encoding='utf-8'); missing=[n for n in needles if n not in text]
               if missing: raise SystemExit(f'{file} missing expected production hooks: {missing}')
+          invites=Path('admin/invites.js').read_text(encoding='utf-8')
+          for forbidden in ('crypto.getRandomValues','sha256Hex','admin_create_team_invite'):
+              if forbidden in invites: raise SystemExit(f'Admin invite UI still creates/hashes invite secrets client-side: {forbidden}')
           if "postMessage(payload,'*')" in Path('admin/turnstile.html').read_text(encoding='utf-8') or 'postMessage(payload,"*")' in Path('admin/turnstile.html').read_text(encoding='utf-8'):
               raise SystemExit('Turnstile bridge must not unconditionally broadcast CAPTCHA tokens')
           if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
