@@ -1,4 +1,5 @@
 (()=>{
+// Regression coverage: Quick Buy must recalculate Max Buy for decimal market values and grade changes.
 const HISTORY='buysmock_valuation_history_v1';
 const $=(s,r=document)=>r.querySelector(s);
 const GP={A:.30,B:.50,C:.70,Luxury:.30};
