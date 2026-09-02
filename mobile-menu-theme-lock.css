@@ -65,3 +65,14 @@ html body #morleyMenuDialog #morleyDiagnosticsSnapshot span{
   color:#52645d!important;
   -webkit-text-fill-color:#52645d!important;
 }
+
+/* Guardian Diagnostics actions must retain accessible text contrast in every state. */
+html body #morleyWebDiagnostics .morley-settings-body button,
+html body #morleyWebDiagnostics .morley-settings-body button:disabled{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  text-shadow:none!important;
+}
+html body #morleyWebDiagnostics .morley-settings-body button:disabled{
+  opacity:.72!important;
+}
