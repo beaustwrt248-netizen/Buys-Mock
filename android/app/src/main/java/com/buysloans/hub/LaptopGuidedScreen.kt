@@ -207,7 +207,19 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     }
 
     Text(status, color = MorleyTextSecondary)
-    if (!busy) result?.let { Valuation(it, ask, 0.30, 0.58) }
+    if (!busy) result?.let { market ->
+        Valuation(market, ask, 0.30, 0.58)
+        if (selected != null) {
+            LaptopFairBuyZonePanel(
+                preset = selected,
+                processor = processor,
+                ram = ram,
+                storage = storage,
+                modelCode = versionCode,
+                market = market
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
