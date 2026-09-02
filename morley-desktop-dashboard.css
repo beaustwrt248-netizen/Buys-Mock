@@ -1,4 +1,5 @@
 /* Original Morley Buys desktop finance dashboard.
+   Uses finance-dashboard hierarchy without external assets or copied components.
    Desktop/tablet enhancement only. The physical-phone and <=760px contracts remain authoritative. */
 @media (min-width:761px){
 :root{--morley-dash-bg:#eef3ef;--morley-dash-ink:#15231e;--morley-dash-muted:#66766f;--morley-dash-line:#dce5e0;--morley-dash-panel:#fff;--morley-dash-emerald:#087a55;--morley-dash-emerald-2:#0d9368;--morley-dash-soft:#e1f3eb;--morley-dash-navy:#102b24;--morley-dash-shadow:0 16px 44px rgba(25,64,51,.08)}
