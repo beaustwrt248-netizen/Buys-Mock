@@ -1,7 +1,7 @@
 {
-  "versionCode": 90,
-  "versionName": "2.15.46",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.46/B-and-L-Morley-2.15.46.apk",
-  "sha256": "1cb420a053a14a59a7a54ad1d1961835b9563afb5eb7043abcac6e284c396888",
-  "notes": "Add laptop comparable and buy intelligence engine (#581)"
+  "versionCode": 91,
+  "versionName": "2.15.47",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.47/B-and-L-Morley-2.15.47.apk",
+  "sha256": "bcc39b19ea59b68d866f2b60efdba811d5c26d6d32ac5a78889196692dcdf008",
+  "notes": "Add Categories and Apple/Samsung mobile pricing for Morley 2.15.47"
 }
