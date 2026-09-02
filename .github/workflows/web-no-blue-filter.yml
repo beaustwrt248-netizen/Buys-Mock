@@ -55,7 +55,7 @@ jobs:
           if missing: raise SystemExit('Shared component coverage missing: '+', '.join(missing))
 
           desktop=Path('morley-desktop-dashboard.css').read_text(encoding='utf-8')
-          desktop_required=['@media (min-width:1000px)','#morleyDesktopShell','margin:0 0 0 272px','--morley-dash-emerald','#home>.stats','.desktop-more-grid','table{width:100%','#morleyMenuTrigger','.desktop-header-actions{display:none!important','.msi-fill{background:linear-gradient(90deg,#087a55','.desktop-side-status{margin-top:auto!important','.morley-dashboard-nav-icon svg{display:block!important','#desktopPricingState','color:#7fe2bb!important']
+          desktop_required=['@media (min-width:1000px)','#morleyDesktopShell','margin:0 0 0 272px','--morley-dash-emerald','#home>.stats','.desktop-more-grid','table{width:100%','#morleyMenuTrigger','.desktop-header-actions{display:none!important','.msi-fill{background:linear-gradient(90deg,#087a55','.desktop-side-status{margin-top:auto!important','.morley-dashboard-nav-icon svg{display:block!important','#desktopPricingState','color:#7fe2bb!important','.morley-web-signout{background:#b44552!important','.morley-menu-signout{background:#b44552!important']
           missing=[needle for needle in desktop_required if needle not in desktop]
           if missing: raise SystemExit('Desktop finance dashboard contract missing: '+', '.join(missing))
           if '@media (max-width:760px)' in desktop:

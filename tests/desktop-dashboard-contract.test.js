@@ -25,6 +25,8 @@ assert.match(css, /\.msi-fill\{background:linear-gradient\(90deg,#087a55/);
 assert.match(css, /\.desktop-side-status\{margin-top:auto!important/);
 assert.match(css, /\.morley-dashboard-nav-icon svg\{display:block!important/);
 assert.match(css, /#desktopPricingState[\s\S]*color:#7fe2bb!important/);
+assert.match(css, /\.morley-web-signout\{background:#b44552!important/);
+assert.match(css, /\.morley-menu-signout\{background:#b44552!important/);
 assert.match(dashboard, /const icon=paths=>/);
 assert.match(dashboard, /<svg viewBox="0 0 24 24"/);
 
