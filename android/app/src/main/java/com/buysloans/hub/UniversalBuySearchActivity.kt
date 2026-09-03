@@ -42,9 +42,10 @@ class UniversalBuySearchActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val initialQuery = intent.getStringExtra(UniversalBuyEntryPoints.EXTRA_QUERY).orEmpty()
         setContent {
             MaterialTheme(colorScheme = MorleyColorScheme) {
-                UniversalBuySearchScreen(onBack = { finish() })
+                UniversalBuySearchScreen(initialQuery = initialQuery, onBack = { finish() })
             }
         }
     }
@@ -52,8 +53,8 @@ class UniversalBuySearchActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UniversalBuySearchScreen(onBack: () -> Unit) {
-    var query by remember { mutableStateOf("") }
+private fun UniversalBuySearchScreen(initialQuery: String = "", onBack: () -> Unit) {
+    var query by remember(initialQuery) { mutableStateOf(initialQuery) }
     var selected by remember { mutableStateOf<UniversalBuySearchResult?>(null) }
     val results = remember(query) { if (query.isBlank()) emptyList() else UniversalBuySearch.search(query, 30) }
 
