@@ -1,7 +1,7 @@
 {
-  "versionCode": 93,
-  "versionName": "2.15.49",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.49/B-and-L-Morley-2.15.49.apk",
-  "sha256": "03c285ab62b53d95644796405e33526e898e0611d9a4d4002cff3b2b5e163ec0",
-  "notes": "Match mobile phone layout and simplify bottom navigation for 2.15.49"
+  "versionCode": 94,
+  "versionName": "2.15.50",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.50/B-and-L-Morley-2.15.50.apk",
+  "sha256": "8066b21f4fced78999c57d90dc28366222aecb8ef55793aaed8e8deacb9a04e4",
+  "notes": "Expand mobile phone catalogue for 2.15.50"
 }
