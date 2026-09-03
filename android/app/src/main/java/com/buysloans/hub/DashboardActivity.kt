@@ -69,7 +69,7 @@ private fun RootApp(showUpdatedInitially: Boolean) {
 private enum class BottomDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
     CATEGORIES("Categories", MorleyIcons.Categories),
-    HISTORY("History", MorleyIcons.History),
+    GP("General Buys", MorleyIcons.Money),
     MORE("More", MorleyIcons.More)
 }
 
@@ -165,7 +165,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                     val selected = when (destination) {
                         BottomDestination.HOME -> !showMenu && page == Page.Home
                         BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-                        BottomDestination.HISTORY -> false
+                        BottomDestination.GP -> !showMenu && page == Page.GP
                         BottomDestination.MORE -> showMenu
                     }
                     NavigationBarItem(
@@ -174,7 +174,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                             when (destination) {
                                 BottomDestination.HOME -> { showMenu = false; page = Page.Home }
                                 BottomDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
-                                BottomDestination.HISTORY -> context.startActivity(Intent(context, ValuationHistoryActivity::class.java))
+                                BottomDestination.GP -> { showMenu = false; page = Page.GP }
                                 BottomDestination.MORE -> openMenu()
                             }
                         },
@@ -205,11 +205,11 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                 MoreHub(onSignOut = { confirmSignOut = true })
             } else {
                 when (page) {
-                    Page.Home -> ParityHome({ page = Page.Laptop }, { page = Page.Desktop }, { page = Page.GP })
+                    Page.Home -> ParityHome { page = Page.GP }
                     Page.Laptop->CategoriesPricingScreen()
                     Page.Desktop->ConsolePricingScreen()
                     Page.GP -> GPFix()
-                    Page.More -> ParityHome({ page = Page.Laptop }, { page = Page.Desktop }, { page = Page.GP })
+                    Page.More -> ParityHome { page = Page.GP }
                 }
             }
         }
@@ -217,7 +217,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
 }
 
 @Composable
-private fun ParityHome(onCategories: () -> Unit, onConsole: () -> Unit, onGp: () -> Unit) {
+private fun ParityHome(onGp: () -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -227,8 +227,6 @@ private fun ParityHome(onCategories: () -> Unit, onConsole: () -> Unit, onGp: ()
             StatusTile("LIVE PRICING", "READY", Modifier.weight(1f))
             StatusTile("ONLINE STATUS", "ONLINE", Modifier.weight(1f))
         }
-        NavCard(MorleyIcons.Categories, "Categories", "Laptops, desktops, mobile phones and gaming consoles", onCategories)
-        NavCard(MorleyIcons.Console, "Console Pricing", "PS4, PS5, Xbox and Nintendo grade pricing", onConsole)
         NavCard(MorleyIcons.Money, "General Buys / GP", "A / B / C / Luxury buying targets", onGp)
         Spacer(Modifier.height(4.dp))
     }
