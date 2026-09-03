@@ -80,13 +80,19 @@ jobs:
           grep -q '0xFFFFFFFF' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q '0xFF1C2B26' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q 'lightColorScheme' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q 'Categories' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'Console Pricing' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'CATEGORIES("Categories", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'GP("General Buys", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'Page.Laptop->CategoriesPricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'Page.Desktop->ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'MorleyIcons.Categories' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'MorleyIcons.Console' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          if grep -q 'NavCard(MorleyIcons.Categories' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt; then
+            echo 'Categories shortcut must not return to Home'
+            exit 1
+          fi
+          if grep -q 'NavCard(MorleyIcons.Console' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt; then
+            echo 'Console Pricing shortcut must not return to Home'
+            exit 1
+          fi
           grep -q 'MobilePhonePricingScreen()' android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt
           grep -q 'SAMSUNG(MobilePhonePricingCatalog.SAMSUNG' android/app/src/main/java/com/buysloans/hub/MobilePhonePricingScreen.kt
           grep -q 'AuthManager.validAccessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
