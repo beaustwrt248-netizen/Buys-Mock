@@ -165,12 +165,11 @@ jobs:
             echo "::error::Exact runtime URL did not expose expected deployed content: $url :: $pattern"
             return 1
           }
-          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'Buys and Loans Hub'
-          grep -q 'web-base.html' "$RUNNER_TEMP/page-index.html"
-          grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
-          grep -q 'mobile-parity-v3.css' "$RUNNER_TEMP/page-index.html"
-          grep -q 'morley-light-web.css' "$RUNNER_TEMP/page-index.html"
-          grep -q 'mobile-layout-fix.js' "$RUNNER_TEMP/page-index.html"
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" "const CANDIDATE='web-base.html'"
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'secure-pricing.js'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-parity-v3.css'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'morley-light-web.css'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-layout-fix.js'
           fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
           fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
           fetch_with_retry "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js"
