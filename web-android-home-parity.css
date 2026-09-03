@@ -1,0 +1,58 @@
+@media (max-width:760px){
+  :root{
+    color-scheme:light!important;
+    --morley-bg:#f5f7f4;
+    --morley-surface:#ffffff;
+    --morley-raised:#eef4f0;
+    --morley-accent:#167a5a;
+    --morley-accent-strong:#0f684c;
+    --morley-accent-soft:#d8efe5;
+    --morley-text:#1c2b26;
+    --morley-secondary:#52645d;
+    --morley-muted:#71827b;
+    --morley-border:#cedbd5;
+    --morley-good:#238a63;
+    --morley-warn:#a86a12;
+    --morley-bad:#c74755;
+  }
+  html,body{background:#f5f7f4!important;color:#1c2b26!important}
+  #home{color:#1c2b26!important}
+  #home>.hero,#home>.stats,#home>.tiles,#home>.card{display:none!important}
+  #morleySmartWorkspace{display:block!important;margin:0!important;padding:10px 0 16px!important;color:#1c2b26!important}
+  #morleySmartWorkspace .msw-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;margin:0 0 12px!important}
+  #morleySmartWorkspace .msw-head h2{margin:0!important;color:#1c2b26!important;font-size:24px!important;line-height:1.15!important;font-weight:900!important}
+  #morleySmartWorkspace .msw-kicker{color:#167a5a!important;font-size:11px!important;font-weight:900!important;letter-spacing:.10em!important}
+  #morleySmartWorkspace .msw-status{color:#52645d!important;font-size:11px!important}
+  #morleySmartWorkspace .msw-dot{background:#238a63!important;box-shadow:none!important}
+  #morleySmartWorkspace .msw-dot.off{background:#c74755!important}
+  #morleySmartWorkspace .morley-android-home-copy{margin:-3px 0 2px;color:#52645d;font-size:13px;line-height:1.45}
+  #morleySmartWorkspace .msw-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;width:100%!important}
+  #morleySmartWorkspace .msw-action{min-height:46px!important;border:1px solid #cedbd5!important;background:#ffffff!important;color:#167a5a!important;border-radius:14px!important;padding:10px 12px!important;font-weight:900!important;box-shadow:none!important}
+  #morleySmartWorkspace .msw-action.primary{background:#0f684c!important;border-color:#0f684c!important;color:#ffffff!important}
+  #morleySmartWorkspace .morley-android-only{opacity:.72!important;background:#eef4f0!important;color:#52645d!important;cursor:default!important}
+  #morleySmartWorkspace .msw-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:0!important}
+  #morleySmartWorkspace .msw-metric{min-width:0!important;background:#eef4f0!important;border:1px solid #cedbd5!important;border-radius:14px!important;padding:11px 9px!important;color:#1c2b26!important;box-shadow:none!important}
+  #morleySmartWorkspace .msw-metric small{display:block!important;color:#71827b!important;font-size:9px!important;font-weight:800!important;line-height:1.2!important}
+  #morleySmartWorkspace .msw-metric b{display:block!important;margin-top:5px!important;color:#1c2b26!important;font-size:20px!important}
+  #morleySmartWorkspace .morley-potential-margin{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;padding:12px;border-radius:14px;background:#e5efea;border:1px solid #cedbd5}
+  #morleySmartWorkspace .morley-potential-margin small{display:block;color:#71827b;font-size:9px;font-weight:800}
+  #morleySmartWorkspace .morley-potential-margin b{display:block;margin-top:3px;color:#238a63;font-size:20px}
+  #morleySmartWorkspace .morley-potential-margin span{color:#52645d;font-size:10px;text-align:right}
+  #morleySmartWorkspace .msw-recent,#morleySmartWorkspace .mswp-panel{margin-top:10px!important;background:#ffffff!important;border:1px solid #cedbd5!important;border-radius:18px!important;padding:12px!important;color:#1c2b26!important;box-shadow:none!important}
+  #morleySmartWorkspace .msw-row,#morleySmartWorkspace .mswp-row{border-top:1px solid #e5efea!important;color:#1c2b26!important}
+  #morleySmartWorkspace .msw-copy b,#morleySmartWorkspace .mswp-copy b,#morleySmartWorkspace .mswp-head h3{color:#1c2b26!important}
+  #morleySmartWorkspace .msw-copy small,#morleySmartWorkspace .mswp-copy small,#morleySmartWorkspace .mswp-activity,#morleySmartWorkspace .mswp-empty,#morleySmartWorkspace .mswp-insight small,#morleySmartWorkspace .mswp-status{color:#71827b!important}
+  #morleySmartWorkspace .msw-pill{background:#d8efe5!important;border:1px solid #cedbd5!important;color:#167a5a!important}
+  #morleySmartWorkspace .msw-watch,#morleySmartWorkspace .mswp-open,#morleySmartWorkspace .mswp-remove{background:#eef4f0!important;border:1px solid #cedbd5!important;color:#167a5a!important;box-shadow:none!important}
+  #morleySmartWorkspace .mswp-remove{color:#c74755!important}
+  #morleySmartWorkspace .mswp-profit{color:#238a63!important}
+  #morleySmartWorkspace .mswp-insight{background:#e5efea!important;border:1px solid #cedbd5!important}
+  #morleySmartWorkspace .morley-home-refresh{width:100%;margin-top:10px;min-height:44px;border-radius:14px;border:1px solid #cedbd5;background:#fff;color:#1c2b26;font-weight:800}
+  .msw-dialog{background:rgba(28,43,38,.35)!important;backdrop-filter:blur(8px)!important}
+  .msw-dialog-card{background:#ffffff!important;border:1px solid #cedbd5!important;color:#1c2b26!important;box-shadow:0 24px 70px rgba(28,43,38,.20)!important}
+  .msw-dialog-card h2{color:#1c2b26!important}
+  .msw-dialog-card p,.msw-field span{color:#52645d!important}
+  .msw-field input,.msw-field select{background:#f5f7f4!important;color:#1c2b26!important;border:1px solid #cedbd5!important}
+  .msw-verdict{background:#eef4f0!important;border-color:#cedbd5!important}
+  @media(max-width:390px){#morleySmartWorkspace .msw-grid{gap:6px!important}#morleySmartWorkspace .msw-metric{padding:10px 7px!important}#morleySmartWorkspace .msw-metric small{font-size:8px!important}}
+}
