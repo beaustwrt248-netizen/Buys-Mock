@@ -11,13 +11,13 @@ function go(page){
 
 const icons={
   home:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5h-5.7v-6.2H9.2V21H3.5a.5.5 0 0 1-.5-.5v-9.7Z"/></svg>',
-  computer:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
-  console:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 8h9.6c2.2 0 3.9 1.6 4.2 3.7l.7 4.6c.3 2-1.9 3.4-3.5 2.2l-2.4-1.8H8.2l-2.4 1.8c-1.6 1.2-3.8-.2-3.5-2.2l.7-4.6C3.3 9.6 5 8 7.2 8Z"/><path d="M7 11v4M5 13h4M16.5 12.2h.01M18.5 14h.01"/></svg>',
-  gp:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.2c-1.1-1-2.7-1.7-4.6-1.7-2.8 0-4.9 1.4-4.9 3.5 0 5.3 9.5 2.4 9.5 7.5 0 2.3-2.1 4-5.2 4-2.2 0-4.1-.8-5.3-2"/></svg>'
+  categories:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  general:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 6.2c-1.1-1-2.7-1.7-4.6-1.7-2.8 0-4.9 1.4-4.9 3.5 0 5.3 9.5 2.4 9.5 7.5 0 2.3-2.1 4-5.2 4-2.2 0-4.1-.8-5.3-2"/></svg>',
+  more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>'
 };
 
-function navButton(page,label){
-  return `<button data-page="${page}" type="button" aria-label="${label}"><span class="morley-nav-icon">${icons[page]}</span><small>${label}</small></button>`;
+function navButton(page,label,iconKey=page){
+  return `<button data-page="${page}" type="button" aria-label="${label}"><span class="morley-nav-icon">${icons[iconKey]}</span><small>${label}</small></button>`;
 }
 
 function ensureStyles(){
@@ -59,18 +59,18 @@ function mobileNav(){
   if(!isMobile()) return;
   const nav=$('nav');
   if(!nav) return;
-  const signature='home|computer|console|general';
+  const signature='home|laptop|general|settings';
   const current=$$('button[data-page]',nav).map(b=>b.dataset.page).join('|');
-  const needsCleanMarkup=current!==signature||nav.dataset.morleyMobileNav!=='v4'||!nav.querySelector('.morley-nav-icon');
+  const needsCleanMarkup=current!==signature||nav.dataset.morleyMobileNav!=='v5'||!nav.querySelector('.morley-nav-icon');
   if(needsCleanMarkup&&!writingNav){
     writingNav=true;
-    nav.innerHTML=navButton('home','Home')+navButton('computer','Computer')+navButton('console','Console')+navButton('gp','GP').replace('data-page="gp"','data-page="general"');
+    nav.innerHTML=navButton('home','Home')+navButton('laptop','Categories','categories')+navButton('general','General Buys','general')+navButton('settings','More','more');
     $$('button[data-page]',nav).forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
-    nav.dataset.morleyMobileNav='v4';
+    nav.dataset.morleyMobileNav='v5';
     writingNav=false;
   }
   const active=$('.section.active')?.id||'home';
-  const mapped=(active==='laptop'||active==='desktop')?'computer':active;
+  const mapped=(active==='laptop'||active==='desktop'||active==='computer'||active==='console')?'laptop':(active==='more'?'settings':active);
   $$('button[data-page]',nav).forEach(b=>b.classList.toggle('active',b.dataset.page===mapped));
 }
 

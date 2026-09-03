@@ -119,7 +119,7 @@ need(
     'grid-template-columns:repeat(4,minmax(0,1fr))',
     '.modal.open,.morley-menu-dialog.open,.msw-dialog.open',
 )
-need('mobile-layout-fix.js', "home|computer|console|general", 'morley-mobile-overlay-active')
+need('mobile-layout-fix.js', "home|laptop|general|settings", 'morley-mobile-overlay-active')
 need('product-parity-v3.js', 'Computer Pricing', 'Console Pricing', 'Laptop / MacBook', 'Desktop / Gaming PC')
 need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
