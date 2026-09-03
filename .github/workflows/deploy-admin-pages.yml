@@ -179,7 +179,7 @@ jobs:
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Computer Pricing'
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Console Pricing'
           fetch_until_contains "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js" 'Help & FAQ'
-          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'home|computer|console|general'
+          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'home|laptop|general|settings'
           node --check "$RUNNER_TEMP/mobile-layout-fix.js"
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '@media(max-width:760px)'
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" 'grid-template-columns:repeat(4,minmax(0,1fr))'

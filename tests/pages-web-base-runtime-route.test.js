@@ -5,6 +5,7 @@ const assert = require('assert');
 
 const index = fs.readFileSync('index.html', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/deploy-admin-pages.yml', 'utf8');
+const mobileLayout = fs.readFileSync('mobile-layout-fix.js', 'utf8');
 
 assert(
   index.includes("const CANDIDATE='web-base.html'"),
@@ -43,7 +44,7 @@ for (const contract of [
   ['$BASE/secure-pricing.js', 'localStorage.getItem(STORE)'],
   ['$BASE/product-parity-v3.js', 'Computer Pricing'],
   ['$BASE/ultimate-parity.js', 'Help & FAQ'],
-  ['$BASE/mobile-layout-fix.js', 'home|computer|console|general'],
+  ['$BASE/mobile-layout-fix.js', 'home|laptop|general|settings'],
   ['$BASE/mobile-parity-v3.css', '@media(max-width:760px)'],
   ['$BASE/morley-light-web.css', 'color-scheme:light'],
   ['$BASE/desktop-oem.js', "localStorage.getItem('morley_web_auth')"],
@@ -61,6 +62,14 @@ for (const contract of [
     `Pages smoke must use content-aware retries for ${url} :: ${marker}`
   );
 }
+assert(
+  mobileLayout.includes("const signature='home|laptop|general|settings'"),
+  'Pages mobile navigation marker must track the current four-item mobile navigation contract'
+);
+assert(
+  !workflow.includes('home|computer|console|general'),
+  'Pages smoke must not retain the stale pre-categories mobile navigation marker'
+);
 assert(
   !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"'),
   'Pages smoke must not treat an HTTP 200 with stale index content as deployment success'
