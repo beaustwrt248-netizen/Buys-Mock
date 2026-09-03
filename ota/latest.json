@@ -1,7 +1,7 @@
 {
-  "versionCode": 97,
-  "versionName": "2.15.53",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.53/B-and-L-Morley-2.15.53.apk",
-  "sha256": "2ab0619d70c67244779e31abccb175cbaf7d04ecb8c10b01abefe2d563a435d2",
-  "notes": "Target Android 16 API 36 for Morley 2.15.53 (#606)"
+  "versionCode": 98,
+  "versionName": "2.15.54",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.54/B-and-L-Morley-2.15.54.apk",
+  "sha256": "dc9e83fbe44852763762b7dfc79d35ee81c2f85e47810f315a911e24edf54684",
+  "notes": "Harden valuation-history UI errors on current main (#651)"
 }
