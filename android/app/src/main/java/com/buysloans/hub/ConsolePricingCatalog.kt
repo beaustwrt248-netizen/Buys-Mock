@@ -15,7 +15,8 @@ data class ConsoleDeviceEntry(
 }
 
 object ConsolePricingCatalog {
-    // Existing Morley price-sheet rows remain authoritative.
+    // Existing Morley price-sheet rows remain authoritative. Never replace these values with
+    // catalogue-only rows: the expanded catalogue is deliberately allowed to be unpriced.
     val entries = listOf(
         ConsolePriceEntry("Sony PS4 OG 500 GB", 149.0),
         ConsolePriceEntry("Sony PS4 OG 1 TB", 189.0),
@@ -40,90 +41,108 @@ object ConsolePricingCatalog {
 
     private val priceByName = entries.associateBy { it.name.lowercase() }
 
-    /**
-     * Full console/device catalogue. New rows are deliberately unpriced; prices can be supplied later
-     * without replacing existing Morley price-sheet records. Ordering is newest series first.
-     */
-    private val catalogueSeed = listOf(
-        // PlayStation
-        Triple("PlayStation", "PS5", "Sony PS5 Pro"),
-        Triple("PlayStation", "PS5", "Sony PS5 Slim Disc"),
-        Triple("PlayStation", "PS5", "Sony PS5 Digital Slim"),
-        Triple("PlayStation", "PS5", "Sony PS5 Disc"),
-        Triple("PlayStation", "PS5", "Sony PS5 Digital"),
-        Triple("PlayStation", "PS4", "Sony PS4 Pro"),
-        Triple("PlayStation", "PS4", "Sony PS4 Slim 1 TB"),
-        Triple("PlayStation", "PS4", "Sony PS4 Slim 500 GB"),
-        Triple("PlayStation", "PS4", "Sony PS4 OG 1 TB"),
-        Triple("PlayStation", "PS4", "Sony PS4 OG 500 GB"),
-        Triple("PlayStation", "PS3", "Sony PS3 Super Slim"),
-        Triple("PlayStation", "PS3", "Sony PS3 Slim"),
-        Triple("PlayStation", "PS3", "Sony PS3 Original"),
-        Triple("PlayStation", "PS2", "Sony PS2 Slim"),
-        Triple("PlayStation", "PS2", "Sony PlayStation 2"),
-        Triple("PlayStation", "PS1", "Sony PS one"),
-        Triple("PlayStation", "PS1", "Sony PlayStation"),
-        Triple("PlayStation", "Portable", "Sony PlayStation Vita"),
-        Triple("PlayStation", "Portable", "Sony PSP"),
-
-        // Xbox
-        Triple("Xbox", "Series", "Xbox Series X 2 TB"),
-        Triple("Xbox", "Series", "Xbox Series X 1 TB"),
-        Triple("Xbox", "Series", "Xbox Series X 1 TB All-Digital"),
-        Triple("Xbox", "Series", "Xbox Series S 1 TB"),
-        Triple("Xbox", "Series", "Xbox Series S 512 GB"),
-        Triple("Xbox", "One", "Xbox One X"),
-        Triple("Xbox", "One", "Xbox One S"),
-        Triple("Xbox", "One", "Xbox One (brick)"),
-        Triple("Xbox", "360", "Xbox 360 E"),
-        Triple("Xbox", "360", "Xbox 360 S"),
-        Triple("Xbox", "360", "Xbox 360"),
-        Triple("Xbox", "Original", "Original Xbox"),
-
-        // Nintendo current/home systems
-        Triple("Nintendo", "Switch 2", "Nintendo Switch 2"),
-        Triple("Nintendo", "Switch", "Nintendo Switch OLED"),
-        Triple("Nintendo", "Switch", "Nintendo Switch"),
-        Triple("Nintendo", "Switch", "Nintendo Switch Lite"),
-        Triple("Nintendo", "Wii U", "Nintendo Wii U"),
-        Triple("Nintendo", "Wii", "Nintendo Wii Family Edition"),
-        Triple("Nintendo", "Wii", "Nintendo Wii"),
-        Triple("Nintendo", "GameCube", "Nintendo GameCube"),
-        Triple("Nintendo", "Nintendo 64", "Nintendo 64"),
-        Triple("Nintendo", "SNES", "Super Nintendo Entertainment System"),
-        Triple("Nintendo", "NES", "Nintendo Entertainment System"),
-
-        // Nintendo 3DS family
-        Triple("Nintendo", "3DS", "New Nintendo 2DS XL"),
-        Triple("Nintendo", "3DS", "New Nintendo 3DS XL"),
-        Triple("Nintendo", "3DS", "New Nintendo 3DS"),
-        Triple("Nintendo", "3DS", "Nintendo 2DS"),
-        Triple("Nintendo", "3DS", "Nintendo 3DS XL"),
-        Triple("Nintendo", "3DS", "Nintendo 3DS"),
-
-        // Nintendo DS family
-        Triple("Nintendo", "DS", "Nintendo DSi XL"),
-        Triple("Nintendo", "DS", "Nintendo DSi"),
-        Triple("Nintendo", "DS", "Nintendo DS Lite"),
-        Triple("Nintendo", "DS", "Nintendo DS"),
-
-        // Game Boy family
-        Triple("Nintendo", "Game Boy", "Game Boy Micro"),
-        Triple("Nintendo", "Game Boy", "Game Boy Advance SP"),
-        Triple("Nintendo", "Game Boy", "Game Boy Advance"),
-        Triple("Nintendo", "Game Boy", "Game Boy Color"),
-        Triple("Nintendo", "Game Boy", "Game Boy Pocket"),
-        Triple("Nintendo", "Game Boy", "Game Boy"),
-
-        // Sega
-        Triple("Sega", "Dreamcast", "Sega Dreamcast"),
-        Triple("Sega", "Saturn", "Sega Saturn"),
-        Triple("Sega", "Mega Drive", "Sega Mega Drive / Genesis"),
-        Triple("Sega", "Game Gear", "Sega Game Gear")
+    private data class Seed(
+        val family: String,
+        val series: String,
+        val name: String,
+        val authoritativePriceName: String = name
     )
 
-    val catalogue: List<ConsoleDeviceEntry> = catalogueSeed.map { (family, series, name) ->
-        ConsoleDeviceEntry(family, series, name, priceByName[name.lowercase()]?.rrp)
+    /** Full catalogue in explicit newest-series-first order. */
+    private val catalogueSeed = listOf(
+        // PlayStation 5 family. Keep this exact variant order for fast counter lookup.
+        Seed("PlayStation", "PS5", "Sony PS5 Pro"),
+        Seed("PlayStation", "PS5", "Sony PS5 Slim Disc"),
+        Seed("PlayStation", "PS5", "Sony PS5 Slim Digital", "Sony PS5 Digital Slim"),
+        Seed("PlayStation", "PS5", "Sony PS5 Disc"),
+        Seed("PlayStation", "PS5", "Sony PS5 Digital"),
+        Seed("PlayStation", "PS4", "Sony PS4 Pro"),
+        Seed("PlayStation", "PS4", "Sony PS4 Slim 1 TB"),
+        Seed("PlayStation", "PS4", "Sony PS4 Slim 500 GB"),
+        Seed("PlayStation", "PS4", "Sony PS4 OG 1 TB"),
+        Seed("PlayStation", "PS4", "Sony PS4 OG 500 GB"),
+        Seed("PlayStation", "PS3", "Sony PS3 Super Slim"),
+        Seed("PlayStation", "PS3", "Sony PS3 Slim"),
+        Seed("PlayStation", "PS3", "Sony PS3 Original"),
+        Seed("PlayStation", "PS2", "Sony PS2 Slim"),
+        Seed("PlayStation", "PS2", "Sony PlayStation 2"),
+        Seed("PlayStation", "PS1", "Sony PS one"),
+        Seed("PlayStation", "PS1", "Sony PlayStation"),
+        Seed("PlayStation Handheld", "Vita", "Sony PlayStation Vita Slim"),
+        Seed("PlayStation Handheld", "Vita", "Sony PlayStation Vita OLED"),
+        Seed("PlayStation Handheld", "PSP", "Sony PSP Go"),
+        Seed("PlayStation Handheld", "PSP", "Sony PSP-3000"),
+        Seed("PlayStation Handheld", "PSP", "Sony PSP-2000"),
+        Seed("PlayStation Handheld", "PSP", "Sony PSP-1000"),
+
+        // Xbox
+        Seed("Xbox", "Series X|S", "Xbox Series X 2 TB"),
+        Seed("Xbox", "Series X|S", "Xbox Series X 1 TB", "Xbox Series X"),
+        Seed("Xbox", "Series X|S", "Xbox Series X 1 TB All-Digital"),
+        Seed("Xbox", "Series X|S", "Xbox Series S 1 TB"),
+        Seed("Xbox", "Series X|S", "Xbox Series S 512 GB", "Xbox Series S"),
+        Seed("Xbox", "Xbox One", "Xbox One X"),
+        Seed("Xbox", "Xbox One", "Xbox One S"),
+        Seed("Xbox", "Xbox One", "Xbox One (brick)"),
+        Seed("Xbox", "Xbox 360", "Xbox 360 E"),
+        Seed("Xbox", "Xbox 360", "Xbox 360 S"),
+        Seed("Xbox", "Xbox 360", "Xbox 360 Elite"),
+        Seed("Xbox", "Xbox 360", "Xbox 360"),
+        Seed("Xbox", "Original Xbox", "Original Xbox"),
+
+        // Nintendo hybrid/home consoles
+        Seed("Nintendo", "Switch 2", "Nintendo Switch 2"),
+        Seed("Nintendo", "Switch", "Nintendo Switch OLED"),
+        Seed("Nintendo", "Switch", "Nintendo Switch", "Nintendo Switch"),
+        Seed("Nintendo", "Switch", "Nintendo Switch Lite"),
+        Seed("Nintendo", "Wii U", "Nintendo Wii U 32 GB"),
+        Seed("Nintendo", "Wii U", "Nintendo Wii U 8 GB"),
+        Seed("Nintendo", "Wii", "Nintendo Wii Family Edition"),
+        Seed("Nintendo", "Wii", "Nintendo Wii"),
+        Seed("Nintendo", "GameCube", "Nintendo GameCube"),
+        Seed("Nintendo", "Nintendo 64", "Nintendo 64"),
+        Seed("Nintendo", "SNES", "Super Nintendo Entertainment System"),
+        Seed("Nintendo", "NES", "Nintendo Entertainment System"),
+
+        // Nintendo 3DS family
+        Seed("Nintendo 3DS", "New 2DS", "New Nintendo 2DS XL"),
+        Seed("Nintendo 3DS", "New 3DS", "New Nintendo 3DS XL"),
+        Seed("Nintendo 3DS", "New 3DS", "New Nintendo 3DS"),
+        Seed("Nintendo 3DS", "2DS", "Nintendo 2DS"),
+        Seed("Nintendo 3DS", "3DS", "Nintendo 3DS XL"),
+        Seed("Nintendo 3DS", "3DS", "Nintendo 3DS"),
+
+        // Nintendo DS family
+        Seed("Nintendo DS", "DSi", "Nintendo DSi XL"),
+        Seed("Nintendo DS", "DSi", "Nintendo DSi"),
+        Seed("Nintendo DS", "DS Lite", "Nintendo DS Lite"),
+        Seed("Nintendo DS", "DS", "Nintendo DS"),
+
+        // Game Boy family
+        Seed("Game Boy", "Game Boy Micro", "Game Boy Micro"),
+        Seed("Game Boy", "Game Boy Advance", "Game Boy Advance SP"),
+        Seed("Game Boy", "Game Boy Advance", "Game Boy Advance"),
+        Seed("Game Boy", "Game Boy Color", "Game Boy Color"),
+        Seed("Game Boy", "Game Boy", "Game Boy Pocket"),
+        Seed("Game Boy", "Game Boy", "Game Boy Light"),
+        Seed("Game Boy", "Game Boy", "Game Boy"),
+
+        // Sega
+        Seed("Sega", "Dreamcast", "Sega Dreamcast"),
+        Seed("Sega", "Saturn", "Sega Saturn"),
+        Seed("Sega", "Mega Drive", "Sega Mega Drive / Genesis"),
+        Seed("Sega", "Master System", "Sega Master System II"),
+        Seed("Sega", "Master System", "Sega Master System"),
+        Seed("Sega Handheld", "Game Gear", "Sega Game Gear")
+    )
+
+    val catalogue: List<ConsoleDeviceEntry> = catalogueSeed.map { seed ->
+        ConsoleDeviceEntry(
+            family = seed.family,
+            series = seed.series,
+            name = seed.name,
+            priceSheetValue = priceByName[seed.authoritativePriceName.lowercase()]?.rrp
+        )
     }
 
     fun families(): List<String> = catalogue.map { it.family }.distinct()
@@ -146,17 +165,12 @@ object ConsolePricingCatalog {
     }
 
     val grades = listOf("A", "B", "C")
-
-    /** Standard Morley grade buy percentages supplied for general pricing. */
-    val gradeBuyPercent = mapOf(
-        "A" to 0.70,
-        "B" to 0.50,
-        "C" to 0.30
-    )
+    val gradeBuyPercent = mapOf("A" to 0.70, "B" to 0.50, "C" to 0.30)
 
     fun buyPrice(entry: ConsolePriceEntry, grade: String): Double =
         entry.rrp * (gradeBuyPercent[grade] ?: error("Unsupported grade: $grade"))
 
+    /** Unpriced catalogue entries deliberately return null so they can never authorise a buy. */
     fun buyPrice(entry: ConsoleDeviceEntry, grade: String): Double? =
         entry.priceSheetValue?.times(gradeBuyPercent[grade] ?: error("Unsupported grade: $grade"))
 }
