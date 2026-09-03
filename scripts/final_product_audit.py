@@ -26,8 +26,12 @@ dashboard = need(
     'CATEGORIES("Categories", MorleyIcons.Categories)',
     'GP("General Buys", MorleyIcons.Money)',
     'General Buys / GP',
-    'Page.Laptop->CategoriesPricingScreen()',
-    'Page.Desktop->ConsolePricingScreen()',
+    'Page.Laptop -> CategoriesPricingScreen()',
+    'Page.Desktop -> ConsolePricingScreen()',
+    'val adaptiveSize = morleyAdaptiveSize()',
+    'AdaptiveBackHandler(enabled = showMenu || page != Page.Home)',
+    'MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})',
+    'AdaptiveContentFrame',
     'Admin mode',
     'consumeWindowInsets',
 )
@@ -156,7 +160,7 @@ for bad in ('TODO', 'FIXME', 'HACK'):
 
 # Primary navigation goes through Categories. Console Pricing remains a category route, not a
 # separate bottom-nav/Home shortcut. GP intentionally replaces History in primary navigation.
-if 'Page.Laptop->LaptopGuidedScreen()' in dashboard or 'Page.Desktop->Desktop()' in dashboard:
+if 'Page.Laptop -> LaptopGuidedScreen()' in dashboard or 'Page.Desktop -> Desktop()' in dashboard:
     errors.append('DashboardActivity.kt: split Laptop/Desktop primary routes remain')
 if 'BottomDestination.HISTORY' in dashboard:
     errors.append('DashboardActivity.kt: retired History bottom navigation remains')
@@ -169,4 +173,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries.')
