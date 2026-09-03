@@ -12,8 +12,28 @@ assert(
   'production bootstrap must keep web-base.html as the plain runtime route'
 );
 assert(
-  index.includes("fetch(CANDIDATE,{cache:'no-store'})"),
-  'production bootstrap must fetch the local runtime base without a cache-busting query contract'
+  index.includes('attempt===0?CANDIDATE'),
+  'first workspace request must use the exact plain web-base.html runtime route'
+);
+assert(
+  index.includes("fetch(url,{cache:'no-store'})"),
+  'workspace bootstrap must bypass the browser cache on every attempt'
+);
+assert(
+  index.includes('attempt<5'),
+  'workspace bootstrap must retry bounded transient failures before showing the hard error'
+);
+assert(
+  index.includes("CANDIDATE+'?morley_retry='"),
+  'retry attempts must be able to bypass a stale custom-domain/CDN edge object'
+);
+assert(
+  index.includes("BASE_MARKER='Buys and Loans Hub'") && index.includes('h.includes(BASE_MARKER)'),
+  'workspace bootstrap must reject a successful HTTP response that is not the expected base document'
+);
+assert(
+  index.includes("throw new Error('Could not load the Morley workspace')"),
+  'workspace bootstrap must remain a hard failure after the bounded retry window'
 );
 assert(
   workflow.includes('fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" \'Buys and Loans Hub\''),
@@ -58,7 +78,7 @@ for (const contract of [
 ]) {
   const [url, marker] = contract;
   assert(
-    workflow.includes(`fetch_until_contains "${url}"` ) && workflow.includes(marker),
+    workflow.includes(`fetch_until_contains "${url}"`) && workflow.includes(marker),
     `Pages smoke must use content-aware retries for ${url} :: ${marker}`
   );
 }
@@ -79,4 +99,4 @@ assert(
   'runtime-critical asset checks must not treat an HTTP 200 with stale content as deployment success'
 );
 
-console.log('Pages runtime route and content-aware propagation contracts verified');
+console.log('Pages runtime route, resilient bootstrap, and propagation contracts verified');
