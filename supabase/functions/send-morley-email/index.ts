@@ -4,7 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "";
+const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "B&L Morley <noreply@buyshub.me>";
 const RESEND_REPLY_TO = Deno.env.get("RESEND_REPLY_TO") ?? "";
 const APP_NAME = "B&L Morley";
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
@@ -85,7 +85,7 @@ async function writeAudit(actorId: string, action: string, targetType: string, t
 }
 function inviteMail(displayName: string, role: string, code: string, expiresAt: string) {
   const subject = `${APP_NAME} invitation`;
-  const text = `Hi ${displayName},\n\nYou've been invited to ${APP_NAME} as ${role}.\n\nInvite code: ${code}\n\nOpen ${APP_NAME}, choose Create account, and enter your approved email address plus this invite code. The code expires ${formatPerth(expiresAt)}.\n\nIf you weren't expecting this invitation, you can ignore this email.`;
+  const text = `Hi ${displayName},\n\nYou've been invited to ${APP_NAME} as ${role}.\n\nInvite code: ${code}\n\nOpen ${APP_NAME}, choose Create account, and enter the approved email address plus this invite code. The code expires ${formatPerth(expiresAt)}.\n\nIf you weren't expecting this invitation, you can ignore this email.`;
   const html = `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto"><h2>${APP_NAME} invitation</h2><p>Hi ${escapeHtml(displayName)},</p><p>You've been invited to <strong>${APP_NAME}</strong> as <strong>${escapeHtml(role)}</strong>.</p><p>Your invite code is:</p><div style="font-size:28px;font-weight:700;letter-spacing:4px;padding:16px;border:1px solid #ddd;border-radius:10px;text-align:center">${escapeHtml(code)}</div><p>Open ${APP_NAME}, choose <strong>Create account</strong>, and enter your approved email address plus this invite code.</p><p>This code expires <strong>${escapeHtml(formatPerth(expiresAt))}</strong>.</p><p style="color:#666">If you weren't expecting this invitation, you can ignore this email.</p></div>`;
   return { subject, text, html };
 }
