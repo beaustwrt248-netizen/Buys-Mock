@@ -209,8 +209,8 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
             } else {
                 when (page) {
                     Page.Home -> ParityHome({ page = Page.Laptop }, { page = Page.Desktop }, { page = Page.GP })
-                    Page.Laptop -> CategoriesPricingScreen()
-                    Page.Desktop -> ConsolePricingScreen()
+                    Page.Laptop->CategoriesPricingScreen()
+                    Page.Desktop->ConsolePricingScreen()
                     Page.GP -> GPFix()
                     Page.More -> ParityHome({ page = Page.Laptop }, { page = Page.Desktop }, { page = Page.GP })
                 }
