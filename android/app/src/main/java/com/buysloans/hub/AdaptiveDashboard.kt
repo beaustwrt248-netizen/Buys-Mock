@@ -39,6 +39,7 @@ internal fun AdaptiveContentFrame(content: @Composable () -> Unit) {
         Box(
             Modifier
                 .fillMaxHeight()
+                .fillMaxWidth()
                 .widthIn(max = maxContentWidth)
                 .align(Alignment.TopCenter)
         ) { content() }
