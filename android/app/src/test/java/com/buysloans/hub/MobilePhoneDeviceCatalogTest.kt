@@ -44,8 +44,59 @@ class MobilePhoneDeviceCatalogTest {
     }
 
     @Test
+    fun expandedCatalogueAddsOlderAndAdditionalBrandModelsWithoutPrices() {
+        val iphone12Mini = MobilePhoneDeviceCatalog.variants("Apple", "iPhone 12 mini")
+        assertTrue(iphone12Mini.any { it.storage == "64 GB" && it.priceSheetValue == null })
+
+        val honor = MobilePhoneDeviceCatalog.variants("HONOR", "Magic7 Pro")
+        assertTrue(honor.any { it.storage == "512 GB" && it.priceSheetValue == null })
+
+        assertTrue("ASUS" in MobilePhoneDeviceCatalog.brands())
+        assertTrue("HMD" in MobilePhoneDeviceCatalog.brands())
+        assertTrue("Fairphone" in MobilePhoneDeviceCatalog.brands())
+    }
+
+    @Test
+    fun appleModelsAreSeriesFirstNewestGenerationFirst() {
+        val models = MobilePhoneDeviceCatalog.models("Apple")
+        assertTrue(models.indexOf("iPhone 17 Pro Max") < models.indexOf("iPhone 16 Pro Max"))
+        assertTrue(models.indexOf("iPhone 16 Pro Max") < models.indexOf("iPhone 15 Pro Max"))
+        assertTrue(models.indexOf("iPhone 15 Pro Max") < models.indexOf("iPhone 14 Pro Max"))
+    }
+
+    @Test
+    fun premiumVariantsStayTogetherWithinPhoneGeneration() {
+        val models = MobilePhoneDeviceCatalog.models("Apple")
+        val seventeen = models.filter { it.startsWith("iPhone 17") }
+        assertTrue(seventeen.first().contains("Pro Max"))
+        assertTrue(seventeen.all { it.startsWith("iPhone 17") })
+    }
+
+    @Test
     fun modelNumberSearchFindsFriendlyModel() {
         assertTrue(MobilePhoneDeviceCatalog.modelMatches("Samsung", "Galaxy S24 Ultra", "SM-S928B"))
+    }
+
+    @Test
+    fun globalSearchFindsAcrossBrandModelNumberAndStorage() {
+        val byModelNumber = MobilePhoneDeviceCatalog.search("SM-S928B")
+        assertTrue(byModelNumber.any { it.brand == "Samsung" && it.model == "Galaxy S24 Ultra" })
+
+        val byBrand = MobilePhoneDeviceCatalog.search("HONOR")
+        assertTrue(byBrand.any { it.model == "Magic7 Pro" })
+
+        val byStorage = MobilePhoneDeviceCatalog.search("1TB")
+        assertTrue(byStorage.any { "1 TB" in it.storages })
+    }
+
+    @Test
+    fun globalSearchMarksExistingPricedModelsWithoutAuthorisingNewOnes() {
+        val priced = MobilePhoneDeviceCatalog.search("Galaxy S24 Ultra").first()
+        assertTrue(priced.hasPricedVariant)
+
+        val unpriced = MobilePhoneDeviceCatalog.search("Magic7 Pro").first()
+        assertTrue(!unpriced.hasPricedVariant)
+        assertTrue(MobilePhoneDeviceCatalog.variants(unpriced.brand, unpriced.model).all { it.priceSheetValue == null })
     }
 
     @Test

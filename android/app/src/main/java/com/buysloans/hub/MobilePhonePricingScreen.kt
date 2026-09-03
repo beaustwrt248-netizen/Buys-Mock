@@ -37,7 +37,10 @@ private enum class MobilePhonePricingContract(val catalogName: String) {
 }
 
 private val featuredPhoneBrands = listOf("Apple", "Samsung", "Google", "OnePlus", "Xiaomi")
-private val otherPhoneBrands = listOf("OPPO", "Nothing", "Motorola", "Vivo", "Realme", "Huawei", "Lenovo", "Sony", "ZTE / nubia", "TCL")
+private val otherPhoneBrands = listOf(
+    "OPPO", "Nothing", "Motorola", "Vivo", "Realme", "Huawei", "HONOR", "ASUS", "HMD",
+    "Nokia", "Fairphone", "Meizu", "Lenovo", "Sony", "ZTE / nubia", "TCL"
+)
 
 private fun phoneBrandTitle(brand: String): String = when (brand) {
     "Apple" -> "Apple iPhone"
@@ -54,7 +57,9 @@ private fun phoneBrandVisualName(brand: String): String = when (brand) {
 
 @Composable
 fun MobilePhonePricingScreen() {
+    var globalQuery by remember { mutableStateOf("") }
     var selectedBrand by remember { mutableStateOf<String?>(null) }
+    var selectedModelFromSearch by remember { mutableStateOf<String?>(null) }
     var showingOtherBrands by remember { mutableStateOf(false) }
 
     when {
@@ -62,14 +67,17 @@ fun MobilePhonePricingScreen() {
             Column {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
                     OutlinedButton(
-                        onClick = { selectedBrand = null },
+                        onClick = {
+                            selectedBrand = null
+                            selectedModelFromSearch = null
+                        },
                         border = BorderStroke(1.dp, MorleyBorder),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
-                PhoneBrandPricingScreen(selectedBrand!!)
+                PhoneBrandPricingScreen(selectedBrand!!, initialModel = selectedModelFromSearch)
             }
         }
         showingOtherBrands -> {
@@ -86,18 +94,54 @@ fun MobilePhonePricingScreen() {
                 Screen("Other Phone Brands") {
                     Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
                     otherPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
-                        BrandCard(brand) { selectedBrand = brand }
+                        BrandCard(brand) {
+                            selectedBrand = brand
+                            selectedModelFromSearch = null
+                        }
                     }
                 }
             }
         }
         else -> {
+            val globalResults = remember(globalQuery) { MobilePhoneDeviceCatalog.search(globalQuery) }
             Screen("Mobile Phones") {
-                Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
-                featuredPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
-                    BrandCard(brand, highlighted = brand == "Apple") { selectedBrand = brand }
+                Text(
+                    "Search every mobile phone category, or choose a brand to browse.",
+                    color = MorleyTextSecondary,
+                    fontSize = 15.sp
+                )
+                OutlinedTextField(
+                    value = globalQuery,
+                    onValueChange = { globalQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Search all mobile phones") },
+                    supportingText = { Text("Brand, model, model number or storage") },
+                    shape = RoundedCornerShape(16.dp)
+                )
+
+                if (globalQuery.isNotBlank()) {
+                    Text(
+                        if (globalResults.isEmpty()) "No matching mobile phones" else "${globalResults.size} matching phone${if (globalResults.size == 1) "" else "s"}",
+                        color = MorleyTextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    globalResults.forEach { result ->
+                        GlobalPhoneSearchResultCard(result) {
+                            selectedBrand = result.brand
+                            selectedModelFromSearch = result.model
+                        }
+                    }
+                } else {
+                    featuredPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
+                        BrandCard(brand, highlighted = brand == "Apple") {
+                            selectedBrand = brand
+                            selectedModelFromSearch = null
+                        }
+                    }
+                    BrandCard("Other Brands") { showingOtherBrands = true }
                 }
-                BrandCard("Other Brands") { showingOtherBrands = true }
             }
         }
     }
@@ -113,11 +157,19 @@ private fun BrandCard(title: String, highlighted: Boolean = false, onClick: () -
         modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PhoneBrandVisual(phoneBrandVisualName(title), Modifier.size(34.dp))
+            if (title == "Other Brands") {
+                PhoneBrandVisual("Other Brands", Modifier.size(42.dp))
+            } else {
+                MobilePhonePhoto(
+                    brand = title,
+                    categoryRepresentative = true,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
             Text(
                 title,
                 modifier = Modifier.weight(1f),
@@ -131,10 +183,49 @@ private fun BrandCard(title: String, highlighted: Boolean = false, onClick: () -
 }
 
 @Composable
-private fun PhoneBrandPricingScreen(brand: String) {
+private fun GlobalPhoneSearchResultCard(result: MobilePhoneSearchResult, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MorleySurface),
+        border = BorderStroke(1.dp, MorleyBorder),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(13.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(12.dp)) {
+                MobilePhonePhoto(
+                    brand = result.brand,
+                    model = result.model,
+                    modifier = Modifier.padding(5.dp).size(50.dp)
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(result.model, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                Text(result.brand, color = MorleyAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                result.modelNumber?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, color = MorleyTextSecondary, fontSize = 11.sp)
+                }
+                Text(result.storages.joinToString(" • "), color = MorleyTextSecondary, fontSize = 11.sp)
+                if (result.hasPricedVariant) {
+                    Text("Morley pricing available", color = MorleyAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Text("›", color = MorleyTextSecondary, fontSize = 25.sp, fontWeight = FontWeight.Black)
+        }
+    }
+}
+
+@Composable
+private fun PhoneBrandPricingScreen(brand: String, initialModel: String? = null) {
     var query by remember(brand) { mutableStateOf("") }
-    var selectedModel by remember(brand) { mutableStateOf<String?>(null) }
-    var selectedEntry by remember(brand) { mutableStateOf<MobilePhoneDeviceEntry?>(null) }
+    var selectedModel by remember(brand, initialModel) { mutableStateOf(initialModel) }
+    var selectedEntry by remember(brand, initialModel) {
+        mutableStateOf(initialModel?.let { MobilePhoneDeviceCatalog.variants(brand, it).firstOrNull() })
+    }
     var grade by remember(brand) { mutableStateOf("A") }
     val money = remember { NumberFormat.getCurrencyInstance(Locale("en", "AU")).apply { maximumFractionDigits = 0 } }
     val allModels = remember(brand) { MobilePhoneDeviceCatalog.models(brand) }
@@ -151,7 +242,7 @@ private fun PhoneBrandPricingScreen(brand: String) {
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Search model or model number") },
+                label = { Text("Search model, model number or storage") },
                 shape = RoundedCornerShape(16.dp)
             )
             visibleModels.forEach { model ->
@@ -163,12 +254,23 @@ private fun PhoneBrandPricingScreen(brand: String) {
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(Modifier.fillMaxWidth().padding(15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(13.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(10.dp)) {
-                            PhoneBrandVisual(phoneBrandVisualName(brand), Modifier.padding(7.dp).size(38.dp))
+                            MobilePhonePhoto(
+                                brand = brand,
+                                model = model,
+                                modifier = Modifier.padding(5.dp).size(50.dp)
+                            )
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(model, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            variants.mapNotNull { it.modelNumber }.firstOrNull()?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, color = MorleyTextSecondary, fontSize = 10.sp)
+                            }
                             Text(variants.joinToString(" • ") { it.storage }, color = MorleyTextSecondary, fontSize = 11.sp)
                         }
                         Text("›", color = MorleyTextSecondary, fontSize = 25.sp, fontWeight = FontWeight.Black)
@@ -195,12 +297,19 @@ private fun PhoneBrandPricingScreen(brand: String) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) {
-                            PhoneBrandVisual(phoneBrandVisualName(brand), Modifier.padding(10.dp).size(42.dp))
+                            MobilePhonePhoto(
+                                brand = brand,
+                                model = selectedModel!!,
+                                modifier = Modifier.padding(7.dp).size(72.dp)
+                            )
                         }
                         Column(Modifier.weight(1f)) {
                             Text(selectedModel!!, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 21.sp)
+                            current?.modelNumber?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, color = MorleyTextSecondary, fontSize = 11.sp)
+                            }
                             Text("Select storage${if (pricedCurrent != null) " and condition grade" else ""}", color = MorleyTextSecondary, fontSize = 12.sp)
                         }
                     }
@@ -258,6 +367,7 @@ private fun PhoneBrandPricingScreen(brand: String) {
                         Text("Model Added", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                         SummaryRow("Brand", current.brand)
                         SummaryRow("Model", current.model)
+                        current.modelNumber?.takeIf { it.isNotBlank() }?.let { SummaryRow("Model number", it) }
                         SummaryRow("Storage", current.storage)
                         Text("Pricing has not been added for this storage variant yet.", color = MorleyAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
