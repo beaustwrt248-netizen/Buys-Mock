@@ -1,7 +1,8 @@
 (()=>{
 const HISTORY='buysmock_valuation_history_v1';
 const $=(s,r=document)=>r.querySelector(s);
-const MAX_BUY_FACTOR=Object.freeze({A:.70,B:.50,C:.30});
+const MAX_BUY_FACTOR=Object.freeze({A:.70,B:.50,C:.30,Luxury:.70});
+const GP_LABEL=Object.freeze({A:'30% GP',B:'50% GP',C:'70% GP',Luxury:'30% GP'});
 function syncMaxBuy(d){
   const market=Number($('#mswDealMarket',d)?.value)||0;
   const grade=$('#mswDealGrade',d)?.value||'B';
@@ -10,6 +11,8 @@ function syncMaxBuy(d){
   const maxBuy=Math.round(market*(MAX_BUY_FACTOR[grade]??MAX_BUY_FACTOR.B)*100)/100;
   field.value=market?String(maxBuy):'';
   field.dispatchEvent(new Event('input',{bubbles:true}));
+  const note=$('#mswDealGradeNote',d);
+  if(note)note.textContent=`${grade} Grade targets ${GP_LABEL[grade]||GP_LABEL.B}. Max Buy is calculated automatically.`;
 }
 function read(){try{return JSON.parse(localStorage.getItem(HISTORY)||'[]')}catch{return[]}}
 function write(v){localStorage.setItem(HISTORY,JSON.stringify(v.slice(0,30)))}
@@ -20,10 +23,10 @@ function ensure(){
   if(!market)return;
   const label=document.createElement('label');
   label.className='msw-field';
-  label.innerHTML='<span>ITEM GRADE</span><select id="mswDealGrade" style="box-sizing:border-box;width:100%;padding:11px 12px;border-radius:12px;border:1px solid rgba(22,199,255,.28);background:#041024;color:#fff"><option value="A">A Grade</option><option value="B" selected>B Grade</option><option value="C">C Grade</option></select>';
+  label.innerHTML='<span>ITEM GRADE / TARGET GP</span><select id="mswDealGrade"><option value="A">A — 30% GP</option><option value="B" selected>B — 50% GP</option><option value="C">C — 70% GP</option><option value="Luxury">Luxury — 30% GP</option></select><small id="mswDealGradeNote" style="display:block;margin-top:6px;color:#71827b">B Grade targets 50% GP. Max Buy is calculated automatically.</small>';
   market.insertAdjacentElement('beforebegin',label);
   const max=$('#mswDealMax',d);
-  if(max){max.readOnly=true;max.setAttribute('aria-label','Calculated maximum buy price')}
+  if(max){max.readOnly=true;max.setAttribute('aria-label','Calculated maximum buy price');max.closest('label')?.querySelector('span')?.replaceChildren(document.createTextNode('AUTO MAX BUY'))}
   $('#mswDealMarket',d)?.addEventListener('input',()=>syncMaxBuy(d));
   $('#mswDealGrade',d)?.addEventListener('change',()=>syncMaxBuy(d));
   syncMaxBuy(d);
@@ -34,13 +37,15 @@ function ensure(){
       const grade=$('#mswDealGrade',d)?.value||'B';
       const item=$('#mswDealItem',d)?.value.trim()||'';
       const ask=Number($('#mswDealAsk',d)?.value)||0;
-      if(!item||!ask)return;
+      const marketValue=Number($('#mswDealMarket',d)?.value)||0;
+      if(!item||!ask||!marketValue)return;
       setTimeout(()=>{
         const h=read();
         const row=h.find(x=>x&&x.type==='deal'&&x.query===item&&Math.abs(Number(x.ask||0)-ask)<0.01&&Date.now()-Number(x.id||0)<10000);
         if(!row)return;
         row.grade=grade;
         row.itemGrade=grade;
+        row.targetGp=Number((1-(MAX_BUY_FACTOR[grade]??MAX_BUY_FACTOR.B))*100);
         write(h);
         window.dispatchEvent(new Event('morley-valuation-history-updated'));
       },0);
