@@ -172,52 +172,38 @@ jobs:
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-layout-fix.js'
           fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
           fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
-          fetch_with_retry "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js"
-          grep -q "localStorage.getItem(STORE)" "$RUNNER_TEMP/secure-pricing.js"
-          grep -q "'Authorization':'Bearer '+s.access_token" "$RUNNER_TEMP/secure-pricing.js"
-          grep -q 'refreshSession' "$RUNNER_TEMP/secure-pricing.js"
-          grep -q 'window.market=secureMarket' "$RUNNER_TEMP/secure-pricing.js"
-          fetch_with_retry "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js"
-          grep -q 'Computer Pricing' "$RUNNER_TEMP/product-parity-v3.js"
-          grep -q 'Console Pricing' "$RUNNER_TEMP/product-parity-v3.js"
-          fetch_with_retry "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js"
-          grep -q 'Help & FAQ' "$RUNNER_TEMP/ultimate-parity.js"
-          fetch_with_retry "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js"
-          grep -q 'home|computer|console|general' "$RUNNER_TEMP/mobile-layout-fix.js"
+          fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'localStorage.getItem(STORE)'
+          fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" "'Authorization':'Bearer '+s.access_token"
+          fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'refreshSession'
+          fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'window.market=secureMarket'
+          fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Computer Pricing'
+          fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Console Pricing'
+          fetch_until_contains "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js" 'Help & FAQ'
+          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'home|computer|console|general'
           node --check "$RUNNER_TEMP/mobile-layout-fix.js"
-          fetch_with_retry "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css"
-          grep -q '@media(max-width:760px)' "$RUNNER_TEMP/mobile-parity-v3.css"
-          grep -q 'grid-template-columns:repeat(4,minmax(0,1fr))' "$RUNNER_TEMP/mobile-parity-v3.css"
-          grep -q '.modal.open,.morley-menu-dialog.open,.msw-dialog.open' "$RUNNER_TEMP/mobile-parity-v3.css"
-          fetch_with_retry "$BASE/morley-light-web.css" "$RUNNER_TEMP/morley-light-web.css"
-          grep -q 'color-scheme:light' "$RUNNER_TEMP/morley-light-web.css"
-          grep -q '#morleyWebAuth' "$RUNNER_TEMP/morley-light-web.css"
-          fetch_with_retry "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js"
-          grep -q "localStorage.getItem('morley_web_auth')" "$RUNNER_TEMP/desktop-oem.js"
-          grep -q "'Authorization':'Bearer '+token" "$RUNNER_TEMP/desktop-oem.js"
-          fetch_with_retry "$BASE/no-gold.css" "$RUNNER_TEMP/no-gold.css"
-          grep -q -- '--yellow:#2f7cff' "$RUNNER_TEMP/no-gold.css"
-          fetch_with_retry "$BASE/web-a11y.js" "$RUNNER_TEMP/web-a11y.js"
-          grep -q 'focus-visible' "$RUNNER_TEMP/web-a11y.js"
-          fetch_with_retry "$BASE/desktop-parity.js" "$RUNNER_TEMP/desktop-parity.js"
-          grep -q 'morley-section-back' "$RUNNER_TEMP/desktop-parity.js"
+          fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '@media(max-width:760px)'
+          fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" 'grid-template-columns:repeat(4,minmax(0,1fr))'
+          fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '.modal.open,.morley-menu-dialog.open,.msw-dialog.open'
+          fetch_until_contains "$BASE/morley-light-web.css" "$RUNNER_TEMP/morley-light-web.css" 'color-scheme:light'
+          fetch_until_contains "$BASE/morley-light-web.css" "$RUNNER_TEMP/morley-light-web.css" '#morleyWebAuth'
+          fetch_until_contains "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js" "localStorage.getItem('morley_web_auth')"
+          fetch_until_contains "$BASE/desktop-oem.js" "$RUNNER_TEMP/desktop-oem.js" "'Authorization':'Bearer '+token"
+          fetch_until_contains "$BASE/no-gold.css" "$RUNNER_TEMP/no-gold.css" '--yellow:#2f7cff'
+          fetch_until_contains "$BASE/web-a11y.js" "$RUNNER_TEMP/web-a11y.js" 'focus-visible'
+          fetch_until_contains "$BASE/desktop-parity.js" "$RUNNER_TEMP/desktop-parity.js" 'morley-section-back'
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/desktop-parity.js"
-          fetch_with_retry "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html"
-          grep -q 'postMessage(payload,postMessageOrigin)' "$RUNNER_TEMP/turnstile.html"
-          fetch_with_retry "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html"
-          grep -q 'styles.css?v=3' "$RUNNER_TEMP/admin-index.html"
-          grep -q 'app.js?v=4' "$RUNNER_TEMP/admin-index.html"
-          grep -q 'id="inviteName"' "$RUNNER_TEMP/admin-index.html"
-          grep -q 'First and last name' "$RUNNER_TEMP/admin-index.html"
-          grep -q 'invites.js?v=3' "$RUNNER_TEMP/admin-index.html"
-          fetch_with_retry "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js"
-          grep -q 'display_name:name' "$RUNNER_TEMP/admin-invites.js"
-          grep -q 'inviteName' "$RUNNER_TEMP/admin-invites.js"
-          fetch_with_retry "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js"
-          grep -q "secureUserAction('set_role'" "$RUNNER_TEMP/admin-app.js"
-          grep -q "secureUserAction('set_display_name'" "$RUNNER_TEMP/admin-app.js"
-          grep -q 'data-name-save' "$RUNNER_TEMP/admin-app.js"
-          grep -q 'admin-user-control' "$RUNNER_TEMP/admin-app.js"
+          fetch_until_contains "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html" 'postMessage(payload,postMessageOrigin)'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'styles.css?v=3'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'app.js?v=4'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'id="inviteName"'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'First and last name'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'invites.js?v=3'
+          fetch_until_contains "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js" 'display_name:name'
+          fetch_until_contains "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js" 'inviteName'
+          fetch_until_contains "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js" "secureUserAction('set_role'"
+          fetch_until_contains "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js" "secureUserAction('set_display_name'"
+          fetch_until_contains "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js" 'data-name-save'
+          fetch_until_contains "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js" 'admin-user-control'
           ! grep -q "sb.rpc('admin_set_user_role'" "$RUNNER_TEMP/admin-app.js"
           fetch_with_retry "$BASE/admin/styles.css" "$RUNNER_TEMP/admin-styles.css"
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/admin-styles.css"
