@@ -70,7 +70,7 @@ jobs:
               raise SystemExit('Desktop dashboard must load after the mobile viewport lock')
           if 'morley-desktop-dashboard.css?v=2' not in index:
               raise SystemExit('Desktop dashboard stylesheet cache version is stale')
-          if 'quick-deal-grade.js?v=2' not in index:
+          if 'quick-deal-grade.js?v=3' not in index:
               raise SystemExit('Quick Deal grade calculation asset cache version is stale')
           if 'morley-desktop-dashboard.js?v=1' not in index:
               raise SystemExit('Desktop dashboard behaviour is not loaded')
