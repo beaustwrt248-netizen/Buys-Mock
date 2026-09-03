@@ -14,6 +14,7 @@ assert.match(src, /GOOGLE_DRIVE_PRIVATE_KEY/);
 assert.match(src, /GOOGLE_DRIVE_BACKUP_FOLDER_ID/);
 assert.match(src, /MORLEY_BACKUP_SECRET/);
 assert.match(src, /https:\/\/www\.googleapis\.com\/auth\/drive\.file/);
+assert.match(src, /supportsAllDrives=true/);
 assert.match(src, /profile\.role!=='admin'/);
 assert.match(src, /Restore is deliberately not available/);
 assert.match(src, /sha256/);
