@@ -83,8 +83,12 @@ jobs:
           grep -q 'CATEGORIES("Categories", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'GP("General Buys", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'Page.Laptop->CategoriesPricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'Page.Desktop->ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Page.Laptop -> CategoriesPricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'Page.Desktop -> ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'val adaptiveSize = morleyAdaptiveSize()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'AdaptiveBackHandler(enabled = showMenu || page != Page.Home)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'AdaptiveContentFrame' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           if grep -q 'NavCard(MorleyIcons.Categories' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt; then
             echo 'Categories shortcut must not return to Home'
             exit 1

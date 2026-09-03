@@ -47,9 +47,16 @@ for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC",
 for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
     require(web_parity, label, "web Help/FAQ content")
 require(index, "ultimate-parity.js?v=1", "web parity bootstrap")
-require(dashboard, "Page.Laptop->CategoriesPricingScreen()", "Categories pricing route")
-require(dashboard, "Page.Desktop->ConsolePricingScreen()", "separate Console Pricing route")
+require(dashboard, "Page.Laptop -> CategoriesPricingScreen()", "Categories pricing route")
+require(dashboard, "Page.Desktop -> ConsolePricingScreen()", "separate Console Pricing route")
 require(dashboard, "MorleyIcons.Categories", "Categories vector icon")
+for adaptive in (
+    "val adaptiveSize = morleyAdaptiveSize()",
+    "AdaptiveBackHandler(enabled = showMenu || page != Page.Home)",
+    "MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})",
+    "AdaptiveContentFrame",
+):
+    require(dashboard, adaptive, "Android adaptive dashboard integration")
 forbid(dashboard, "BottomDestination.HISTORY", "History bottom navigation")
 forbid(dashboard, "NavCard(MorleyIcons.Console", "Console Pricing Home shortcut")
 for label in ("Laptops", "Desktops", "Mobile Phones", "Gaming Consoles"):
@@ -130,4 +137,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: Categories/GP navigation, console and mobile catalogues, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
+print("Ultimate parity audit passed: adaptive Categories/GP navigation, console and mobile catalogues, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
