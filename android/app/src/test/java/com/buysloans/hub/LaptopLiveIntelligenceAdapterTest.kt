@@ -47,6 +47,7 @@ class LaptopLiveIntelligenceAdapterTest {
         )
         val shadow = LaptopLiveIntelligenceAdapter.shadowEvaluate(preset, "Apple M1 Pro", "16GB", "512GB", "A2442", evidence)
         assertEquals("MANUAL REVIEW", shadow.fairBuyZone.decision)
+        assertTrue(shadow.fairBuyZone.comparables.all { !it.comparable.sold })
         assertFalse(shadow.liveAuthorityChanged)
     }
 
