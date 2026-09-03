@@ -14,32 +14,12 @@ const navItems=[
  ['sales',icon('<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/><path d="M15 7h4v4"/>'),'Sales'],
  ['settings',icon('<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>'),'More']
 ];
+function loadScript(src){return new Promise((resolve,reject)=>{if(document.querySelector(`script[data-morley-src="${src}"]`))return resolve();const s=document.createElement('script');s.src=src;s.defer=true;s.dataset.morleySrc=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
+async function ensureUniversalAssets(){if(!document.querySelector('link[data-morley-universal]')){const l=document.createElement('link');l.rel='stylesheet';l.href='web-universal-buy.css?v=1';l.dataset.morleyUniversal='1';document.head.appendChild(l)}try{await loadScript('morley-central-pricing.js?v=1');await loadScript('web-universal-buy.js?v=1')}catch(error){console.error('Morley Universal Buy assets failed to load',error)}}
 function go(page){if(typeof window.morleyDesktopGo==='function')window.morleyDesktopGo(page);else if(typeof window.show==='function')window.show(page);}
-function renderSidebar(){
- const nav=$('#morleyDesktopShell .desktop-side-nav');if(!nav)return;
- if(nav.dataset.financeDashboard==='1')return;
- nav.innerHTML=navItems.map(([target,icon,label])=>`<button type="button" data-target="${target}" aria-label="${label}"><span class="morley-dashboard-nav-icon" aria-hidden="true">${icon}</span><span class="morley-dashboard-nav-label">${label}</span></button>`).join('');
- nav.dataset.financeDashboard='1';
- $$('button[data-target]',nav).forEach(button=>button.addEventListener('click',()=>go(button.dataset.target)));
- syncActive();
-}
-function syncActive(){
- const active=$('.section.active')?.id||'home';
- const parent=['laptop','desktop'].includes(active)?'computer':active==='universalBuySearch'?'universal':active==='mobilePhones'?'phones':active;
- $$('#morleyDesktopShell .desktop-side-nav [data-target]').forEach(button=>button.classList.toggle('active',button.dataset.target===parent));
-}
-function labelWorkspace(){
- const header=$('#desktopWorkspaceHeader');if(!header)return;
- const title=$('h1',header);if(title)title.textContent='Morley Buys Dashboard';
- const kicker=$('small',header);if(kicker)kicker.textContent='MORLEY BUYING OPERATIONS';
-}
-function boot(){
- document.documentElement.classList.add('morley-finance-dashboard');
- renderSidebar();labelWorkspace();syncActive();
- const main=$('main.app')||$('main');
- if(main)new MutationObserver(records=>{if(records.some(record=>record.target.classList?.contains('section')))syncActive();}).observe(main,{subtree:true,attributes:true,attributeFilter:['class']});
- addEventListener('morley-product-parity-ready',()=>{renderSidebar();syncActive();});
- addEventListener('morley-universal-buy-ready',()=>{const nav=$('#morleyDesktopShell .desktop-side-nav');if(nav)delete nav.dataset.financeDashboard;renderSidebar();syncActive();});
-}
+function renderSidebar(){const nav=$('#morleyDesktopShell .desktop-side-nav');if(!nav)return;if(nav.dataset.financeDashboard==='1')return;nav.innerHTML=navItems.map(([target,svg,label])=>`<button type="button" data-target="${target}" aria-label="${label}"><span class="morley-dashboard-nav-icon" aria-hidden="true">${svg}</span><span class="morley-dashboard-nav-label">${label}</span></button>`).join('');nav.dataset.financeDashboard='1';$$('button[data-target]',nav).forEach(button=>button.addEventListener('click',()=>go(button.dataset.target)));syncActive()}
+function syncActive(){const active=$('.section.active')?.id||'home';const parent=['laptop','desktop'].includes(active)?'computer':active==='universalBuySearch'?'universal':active==='mobilePhones'?'phones':active;$$('#morleyDesktopShell .desktop-side-nav [data-target]').forEach(button=>button.classList.toggle('active',button.dataset.target===parent))}
+function labelWorkspace(){const header=$('#desktopWorkspaceHeader');if(!header)return;const title=$('h1',header);if(title)title.textContent='Morley Buys Dashboard';const kicker=$('small',header);if(kicker)kicker.textContent='MORLEY BUYING OPERATIONS'}
+function boot(){document.documentElement.classList.add('morley-finance-dashboard');renderSidebar();labelWorkspace();syncActive();ensureUniversalAssets();const main=$('main.app')||$('main');if(main)new MutationObserver(records=>{if(records.some(record=>record.target.classList?.contains('section')))syncActive()}).observe(main,{subtree:true,attributes:true,attributeFilter:['class']});addEventListener('morley-product-parity-ready',()=>{renderSidebar();syncActive()});addEventListener('morley-universal-buy-ready',()=>{const nav=$('#morleyDesktopShell .desktop-side-nav');if(nav)delete nav.dataset.financeDashboard;renderSidebar();syncActive()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
