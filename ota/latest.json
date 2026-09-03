@@ -1,7 +1,7 @@
 {
-  "versionCode": 95,
-  "versionName": "2.15.51",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.51/B-and-L-Morley-2.15.51.apk",
-  "sha256": "fb5d07d8f4a96a86fe470ac391fb28f101c3de203df4b4b652d9a8e703f6facd",
-  "notes": "Expanded mobile phone and console catalogues, series-first sorting, global search, imagery and General Buys navigation for 2.15.51"
+  "versionCode": 96,
+  "versionName": "2.15.52",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.52/B-and-L-Morley-2.15.52.apk",
+  "sha256": "d7ce9fec9bcb1ea58adfaca11800cc35d5193bf98f770614eb6729d128827ae1",
+  "notes": "Fix Quick Deal verdict card clipping for 2.15.52 (#603)"
 }
