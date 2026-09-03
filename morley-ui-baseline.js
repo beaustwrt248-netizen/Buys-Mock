@@ -27,24 +27,3 @@ function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||
 function boot(){apply();observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true,characterData:true});window.addEventListener('resize',schedule,{passive:true});window.addEventListener('morley-product-parity-ready',schedule);window.addEventListener('morley-initial-layout-ready',schedule)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-
-(()=>{
-'use strict';
-function loadParity(){
-  if(!document.querySelector('link[data-morley-apk-home-parity]')){
-    const link=document.createElement('link');
-    link.rel='stylesheet';
-    link.href='web-apk-home-parity.css?v=2';
-    link.dataset.morleyApkHomeParity='1';
-    document.head.appendChild(link);
-  }
-  if(!document.querySelector('script[data-morley-apk-home-parity]')){
-    const script=document.createElement('script');
-    script.src='web-apk-home-parity.js?v=2';
-    script.defer=true;
-    script.dataset.morleyApkHomeParity='1';
-    document.body.appendChild(script);
-  }
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadParity,{once:true});else loadParity();
-})();
