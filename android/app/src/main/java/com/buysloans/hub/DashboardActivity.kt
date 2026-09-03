@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -32,8 +33,7 @@ class DashboardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(245,247,244)
-        window.navigationBarColor = android.graphics.Color.rgb(245,247,244)
+        enableEdgeToEdge()
         if (getSharedPreferences("display_settings", MODE_PRIVATE).getBoolean("keep_awake", false)) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -73,10 +73,39 @@ private enum class BottomDestination(val label: String, val icon: ImageVector) {
     MORE("More", MorleyIcons.More)
 }
 
+@Composable
+private fun CompactDashboardNavigation(page: Page, showMenu: Boolean, onSelect: (BottomDestination) -> Unit) {
+    NavigationBar(containerColor = MorleySurface, tonalElevation = 0.dp, modifier = Modifier.fillMaxWidth()) {
+        BottomDestination.entries.forEach { destination ->
+            val selected = when (destination) {
+                BottomDestination.HOME -> !showMenu && page == Page.Home
+                BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
+                BottomDestination.GP -> !showMenu && page == Page.GP
+                BottomDestination.MORE -> showMenu
+            }
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onSelect(destination) },
+                icon = { MorleyIcon(destination.icon, destination.label, if (selected) MorleyAccent else MorleyTextSecondary, Modifier.size(21.dp)) },
+                label = { Text(destination.label, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MorleyAccentSoft,
+                    selectedIconColor = MorleyAccent,
+                    selectedTextColor = MorleyAccent,
+                    unselectedIconColor = MorleyTextSecondary,
+                    unselectedTextColor = MorleyTextSecondary
+                )
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val adaptiveSize = morleyAdaptiveSize()
     var page by remember { mutableStateOf(Page.Home) }
     var previousPage by remember { mutableStateOf(Page.Home) }
     var showMenu by remember { mutableStateOf(false) }
@@ -91,6 +120,19 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     fun closeMenu() {
         showMenu = false
         page = previousPage
+    }
+
+    fun selectDestination(destination: BottomDestination) {
+        when (destination) {
+            BottomDestination.HOME -> { showMenu = false; page = Page.Home }
+            BottomDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
+            BottomDestination.GP -> { showMenu = false; page = Page.GP }
+            BottomDestination.MORE -> openMenu()
+        }
+    }
+
+    AdaptiveBackHandler(enabled = showMenu || page != Page.Home) {
+        if (showMenu) closeMenu() else page = Page.Home
     }
 
     if (showUpdated) {
@@ -112,9 +154,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                 Button(
                     onClick = {
                         AuthManager.signOut(context)
-                        context.startActivity(Intent(context, AuthActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        })
+                        context.startActivity(Intent(context, AuthActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK) })
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7D2B38), contentColor = Color.White)
                 ) { Text("Sign out", fontWeight = FontWeight.Black) }
@@ -122,94 +162,56 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
         )
     }
 
+    val adaptiveNavItems = BottomDestination.entries.map { destination ->
+        val selected = when (destination) {
+            BottomDestination.HOME -> !showMenu && page == Page.Home
+            BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
+            BottomDestination.GP -> !showMenu && page == Page.GP
+            BottomDestination.MORE -> showMenu
+        }
+        AdaptiveNavItem(destination.label, destination.icon, selected) { selectDestination(destination) }
+    }
+
     Scaffold(
         containerColor = MorleyBackground,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MorleyBackground.copy(alpha = .98f),
-                    titleContentColor = MorleyTextPrimary
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MorleyBackground.copy(alpha = .98f), titleContentColor = MorleyTextPrimary),
                 navigationIcon = {
                     IconButton(onClick = { if (showMenu) closeMenu() else openMenu() }) {
-                        MorleyIcon(
-                            MorleyIcons.Menu,
-                            if (showMenu) "Close menu" else "Open menu",
-                            MorleyAccent,
-                            Modifier.size(26.dp)
-                        )
+                        MorleyIcon(MorleyIcons.Menu, if (showMenu) "Close menu" else "Open menu", MorleyAccent, Modifier.size(26.dp))
                     }
                 },
                 title = { Text("B&L Morley", fontSize = 22.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary) },
                 actions = {
-                    Surface(
-                        color = MorleyAccentSoft,
-                        border = BorderStroke(1.dp, MorleyBorder),
-                        shape = RoundedCornerShape(999.dp)
-                    ) {
-                        Text(
-                            AuthManager.accountLabel(context),
-                            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MorleyTextPrimary
-                        )
+                    Surface(color = MorleyAccentSoft, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(999.dp)) {
+                        Text(AuthManager.accountLabel(context), Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MorleyTextPrimary)
                     }
                     Spacer(Modifier.width(10.dp))
                 }
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = MorleySurface, tonalElevation = 0.dp, modifier = Modifier.fillMaxWidth()) {
-                BottomDestination.entries.forEach { destination ->
-                    val selected = when (destination) {
-                        BottomDestination.HOME -> !showMenu && page == Page.Home
-                        BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-                        BottomDestination.GP -> !showMenu && page == Page.GP
-                        BottomDestination.MORE -> showMenu
-                    }
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            when (destination) {
-                                BottomDestination.HOME -> { showMenu = false; page = Page.Home }
-                                BottomDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
-                                BottomDestination.GP -> { showMenu = false; page = Page.GP }
-                                BottomDestination.MORE -> openMenu()
-                            }
-                        },
-                        icon = {
-                            MorleyIcon(
-                                destination.icon,
-                                destination.label,
-                                if (selected) MorleyAccent else MorleyTextSecondary,
-                                Modifier.size(21.dp)
-                            )
-                        },
-                        label = { Text(destination.label, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                        alwaysShowLabel = true,
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = MorleyAccentSoft,
-                            selectedIconColor = MorleyAccent,
-                            selectedTextColor = MorleyAccent,
-                            unselectedIconColor = MorleyTextSecondary,
-                            unselectedTextColor = MorleyTextSecondary
-                        )
-                    )
-                }
-            }
+            if (adaptiveSize == MorleyAdaptiveSize.Compact) CompactDashboardNavigation(page, showMenu, ::selectDestination)
         }
     ) { pad ->
-        Box(Modifier.padding(pad).consumeWindowInsets(pad).fillMaxSize()) {
-            if (showMenu) {
-                MoreHub(onSignOut = { confirmSignOut = true })
-            } else {
-                when (page) {
-                    Page.Home -> ParityHome { page = Page.GP }
-                    Page.Laptop->CategoriesPricingScreen()
-                    Page.Desktop->ConsolePricingScreen()
-                    Page.GP -> GPFix()
-                    Page.More -> ParityHome { page = Page.GP }
+        Row(Modifier.padding(pad).consumeWindowInsets(pad).fillMaxSize()) {
+            if (adaptiveSize != MorleyAdaptiveSize.Compact) {
+                MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})
+            }
+            AdaptiveContentFrame {
+                Box(Modifier.fillMaxSize()) {
+                    if (showMenu) {
+                        MoreHub(onSignOut = { confirmSignOut = true })
+                    } else {
+                        when (page) {
+                            Page.Home -> ParityHome { page = Page.GP }
+                            Page.Laptop -> CategoriesPricingScreen()
+                            Page.Desktop -> ConsolePricingScreen()
+                            Page.GP -> GPFix()
+                            Page.More -> ParityHome { page = Page.GP }
+                        }
+                    }
                 }
             }
         }
@@ -271,18 +273,14 @@ private fun MoreHub(onSignOut: () -> Unit) {
         }
         if (privileged) {
             MenuSection("Administration") {
-                MenuRow("◆", "Admin mode", "Manage support, users, devices and operational controls for ${AuthManager.role(context).replaceFirstChar { it.uppercase() }} accounts.") {
-                    context.startActivity(Intent(context, EmbeddedAdminActivity::class.java))
-                }
+                MenuRow("◆", "Admin mode", "Manage support, users, devices and operational controls for ${AuthManager.role(context).replaceFirstChar { it.uppercase() }} accounts.") { context.startActivity(Intent(context, EmbeddedAdminActivity::class.java)) }
             }
         } else if (!roleRefreshComplete) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
         MenuSection("Data & preferences") {
             MenuRow("☁", "Backup & data", "Export, import and local app data.") { open("backup") }
-            MenuRow("✦", "Notification centre", if (notificationUnread == 0) "No unread notifications." else "$notificationUnread unread notification${if (notificationUnread == 1) "" else "s"}.") {
-                context.startActivity(Intent(context, NotificationCentreActivity::class.java))
-            }
+            MenuRow("✦", "Notification centre", if (notificationUnread == 0) "No unread notifications." else "$notificationUnread unread notification${if (notificationUnread == 1) "" else "s"}.") { context.startActivity(Intent(context, NotificationCentreActivity::class.java)) }
             MenuRow("♢", "Notifications", "Update and app notification preferences.") { open("notifications") }
             MenuRow("◐", "Display", "Interface and display preferences.") { open("display") }
         }
@@ -308,11 +306,8 @@ private fun MoreHub(onSignOut: () -> Unit) {
             availableUpdate?.let { u ->
                 OutlinedButton(
                     onClick = {
-                        if (Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) {
-                            UpdateManager.openInstallerPermission(context)
-                        } else {
-                            UpdateManager.openDownload(context, u)
-                        }
+                        if (Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) UpdateManager.openInstallerPermission(context)
+                        else UpdateManager.openDownload(context, u)
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Download ${u.versionName}") }
