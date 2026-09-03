@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace 'com.buysloans.hub'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.buysloans.hub'
         minSdk 26
-        targetSdk 35
-        versionCode 96
-        versionName '2.15.52'
+        targetSdk 36
+        versionCode 97
+        versionName '2.15.53'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
