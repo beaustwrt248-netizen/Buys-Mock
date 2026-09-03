@@ -25,12 +25,12 @@ function canonicalLabels(){
 function loadAndroidHomeParity(){
   if(!document.querySelector('link[data-morley-android-home-parity]')){
     const link=document.createElement('link');
-    link.rel='stylesheet';link.href='web-android-home-parity.css?v=1';link.dataset.morleyAndroidHomeParity='1';
+    link.rel='stylesheet';link.href='web-android-home-parity.css?v=2';link.dataset.morleyAndroidHomeParity='1';
     document.head.appendChild(link);
   }
   if(!document.querySelector('script[data-morley-android-home-parity]')){
     const script=document.createElement('script');
-    script.src='web-android-home-parity.js?v=1';script.defer=true;script.dataset.morleyAndroidHomeParity='1';
+    script.src='web-android-home-parity.js?v=2';script.defer=true;script.dataset.morleyAndroidHomeParity='1';
     document.body.appendChild(script);
   }
 }
