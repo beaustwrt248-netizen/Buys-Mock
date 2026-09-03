@@ -3,10 +3,19 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const DRIVE_CLIENT_EMAIL = Deno.env.get('GOOGLE_DRIVE_CLIENT_EMAIL') || '';
-const DRIVE_PRIVATE_KEY = (Deno.env.get('GOOGLE_DRIVE_PRIVATE_KEY') || '').replace(/\\n/g, '\n');
 const DRIVE_FOLDER_ID = Deno.env.get('GOOGLE_DRIVE_BACKUP_FOLDER_ID') || '';
 const BACKUP_SECRET = Deno.env.get('MORLEY_BACKUP_SECRET') || '';
+
+// Preferred for a normal personal My Drive folder. The refresh token represents
+// the user who owns the folder, so uploaded files consume that user's Drive quota.
+const DRIVE_OAUTH_CLIENT_ID = Deno.env.get('GOOGLE_DRIVE_OAUTH_CLIENT_ID') || '';
+const DRIVE_OAUTH_CLIENT_SECRET = Deno.env.get('GOOGLE_DRIVE_OAUTH_CLIENT_SECRET') || '';
+const DRIVE_OAUTH_REFRESH_TOKEN = Deno.env.get('GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN') || '';
+
+// Retained only as a fallback for deployments using a Google Workspace Shared Drive.
+const DRIVE_CLIENT_EMAIL = Deno.env.get('GOOGLE_DRIVE_CLIENT_EMAIL') || '';
+const DRIVE_PRIVATE_KEY = (Deno.env.get('GOOGLE_DRIVE_PRIVATE_KEY') || '').replace(/\\n/g, '\n');
+
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
 const DEFAULT_TABLES = [
@@ -33,8 +42,30 @@ function safeError(error: unknown) {
   }
   return String(error);
 }
-async function googleToken() {
-  if (!DRIVE_CLIENT_EMAIL || !DRIVE_PRIVATE_KEY || !DRIVE_FOLDER_ID) throw new Error('Google Drive backup is not configured');
+
+async function oauthUserToken() {
+  if (!DRIVE_OAUTH_CLIENT_ID || !DRIVE_OAUTH_CLIENT_SECRET || !DRIVE_OAUTH_REFRESH_TOKEN) {
+    throw new Error('Google Drive user OAuth is not configured');
+  }
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      client_id: DRIVE_OAUTH_CLIENT_ID,
+      client_secret: DRIVE_OAUTH_CLIENT_SECRET,
+      refresh_token: DRIVE_OAUTH_REFRESH_TOKEN,
+      grant_type: 'refresh_token'
+    })
+  });
+  const json = await res.json();
+  if (!res.ok || !json.access_token) {
+    throw new Error(`Google OAuth refresh failed: ${json.error_description || json.error || res.status}`);
+  }
+  return json.access_token as string;
+}
+
+async function serviceAccountToken() {
+  if (!DRIVE_CLIENT_EMAIL || !DRIVE_PRIVATE_KEY) throw new Error('Google Drive service account is not configured');
   const now = Math.floor(Date.now()/1000);
   const header = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
   const claim = b64url(JSON.stringify({iss:DRIVE_CLIENT_EMAIL,scope:'https://www.googleapis.com/auth/drive.file',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600}));
@@ -42,8 +73,22 @@ async function googleToken() {
   const signature = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${claim}`)));
   const assertion = `${header}.${claim}.${b64url(signature)}`;
   const res = await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion})});
-  const json = await res.json(); if(!res.ok || !json.access_token) throw new Error(`Google token request failed: ${json.error_description || json.error || res.status}`); return json.access_token as string;
+  const json = await res.json();
+  if(!res.ok || !json.access_token) throw new Error(`Google service-account token request failed: ${json.error_description || json.error || res.status}`);
+  return json.access_token as string;
 }
+
+async function googleToken() {
+  if (!DRIVE_FOLDER_ID) throw new Error('Google Drive backup folder is not configured');
+  if (DRIVE_OAUTH_CLIENT_ID && DRIVE_OAUTH_CLIENT_SECRET && DRIVE_OAUTH_REFRESH_TOKEN) {
+    return { token: await oauthUserToken(), authMode: 'user-oauth' as const };
+  }
+  if (DRIVE_CLIENT_EMAIL && DRIVE_PRIVATE_KEY) {
+    return { token: await serviceAccountToken(), authMode: 'service-account' as const };
+  }
+  throw new Error('Google Drive credentials are not configured');
+}
+
 async function sha256(text: string) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 async function collectTable(table: string) {
   const rows: unknown[] = []; let from=0; const size=1000;
@@ -83,12 +128,12 @@ Deno.serve(async(req:Request)=>{
     const canonical=JSON.stringify(document); const digest=await sha256(canonical); const envelope=JSON.stringify({...document,sha256:digest},null,2);
     const name=`morley-backup-${createdAt.replace(/[:.]/g,'-')}.json`;
     phase='google-auth';
-    const googleAccessToken=await googleToken();
+    const google=await googleToken();
     phase='drive-upload';
-    const drive=await upload(name,envelope,googleAccessToken);
+    const drive=await upload(name,envelope,google.token);
     phase='audit';
-    const {error:auditError}=await admin.from('admin_audit_log').insert({actor_user_id:actor==='scheduler'?null:actor,action:'google_drive_backup_created',target_type:'backup',target_id:drive.id,details:{name,sha256:digest,tables:tables.length,trigger:actor}});
+    const {error:auditError}=await admin.from('admin_audit_log').insert({actor_user_id:actor==='scheduler'?null:actor,action:'google_drive_backup_created',target_type:'backup',target_id:drive.id,details:{name,sha256:digest,tables:tables.length,trigger:actor,google_auth_mode:google.authMode}});
     if(auditError) console.error('Backup audit insert failed', safeError(auditError));
-    return reply({ok:true,name,file_id:drive.id,sha256:digest,created_at:createdAt});
+    return reply({ok:true,name,file_id:drive.id,sha256:digest,created_at:createdAt,google_auth_mode:google.authMode});
   }catch(error){ return reply({error:safeError(error),phase},500); }
 });
