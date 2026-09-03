@@ -31,32 +31,74 @@ import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import java.util.Locale
 
-private enum class PhoneBrand(val catalogName: String, val title: String) {
-    APPLE(MobilePhonePricingCatalog.APPLE, "Apple iPhone"),
-    SAMSUNG(MobilePhonePricingCatalog.SAMSUNG, "Samsung Galaxy")
+@Suppress("unused")
+private enum class MobilePhonePricingContract(val catalogName: String) {
+    SAMSUNG(MobilePhonePricingCatalog.SAMSUNG)
+}
+
+private val featuredPhoneBrands = listOf("Apple", "Samsung", "Google", "OnePlus", "Xiaomi")
+private val otherPhoneBrands = listOf("OPPO", "Nothing", "Motorola", "Vivo", "Realme", "Huawei", "Lenovo", "Sony", "ZTE / nubia", "TCL")
+
+private fun phoneBrandTitle(brand: String): String = when (brand) {
+    "Apple" -> "Apple iPhone"
+    "Samsung" -> "Samsung Galaxy"
+    "Google" -> "Google Pixel"
+    "Sony" -> "Sony Xperia"
+    else -> brand
+}
+
+private fun phoneBrandVisualName(brand: String): String = when (brand) {
+    "Apple", "Samsung", "Google", "OnePlus", "Xiaomi" -> brand
+    else -> "Other Brands"
 }
 
 @Composable
 fun MobilePhonePricingScreen() {
-    var brand by remember { mutableStateOf<PhoneBrand?>(null) }
-    if (brand == null) {
-        Screen("Mobile Phones") {
-            Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
-            BrandCard("Apple", highlighted = true) { brand = PhoneBrand.APPLE }
-            BrandCard("Samsung") { brand = PhoneBrand.SAMSUNG }
-            BrandCard("Google") {}
-            BrandCard("OnePlus") {}
-            BrandCard("Xiaomi") {}
-            BrandCard("Other Brands") {}
+    var selectedBrand by remember { mutableStateOf<String?>(null) }
+    var showingOtherBrands by remember { mutableStateOf(false) }
+
+    when {
+        selectedBrand != null -> {
+            Column {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+                    OutlinedButton(
+                        onClick = { selectedBrand = null },
+                        border = BorderStroke(1.dp, MorleyBorder),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+                PhoneBrandPricingScreen(selectedBrand!!)
+            }
         }
-    } else {
-        Column {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
-                OutlinedButton(onClick = { brand = null }, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(14.dp)) {
-                    Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+        showingOtherBrands -> {
+            Column {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+                    OutlinedButton(
+                        onClick = { showingOtherBrands = false },
+                        border = BorderStroke(1.dp, MorleyBorder),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("‹  Mobile Phones", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Screen("Other Phone Brands") {
+                    Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
+                    otherPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
+                        BrandCard(brand) { selectedBrand = brand }
+                    }
                 }
             }
-            PhoneBrandPricingScreen(brand!!)
+        }
+        else -> {
+            Screen("Mobile Phones") {
+                Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
+                featuredPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
+                    BrandCard(brand, highlighted = brand == "Apple") { selectedBrand = brand }
+                }
+                BrandCard("Other Brands") { showingOtherBrands = true }
+            }
         }
     }
 }
@@ -75,7 +117,7 @@ private fun BrandCard(title: String, highlighted: Boolean = false, onClick: () -
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PhoneBrandVisual(title, Modifier.size(34.dp))
+            PhoneBrandVisual(phoneBrandVisualName(title), Modifier.size(34.dp))
             Text(
                 title,
                 modifier = Modifier.weight(1f),
@@ -89,25 +131,41 @@ private fun BrandCard(title: String, highlighted: Boolean = false, onClick: () -
 }
 
 @Composable
-private fun PhoneBrandPricingScreen(brand: PhoneBrand) {
+private fun PhoneBrandPricingScreen(brand: String) {
     var query by remember(brand) { mutableStateOf("") }
     var selectedModel by remember(brand) { mutableStateOf<String?>(null) }
-    var selectedEntry by remember(brand) { mutableStateOf<MobilePhonePriceEntry?>(null) }
+    var selectedEntry by remember(brand) { mutableStateOf<MobilePhoneDeviceEntry?>(null) }
     var grade by remember(brand) { mutableStateOf("A") }
     val money = remember { NumberFormat.getCurrencyInstance(Locale("en", "AU")).apply { maximumFractionDigits = 0 } }
-    val allModels = remember(brand) { MobilePhonePricingCatalog.models(brand.catalogName) }
-    val visibleModels = remember(query, allModels) { if (query.isBlank()) allModels else allModels.filter { it.contains(query, ignoreCase = true) } }
+    val allModels = remember(brand) { MobilePhoneDeviceCatalog.models(brand) }
+    val visibleModels = remember(query, allModels, brand) {
+        allModels.filter { MobilePhoneDeviceCatalog.modelMatches(brand, it, query) }
+    }
+    val brandTitle = phoneBrandTitle(brand)
 
     if (selectedModel == null) {
-        Screen(brand.title) {
-            Text("Select a model to view the A-B-C price-sheet pricing.", color = MorleyTextSecondary, fontSize = 14.sp)
-            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search ${if (brand == PhoneBrand.APPLE) "iPhone" else "Galaxy"} model") }, shape = RoundedCornerShape(16.dp))
+        Screen(brandTitle) {
+            Text("Select a model and storage. Pricing is shown where a Morley price-sheet value already exists.", color = MorleyTextSecondary, fontSize = 14.sp)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Search model or model number") },
+                shape = RoundedCornerShape(16.dp)
+            )
             visibleModels.forEach { model ->
-                val variants = MobilePhonePricingCatalog.variants(brand.catalogName, model)
-                Card(onClick = { selectedModel = model; selectedEntry = variants.firstOrNull() }, colors = CardDefaults.cardColors(containerColor = MorleySurface), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                val variants = MobilePhoneDeviceCatalog.variants(brand, model)
+                Card(
+                    onClick = { selectedModel = model; selectedEntry = variants.firstOrNull() },
+                    colors = CardDefaults.cardColors(containerColor = MorleySurface),
+                    border = BorderStroke(1.dp, MorleyBorder),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Row(Modifier.fillMaxWidth().padding(15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(10.dp)) {
-                            PhoneBrandVisual(brand.catalogName, Modifier.padding(7.dp).size(38.dp))
+                            PhoneBrandVisual(phoneBrandVisualName(brand), Modifier.padding(7.dp).size(38.dp))
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(model, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
@@ -119,58 +177,107 @@ private fun PhoneBrandPricingScreen(brand: PhoneBrand) {
             }
         }
     } else {
-        val variants = MobilePhonePricingCatalog.variants(brand.catalogName, selectedModel!!)
+        val variants = MobilePhoneDeviceCatalog.variants(brand, selectedModel!!)
         val current = selectedEntry ?: variants.firstOrNull()
+        val pricedCurrent = current?.let { MobilePhoneDeviceCatalog.pricedEntry(it) }
         Screen(selectedModel!!) {
-            OutlinedButton(onClick = { selectedModel = null; selectedEntry = null }, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(14.dp)) {
-                Text("‹  ${brand.title}", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
+            OutlinedButton(
+                onClick = { selectedModel = null; selectedEntry = null },
+                border = BorderStroke(1.dp, MorleyBorder),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("‹  $brandTitle", color = MorleyTextPrimary, fontWeight = FontWeight.Bold)
             }
-            Card(colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
+                border = BorderStroke(1.dp, MorleyBorder),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) { PhoneBrandVisual(brand.catalogName, Modifier.padding(10.dp).size(42.dp)) }
+                        Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) {
+                            PhoneBrandVisual(phoneBrandVisualName(brand), Modifier.padding(10.dp).size(42.dp))
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(selectedModel!!, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 21.sp)
-                            Text("Select storage and condition grade", color = MorleyTextSecondary, fontSize = 12.sp)
+                            Text("Select storage${if (pricedCurrent != null) " and condition grade" else ""}", color = MorleyTextSecondary, fontSize = 12.sp)
                         }
                     }
                     Text("Select Storage Capacity", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        variants.forEach { entry -> FilterChip(selected = current?.storage == entry.storage, onClick = { selectedEntry = entry }, label = { Text(entry.storage.replace(" ", "")) }) }
+                        variants.forEach { entry ->
+                            FilterChip(
+                                selected = current?.storage == entry.storage,
+                                onClick = { selectedEntry = entry },
+                                label = { Text(entry.storage.replace(" ", "")) }
+                            )
+                        }
                     }
-                    Text("Select Condition Grade", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MobilePhonePricingCatalog.grades.forEach { option ->
-                            val label = when (option) { "A" -> "Excellent"; "B" -> "Good"; else -> "Fair" }
-                            FilterChip(selected = grade == option, onClick = { grade = option }, label = { Text("$option  $label") })
+                    if (pricedCurrent != null) {
+                        Text("Select Condition Grade", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            MobilePhonePricingCatalog.grades.forEach { option ->
+                                val label = when (option) { "A" -> "Excellent"; "B" -> "Good"; else -> "Fair" }
+                                FilterChip(selected = grade == option, onClick = { grade = option }, label = { Text("$option  $label") })
+                            }
                         }
                     }
                 }
             }
-            current?.let { entry ->
-                val buyPrice = MobilePhonePricingCatalog.buyPrice(entry, grade)
+
+            if (pricedCurrent != null) {
+                val buyPrice = MobilePhonePricingCatalog.buyPrice(pricedCurrent, grade)
                 val percentage = (MobilePhonePricingCatalog.gradeBuyPercent.getValue(grade) * 100).toInt()
-                Card(colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
+                    border = BorderStroke(1.dp, MorleyBorder),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         Text("Quick Summary", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                        SummaryRow("Brand", entry.brand)
-                        SummaryRow("Model", entry.model)
-                        SummaryRow("Storage", entry.storage)
+                        SummaryRow("Brand", pricedCurrent.brand)
+                        SummaryRow("Model", pricedCurrent.model)
+                        SummaryRow("Storage", pricedCurrent.storage)
                         SummaryRow("Grade", "$grade — ${when (grade) { "A" -> "Excellent"; "B" -> "Good"; else -> "Fair" }}")
-                        SummaryRow("Price sheet", money.format(entry.priceSheetValue))
+                        SummaryRow("Price sheet", money.format(pricedCurrent.priceSheetValue))
                         Text("BUY PRICE • $grade GRADE ($percentage%)", color = MorleyAccent, fontSize = 10.sp, fontWeight = FontWeight.Black)
                         Text(money.format(buyPrice), color = MorleyTextPrimary, fontSize = 34.sp, fontWeight = FontWeight.Black)
-                        Text("${money.format(entry.priceSheetValue)} × $percentage% = ${money.format(buyPrice)}", color = MorleyTextSecondary, fontSize = 12.sp)
+                        Text("${money.format(pricedCurrent.priceSheetValue)} × $percentage% = ${money.format(buyPrice)}", color = MorleyTextSecondary, fontSize = 12.sp)
+                    }
+                }
+            } else if (current != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
+                    border = BorderStroke(1.dp, MorleyBorder),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Model Added", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        SummaryRow("Brand", current.brand)
+                        SummaryRow("Model", current.model)
+                        SummaryRow("Storage", current.storage)
+                        Text("Pricing has not been added for this storage variant yet.", color = MorleyAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-            Card(colors = CardDefaults.cardColors(containerColor = MorleySurface), border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("Grade Guide", color = MorleyTextPrimary, fontWeight = FontWeight.Black)
-                    Text("A — Excellent: like new, fully functional, no material damage.", color = MorleyTextSecondary, fontSize = 12.sp)
-                    Text("B — Good: light wear, fully functional.", color = MorleyTextSecondary, fontSize = 12.sp)
-                    Text("C — Fair: heavier visible wear, fully functional.", color = MorleyTextSecondary, fontSize = 12.sp)
-                    Text("Prices are maintained in the app price sheet and can be updated as needed. Final offer may vary after inspection.", color = MorleyAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+            if (pricedCurrent != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MorleySurface),
+                    border = BorderStroke(1.dp, MorleyBorder),
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text("Grade Guide", color = MorleyTextPrimary, fontWeight = FontWeight.Black)
+                        Text("A — Excellent: like new, fully functional, no material damage.", color = MorleyTextSecondary, fontSize = 12.sp)
+                        Text("B — Good: light wear, fully functional.", color = MorleyTextSecondary, fontSize = 12.sp)
+                        Text("C — Fair: heavier visible wear, fully functional.", color = MorleyTextSecondary, fontSize = 12.sp)
+                        Text("Prices are maintained in the app price sheet and can be updated as needed. Final offer may vary after inspection.", color = MorleyAccent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
