@@ -23,13 +23,11 @@ build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
 admin_build = need('android/adminapp/build.gradle', "versionCode 21", "versionName '0.1.20'", 'applyAdminMorleyPalette')
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
-    'Categories',
-    'Console Pricing',
+    'CATEGORIES("Categories", MorleyIcons.Categories)',
+    'GP("General Buys", MorleyIcons.Money)',
     'General Buys / GP',
     'Page.Laptop->CategoriesPricingScreen()',
     'Page.Desktop->ConsolePricingScreen()',
-    'MorleyIcons.Categories',
-    'MorleyIcons.Console',
     'Admin mode',
     'consumeWindowInsets',
 )
@@ -60,6 +58,20 @@ need(
     '"A" to 0.70',
     '"B" to 0.50',
     '"C" to 0.30',
+)
+need(
+    'android/app/src/main/java/com/buysloans/hub/ComputerConsolePricingScreens.kt',
+    'Console Pricing',
+    'Search all consoles',
+    'Price to be added',
+)
+need(
+    'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
+    'Sony PS5 Pro',
+    'Sony PS5 Slim Digital',
+    'Nintendo DSi XL',
+    'Game Boy Advance SP',
+    'fun buyPrice(entry: ConsoleDeviceEntry',
 )
 need('android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt', 'admin', 'manager')
 need(
@@ -104,7 +116,6 @@ need(
     '.modal.open,.morley-menu-dialog.open,.msw-dialog.open',
 )
 need('mobile-layout-fix.js', "home|computer|console|general", 'morley-mobile-overlay-active')
-# The web still uses descriptive Computer Pricing terminology; Android now groups it under Categories.
 need('product-parity-v3.js', 'Computer Pricing', 'Console Pricing', 'Laptop / MacBook', 'Desktop / Gaming PC')
 need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
@@ -143,12 +154,19 @@ for bad in ('TODO', 'FIXME', 'HACK'):
             if bad in file.read_text(encoding='utf-8'):
                 errors.append(f'{file.relative_to(ROOT)}: contains {bad}')
 
-# Primary navigation must go through Categories rather than exposing split Laptop/Desktop tabs.
+# Primary navigation goes through Categories. Console Pricing remains a category route, not a
+# separate bottom-nav/Home shortcut. GP intentionally replaces History in primary navigation.
 if 'Page.Laptop->LaptopGuidedScreen()' in dashboard or 'Page.Desktop->Desktop()' in dashboard:
     errors.append('DashboardActivity.kt: split Laptop/Desktop primary routes remain')
+if 'BottomDestination.HISTORY' in dashboard:
+    errors.append('DashboardActivity.kt: retired History bottom navigation remains')
+if 'NavCard(MorleyIcons.Console' in dashboard:
+    errors.append('DashboardActivity.kt: Console Pricing Home shortcut must remain removed')
+if 'NavCard(MorleyIcons.Categories' in dashboard:
+    errors.append('DashboardActivity.kt: Categories Home shortcut must remain removed')
 if 'MobilePhoneCategoryPlaceholder' in categories:
     errors.append('CategoriesPricingScreen.kt: retired Mobile Phones placeholder remains')
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: Categories contains laptops, desktops, mobile phones and gaming consoles; direct Console Pricing remains available; Apple/Samsung A-B-C phone price sheets are connected.')
+print('Final Morley product audit passed: Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries.')
