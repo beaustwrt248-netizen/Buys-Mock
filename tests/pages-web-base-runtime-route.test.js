@@ -27,12 +27,16 @@ assert(
   'runtime-route smoke must remain a hard failure with an actionable diagnostic'
 );
 assert(
-  workflow.includes('fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" \'Buys and Loans Hub\''),
-  'Pages smoke must retry the deployed index until expected content reaches the custom domain'
+  workflow.includes('fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" \'web-laptop-fair-buy-zone.js?v=1\''),
+  'Pages smoke must wait for a current-build bootstrap marker before root assertions continue'
 );
 assert(
-  !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"\n          grep -q \'Buys and Loans Hub\''),
+  !workflow.includes('fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" \'Buys and Loans Hub\''),
+  'Pages root propagation must not use a generic marker that also exists in stale bootstrap revisions'
+);
+assert(
+  !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"'),
   'Pages smoke must not treat an HTTP 200 with stale index content as deployment success'
 );
 
-console.log('Pages runtime route and index propagation contracts verified');
+console.log('Pages current-root propagation and runtime route contracts verified');

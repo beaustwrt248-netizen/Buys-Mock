@@ -165,7 +165,7 @@ jobs:
             echo "::error::Exact runtime URL did not expose expected deployed content: $url :: $pattern"
             return 1
           }
-          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'Buys and Loans Hub'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'web-laptop-fair-buy-zone.js?v=1'
           grep -q 'web-base.html' "$RUNNER_TEMP/page-index.html"
           grep -q 'secure-pricing.js' "$RUNNER_TEMP/page-index.html"
           grep -q 'mobile-parity-v3.css' "$RUNNER_TEMP/page-index.html"
