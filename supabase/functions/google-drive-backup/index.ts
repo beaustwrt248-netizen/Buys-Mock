@@ -99,7 +99,7 @@ async function upload(name:string, payload:string, token:string){
   const boundary=`morley_${crypto.randomUUID()}`;
   const meta=JSON.stringify({name,parents:[DRIVE_FOLDER_ID],mimeType:'application/json'});
   const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${payload}\r\n--${boundary}--`;
-  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime,size',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${boundary}`},body});
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,createdTime,size',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${boundary}`},body});
   const json=await res.json(); if(!res.ok) throw new Error(`Drive upload failed: ${json.error?.message || res.status}`); return json;
 }
 
