@@ -17,10 +17,10 @@ required = {
     'DashboardActivity.kt': (
         'Page.Laptop->CategoriesPricingScreen()',
         'Page.Desktop->ConsolePricingScreen()',
-        'private fun ParityHome(onCategories:()->Unit,onConsole:()->Unit,onGp:()->Unit)',
-        'NavCard(MorleyIcons.Categories,"Categories","Laptops, desktops, mobile phones and gaming consoles",onCategories)',
-        'NavCard(MorleyIcons.Console,"Console Pricing","PS4, PS5, Xbox and Nintendo grade pricing",onConsole)',
-        'NavCard(MorleyIcons.Money,"General Buys / GP","A / B / C / Luxury buying targets",onGp)',
+        'private fun ParityHome(onCategories: () -> Unit, onConsole: () -> Unit, onGp: () -> Unit)',
+        'NavCard(MorleyIcons.Categories, "Categories", "Laptops, desktops, mobile phones and gaming consoles", onCategories)',
+        'NavCard(MorleyIcons.Console, "Console Pricing", "PS4, PS5, Xbox and Nintendo grade pricing", onConsole)',
+        'NavCard(MorleyIcons.Money, "General Buys / GP", "A / B / C / Luxury buying targets", onGp)',
     ),
     'CategoriesPricingScreen.kt': (
         'PricingCategory.LAPTOPS -> LaptopGuidedScreen()',
