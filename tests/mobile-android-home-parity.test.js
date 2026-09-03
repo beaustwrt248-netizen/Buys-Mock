@@ -9,10 +9,11 @@ const baseline = read('morley-ui-baseline.js');
 const quickDeal = read('quick-deal-grade.js');
 const androidHome = read('android/app/src/main/java/com/buysloans/hub/SmartWorkspaceSection.kt');
 const androidTheme = read('android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt');
+const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 for (const label of ['VALUATIONS', 'WATCHLIST', 'OPPORTUNITIES', 'POTENTIAL GROSS MARGIN', 'Quick Deal Mode', 'Open Valuations & Deals', 'Refresh Smart Workspace']) {
-  assert.match(androidHome, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `Android home must contain ${label}`);
-  assert.match(webHome, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `Mobile web parity layer must contain ${label}`);
+  assert.match(androidHome, new RegExp(escapeRegex(label)), `Android home must contain ${label}`);
+  assert.match(webHome, new RegExp(escapeRegex(label)), `Mobile web parity layer must contain ${label}`);
 }
 
 assert.match(webHome, /NFC Scanner · Android only/, 'Web must identify NFC as Android-only rather than emulate it');
@@ -26,7 +27,7 @@ for (const grade of ['A', 'B', 'C', 'Luxury']) {
 assert.match(quickDeal, /Luxury:\.70/);
 
 for (const token of ['#f5f7f4', '#ffffff', '#167a5a', '#0f684c', '#1c2b26', '#52645d', '#71827b', '#cedbd5', '#238a63', '#a86a12', '#c74755']) {
-  assert.ok(androidTheme.toLowerCase().includes(token.replace('#', '0xff')), `Android theme must define ${token}`);
+  assert.ok(androidTheme.toLowerCase().includes(`0xff${token.slice(1)}`), `Android theme must define ${token}`);
   assert.ok(webCss.toLowerCase().includes(token), `Mobile web theme must mirror ${token}`);
 }
 
