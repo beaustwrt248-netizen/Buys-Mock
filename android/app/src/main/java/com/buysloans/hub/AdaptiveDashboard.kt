@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
 /** Android 16 adaptive dashboard primitives.
@@ -18,12 +19,11 @@ internal enum class MorleyAdaptiveSize { Compact, Medium, Expanded }
 
 @Composable
 internal fun morleyAdaptiveSize(): MorleyAdaptiveSize {
-    return BoxWithConstraints {
-        when {
-            maxWidth < 600.dp -> MorleyAdaptiveSize.Compact
-            maxWidth < 840.dp -> MorleyAdaptiveSize.Medium
-            else -> MorleyAdaptiveSize.Expanded
-        }
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    return when {
+        widthDp < 600 -> MorleyAdaptiveSize.Compact
+        widthDp < 840 -> MorleyAdaptiveSize.Medium
+        else -> MorleyAdaptiveSize.Expanded
     }
 }
 
