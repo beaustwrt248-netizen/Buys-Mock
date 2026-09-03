@@ -39,13 +39,35 @@ for (const marker of [
     `Pages smoke must retry the deployed index until ${marker} reaches the custom domain`
   );
 }
+for (const contract of [
+  ['$BASE/secure-pricing.js', 'localStorage.getItem(STORE)'],
+  ['$BASE/product-parity-v3.js', 'Computer Pricing'],
+  ['$BASE/ultimate-parity.js', 'Help & FAQ'],
+  ['$BASE/mobile-layout-fix.js', 'home|computer|console|general'],
+  ['$BASE/mobile-parity-v3.css', '@media(max-width:760px)'],
+  ['$BASE/morley-light-web.css', 'color-scheme:light'],
+  ['$BASE/desktop-oem.js', "localStorage.getItem('morley_web_auth')"],
+  ['$BASE/no-gold.css', '--yellow:#2f7cff'],
+  ['$BASE/web-a11y.js', 'focus-visible'],
+  ['$BASE/desktop-parity.js', 'morley-section-back'],
+  ['$BASE/admin/turnstile.html', 'postMessage(payload,postMessageOrigin)'],
+  ['$BASE/admin/index.html', 'styles.css?v=3'],
+  ['$BASE/admin/invites.js', 'display_name:name'],
+  ['$BASE/admin/app.js', 'admin-user-control']
+]) {
+  const [url, marker] = contract;
+  assert(
+    workflow.includes(`fetch_until_contains "${url}"` ) && workflow.includes(marker),
+    `Pages smoke must use content-aware retries for ${url} :: ${marker}`
+  );
+}
 assert(
   !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"'),
   'Pages smoke must not treat an HTTP 200 with stale index content as deployment success'
 );
 assert(
-  !workflow.includes("grep -q 'secure-pricing.js' \"$RUNNER_TEMP/page-index.html\""),
-  'root bootstrap markers must be content-aware retries rather than one-shot greps'
+  !workflow.includes('fetch_with_retry "$BASE/secure-pricing.js"'),
+  'runtime-critical asset checks must not treat an HTTP 200 with stale content as deployment success'
 );
 
-console.log('Pages runtime route and complete index propagation contracts verified');
+console.log('Pages runtime route and content-aware propagation contracts verified');
