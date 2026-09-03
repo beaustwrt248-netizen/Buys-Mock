@@ -406,22 +406,29 @@ private fun guidedClassify(
     val yearHit = t.contains(Regex("\\b${Regex.escape(year)}\\b"))
     val cpuHit = cpu.split(" ").filter { it.length > 1 }.all { t.contains(Regex("\\b${Regex.escape(it)}\\b")) }
     val ramHit = t.contains(Regex("\\b${Regex.escape(selectedRam.replace(" ", ""))}\\b")) || t.contains(normalizeGuided(ram.replace("GB", " gb")))
-    val storageHit = t.contains(normalizeGuided(storage))
+    val storageHit = t.contains(normalizeGuided(storage.replace("GB", " gb").replace("TB", " tb"))) || t.replace(" ", "").contains(selectedStorage.replace(" ", ""))
 
-    if (!brandHit) reasons += "brand mismatch"
-    if (!familyHit) reasons += "model family mismatch"
-    if (!yearHit) reasons += "generation not verified"
-    if (!cpuHit) reasons += "processor mismatch"
-    if (!ramHit) reasons += "RAM not verified"
-    if (!storageHit) reasons += "storage not verified"
+    if (brandHit) reasons += "Brand"
+    if (familyHit) reasons += "Model"
+    if (yearHit) reasons += "Year"
+    if (cpuHit) reasons += "Processor"
+    if (ramHit) reasons += "RAM"
+    if (storageHit) reasons += "Storage"
 
-    if (!brandHit || !familyHit) return Triple(MatchTier.REJECTED, 0, reasons.joinToString(", "))
-    val score = listOf(yearHit, cpuHit, ramHit, storageHit).count { it } * 15 + 40
-    return if (yearHit && cpuHit && ramHit && storageHit) {
-        Triple(MatchTier.EXACT, 100, "exact generation and configuration")
-    } else {
-        Triple(MatchTier.SIMILAR, score.coerceAtMost(95), reasons.ifEmpty { listOf("partial configuration match") }.joinToString(", "))
+    val conflictingYear = Regex("\\b(20\\d{2})\\b").findAll(t).map { it.value }.any { it != year }
+    if (conflictingYear) reasons += "Generation mismatch"
+
+    val exact = brandHit && familyHit && yearHit && cpuHit && ramHit && storageHit && !conflictingYear
+    val base = listOf(brandHit, familyHit, yearHit, cpuHit, ramHit, storageHit).count { it }
+    val score = (base * 100 / 6).coerceIn(0, 100)
+    val similar = !conflictingYear && brandHit && familyHit && yearHit && base >= 4
+    val tier = when {
+        exact -> MatchTier.EXACT
+        similar -> MatchTier.SIMILAR
+        else -> MatchTier.REJECTED
     }
+    if (!exact && !similar) reasons += "Insufficient exact configuration identity"
+    return Triple(tier, score, reasons.distinct().joinToString(" + "))
 }
 
 private fun normalizeGuided(value: String): String = value.lowercase()
