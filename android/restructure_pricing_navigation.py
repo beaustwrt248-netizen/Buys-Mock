@@ -29,8 +29,9 @@ required = {
         'PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()',
     ),
     'MobilePhonePricingScreen.kt': (
-        'APPLE(MobilePhonePricingCatalog.APPLE, "Apple iPhone")',
-        'SAMSUNG(MobilePhonePricingCatalog.SAMSUNG, "Samsung Galaxy")',
+        'featuredPhoneBrands = listOf("Apple", "Samsung", "Google", "OnePlus", "Xiaomi")',
+        'MobilePhoneDeviceCatalog.models(brand)',
+        'MobilePhoneDeviceCatalog.pricedEntry(it)',
         'MobilePhonePricingCatalog.gradeBuyPercent',
     ),
 }
@@ -43,4 +44,4 @@ for file_name, needles in required.items():
 if missing:
     raise SystemExit('Pricing navigation drifted; missing: ' + ' | '.join(missing))
 
-print('Categories, direct Console Pricing, and mobile phone pricing navigation aligned')
+print('Categories, direct Console Pricing, expanded mobile catalogue, and priced/unpriced phone flows aligned')
