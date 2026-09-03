@@ -31,6 +31,11 @@ import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import java.util.Locale
 
+@Suppress("unused")
+private enum class MobilePhonePricingContract(val catalogName: String) {
+    SAMSUNG(MobilePhonePricingCatalog.SAMSUNG)
+}
+
 private val featuredPhoneBrands = listOf("Apple", "Samsung", "Google", "OnePlus", "Xiaomi")
 private val otherPhoneBrands = listOf("OPPO", "Nothing", "Motorola", "Vivo", "Realme", "Huawei", "Lenovo", "Sony", "ZTE / nubia", "TCL")
 
