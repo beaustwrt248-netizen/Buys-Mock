@@ -26,13 +26,26 @@ assert(
   workflow.includes('::error::Exact runtime URL did not expose expected deployed content'),
   'runtime-route smoke must remain a hard failure with an actionable diagnostic'
 );
+for (const marker of [
+  "const CANDIDATE='web-base.html'",
+  'secure-pricing.js',
+  'mobile-parity-v3.css',
+  'morley-light-web.css',
+  'mobile-layout-fix.js'
+]) {
+  assert(
+    workflow.includes(`fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" '${marker}'`) ||
+      workflow.includes(`fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" "${marker}"`),
+    `Pages smoke must retry the deployed index until ${marker} reaches the custom domain`
+  );
+}
 assert(
-  workflow.includes('fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" \'Buys and Loans Hub\''),
-  'Pages smoke must retry the deployed index until expected content reaches the custom domain'
-);
-assert(
-  !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"\n          grep -q \'Buys and Loans Hub\''),
+  !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"'),
   'Pages smoke must not treat an HTTP 200 with stale index content as deployment success'
 );
+assert(
+  !workflow.includes("grep -q 'secure-pricing.js' \"$RUNNER_TEMP/page-index.html\""),
+  'root bootstrap markers must be content-aware retries rather than one-shot greps'
+);
 
-console.log('Pages runtime route and index propagation contracts verified');
+console.log('Pages runtime route and complete index propagation contracts verified');
