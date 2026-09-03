@@ -31,51 +31,38 @@ for name in ('MenuFeatureActivity.kt', 'NotificationCentreActivity.kt'):
         'colors = ButtonDefaults.buttonColors(containerColor = MFStrong)': 'colors = ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)',
     })
 
-# FVP-005: keep every GP grade label readable in both interaction states.
-# Selected uses white on emerald; unselected uses dark text on the white card.
 replace(root / 'MainActivity.kt', {
     'contentColor=if(grade==g)Color(0xFF06251B) else Color.White':
         'contentColor=if(grade==g)Color.White else MorleyTextPrimary',
 })
 
-# FVP-006: Smart Workspace primary actions use the same strong emerald surface
-# as the rest of Morley, so keep their labels white and preserve canonical
-# Seller Ask wording in Quick Deal Mode. No deal calculation logic is changed.
+# Keep Smart Workspace actions readable, canonicalise Seller Ask copy, and give
+# the Quick Deal verdict card enough bottom breathing room on compact phones.
 replace(root / 'SmartWorkspaceSection.kt', {
     'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary)':
         'colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White)',
     'label = { Text("Seller asking price") }': 'label = { Text("Seller Ask") }',
+    'Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {\n                        Text(verdict.first':
+        'Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {\n                        Text(verdict.first',
+    'if (headroom != null) Text(if (headroom >= 0) "${swMoney(headroom)} below max buy" else "${swMoney(-headroom)} above max buy", color = if (headroom >= 0) SWGood else SWWarn, fontSize = 11.sp)':
+        'if (headroom != null) Text(if (headroom >= 0) "${swMoney(headroom)} below max buy" else "${swMoney(-headroom)} above max buy", color = if (headroom >= 0) SWGood else SWWarn, fontSize = 11.sp, modifier = Modifier.padding(bottom = 2.dp))',
 })
 
-# FVP-007: Test & Buy checklist chips sit on very light status tints. Use the
-# canonical dark text for both selected and unselected states so labels remain
-# readable without changing green/red/yellow status mapping or test behaviour.
 replace(root / 'TestBuyActivity.kt', {
     'labelColor = Color.White.copy(alpha = .86f),': 'labelColor = Color(0xFF1C2B26),',
     'selectedLabelColor = Color.White': 'selectedLabelColor = Color(0xFF1C2B26)',
 })
 
-# FVP-015: make Valuations & Deals match the canonical light Morley workspace.
-# Paint the actual screen background instead of allowing the dark window theme
-# to show through, keep every status filter single-line and evenly sized on
-# phone widths, use a white empty-state card, and keep canonical Seller Ask copy.
 history = root / 'ValuationHistoryActivity.kt'
 replace(history, {
-    'import androidx.compose.foundation.BorderStroke\n':
-        'import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.background\n',
-    'MaterialTheme(colorScheme=lightColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=HistCard)){':
-        'MaterialTheme(colorScheme=lightColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=Color.White,onBackground=Color(0xFF17332C),onSurface=Color(0xFF17332C))){',
-    'Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){':
-        'Column(Modifier.fillMaxSize().background(HistBg).verticalScroll(rememberScrollState()).padding(horizontal=18.dp,vertical=20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){',
-    'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(5.dp)){listOf("all","watch","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},label={Text(s.replaceFirstChar{it.uppercase()},fontSize=9.sp)})}}':
-        'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all","watch","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},modifier=Modifier.weight(1f),label={Text(s.replaceFirstChar{it.uppercase()},fontSize=9.sp,maxLines=1,softWrap=false)},colors=FilterChipDefaults.filterChipColors(containerColor=Color.White,labelColor=Color(0xFF46564F),selectedContainerColor=Color(0xFFDDF4E9),selectedLabelColor=HistStrong),border=FilterChipDefaults.filterChipBorder(enabled=true,selected=filter==s,borderColor=Color(0xFFD6E1DC),selectedBorderColor=HistAccent,borderWidth=1.dp,selectedBorderWidth=1.dp))}}',
-    'if(!loading&&shown.isEmpty())Card(colors=CardDefaults.cardColors(containerColor=HistCard),border=BorderStroke(1.dp,HistAccent.copy(alpha=.18f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this view.",Modifier.padding(18.dp),color=HistMuted)}':
-        'if(!loading&&shown.isEmpty())Card(colors=CardDefaults.cardColors(containerColor=Color.White),border=BorderStroke(1.dp,Color(0xFFDCE6E1)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=34.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this view.",fontSize=18.sp,fontWeight=FontWeight.Black,color=Color(0xFF17332C));Text(if(search.isBlank()&&filter=="all")"Your saved valuations and deals will appear here." else "Try a different status or search term.",color=HistMuted);if(search.isBlank()&&filter=="all")Text("Get started by saving your first valuation.",color=HistAccent,fontWeight=FontWeight.Bold)}}',
+    'import androidx.compose.foundation.BorderStroke\n': 'import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.background\n',
+    'MaterialTheme(colorScheme=lightColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=HistCard)){': 'MaterialTheme(colorScheme=lightColorScheme(primary=HistAccent,secondary=HistStrong,background=HistBg,surface=Color.White,onBackground=Color(0xFF17332C),onSurface=Color(0xFF17332C))){',
+    'Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){': 'Column(Modifier.fillMaxSize().background(HistBg).verticalScroll(rememberScrollState()).padding(horizontal=18.dp,vertical=20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){',
+    'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(5.dp)){listOf("all","watch","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},label={Text(s.replaceFirstChar{it.uppercase()},fontSize=9.sp)})}}': 'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){listOf("all","watch","quoted","bought","sold","passed").forEach{s->FilterChip(selected=filter==s,onClick={filter=s},modifier=Modifier.weight(1f),label={Text(s.replaceFirstChar{it.uppercase()},fontSize=9.sp,maxLines=1,softWrap=false)},colors=FilterChipDefaults.filterChipColors(containerColor=Color.White,labelColor=Color(0xFF46564F),selectedContainerColor=Color(0xFFDDF4E9),selectedLabelColor=HistStrong),border=FilterChipDefaults.filterChipBorder(enabled=true,selected=filter==s,borderColor=Color(0xFFD6E1DC),selectedBorderColor=HistAccent,borderWidth=1.dp,selectedBorderWidth=1.dp))}}',
+    'if(!loading&&shown.isEmpty())Card(colors=CardDefaults.cardColors(containerColor=HistCard),border=BorderStroke(1.dp,HistAccent.copy(alpha=.18f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth()){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this view.",Modifier.padding(18.dp),color=HistMuted)}': 'if(!loading&&shown.isEmpty())Card(colors=CardDefaults.cardColors(containerColor=Color.White),border=BorderStroke(1.dp,Color(0xFFDCE6E1)),shape=RoundedCornerShape(24.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=34.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text(if(search.isBlank()&&filter=="all")"No saved valuations yet." else "No valuations match this view.",fontSize=18.sp,fontWeight=FontWeight.Black,color=Color(0xFF17332C));Text(if(search.isBlank()&&filter=="all")"Your saved valuations and deals will appear here." else "Try a different status or search term.",color=HistMuted);if(search.isBlank()&&filter=="all")Text("Get started by saving your first valuation.",color=HistAccent,fontWeight=FontWeight.Bold)}}',
     'label={Text("Seller asking price")}': 'label={Text("Seller Ask")}',
 })
 
-# Installed update notices must never continue presenting themselves as available
-# updates. Preserve non-update history and future update notices.
 store = root / 'NotificationInboxStore.kt'
 text = store.read_text(encoding='utf-8')
 old = '''        }.getOrDefault(emptyList())\n    }\n\n    fun unreadCount(context: Context): Int = items(context).count { !it.read }'''
@@ -83,4 +70,4 @@ new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            it
 if old in text:
     store.write_text(text.replace(old, new), encoding='utf-8')
 
-print('Applied video-review UI, GP contrast, Smart Workspace, Test & Buy, Valuation History, Notification Centre and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace Quick Deal spacing, Test & Buy, Valuation History, Notification Centre and stale-update corrections')
