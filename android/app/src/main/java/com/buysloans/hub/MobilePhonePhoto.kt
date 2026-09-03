@@ -3,7 +3,7 @@ package com.buysloans.hub
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -117,7 +117,7 @@ fun MobilePhonePhoto(
             Image(
                 bitmap = current,
                 contentDescription = if (model == null) "$brand phone" else "$brand $model",
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )
         } else {
