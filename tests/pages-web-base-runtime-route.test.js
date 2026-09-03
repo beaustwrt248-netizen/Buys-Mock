@@ -26,5 +26,13 @@ assert(
   workflow.includes('::error::Exact runtime URL did not expose expected deployed content'),
   'runtime-route smoke must remain a hard failure with an actionable diagnostic'
 );
+assert(
+  workflow.includes('fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" \'Buys and Loans Hub\''),
+  'Pages smoke must retry the deployed index until expected content reaches the custom domain'
+);
+assert(
+  !workflow.includes('fetch_with_retry "$BASE/" "$RUNNER_TEMP/page-index.html"\n          grep -q \'Buys and Loans Hub\''),
+  'Pages smoke must not treat an HTTP 200 with stale index content as deployment success'
+);
 
-console.log('Pages web-base runtime route contract verified');
+console.log('Pages runtime route and index propagation contracts verified');
