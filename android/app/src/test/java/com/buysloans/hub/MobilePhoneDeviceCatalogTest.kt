@@ -57,6 +57,22 @@ class MobilePhoneDeviceCatalogTest {
     }
 
     @Test
+    fun appleModelsAreSeriesFirstNewestGenerationFirst() {
+        val models = MobilePhoneDeviceCatalog.models("Apple")
+        assertTrue(models.indexOf("iPhone 17 Pro Max") < models.indexOf("iPhone 16 Pro Max"))
+        assertTrue(models.indexOf("iPhone 16 Pro Max") < models.indexOf("iPhone 15 Pro Max"))
+        assertTrue(models.indexOf("iPhone 15 Pro Max") < models.indexOf("iPhone 14 Pro Max"))
+    }
+
+    @Test
+    fun premiumVariantsStayTogetherWithinPhoneGeneration() {
+        val models = MobilePhoneDeviceCatalog.models("Apple")
+        val seventeen = models.filter { it.startsWith("iPhone 17") }
+        assertTrue(seventeen.first().contains("Pro Max"))
+        assertTrue(seventeen.all { it.startsWith("iPhone 17") })
+    }
+
+    @Test
     fun modelNumberSearchFindsFriendlyModel() {
         assertTrue(MobilePhoneDeviceCatalog.modelMatches("Samsung", "Galaxy S24 Ultra", "SM-S928B"))
     }
