@@ -42,6 +42,9 @@ object MobilePhoneDeviceCatalog {
             val source = additiveByKey[entryKey]
             MobilePhoneDeviceEntry(priced.brand, priced.model, source?.modelNumber, priced.storage, priced.priceSheetValue)
         }
+
+        // Existing Morley price-sheet records are always authoritative. Imported and expanded
+        // rows only extend the catalogue when that exact brand/model/storage key does not exist.
         existing + additive.filter { key(it.brand, it.model, it.storage) !in existingKeys }
     }
 
