@@ -69,7 +69,6 @@ private fun RootApp(showUpdatedInitially: Boolean) {
 private enum class BottomDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
     CATEGORIES("Categories", MorleyIcons.Categories),
-    CONSOLE("Console", MorleyIcons.Console),
     HISTORY("History", MorleyIcons.History),
     MORE("More", MorleyIcons.More)
 }
@@ -166,7 +165,6 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                     val selected = when (destination) {
                         BottomDestination.HOME -> !showMenu && page == Page.Home
                         BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-                        BottomDestination.CONSOLE -> !showMenu && page == Page.Desktop
                         BottomDestination.HISTORY -> false
                         BottomDestination.MORE -> showMenu
                     }
@@ -176,7 +174,6 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                             when (destination) {
                                 BottomDestination.HOME -> { showMenu = false; page = Page.Home }
                                 BottomDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
-                                BottomDestination.CONSOLE -> { showMenu = false; page = Page.Desktop }
                                 BottomDestination.HISTORY -> context.startActivity(Intent(context, ValuationHistoryActivity::class.java))
                                 BottomDestination.MORE -> openMenu()
                             }

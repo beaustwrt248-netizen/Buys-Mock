@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,12 +42,12 @@ fun MobilePhonePricingScreen() {
     if (brand == null) {
         Screen("Mobile Phones") {
             Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
-            BrandCard("Apple", "iPhone price-sheet pricing", highlighted = true) { brand = PhoneBrand.APPLE }
-            BrandCard("Samsung", "Galaxy S & Z price-sheet pricing") { brand = PhoneBrand.SAMSUNG }
-            BrandCard("Google", "Coming next") {}
-            BrandCard("OnePlus", "Coming next") {}
-            BrandCard("Xiaomi", "Coming next") {}
-            BrandCard("Other Brands", "More brands can be added here") {}
+            BrandCard("Apple", highlighted = true) { brand = PhoneBrand.APPLE }
+            BrandCard("Samsung") { brand = PhoneBrand.SAMSUNG }
+            BrandCard("Google") {}
+            BrandCard("OnePlus") {}
+            BrandCard("Xiaomi") {}
+            BrandCard("Other Brands") {}
         }
     } else {
         Column {
@@ -60,26 +62,28 @@ fun MobilePhonePricingScreen() {
 }
 
 @Composable
-private fun BrandCard(title: String, subtitle: String, highlighted: Boolean = false, onClick: () -> Unit) {
+private fun BrandCard(title: String, highlighted: Boolean = false, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .45f) else MorleySurface),
+        colors = CardDefaults.cardColors(containerColor = if (highlighted) MorleyAccentSoft.copy(alpha = .34f) else MorleySurface),
         border = BorderStroke(1.dp, if (highlighted) MorleyAccent else MorleyBorder),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(color = MorleySurface, shape = RoundedCornerShape(12.dp)) {
-                PhoneBrandVisual(title, Modifier.padding(7.dp).size(44.dp))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                Text(subtitle, color = MorleyTextSecondary, fontSize = 12.sp)
-            }
-            Text("›", color = if (highlighted) MorleyAccent else MorleyTextSecondary, fontSize = 28.sp, fontWeight = FontWeight.Black)
+            PhoneBrandVisual(title, Modifier.size(34.dp))
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                color = if (highlighted) MorleyAccent else MorleyTextPrimary,
+                fontWeight = FontWeight.Black,
+                fontSize = 16.sp
+            )
+            Text("›", color = if (highlighted) MorleyAccent else MorleyTextSecondary, fontSize = 25.sp, fontWeight = FontWeight.Black)
         }
     }
 }
