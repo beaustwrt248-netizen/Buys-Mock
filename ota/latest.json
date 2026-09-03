@@ -1,7 +1,7 @@
 {
-  "versionCode": 96,
-  "versionName": "2.15.52",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.52/B-and-L-Morley-2.15.52.apk",
-  "sha256": "d7ce9fec9bcb1ea58adfaca11800cc35d5193bf98f770614eb6729d128827ae1",
-  "notes": "Fix Quick Deal Mode BUY WITHIN MAX result card clipping on compact Android screens for 2.15.52"
+  "versionCode": 97,
+  "versionName": "2.15.53",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.53/B-and-L-Morley-2.15.53.apk",
+  "sha256": "2ab0619d70c67244779e31abccb175cbaf7d04ecb8c10b01abefe2d563a435d2",
+  "notes": "Target Android 16 API 36 for Morley 2.15.53 (#606)"
 }
