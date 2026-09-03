@@ -22,8 +22,20 @@ function canonicalLabels(){
     if(cleanText(button.textContent)!==label)button.textContent=label;
   });
 }
+function loadAndroidHomeParity(){
+  if(!document.querySelector('link[data-morley-android-home-parity]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';link.href='web-android-home-parity.css?v=1';link.dataset.morleyAndroidHomeParity='1';
+    document.head.appendChild(link);
+  }
+  if(!document.querySelector('script[data-morley-android-home-parity]')){
+    const script=document.createElement('script');
+    script.src='web-android-home-parity.js?v=1';script.defer=true;script.dataset.morleyAndroidHomeParity='1';
+    document.body.appendChild(script);
+  }
+}
 function apply(){ensureViewport();normaliseSpelling();markStatus();markDecision();canonicalLabels();document.documentElement.dataset.morleyUiBaseline='1'}
 function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(()=>{queued=false;apply()})}
-function boot(){apply();observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true,characterData:true});window.addEventListener('resize',schedule,{passive:true});window.addEventListener('morley-product-parity-ready',schedule);window.addEventListener('morley-initial-layout-ready',schedule)}
+function boot(){loadAndroidHomeParity();apply();observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true,characterData:true});window.addEventListener('resize',schedule,{passive:true});window.addEventListener('morley-product-parity-ready',schedule);window.addEventListener('morley-initial-layout-ready',schedule)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
