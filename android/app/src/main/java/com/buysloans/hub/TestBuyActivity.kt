@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 private val TBAccent = Color(0xFF167A5A)
 private val TBBg = Color(0xFFF5F7F4)
 private val TBCard = Color(0xFFEEF4F0)
+private val TBText = Color(0xFF1C2B26)
 private val TBMuted = Color(0xFF52645D)
 private val TBGood = Color(0xFF238A63)
 private val TBBad = Color(0xFFC74755)
@@ -272,9 +273,9 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                                     ),
                                     colors = FilterChipDefaults.filterChipColors(
                                         containerColor = resultColor.copy(alpha = .04f),
-                                        labelColor = Color.White.copy(alpha = .86f),
-                                        selectedContainerColor = resultColor.copy(alpha = .34f),
-                                        selectedLabelColor = Color.White
+                                        labelColor = TBText,
+                                        selectedContainerColor = resultColor.copy(alpha = .18f),
+                                        selectedLabelColor = TBText
                                     )
                                 )
                             }
