@@ -9,4 +9,4 @@
 #pricingList .pricing-row .muted{color:#6e7f77!important;font-weight:500!important;line-height:1.35!important}
 #pricingList .pricing-row strong{color:#173a2f!important;font-weight:900!important}
 #pricingList .pricing-row>div:last-child{flex:0 0 auto!important;text-align:right!important}
-@media(max-width:900px){#pricingList{padding-bottom:118px!important}#pricingList .pricing-row{align-items:flex-start!important;flex-direction:column!important;gap:10px!important;padding:16px!important}#pricingList .pricing-row>div:last-child{width:100%!important;text-align:left!important;border-top:1px solid #e0e9e4!important;padding-top:10px!important}.pricing-row .row-title{font-size:17px!important}}
+@media(max-width:900px){#pricingList{padding-bottom:118px!important}#pricingList .pricing-row{align-items:flex-start!important;flex-direction:column!important;gap:10px!important;padding:16px!important}#pricingList .pricing-row>div:last-child{width:100%!important;text-align:left!important;border-top:1px solid #e0e9e4!important;padding-top:10px!important}#pricingList .pricing-row .row-title{font-size:17px!important}}
