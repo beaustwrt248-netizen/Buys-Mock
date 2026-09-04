@@ -1,7 +1,7 @@
 {
-  "versionCode": 100,
-  "versionName": "2.15.56",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.56/B-and-L-Morley-2.15.56.apk",
-  "sha256": "21fe89bb973a716f9e12bf0c3ee811cc1d0c01df2ad40ec1f67a119bebf617f6",
-  "notes": "Reconcile Notification Centre source with shipped light UI"
+  "versionCode": 101,
+  "versionName": "2.15.57",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.57/B-and-L-Morley-2.15.57.apk",
+  "sha256": "d8cee8a9f2024601518111f6b8ef34760fa092539dadd812fa32f9842eb6d54e",
+  "notes": "Restage Firebase BOM 34.18.0 release on latest main (#674)"
 }
