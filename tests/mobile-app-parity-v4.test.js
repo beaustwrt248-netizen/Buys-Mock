@@ -27,11 +27,11 @@ test('phone pricing and cache-safe final parity assets load in the production bo
   assert.match(index,/morley-central-pricing\.js\?v=1/);
   assert.match(index,/web-universal-buy\.js\?v=2/);
   assert.match(index,/web-universal-buy\.css\?v=2/);
-  assert.match(index,/mobile-layout-fix\.js\?v=20260904\.2/);
-  assert.match(index,/mobile-app-parity-v4\.css\?v=20260904\.2/);
-  assert.match(index,/mobile-app-parity-v4\.js\?v=20260904\.2/);
-  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=20260904.2')>index.indexOf('morley-desktop-dashboard.css?v=2'));
-  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=20260904.2')>index.indexOf('morley-desktop-dashboard.js?v=1'));
+  assert.match(index,/mobile-layout-fix\.js\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v4\.css\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v4\.js\?v=202609042/);
+  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=202609042')>index.indexOf('morley-desktop-dashboard.css?v=2'));
+  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609042')>index.indexOf('morley-desktop-dashboard.js?v=1'));
 });
 
 test('legacy mobile layout yields navigation ownership to parity v4',()=>{
