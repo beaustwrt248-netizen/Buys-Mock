@@ -20,7 +20,8 @@
     if(!VALID.includes(page)) return;
     renderPage(page);
     const hash=`#${page}`;
-    if(!handlingPop && location.hash!==hash){
+    const canWriteHistory=location.protocol==='http:'||location.protocol==='https:';
+    if(canWriteHistory && !handlingPop && location.hash!==hash){
       if(opts.replace) history.replaceState({morleyPage:page},'',hash);
       else history.pushState({morleyPage:page},'',hash);
     }
@@ -145,7 +146,8 @@
     if(!VALID.includes(page)){try{page=localStorage.getItem(ROUTE_KEY)||''}catch{}}
     if(!VALID.includes(page)) page='home';
     renderPage(page);
-    history.replaceState({morleyPage:page},'',`#${page}`);
+    const canWriteHistory=location.protocol==='http:'||location.protocol==='https:';
+    if(canWriteHistory) history.replaceState({morleyPage:page},'',`#${page}`);
   }
 
   function enableBrowserBack(){
