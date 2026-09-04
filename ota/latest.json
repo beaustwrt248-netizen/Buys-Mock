@@ -1,7 +1,7 @@
 {
-  "versionCode": 102,
-  "versionName": "2.15.58",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.58/B-and-L-Morley-2.15.58.apk",
-  "sha256": "fa1af29f4516074a832856c1fe5e54e0d8b074f45ecc5f33932e261652840669",
-  "notes": "Align Help guide with current Morley navigation (#683)"
+  "versionCode": 103,
+  "versionName": "2.15.59",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.59/B-and-L-Morley-2.15.59.apk",
+  "sha256": "8f079c68c9b1198dde310a8708519774275aa03e3a6658d147acc18594dbe688",
+  "notes": "Merge pull request #687 from beaustwrt248-netizen/upgrade/android-api37-agp-9-1-2"
 }
