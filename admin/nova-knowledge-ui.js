@@ -1,0 +1,66 @@
+(()=>{'use strict';
+const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const MAX_FILE_BYTES=8*1024*1024,MAX_CONTENT=250000;
+let editingId=null,searchTimer=null,lastFile=null;
+function ai(){return window.MorleyAI}
+async function invoke(body){const {data,error}=await sb.functions.invoke('nova-knowledge',{body});if(error)throw error;if(data?.error)throw new Error(String(data.error));return data}
+function status(message,bad=false){const el=$('novaKnowledgeStatus');if(!el)return;el.textContent=message;el.dataset.state=bad?'error':'ok'}
+function addBubble(role,text){const host=$('morleyAiConversation');if(!host)return;const div=document.createElement('div');div.className='card';div.style.margin='10px 0';div.innerHTML=`<strong>${role==='user'?'You':'Nova AI'}</strong><div style="margin-top:6px;white-space:pre-wrap">${esc(text)}</div>`;host.appendChild(div);host.scrollTop=host.scrollHeight}
+function categoryLabel(v){return({general:'General',catalogue:'Catalogue',pricing:'Pricing',valuation:'Valuations',inventory:'Inventory',sales:'Sales',support:'Support',guardian:'Guardian',release:'Releases',admin:'Admin & operations'})[v]||v}
+function sourceLabel(item){return item.source_label||item.source_filename||({manual:'Manual entry',file:'File import',import:'Imported data'})[item.source_type]||item.source_type||'Unknown source'}
+function resetForm(){editingId=null;lastFile=null;const form=$('novaKnowledgeForm');form?.reset();if($('novaKnowledgeTrust'))$('novaKnowledgeTrust').value='reference';if($('novaKnowledgeCategory'))$('novaKnowledgeCategory').value='general';if($('novaKnowledgeSave'))$('novaKnowledgeSave').textContent='Add to Nova';if($('novaKnowledgeCancel'))$('novaKnowledgeCancel').hidden=true;status('Ready.')}
+async function extractFile(file){
+  if(!file)return'';if(file.size>MAX_FILE_BYTES)throw new Error('File is larger than 8 MB.');
+  const name=file.name.toLowerCase(),type=(file.type||'').toLowerCase();
+  if(/\.(txt|md|csv|json)$/.test(name)||/^text\//.test(type)||type==='application/json')return await file.text();
+  if(name.endsWith('.pdf')||type==='application/pdf'){
+    const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+    const doc=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise,parts=[];
+    for(let i=1;i<=doc.numPages;i++){const page=await doc.getPage(i),tc=await page.getTextContent();parts.push(tc.items.map(x=>x.str||'').join(' '))}
+    return parts.join('\n\n');
+  }
+  if(name.endsWith('.docx')||type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'){
+    const mammoth=await import('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/+esm');
+    const r=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});return r.value||'';
+  }
+  if(/\.(xlsx|xls)$/.test(name)||/spreadsheet|excel/.test(type)){
+    const XLSX=await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});return wb.SheetNames.map(n=>`# ${n}\n${XLSX.utils.sheet_to_csv(wb.Sheets[n])}`).join('\n\n');
+  }
+  throw new Error('Unsupported file type. Use PDF, DOCX, XLS/XLSX, CSV, JSON, Markdown or text.');
+}
+async function buildPayload(){
+  const file=$('novaKnowledgeFile')?.files?.[0]||null,notes=$('novaKnowledgeContent')?.value||'';let extracted='';
+  if(file){status(`Reading ${file.name}…`);extracted=await extractFile(file);lastFile=file}
+  const combined=[notes.trim(),extracted.trim()].filter(Boolean).join('\n\n');if(!combined)throw new Error('Add some knowledge text or choose a file.');
+  const truncated=combined.length>MAX_CONTENT,content=combined.slice(0,MAX_CONTENT),rawTitle=$('novaKnowledgeTitle')?.value?.trim()||'',title=rawTitle||(file?file.name.replace(/\.[^.]+$/,''):'');
+  if(!title)throw new Error('Give this knowledge a title.');
+  const sourceValue=$('novaKnowledgeSource')?.value?.trim()||'';
+  return{title,category:$('novaKnowledgeCategory')?.value||'general',trust_level:$('novaKnowledgeTrust')?.value||'reference',version_label:$('novaKnowledgeVersion')?.value?.trim()||null,source_type:file?'file':'manual',source_label:sourceValue||(file?file.name:'Manual entry'),source_filename:file?file.name:null,mime_type:file?(file.type||null):null,content,metadata:{ingested_via:'nova_control_centre',original_file_size:file?.size||null,truncated}};
+}
+async function saveKnowledge(e){
+  e.preventDefault();const btn=$('novaKnowledgeSave');if(btn)btn.disabled=true;
+  try{const payload=await buildPayload(),data=await invoke({action:editingId?'update':'create',id:editingId||undefined,...payload});status(`${editingId?'Updated':'Added'} “${data.item?.title||payload.title}”${payload.metadata.truncated?' (content was trimmed to Nova’s 250,000-character limit)':''}.`);resetForm();await refreshKnowledge()}
+  catch(err){status(err?.message||String(err),true)}finally{if(btn)btn.disabled=false}
+}
+async function refreshKnowledge(){
+  const host=$('novaKnowledgeResults'),summary=$('novaKnowledgeSummary');if(!host)return;host.textContent='Loading knowledge…';
+  try{const q=$('novaKnowledgeSearch')?.value?.trim()||'',category=$('novaKnowledgeFilter')?.value||'all',include_archived=!!$('novaKnowledgeArchived')?.checked;const [list,sum]=await Promise.all([invoke({action:'list',q,category,include_archived,limit:100}),invoke({action:'summary'})]);
+    if(summary)summary.textContent=`${sum.active_count||0} active • ${sum.archived_count||0} archived • ${sum.by_trust?.verified||0} verified`;
+    host.innerHTML='';const items=list.items||[];if(!items.length){host.textContent='No matching Nova knowledge.';return}
+    for(const item of items){const card=document.createElement('div');card.className='nova-item nova-memory-item';card.innerHTML=`<div class="nova-memory-head"><div><b>${esc(item.title)}</b><div class="nova-memory-meta">${esc(categoryLabel(item.category))} • ${esc(item.trust_level)} • rev ${esc(item.revision)}${item.status==='archived'?' • archived':''}</div></div></div><div class="nova-memory-meta">Source: ${esc(sourceLabel(item))}${item.version_label?` • Version: ${esc(item.version_label)}`:''}</div><p>${esc(item.snippet||'')}${String(item.snippet||'').length>=420?'…':''}</p><div class="nova-memory-actions"><button type="button" data-k-edit="${esc(item.id)}">Edit</button><button type="button" data-k-toggle="${esc(item.id)}" data-k-status="${esc(item.status)}">${item.status==='archived'?'Restore':'Archive'}</button><button type="button" data-k-delete="${esc(item.id)}">Delete</button></div>`;host.appendChild(card)}
+  }catch(err){host.textContent='Knowledge could not be loaded.';status(err?.message||String(err),true)}
+}
+async function editItem(id){try{const data=await invoke({action:'get',id}),item=data.item;if(!item)return;$('novaKnowledgeTitle').value=item.title||'';$('novaKnowledgeCategory').value=item.category||'general';$('novaKnowledgeTrust').value=item.trust_level||'reference';$('novaKnowledgeVersion').value=item.version_label||'';$('novaKnowledgeSource').value=item.source_label||'';$('novaKnowledgeContent').value=item.content||'';$('novaKnowledgeFile').value='';editingId=id;lastFile=null;$('novaKnowledgeSave').textContent='Save changes';$('novaKnowledgeCancel').hidden=false;status(`Editing “${item.title}”.`);$('novaKnowledgeTitle')?.scrollIntoView({behavior:'smooth',block:'center'})}catch(err){status(err?.message||String(err),true)}}
+async function toggleItem(id,current){try{await invoke({action:current==='archived'?'restore':'archive',id});status(current==='archived'?'Knowledge restored.':'Knowledge archived.');await refreshKnowledge()}catch(err){status(err?.message||String(err),true)}}
+async function deleteItem(id){if(!confirm('Permanently delete this Nova knowledge item? This cannot be undone.'))return;try{await invoke({action:'delete',id});if(editingId===id)resetForm();status('Knowledge permanently deleted.');await refreshKnowledge()}catch(err){status(err?.message||String(err),true)}}
+function registerCapabilities(){if(!ai())return;try{ai().register({id:'knowledge.summary',label:'Read Nova taught knowledge summary',domain:'knowledge',risk:ai().RISK.READ,execute:async()=>invoke({action:'summary'})})}catch{}try{ai().register({id:'knowledge.search',label:'Search Nova taught knowledge',domain:'knowledge',risk:ai().RISK.READ,execute:async input=>invoke({action:'search',q:String(input?.query||input?.q||''),category:input?.category||'all',limit:8})})}catch{}}
+function explicitKnowledgeQuery(text){const m=text.match(/^\s*(?:knowledge\s*:|search\s+(?:my\s+)?knowledge\s+(?:for\s+)?|what\s+do\s+you\s+know\s+about\s+)(.+)$/i);return m?.[1]?.trim()||''}
+async function handleKnowledgeChat(text,query){const input=$('morleyAiInput'),chatStatus=$('morleyAiStatus');addBubble('user',text);if(input)input.value='';if(chatStatus)chatStatus.textContent='Searching Nova knowledge…';try{const data=await invoke({action:'search',q:query,limit:6}),items=data.items||[];if(!items.length)addBubble('ai',`I do not have taught knowledge matching “${query}”.`);else addBubble('ai',`I found ${items.length} taught knowledge item(s):\n\n`+items.map((x,i)=>`${i+1}. ${x.title} [${categoryLabel(x.category)} • ${x.trust_level}]\n${x.snippet||''}`).join('\n\n')+'\n\nTaught knowledge is reference context only; verified live Morley data remains authoritative.');if(chatStatus)chatStatus.textContent='Ready.'}catch(err){if(chatStatus)chatStatus.textContent=err?.message||String(err);addBubble('ai','I could not search taught knowledge safely.') }}
+function wire(){registerCapabilities();$('novaKnowledgeForm')?.addEventListener('submit',saveKnowledge);$('novaKnowledgeCancel')?.addEventListener('click',resetForm);$('novaKnowledgeRefresh')?.addEventListener('click',refreshKnowledge);$('novaKnowledgeFilter')?.addEventListener('change',refreshKnowledge);$('novaKnowledgeArchived')?.addEventListener('change',refreshKnowledge);$('novaKnowledgeSearch')?.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(refreshKnowledge,350)});$('novaKnowledgeResults')?.addEventListener('click',e=>{const edit=e.target.closest('[data-k-edit]'),toggle=e.target.closest('[data-k-toggle]'),del=e.target.closest('[data-k-delete]');if(edit)editItem(edit.dataset.kEdit);else if(toggle)toggleItem(toggle.dataset.kToggle,toggle.dataset.kStatus);else if(del)deleteItem(del.dataset.kDelete)});
+  const btn=$('morleyAiSendBtn'),input=$('morleyAiInput');btn?.addEventListener('click',e=>{const text=input?.value.trim()||'',q=explicitKnowledgeQuery(text);if(!q)return;e.preventDefault();e.stopImmediatePropagation();handleKnowledgeChat(text,q)},true);input?.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.shiftKey)return;const text=input.value.trim(),q=explicitKnowledgeQuery(text);if(!q)return;e.preventDefault();e.stopImmediatePropagation();handleKnowledgeChat(text,q)},true);
+  refreshKnowledge();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();window.addEventListener('morley-ai-authorised',refreshKnowledge);
+})();
