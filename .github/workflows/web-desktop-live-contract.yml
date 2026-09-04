@@ -1,0 +1,68 @@
+name: Web Desktop Live Contract
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'morley-desktop-dashboard.js'
+      - '.github/workflows/web-desktop-live-contract.yml'
+  workflow_run:
+    workflows: ['Deploy B&L Morley Web']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-desktop-navigation:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployed Categories navigation owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='http://buyshub.me'
+          fetch_until_contains() {
+            local url="$1" out="$2" pattern="$3"
+            for attempt in 1 2 3 4 5 6; do
+              local sep='?'
+              [[ "$url" == *\?* ]] && sep='&'
+              if curl --fail --silent --show-error --location --max-time 30 \
+                -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                --output "$out" "${url}${sep}desktop_contract=${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_${attempt}" \
+                && grep -Fq -- "$pattern" "$out"; then
+                return 0
+              fi
+              echo "Waiting for deployed desktop contract ($attempt/6): $url :: $pattern"
+              sleep 10
+            done
+            echo "::error::Expected deployed desktop contract not observed: $url :: $pattern"
+            return 1
+          }
+
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/index.html" 'morley-desktop-dashboard.js?v=2'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "home|categories|general|settings"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Categories'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Laptops'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Desktops'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Mobile Phones'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Gaming Consoles'"
+          node --check "$RUNNER_TEMP/desktop.js"
+
+          if grep -Fq "['phones'," "$RUNNER_TEMP/desktop.js"; then
+            echo '::error::Retired Mobile Phones top-level desktop route is live'
+            exit 1
+          fi
+          if grep -Fq "['computer'," "$RUNNER_TEMP/desktop.js"; then
+            echo '::error::Retired Computer Pricing top-level desktop route is live'
+            exit 1
+          fi
+          if grep -Fq "['console'," "$RUNNER_TEMP/desktop.js"; then
+            echo '::error::Retired Console Pricing top-level desktop route is live'
+            exit 1
+          fi
+
+          echo 'Live desktop Categories navigation contract verified.'
