@@ -21,6 +21,13 @@ assert.match(productParity, /data-page="settings"/);
 assert.doesNotMatch(productParity, /t==='laptop'[\s\S]*data\.target='computer'/);
 assert.doesNotMatch(productParity, /t==='desktop'[\s\S]*data\.target='console'/);
 
+// Shared desktop layers must explicitly yield navigation ownership to the
+// physical-phone/v5 mobile renderer instead of competing with it.
+assert.match(desktopLayout, /morley-physical-phone/);
+assert.match(productParity, /const mobileAndroidOwner=/);
+assert.match(productParity, /if\(nav&&!mobileAndroidOwner\(\)\)/);
+assert.match(productParity, /function syncActiveNav\(\)\{if\(mobileAndroidOwner\(\)\)return/);
+
 for (const category of ['computer','laptop','desktop','mobilePhones','console']) {
   assert.ok(desktopLayout.includes(`'${category}'`), `desktop layout missing category child mapping: ${category}`);
   assert.ok(productParity.includes(`'${category}'`), `product parity missing category child mapping: ${category}`);
