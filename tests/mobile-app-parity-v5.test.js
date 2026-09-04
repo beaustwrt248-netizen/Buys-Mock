@@ -12,9 +12,9 @@ const premium=fs.readFileSync('premium-motion.css','utf8');
 
 test('v5 is the final production mobile CSS and JS authority',()=>{
   assert.match(index,/mobile-app-parity-v5\.css\?v=202609041/);
-  assert.match(index,/mobile-app-parity-v5\.js\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v5\.js\?v=202609041&route=2/);
   assert.ok(index.indexOf('mobile-app-parity-v5.css?v=202609041')>index.indexOf('mobile-app-parity-v4.css?v=202609044'));
-  assert.ok(index.indexOf('mobile-app-parity-v5.js?v=202609042')>index.indexOf('mobile-app-parity-v4.js?v=202609044'));
+  assert.ok(index.indexOf('mobile-app-parity-v5.js?v=202609041&route=2')>index.indexOf('mobile-app-parity-v4.js?v=202609044'));
 });
 
 test('v5 validates actual nav markup instead of trusting a stale dataset marker',()=>{
