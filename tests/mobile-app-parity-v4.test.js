@@ -29,15 +29,23 @@ test('phone pricing and cache-safe final parity assets load in the production bo
   assert.match(index,/web-universal-buy\.css\?v=2/);
   assert.match(index,/mobile-layout-fix\.js\?v=202609042/);
   assert.match(index,/mobile-app-parity-v4\.css\?v=202609042/);
-  assert.match(index,/mobile-app-parity-v4\.js\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v4\.js\?v=202609043/);
   assert.ok(index.indexOf('mobile-app-parity-v4.css?v=202609042')>index.indexOf('morley-desktop-dashboard.css?v=2'));
-  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609042')>index.indexOf('morley-desktop-dashboard.js?v=1'));
+  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609043')>index.indexOf('morley-desktop-dashboard.js?v=1'));
 });
 
 test('legacy mobile layout yields navigation ownership to parity v4',()=>{
   assert.match(legacy,/function parityV4OwnsNav\(\)/);
   assert.match(legacy,/data-morley-mobile-app-parity/);
   assert.match(legacy,/if\(!isMobile\(\)\|\|parityV4OwnsNav\(\)\) return/);
+});
+
+test('v4 stylesheet reclaims final runtime visual authority',()=>{
+  assert.match(js,/function ensureVisualAuthority\(\)/);
+  assert.match(js,/link\[data-morley-mobile-app-parity="4"\]/);
+  assert.match(js,/document\.head\.appendChild\(link\)/);
+  assert.match(js,/ensureVisualAuthority\(\);ensureCategories\(\)/);
+  assert.match(js,/visualViewport\?\.addEventListener\('resize',schedule/);
 });
 
 test('authoritative mobile theme is emerald-only and fixes reported home states',()=>{

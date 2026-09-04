@@ -5,6 +5,10 @@ const isMobile=()=>document.documentElement.classList.contains('morley-physical-
 const go=page=>{if(typeof window.morleyDesktopGo==='function')window.morleyDesktopGo(page);else window.show?.(page)};
 const categoryTargets=new Set(['categories','computer','laptop','desktop','mobilePhones','console','universalBuySearch']);
 let observer=null,queued=false;
+function ensureVisualAuthority(){
+ const link=$('link[data-morley-mobile-app-parity="4"]');
+ if(link&&link.parentNode===document.head&&link!==document.head.lastElementChild)document.head.appendChild(link);
+}
 function ensureCategories(){
  if($('#categories'))return;
  const main=$('main.app')||$('main');if(!main)return;
@@ -37,8 +41,8 @@ function enforceGreen(){
  const trigger=$('#morleyMenuTrigger');if(trigger){trigger.style.removeProperty('background');trigger.style.removeProperty('background-image');trigger.style.removeProperty('color');trigger.style.removeProperty('box-shadow')}
  const nav=$('body>nav');nav?.removeAttribute('style');
 }
-function apply(){if(!isMobile())return;ensureCategories();ensureCategoryBack();ensureNav();compactNfc();fixActions();enforceGreen();document.documentElement.dataset.morleyMobileAppParity='4'}
+function apply(){if(!isMobile())return;ensureVisualAuthority();ensureCategories();ensureCategoryBack();ensureNav();compactNfc();fixActions();enforceGreen();document.documentElement.dataset.morleyMobileAppParity='4'}
 function schedule(){if(queued)return;queued=true;(requestAnimationFrame||setTimeout)(()=>{queued=false;apply()})}
-function boot(){apply();observer=new MutationObserver(records=>{if(records.some(r=>r.type==='childList'||r.attributeName==='class'||r.attributeName==='style'))schedule()});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});['morley-product-parity-ready','morley-initial-layout-ready','morley-universal-buy-ready','resize','orientationchange'].forEach(e=>window.addEventListener(e,schedule,{passive:true}))}
+function boot(){apply();observer=new MutationObserver(records=>{if(records.some(r=>r.type==='childList'||r.attributeName==='class'||r.attributeName==='style'))schedule()});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});['morley-product-parity-ready','morley-initial-layout-ready','morley-universal-buy-ready','resize','orientationchange'].forEach(e=>window.addEventListener(e,schedule,{passive:true}));window.visualViewport?.addEventListener('resize',schedule,{passive:true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
