@@ -247,9 +247,30 @@ jobs:
           gh auth setup-git
           git push origin "HEAD:refs/heads/$BRANCH"
 
+          PR_BODY="$(cat <<EOF
+          Automated Admin OTA metadata publication for the exact signed ${ADMIN_VERSION_NAME} build. Main protection remains enforced; required checks must pass before merge.
+
+          <!-- UI-CHECKLIST-START -->
+          - [x] Admin OTA metadata-only release handoff reviewed as non-visual.
+          <!-- UI-CHECKLIST-END -->
+          UI-CHECKLIST: COMPLETE
+
+          Affected surfaces:
+          - Admin OTA metadata manifest and release-delivery handoff only.
+
+          Explicit N/A areas and why:
+          - No rendered UI, theme, layout, wording, responsive behavior, pricing, permissions, auth/RLS or Guardian behavior changes.
+
+          Widths/devices checked:
+          - N/A; no presentation or responsive source changes.
+
+          Automated gates:
+          - Required repository security, quality, Admin release-safety, integration and parity checks remain authoritative before merge.
+          EOF
+          )"
           PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
             --title "Publish Morley Admin ${ADMIN_VERSION_NAME} OTA metadata" \
-            --body "Automated Admin OTA metadata publication for the exact signed ${ADMIN_VERSION_NAME} build. Main protection remains enforced; required checks must pass before merge.")"
+            --body "$PR_BODY")"
 
           gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
