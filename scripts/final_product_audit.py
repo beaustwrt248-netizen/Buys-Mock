@@ -19,8 +19,37 @@ def semver(value: str):
     return tuple(map(int, match.groups())) if match else None
 
 
+def validate_release_version(path: str, build_text: str, manifest_path: str, product: str):
+    code_match = re.search(r'\bversionCode\s+(\d+)', build_text)
+    name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", build_text)
+    if not code_match or not name_match:
+        errors.append(f'{path}: could not parse release version')
+        return
+
+    source_code = int(code_match.group(1))
+    source_name = name_match.group(1).strip()
+    manifest = json.loads((ROOT / manifest_path).read_text(encoding='utf-8'))
+    published_code = int(manifest.get('versionCode', 0))
+    published_name = str(manifest.get('versionName', '')).strip()
+
+    if source_code not in {published_code, published_code + 1}:
+        errors.append(
+            f'{path}: source versionCode {source_code} must equal published {product} {published_code} '
+            f'or be exactly its next release-ready code {published_code + 1}'
+        )
+
+    source_semver = semver(source_name)
+    published_semver = semver(published_name)
+    if source_semver is None or published_semver is None:
+        errors.append(f'{product} versionName values must be semantic versions')
+    elif source_code == published_code and source_name != published_name:
+        errors.append(f'{path}: versionName must match published {product} when versionCode matches')
+    elif source_code == published_code + 1 and source_semver <= published_semver:
+        errors.append(f'{path}: next release versionName must be newer than published {product}')
+
+
 build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
-admin_build = need('android/adminapp/build.gradle', "versionCode 21", "versionName '0.1.20'", 'applyAdminMorleyPalette')
+admin_build = need('android/adminapp/build.gradle', 'applyAdminMorleyPalette')
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
     'CATEGORIES("Categories", MorleyIcons.Categories)',
@@ -125,29 +154,8 @@ need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
 need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC', 'TemporaryPasswordGateActivity')
 
-code_match = re.search(r'\bversionCode\s+(\d+)', build)
-name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", build)
-if not code_match or not name_match:
-    errors.append('android/app/build.gradle: could not parse release version')
-else:
-    source_code = int(code_match.group(1))
-    source_name = name_match.group(1).strip()
-    manifest = json.loads((ROOT / 'ota/latest.json').read_text(encoding='utf-8'))
-    published_code = int(manifest.get('versionCode', 0))
-    published_name = str(manifest.get('versionName', '')).strip()
-    if source_code not in {published_code, published_code + 1}:
-        errors.append(
-            f'android/app/build.gradle: source versionCode {source_code} must equal published OTA {published_code} '
-            f'or be exactly its next OTA-ready code {published_code + 1}'
-        )
-    source_semver = semver(source_name)
-    published_semver = semver(published_name)
-    if source_semver is None or published_semver is None:
-        errors.append('Android/OTA versionName must be semantic versions')
-    elif source_code == published_code and source_name != published_name:
-        errors.append('Android and OTA versionName must match when versionCode matches')
-    elif source_code == published_code + 1 and source_semver <= published_semver:
-        errors.append('Next Android release versionName must be newer than the published OTA version')
+validate_release_version('android/app/build.gradle', build, 'ota/latest.json', 'Morley OTA')
+validate_release_version('android/adminapp/build.gradle', admin_build, 'admin/admin-update.json', 'Admin update')
 
 for bad in ('TODO', 'FIXME', 'HACK'):
     for path in [
@@ -173,4 +181,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; Morley and Admin release identities remain publication-safe.')
