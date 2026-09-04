@@ -18,7 +18,7 @@ function syncClass(){
   ROOT.dataset.morleyViewportMode=physicalPhone()?'phone':'responsive';
 }
 
-function ensureFinalLock(){
+function ensureGeometryLock(){
   let link=document.querySelector('link[data-morley-viewport-lock]');
   if(!link){
     link=document.createElement('link');
@@ -26,14 +26,20 @@ function ensureFinalLock(){
     link.href=LOCK_HREF;
     link.dataset.morleyViewportLock='1';
   }
-  // Moving the link to the end makes this the authoritative layer even after
-  // legacy scripts append runtime <style> blocks during startup.
-  document.head.appendChild(link);
+  // The viewport lock owns only physical-phone geometry. Android mobile parity owns
+  // final visual/header/navigation proportions, so keep this helper immediately
+  // before the newest parity stylesheet instead of moving it after that authority.
+  const parity=document.querySelector('link[data-morley-mobile-app-parity="5"]')||document.querySelector('link[data-morley-mobile-app-parity="4"]');
+  if(parity?.parentNode===document.head){
+    if(link.nextSibling!==parity)document.head.insertBefore(link,parity);
+  }else if(link.parentNode!==document.head){
+    document.head.appendChild(link);
+  }
 }
 
 function sync(){
   syncClass();
-  ensureFinalLock();
+  ensureGeometryLock();
 }
 
 syncClass();

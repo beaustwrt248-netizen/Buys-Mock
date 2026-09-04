@@ -55,8 +55,11 @@ function ensureStyles(){
   document.head.appendChild(style);
 }
 
+function parityV5OwnsMobile(){
+  return isMobile()&&(document.documentElement.dataset.morleyMobileAppParity==='5'||!!document.querySelector('link[data-morley-mobile-app-parity="5"]'));
+}
 function parityV4OwnsNav(){
-  return document.documentElement.dataset.morleyMobileAppParity==='4'||!!document.querySelector('link[data-morley-mobile-app-parity="4"]');
+  return parityV5OwnsMobile()||document.documentElement.dataset.morleyMobileAppParity==='4'||!!document.querySelector('link[data-morley-mobile-app-parity="4"]');
 }
 
 function mobileNav(){
@@ -103,6 +106,13 @@ function fixMarginInsight(){
 }
 
 function apply(){
+  if(parityV5OwnsMobile()){
+    $('#morleyMobileLayoutFinal')?.remove();
+    document.body.classList.remove('morley-mobile-overlay-active');
+    $('nav')?.style.removeProperty('display');
+    fixMarginInsight();
+    return;
+  }
   ensureStyles();
   mobileNav();
   overlayState();
