@@ -52,3 +52,15 @@ nav button{color:#63746d!important}nav button.active{background:#d8efe5!importan
 .mswp-insight{background:#edf8f3!important}.msi-panel{background:#f2f7ff!important;border-color:#c4d6ee!important}
 ::-webkit-scrollbar-track{background:#edf3ef!important}::-webkit-scrollbar-thumb{background:#b5c6be!important;border-color:#edf3ef!important}
 @media(max-width:600px){body{background:linear-gradient(180deg,#f8faf7,#edf3ef)!important}}
+
+/* Categories use the same light/emerald surface at every breakpoint. */
+html body #categories button.parity-choice{background:#eef4f0!important;background-image:none!important;color:#1c2b26!important;-webkit-text-fill-color:#1c2b26!important;border:1px solid #cedbd5!important;box-shadow:0 8px 20px rgba(38,72,58,.07)!important;text-shadow:none!important;}
+html body #categories button.parity-choice:hover{background:#e5f1eb!important;border-color:#9fcbb8!important;}
+html body #categories button.parity-choice:focus-visible{outline:2px solid #167a5a!important;outline-offset:3px!important;}
+html body #categories button.parity-choice:active{background:#d8efe5!important;}
+html body #categories button.parity-choice span{color:#167a5a!important;-webkit-text-fill-color:#167a5a!important;}
+html body #categories button.parity-choice b{color:#1c2b26!important;-webkit-text-fill-color:#1c2b26!important;}
+html body #categories button.parity-choice small{color:#52645d!important;-webkit-text-fill-color:#52645d!important;}
+html body #categories h2:after{background:#167a5a!important;}
+html body #categories .morley-category-icon{display:flex!important;align-items:center;justify-content:center;flex:0 0 auto;width:44px;height:44px;background:#d8efe5;border-radius:12px;}
+html body #categories .morley-category-icon svg{display:block!important;width:30px!important;height:30px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
