@@ -16,4 +16,5 @@ assert.match(js,/!document\.documentElement\.dataset\.novaAuthorised/);
 assert.doesNotMatch(js,/setTimeout\(refresh,250\)/);
 assert.match(css,/#edf3ef/);
 assert.match(css,/#194f41/);
-console.log('Nova auth/runtime gating and Morley Admin theme contract passed');
+assert.doesNotMatch(css,/--blue:/);
+console.log('Nova auth/runtime gating, release checklist, and Morley Admin theme contract passed');
