@@ -9,6 +9,7 @@ on:
       - 'index.html'
       - 'tests/desktop-dashboard-contract.test.js'
       - 'tests/mobile-app-parity-v4.test.js'
+      - 'tests/mobile-app-parity-v5.test.js'
       - '.github/workflows/web-no-blue-filter.yml'
   pull_request:
     branches: [ main ]
@@ -18,6 +19,7 @@ on:
       - 'index.html'
       - 'tests/desktop-dashboard-contract.test.js'
       - 'tests/mobile-app-parity-v4.test.js'
+      - 'tests/mobile-app-parity-v5.test.js'
       - '.github/workflows/web-no-blue-filter.yml'
   workflow_dispatch:
 
@@ -35,7 +37,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           forbidden=['#2f7cff','#1f5fd8','#12c9ff','#2468dd','#2875ff','#16c7ff','#70dfff','#7bdfff','rgba(47,124,255','rgba(18,201,255','rgb(47,124,255','rgb(18,201,255']
-          active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css','morley-desktop-dashboard.css','mobile-app-parity-v4.css']
+          active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css','morley-desktop-dashboard.css','mobile-app-parity-v4.css','mobile-app-parity-v5.css']
           failures=[]
           for file in active:
               text=Path(file).read_text(encoding='utf-8').lower()
@@ -76,6 +78,10 @@ jobs:
               raise SystemExit('Quick Deal grade calculation asset cache version is stale')
           if 'morley-desktop-dashboard.js?v=1' not in index:
               raise SystemExit('Desktop dashboard behaviour is not loaded')
+          if index.index('mobile-app-parity-v5.css?v=202609041') < index.index('mobile-app-parity-v4.css?v=202609044'):
+              raise SystemExit('Mobile parity v5 stylesheet must load after v4')
+          if index.index('mobile-app-parity-v5.js?v=202609041') < index.index('mobile-app-parity-v4.js?v=202609044'):
+              raise SystemExit('Mobile parity v5 runtime must load after v4')
 
           auth_theme=Path('morley-light-web.css').read_text(encoding='utf-8')
           for needle in ['#morleyWebAuth video{opacity:.82!important','brightness(.82)','rgba(5,24,18,.38)','background:rgba(255,255,255,.90)']:
@@ -103,5 +109,7 @@ jobs:
           PY
       - name: Desktop dashboard regression test
         run: node tests/desktop-dashboard-contract.test.js
-      - name: Android mobile web parity regression test
+      - name: Android mobile web parity v4 regression test
         run: node --test tests/mobile-app-parity-v4.test.js
+      - name: Android mobile web single-owner v5 regression test
+        run: node --test tests/mobile-app-parity-v5.test.js

@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -77,6 +77,8 @@ jobs:
           test -s site/mobile-layout-fix.js
           test -s site/mobile-app-parity-v4.css
           test -s site/mobile-app-parity-v4.js
+          test -s site/mobile-app-parity-v5.css
+          test -s site/mobile-app-parity-v5.js
           test -s site/morley-central-pricing.js
           test -s site/web-universal-buy.js
           test -s site/admin/index.html
@@ -176,6 +178,8 @@ jobs:
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-layout-fix.js'
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.css?v='
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.js?v='
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v5.css?v=202609041'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v5.js?v=202609041'
           fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
           fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
           fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'localStorage.getItem(STORE)'
@@ -184,15 +188,25 @@ jobs:
           fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'window.market=secureMarket'
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Computer Pricing'
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Console Pricing'
+          fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'mobileAndroidOwner'
           fetch_until_contains "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js" 'Help & FAQ'
-          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'parityV4OwnsNav'
+          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'parityV5OwnsMobile'
           node --check "$RUNNER_TEMP/mobile-layout-fix.js"
           fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" 'home|categories|general|settings'
-          fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" "classList.remove('morley-hide-more-tab')"
-          fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" 'ensureVisualAuthority'
           node --check "$RUNNER_TEMP/mobile-app-parity-v4.js"
+          fetch_until_contains "$BASE/mobile-app-parity-v5.js" "$RUNNER_TEMP/mobile-app-parity-v5.js" "const NAV_SIGNATURE='home|categories|general|settings'"
+          fetch_until_contains "$BASE/mobile-app-parity-v5.js" "$RUNNER_TEMP/mobile-app-parity-v5.js" "document.body.id='morleyMobileParityRoot'"
+          fetch_until_contains "$BASE/mobile-app-parity-v5.js" "$RUNNER_TEMP/mobile-app-parity-v5.js" 'function navSignature(nav)'
+          fetch_until_contains "$BASE/mobile-app-parity-v5.js" "$RUNNER_TEMP/mobile-app-parity-v5.js" 'morleyAndroidHomeExtras'
+          fetch_until_contains "$BASE/mobile-app-parity-v5.js" "$RUNNER_TEMP/mobile-app-parity-v5.js" 'A / B / C / Luxury buying targets'
+          node --check "$RUNNER_TEMP/mobile-app-parity-v5.js"
+          fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" '--morley-v5-accent:#167a5a'
+          fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" 'body#morleyMobileParityRoot button{background-image:none!important}'
+          fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" 'nav#morleyBottomNav'
+          ! grep -Eqi '#2875ff|#2f7cff|#16c7ff|#12c9ff|#1f5fd8|#1f63e2|#12aeea' "$RUNNER_TEMP/mobile-app-parity-v5.css"
+          fetch_until_contains "$BASE/mobile-viewport-lock.js" "$RUNNER_TEMP/mobile-viewport-lock.js" 'keep this helper immediately'
+          node --check "$RUNNER_TEMP/mobile-viewport-lock.js"
           fetch_until_contains "$BASE/mobile-app-parity-v4.css" "$RUNNER_TEMP/mobile-app-parity-v4.css" '--morley-v4-accent:#167a5a'
-          fetch_until_contains "$BASE/mobile-app-parity-v4.css" "$RUNNER_TEMP/mobile-app-parity-v4.css" 'body>nav button[data-page="settings"]{display:flex!important}'
           ! grep -Eqi '#2875ff|#2f7cff|#16c7ff|#12c9ff|#1f5fd8' "$RUNNER_TEMP/mobile-app-parity-v4.css"
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '@media(max-width:760px)'
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" 'grid-template-columns:repeat(4,minmax(0,1fr))'
