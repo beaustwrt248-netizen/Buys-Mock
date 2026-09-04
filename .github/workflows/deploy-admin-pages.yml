@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -75,6 +75,10 @@ jobs:
           test -s site/mobile-parity-v3.css
           test -s site/morley-light-web.css
           test -s site/mobile-layout-fix.js
+          test -s site/mobile-app-parity-v4.css
+          test -s site/mobile-app-parity-v4.js
+          test -s site/morley-central-pricing.js
+          test -s site/web-universal-buy.js
           test -s site/admin/index.html
           test -s site/admin/app.js
           test -s site/admin/invites.js
@@ -170,6 +174,8 @@ jobs:
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-parity-v3.css'
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'morley-light-web.css'
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-layout-fix.js'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.css?v='
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.js?v='
           fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
           fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
           fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'localStorage.getItem(STORE)'
@@ -179,8 +185,15 @@ jobs:
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Computer Pricing'
           fetch_until_contains "$BASE/product-parity-v3.js" "$RUNNER_TEMP/product-parity-v3.js" 'Console Pricing'
           fetch_until_contains "$BASE/ultimate-parity.js" "$RUNNER_TEMP/ultimate-parity.js" 'Help & FAQ'
-          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'home|laptop|general|settings'
+          fetch_until_contains "$BASE/mobile-layout-fix.js" "$RUNNER_TEMP/mobile-layout-fix.js" 'parityV4OwnsNav'
           node --check "$RUNNER_TEMP/mobile-layout-fix.js"
+          fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" 'home|categories|general|settings'
+          fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" "classList.remove('morley-hide-more-tab')"
+          fetch_until_contains "$BASE/mobile-app-parity-v4.js" "$RUNNER_TEMP/mobile-app-parity-v4.js" 'ensureVisualAuthority'
+          node --check "$RUNNER_TEMP/mobile-app-parity-v4.js"
+          fetch_until_contains "$BASE/mobile-app-parity-v4.css" "$RUNNER_TEMP/mobile-app-parity-v4.css" '--morley-v4-accent:#167a5a'
+          fetch_until_contains "$BASE/mobile-app-parity-v4.css" "$RUNNER_TEMP/mobile-app-parity-v4.css" 'body>nav button[data-page="settings"]{display:flex!important}'
+          ! grep -Eqi '#2875ff|#2f7cff|#16c7ff|#12c9ff|#1f5fd8' "$RUNNER_TEMP/mobile-app-parity-v4.css"
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '@media(max-width:760px)'
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" 'grid-template-columns:repeat(4,minmax(0,1fr))'
           fetch_until_contains "$BASE/mobile-parity-v3.css" "$RUNNER_TEMP/mobile-parity-v3.css" '.modal.open,.morley-menu-dialog.open,.msw-dialog.open'
