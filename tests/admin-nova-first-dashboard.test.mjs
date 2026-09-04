@@ -16,7 +16,7 @@ test('Admin home loads Nova-first dashboard layer',()=>{
 
 test('Nova-first home preserves protected control ownership',()=>{
   assert.doesNotMatch(js,/service_role|SUPABASE_SERVICE_ROLE_KEY|\.update\(|\.delete\(|\.insert\(/i);
-  assert.match(js,/clickTab\('pricing'\)/);
+  assert.match(js,/tab:'pricing'/);
   assert.match(js,/clickTab\('controls'\)/);
 });
 
