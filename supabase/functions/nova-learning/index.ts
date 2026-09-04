@@ -39,7 +39,7 @@ async function harvest(userId:string){
   ]);
   if(incidentsRes.error) throw incidentsRes.error;if(repairsRes.error) throw repairsRes.error;if(valsRes.error) throw valsRes.error;
   const incidents=incidentsRes.data||[],repairs=repairsRes.data||[],vals=valsRes.data||[];
-  let written=0;
+  let written=0,inventoryOpen=0,salesRealised=0;
 
   for(const i of incidents){
     const state=String(i.state||'').toLowerCase();
@@ -64,12 +64,24 @@ async function harvest(userId:string){
   }
 
   for(const v of vals){
+    const bought=v.bought_price==null?null:Number(v.bought_price),sold=v.sold_price==null?null:Number(v.sold_price);
+    if(bought!=null&&sold==null){
+      inventoryOpen++;
+      await upsertExperience({domain:'inventory',lesson_key:`inventory:${v.id}:acquired`,lesson_type:'acquired_holding',summary:`${v.item_summary||v.item_type||'Item'} acquired at AUD ${bought.toFixed(2)} and currently has no recorded sale price.`,source_type:'valuation_history',source_id:String(v.id),evidence:{item_type:v.item_type,item_grade:v.item_grade,status:v.status,bought_price:bought,expected_profit:v.expected_profit},outcome:'holding',confidence:0.95,verified:true,active:true,observed_at:v.updated_at||v.created_at,created_by:userId});
+      written++;
+    }
+    if(bought!=null&&sold!=null){
+      salesRealised++;
+      const gross=sold-bought;
+      await upsertExperience({domain:'sales',lesson_key:`sale:${v.id}:realised`,lesson_type:'realised_sale',summary:`${v.item_summary||v.item_type||'Item'} sold for AUD ${sold.toFixed(2)} after acquisition at AUD ${bought.toFixed(2)}, producing AUD ${gross.toFixed(2)} gross margin before any other recorded costs.`,source_type:'valuation_history',source_id:String(v.id),evidence:{item_type:v.item_type,item_grade:v.item_grade,status:v.status,bought_price:bought,sold_price:sold,gross_margin:gross,actual_profit:v.actual_profit,expected_profit:v.expected_profit},outcome:gross>=0?'positive_gross_margin':'negative_gross_margin',confidence:0.95,verified:true,active:true,observed_at:v.updated_at||v.created_at,created_by:userId});
+      written++;
+    }
     if(v.actual_profit==null||v.expected_profit==null) continue;
     const expected=Number(v.expected_profit),actual=Number(v.actual_profit),error=actual-expected;
     await upsertExperience({domain:'valuation',lesson_key:`valuation:${v.id}:realised`,lesson_type:'realised_profit',summary:`${v.item_summary||v.item_type||'Valuation'} realised profit AUD ${actual.toFixed(2)} versus expected AUD ${expected.toFixed(2)} (${error>=0?'+':''}${error.toFixed(2)} variance).`,source_type:'valuation_history',source_id:String(v.id),evidence:{item_type:v.item_type,item_grade:v.item_grade,status:v.status,expected_profit:expected,actual_profit:actual,bought_price:v.bought_price,sold_price:v.sold_price,forecast_error:error},outcome:error>=0?'outperformed':'underperformed',confidence:0.95,verified:true,active:true,observed_at:v.updated_at||v.created_at,created_by:userId});
     written++;
   }
-  return {written,incident_sample:incidents.length,repair_sample:repairs.length,valuation_sample:vals.length};
+  return {written,incident_sample:incidents.length,repair_sample:repairs.length,valuation_sample:vals.length,inventory_open_sample:inventoryOpen,sales_realised_sample:salesRealised};
 }
 
 async function summary(){
