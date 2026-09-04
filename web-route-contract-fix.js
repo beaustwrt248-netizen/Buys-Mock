@@ -13,7 +13,8 @@ function activateProductRoute(page,opts={}){
   $$('.desktop-side-nav [data-target]').forEach(button=>button.classList.toggle('active',button.dataset.target===page));
   try{localStorage.setItem(ROUTE_KEY,page)}catch{}
   const hash=`#${page}`;
-  if(location.hash!==hash){
+  const canWriteHistory=location.protocol==='http:'||location.protocol==='https:';
+  if(canWriteHistory&&location.hash!==hash){
     if(opts.replace) history.replaceState({morleyPage:page},'',hash);
     else history.pushState({morleyPage:page},'',hash);
   }
