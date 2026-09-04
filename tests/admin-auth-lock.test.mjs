@@ -2,18 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const src=fs.readFileSync('admin/user-management-policy.js','utf8');
+const policy=fs.readFileSync('admin/user-management-policy.js','utf8');
+const nova=fs.readFileSync('admin/nova-admin-home.js','utf8');
 
-test('Admin Supabase client avoids navigator.locks deadlock',()=>{
-  assert.match(src,/morleyAuthLock/);
-  assert.match(src,/authLockQueues=new Map\(\)/);
-  assert.match(src,/lock:suppliedAuth\.lock\|\|morleyAuthLock/);
-  assert.doesNotMatch(src,/navigator\.locks/);
+test('Admin account policy does not monkey-patch the Supabase client',()=>{
+  assert.doesNotMatch(policy,/morleyAuthLock/);
+  assert.doesNotMatch(policy,/api\.createClient=function/);
+  assert.match(policy,/Only admins can change user accounts/);
+  assert.match(policy,/Privileged accounts must be demoted before deletion/);
 });
 
-test('Admin auth lock serializes operations without weakening account policy',()=>{
-  assert.match(src,/await previous\.catch/);
-  assert.match(src,/finally\{release\(\)/);
-  assert.match(src,/Only admins can change user accounts/);
-  assert.match(src,/Privileged accounts must be demoted before deletion/);
+test('Nova Admin DOM updates are idempotent to avoid renderer mutation loops',()=>{
+  assert.match(nova,/if\(label\.textContent!==next\)label\.textContent=next/);
+  assert.match(nova,/if\(document\.documentElement\.dataset\.novaAdminHome!=='ready'\)/);
+  assert.match(nova,/let scheduled=false/);
+  assert.match(nova,/requestAnimationFrame/);
 });
