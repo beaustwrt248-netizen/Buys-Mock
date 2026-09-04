@@ -8,61 +8,26 @@ plugins {
 android {
     namespace 'com.buysloans.hub'
     compileSdk 37
-
     defaultConfig {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 36
-        versionCode 104
-        versionName '2.15.60'
+        versionCode 105
+        versionName '2.15.61'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
     }
-
-    def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH')
-    def releaseStorePassword = System.getenv('B_AND_L_STORE_PASSWORD')
-    def releaseKeyAlias = System.getenv('B_AND_L_KEY_ALIAS')
-    def releaseKeyPassword = releaseStorePassword
-    def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias
-
-    signingConfigs {
-        if (hasReleaseSigning) {
-            release {
-                storeFile file(releaseStoreFile)
-                storePassword releaseStorePassword
-                keyAlias releaseKeyAlias
-                keyPassword releaseKeyPassword
-            }
-        }
-    }
-
+    def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH'); def releaseStorePassword = System.getenv('B_AND_L_STORE_PASSWORD'); def releaseKeyAlias = System.getenv('B_AND_L_KEY_ALIAS'); def releaseKeyPassword = releaseStorePassword; def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias
+    signingConfigs { if (hasReleaseSigning) { release { storeFile file(releaseStoreFile); storePassword releaseStorePassword; keyAlias releaseKeyAlias; keyPassword releaseKeyPassword } } }
     buildFeatures { compose true; buildConfig true }
     kotlinOptions { jvmTarget = '17' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-
     lint { disable 'NullSafeMutableLiveData' }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            shrinkResources false
-            if (hasReleaseSigning) { signingConfig signingConfigs.release }
-        }
-    }
+    buildTypes { release { minifyEnabled false; shrinkResources false; if (hasReleaseSigning) { signingConfig signingConfigs.release } } }
 }
-
-def releaseStoreFileForCheck = System.getenv('B_AND_L_KEYSTORE_PATH')
-def releaseStorePasswordForCheck = System.getenv('B_AND_L_STORE_PASSWORD')
-def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
-
-tasks.register('verifyReleaseSigning') {
-    doLast {
-        if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.')
-        if (!file(releaseStoreFileForCheck).exists()) throw new GradleException('Configured B&L Morley release keystore does not exist.')
-    }
-}
-
+def releaseStoreFileForCheck = System.getenv('B_AND_L_KEYSTORE_PATH'); def releaseStorePasswordForCheck = System.getenv('B_AND_L_STORE_PASSWORD'); def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
+tasks.register('verifyReleaseSigning') { doLast { if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.'); if (!file(releaseStoreFileForCheck).exists()) throw new GradleException('Configured B&L Morley release keystore does not exist.') } }
 tasks.register('improveExactMatching', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'improve_exact_matching.py' }
 tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
 tasks.register('securePricingAuth', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'secure_pricing_auth.py' }
@@ -70,41 +35,9 @@ tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectD
 tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
 tasks.register('restructurePricingNavigation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
 tasks.register('fixVideoUiErrors', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'fix_video_ui_errors.py' }
-tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }
-tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }
-tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('securePricingAuth') }
-tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }
-tasks.named('restructurePricingNavigation') { mustRunAfter tasks.named('applyMorleyBrandPalette') }
-tasks.named('fixVideoUiErrors') { mustRunAfter tasks.named('restructurePricingNavigation') }
-tasks.matching { it.name == 'preBuild' }.configureEach {
-    dependsOn tasks.named('improveExactMatching')
-    dependsOn tasks.named('integrateMarketplaceValuation')
-    dependsOn tasks.named('securePricingAuth')
-    dependsOn tasks.named('integrateLaptopCatalog')
-    dependsOn tasks.named('applyMorleyBrandPalette')
-    dependsOn tasks.named('restructurePricingNavigation')
-    dependsOn tasks.named('fixVideoUiErrors')
-}
-
-afterEvaluate {
-    tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') }
-}
-
+tasks.named('integrateMarketplaceValuation') { mustRunAfter tasks.named('improveExactMatching') }; tasks.named('securePricingAuth') { mustRunAfter tasks.named('integrateMarketplaceValuation') }; tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('securePricingAuth') }; tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }; tasks.named('restructurePricingNavigation') { mustRunAfter tasks.named('applyMorleyBrandPalette') }; tasks.named('fixVideoUiErrors') { mustRunAfter tasks.named('restructurePricingNavigation') }
+tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('improveExactMatching'); dependsOn tasks.named('integrateMarketplaceValuation'); dependsOn tasks.named('securePricingAuth'); dependsOn tasks.named('integrateLaptopCatalog'); dependsOn tasks.named('applyMorleyBrandPalette'); dependsOn tasks.named('restructurePricingNavigation'); dependsOn tasks.named('fixVideoUiErrors') }
+afterEvaluate { tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') } }
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.18.0')
-    implementation 'com.google.firebase:firebase-messaging'
-    implementation 'com.google.android.gms:play-services-auth:21.3.0'
-    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
-    implementation 'com.google.android.play:integrity:1.4.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
-    implementation 'androidx.work:work-runtime-ktx:2.10.1'
-    implementation 'androidx.activity:activity-compose:1.10.1'
-    implementation platform('androidx.compose:compose-bom:2026.08.00')
-    implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
-    implementation 'androidx.compose.material:material-icons-extended'
-    debugImplementation 'androidx.compose.ui:ui-tooling'
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.json:json:20240303'
+    implementation platform('com.google.firebase:firebase-bom:34.18.0'); implementation 'com.google.firebase:firebase-messaging'; implementation 'com.google.android.gms:play-services-auth:21.3.0'; implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'; implementation 'com.google.android.play:integrity:1.4.0'; implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; implementation 'androidx.work:work-runtime-ktx:2.10.1'; implementation 'androidx.activity:activity-compose:1.10.1'; implementation platform('androidx.compose:compose-bom:2026.08.00'); implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material:material-icons-extended'; debugImplementation 'androidx.compose.ui:ui-tooling'; testImplementation 'junit:junit:4.13.2'; testImplementation 'org.json:json:20240303'
 }
