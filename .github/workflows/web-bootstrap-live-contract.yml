@@ -1,0 +1,94 @@
+name: Web Bootstrap Live Contract
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'web-base.html'
+      - 'workspace-fetch-resilience.js'
+      - 'tests/mobile-app-parity-v5.test.js'
+      - '.github/workflows/web-bootstrap-live-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'web-base.html'
+      - 'workspace-fetch-resilience.js'
+      - 'tests/mobile-app-parity-v5.test.js'
+      - '.github/workflows/web-bootstrap-live-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contract:
+    name: Browser bootstrap static contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify resilient bootstrap contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s index.html
+          test -s web-base.html
+          test -s workspace-fetch-resilience.js
+          node --check workspace-fetch-resilience.js
+          node --test tests/mobile-app-parity-v5.test.js
+          grep -Fq 'workspace-fetch-resilience.js?v=1' index.html
+          grep -Fq "const CANDIDATE='web-base.html'" index.html
+          grep -Fq 'XMLHttpRequest' workspace-fetch-resilience.js
+          grep -Fq "sandbox','allow-same-origin" workspace-fetch-resilience.js
+          grep -Fq 'Morley workspace transport fallbacks exhausted' workspace-fetch-resilience.js
+          grep -Fq 'Buys and Loans Hub' workspace-fetch-resilience.js
+          python3 - <<'PY'
+          from pathlib import Path
+          index=Path('index.html').read_text(encoding='utf-8')
+          transport=index.index('workspace-fetch-resilience.js?v=1')
+          candidate=index.index("const CANDIDATE='web-base.html'")
+          if transport >= candidate:
+              raise SystemExit('Workspace resilience must load before browser bootstrap')
+          PY
+
+  live-contract:
+    name: Public browser bootstrap contract
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: static-contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Pages propagation
+        run: sleep 20
+      - name: Verify buyshub.me bootstrap assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://buyshub.me'
+          retry_contains() {
+            local url="$1" out="$2" pattern="$3"
+            for attempt in 1 2 3 4 5 6; do
+              local sep='?'
+              [[ "$url" == *\?* ]] && sep='&'
+              if curl --fail --silent --show-error --location --max-time 30 \
+                -H 'Cache-Control: no-cache' \
+                -H 'Pragma: no-cache' \
+                --output "$out" "${url}${sep}bootstrap_sha=${GITHUB_SHA}&attempt=${attempt}" \
+                && grep -Fq -- "$pattern" "$out"; then
+                return 0
+              fi
+              echo "Waiting for live bootstrap content ($attempt/6): $url :: $pattern"
+              sleep 10
+            done
+            echo "::error::Live bootstrap contract missing: $url :: $pattern"
+            return 1
+          }
+          retry_contains "$BASE/" "$RUNNER_TEMP/index.html" 'workspace-fetch-resilience.js?v=1'
+          retry_contains "$BASE/" "$RUNNER_TEMP/index.html" "const CANDIDATE='web-base.html'"
+          retry_contains "$BASE/workspace-fetch-resilience.js?v=1" "$RUNNER_TEMP/workspace-fetch-resilience.js" 'Morley workspace transport fallbacks exhausted'
+          retry_contains "$BASE/workspace-fetch-resilience.js?v=1" "$RUNNER_TEMP/workspace-fetch-resilience.js" 'XMLHttpRequest'
+          retry_contains "$BASE/workspace-fetch-resilience.js?v=1" "$RUNNER_TEMP/workspace-fetch-resilience.js" "sandbox','allow-same-origin"
+          node --check "$RUNNER_TEMP/workspace-fetch-resilience.js"
+          retry_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
