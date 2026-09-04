@@ -2,7 +2,7 @@
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const ROUTE_KEY='morley_desktop_route';
-  const VALID=['home','computer','console','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
+  const VALID=['home','categories','mobilePhones','computer','console','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
   let handlingPop=false;
 
   function renderPage(page){
