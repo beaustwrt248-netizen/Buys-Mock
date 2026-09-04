@@ -74,11 +74,12 @@ test('mobile Home mirrors Android ParityHome structure',()=>{
   assert.match(js,/A \/ B \/ C \/ Luxury buying targets/);
 });
 
-test('legacy product navigation yields to the v5 mobile owner',()=>{
+test('product navigation yields to the v5 mobile owner while matching canonical desktop destinations',()=>{
   assert.match(product,/const mobileAndroidOwner=/);
   assert.match(product,/if\(nav&&!mobileAndroidOwner\(\)\)/);
   assert.match(product,/function syncActiveNav\(\)\{if\(mobileAndroidOwner\(\)\)return/);
-  assert.match(product,/home\|computer\|console\|general/);
+  assert.match(product,/home\|categories\|general\|settings/);
+  assert.doesNotMatch(product,/home\|computer\|console\|general/);
 });
 
 test('legacy mobile layout stops injecting and hiding navigation under v5',()=>{
