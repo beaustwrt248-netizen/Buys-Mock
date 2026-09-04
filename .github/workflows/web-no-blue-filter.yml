@@ -66,8 +66,14 @@ jobs:
               raise SystemExit('Desktop dashboard must not override the <=760px mobile contract')
 
           dashboard_js=Path('morley-desktop-dashboard.js').read_text(encoding='utf-8')
-          for route in ['Dashboard','Computer Pricing','Console Pricing','General Buys','Saved Deals','Inventory','Scanner','Sales','More']:
+          for route in ['Dashboard','Universal Search','Categories','General Buys','Saved Deals','Inventory','Scanner','Sales','More']:
               if route not in dashboard_js: raise SystemExit(f'Desktop navigation route missing: {route}')
+          for category in ['Laptops','Desktops','Mobile Phones','Gaming Consoles']:
+              if category not in dashboard_js: raise SystemExit(f'Desktop Categories destination missing: {category}')
+          for retired in ["['phones',","['computer',","['console',"]:
+              if retired in dashboard_js: raise SystemExit(f'Retired top-level desktop pricing route returned: {retired}')
+          if "home|categories|general|settings" not in dashboard_js:
+              raise SystemExit('Desktop primary navigation must use Home / Categories / General Buys / More')
 
           index=Path('index.html').read_text(encoding='utf-8')
           if index.index('morley-desktop-dashboard.css') < index.index('mobile-viewport-lock.css'):
@@ -76,8 +82,8 @@ jobs:
               raise SystemExit('Desktop dashboard stylesheet cache version is stale')
           if 'quick-deal-grade.js?v=3' not in index:
               raise SystemExit('Quick Deal grade calculation asset cache version is stale')
-          if 'morley-desktop-dashboard.js?v=1' not in index:
-              raise SystemExit('Desktop dashboard behaviour is not loaded')
+          if 'morley-desktop-dashboard.js?v=2' not in index:
+              raise SystemExit('Canonical desktop dashboard behaviour is not loaded')
           if index.index('mobile-app-parity-v5.css?v=202609041') < index.index('mobile-app-parity-v4.css?v=202609044'):
               raise SystemExit('Mobile parity v5 stylesheet must load after v4')
           if index.index('mobile-app-parity-v5.js?v=202609041&route=2') < index.index('mobile-app-parity-v4.js?v=202609044'):
@@ -105,7 +111,7 @@ jobs:
               if needle not in diagnostics: raise SystemExit('Guardian diagnostics source contrast missing: '+needle)
           if 'web-apk-light-visual-lock.css?v=20260902-3' not in loader:
               raise SystemExit('Final visual lock cache version is stale')
-          print('Morley emerald, desktop dashboard, and mobile preservation contracts verified')
+          print('Morley emerald, Categories navigation, desktop dashboard, and mobile preservation contracts verified')
           PY
       - name: Desktop dashboard regression test
         run: node tests/desktop-dashboard-contract.test.js
