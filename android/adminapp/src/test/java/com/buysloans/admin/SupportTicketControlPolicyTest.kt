@@ -38,7 +38,7 @@ class SupportTicketControlPolicyTest {
             SupportTicketUpdateCommand("ticket-1", "in_progress", "high", null)
         )
 
-        assertEquals(setOf("status", "priority", "assigned_to"), payload.keySet())
+        assertEquals(setOf("status", "priority", "assigned_to"), payload.keys().asSequence().toSet())
         assertEquals("in_progress", payload.getString("status"))
         assertEquals("high", payload.getString("priority"))
         assertTrue(payload.isNull("assigned_to"))
@@ -50,7 +50,7 @@ class SupportTicketControlPolicyTest {
             SupportTicketUpdateCommand("ticket-1", "waiting_on_user", "urgent", "someone-else")
         )
 
-        assertEquals(setOf("status"), payload.keySet())
+        assertEquals(setOf("status"), payload.keys().asSequence().toSet())
         assertEquals("waiting_on_user", payload.getString("status"))
         assertFalse(payload.has("priority"))
         assertFalse(payload.has("assigned_to"))
