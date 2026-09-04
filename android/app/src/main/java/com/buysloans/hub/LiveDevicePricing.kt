@@ -8,27 +8,19 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class LiveDevicePrice(val deviceCatalogId: Long, val storage: String, val priceAud: Double, val authoritative: Boolean)
+data class LiveDevicePrice(val deviceCatalogId: Long, val brand: String, val model: String, val modelNumber: String?, val storage: String, val priceAud: Double, val authoritative: Boolean)
 
 object LiveDevicePricing {
-    private const val PREFS = "morley_live_device_pricing"
-    private const val CACHE = "prices"
-    fun normalizeStorage(value: String): String = value.trim().replace(" ", "").uppercase()
-    fun find(prices: List<LiveDevicePrice>, deviceCatalogId: Long, storage: String): LiveDevicePrice? = prices.firstOrNull { it.deviceCatalogId == deviceCatalogId && it.authoritative && normalizeStorage(it.storage) == normalizeStorage(storage) }
-    fun cached(context: Context): List<LiveDevicePrice> = parse(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(CACHE, "[]").orEmpty())
-    suspend fun refresh(context: Context): List<LiveDevicePrice> = withContext(Dispatchers.IO) {
-        val token = AuthManager.validAccessToken(context)
-        val connection = (URL("${BuildConfig.SUPABASE_URL}/functions/v1/app-pricing-catalogue").openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
-            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY); setRequestProperty("Authorization", "Bearer $token"); setRequestProperty("Cache-Control", "no-cache")
-        }
-        try {
-            if (connection.responseCode !in 200..299) throw IllegalStateException("Pricing refresh failed (${connection.responseCode}).")
-            val body = JSONObject(connection.inputStream.bufferedReader().use { it.readText() }); val raw = body.optJSONArray("prices")?.toString() ?: "[]"; val prices = parse(raw)
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(CACHE, raw).apply(); prices
-        } finally { connection.disconnect() }
+    private const val PREFS="morley_live_device_pricing"; private const val CACHE="prices"
+    fun normalizeStorage(value:String)=value.trim().replace(" ","").uppercase()
+    fun find(prices:List<LiveDevicePrice>,brand:String,model:String,modelNumber:String?,storage:String):LiveDevicePrice? {
+        val normalizedModelNumber=modelNumber?.trim()?.lowercase().orEmpty()
+        return prices.firstOrNull { p -> p.authoritative && normalizeStorage(p.storage)==normalizeStorage(storage) && ((normalizedModelNumber.isNotBlank() && p.modelNumber?.trim()?.lowercase()==normalizedModelNumber) || (p.brand.equals(brand,true)&&p.model.equals(model,true))) }
     }
-    private fun parse(raw: String): List<LiveDevicePrice> = runCatching {
-        val array = JSONArray(raw.ifBlank { "[]" }); buildList { for (index in 0 until array.length()) { val row=array.getJSONObject(index); if(!row.optBoolean("authoritative",false)) continue; val id=row.optLong("device_catalog_id",-1L); val storage=row.optString("storage").trim(); val price=row.optDouble("price_aud",Double.NaN); if(id>0&&storage.isNotBlank()&&price.isFinite()&&price>=0)add(LiveDevicePrice(id,storage,price,true)) } }
-    }.getOrDefault(emptyList())
+    fun cached(context:Context)=parse(context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getString(CACHE,"[]").orEmpty())
+    suspend fun refresh(context:Context):List<LiveDevicePrice> = withContext(Dispatchers.IO) {
+        val token=AuthManager.validAccessToken(context); val c=(URL("${BuildConfig.SUPABASE_URL}/functions/v1/app-pricing-catalogue").openConnection() as HttpURLConnection).apply { requestMethod="GET";connectTimeout=10_000;readTimeout=10_000;setRequestProperty("apikey",BuildConfig.SUPABASE_PUBLISHABLE_KEY);setRequestProperty("Authorization","Bearer $token");setRequestProperty("Cache-Control","no-cache") }
+        try { if(c.responseCode !in 200..299)throw IllegalStateException("Pricing refresh failed (${c.responseCode})."); val raw=JSONObject(c.inputStream.bufferedReader().use{it.readText()}).optJSONArray("prices")?.toString()?:"[]"; val prices=parse(raw); context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putString(CACHE,raw).apply(); prices } finally { c.disconnect() }
+    }
+    private fun parse(raw:String):List<LiveDevicePrice> = runCatching { val a=JSONArray(raw.ifBlank{"[]"}); buildList { for(i in 0 until a.length()){ val r=a.getJSONObject(i); if(!r.optBoolean("authoritative",false))continue; val d=r.optJSONObject("device")?:continue; val id=r.optLong("device_catalog_id",-1);val storage=r.optString("storage").trim();val price=r.optDouble("price_aud",Double.NaN); if(id>0&&storage.isNotBlank()&&price.isFinite()&&price>=0)add(LiveDevicePrice(id,d.optString("brand"),d.optString("model_name"),d.optString("model_number").takeIf{it.isNotBlank()},storage,price,true)) } } }.getOrDefault(emptyList())
 }
