@@ -4,6 +4,7 @@ const fs=require('node:fs');
 
 const js=fs.readFileSync('mobile-app-parity-v4.js','utf8');
 const css=fs.readFileSync('mobile-app-parity-v4.css','utf8');
+const legacy=fs.readFileSync('mobile-layout-fix.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 
 test('mobile navigation matches Android compact destinations',()=>{
@@ -22,14 +23,21 @@ test('Categories merges the four Android pricing categories',()=>{
   assert.match(js,/‹  Categories/);
 });
 
-test('phone pricing and final parity assets load in the production bootstrap',()=>{
+test('phone pricing and cache-safe final parity assets load in the production bootstrap',()=>{
   assert.match(index,/morley-central-pricing\.js\?v=1/);
   assert.match(index,/web-universal-buy\.js\?v=2/);
   assert.match(index,/web-universal-buy\.css\?v=2/);
-  assert.match(index,/mobile-app-parity-v4\.css\?v=1/);
-  assert.match(index,/mobile-app-parity-v4\.js\?v=1/);
-  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=1')>index.indexOf('morley-desktop-dashboard.css?v=2'));
-  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=1')>index.indexOf('morley-desktop-dashboard.js?v=1'));
+  assert.match(index,/mobile-layout-fix\.js\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v4\.css\?v=202609042/);
+  assert.match(index,/mobile-app-parity-v4\.js\?v=202609042/);
+  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=202609042')>index.indexOf('morley-desktop-dashboard.css?v=2'));
+  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609042')>index.indexOf('morley-desktop-dashboard.js?v=1'));
+});
+
+test('legacy mobile layout yields navigation ownership to parity v4',()=>{
+  assert.match(legacy,/function parityV4OwnsNav\(\)/);
+  assert.match(legacy,/data-morley-mobile-app-parity/);
+  assert.match(legacy,/if\(!isMobile\(\)\|\|parityV4OwnsNav\(\)\) return/);
 });
 
 test('authoritative mobile theme is emerald-only and fixes reported home states',()=>{
