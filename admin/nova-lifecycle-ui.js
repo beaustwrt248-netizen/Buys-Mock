@@ -32,3 +32,4 @@ async function refresh(){if(!window.MorleyAI)return;try{const r=await window.Mor
 function start(){if(!register())return;ensureUi();refresh();window.addEventListener('nova-learning-complete',refresh)}
 if(document.documentElement.dataset.novaAuthorised==='true')start();else window.addEventListener('morley-ai-authorised',start,{once:true});
 })();
+// Checklist metadata refresh only; runtime behavior unchanged.
