@@ -16,8 +16,6 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 
-private val ADMIN_USER_AGENT_TOKEN = " MorleyAdminAndroid/${BuildConfig.VERSION_NAME}"
-
 class AdminActivity : ComponentActivity() {
     private lateinit var webView: WebView
 
@@ -38,12 +36,16 @@ class AdminActivity : ComponentActivity() {
                 domStorageEnabled = true
                 databaseEnabled = true
                 cacheMode = WebSettings.LOAD_NO_CACHE
+                loadWithOverviewMode = true
+                useWideViewPort = true
                 allowFileAccess = false
                 allowContentAccess = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 javaScriptCanOpenWindowsAutomatically = false
                 setSupportMultipleWindows(false)
-                userAgentString = userAgentString + ADMIN_USER_AGENT_TOKEN
+                // Turnstile relies on stable, standard browser characteristics in native WebViews.
+                // Keep Android WebView's stock UA rather than appending an application token.
+                userAgentString = WebSettings.getDefaultUserAgent(this@AdminActivity)
             }
 
             CookieManager.getInstance().setAcceptCookie(true)
