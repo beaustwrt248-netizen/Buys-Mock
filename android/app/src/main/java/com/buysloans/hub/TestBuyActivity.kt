@@ -272,9 +272,9 @@ private fun TestBuyScreen(onBack: () -> Unit) {
                                     ),
                                     colors = FilterChipDefaults.filterChipColors(
                                         containerColor = resultColor.copy(alpha = .04f),
-                                        labelColor = Color.White.copy(alpha = .86f),
+                                        labelColor = Color(0xFF1C2B26),
                                         selectedContainerColor = resultColor.copy(alpha = .34f),
-                                        selectedLabelColor = Color.White
+                                        selectedLabelColor = Color(0xFF1C2B26)
                                     )
                                 )
                             }
