@@ -51,9 +51,9 @@ object MobilePhoneDeviceCatalog {
             .toList()
 
     val brandOrder = listOf(
-        "Apple", "Samsung", "Google", "OnePlus", "Xiaomi", "OPPO", "Nothing", "Motorola",
-        "Vivo", "Realme", "Huawei", "HONOR", "ASUS", "HMD", "Nokia", "Fairphone", "Meizu",
-        "Lenovo", "Sony", "ZTE / nubia", "TCL",
+        "Apple", "Samsung", "Google", "OnePlus", "Xiaomi", "POCO", "OPPO", "Nothing", "CMF", "Motorola",
+        "Vivo", "Realme", "Huawei", "HONOR", "ASUS", "HMD", "Nokia", "Fairphone", "Meizu", "Lenovo",
+        "Sony", "ZTE", "ZTE / nubia", "TCL", "Alcatel", "Aspera",
     )
 
     fun brands(): List<String> {
