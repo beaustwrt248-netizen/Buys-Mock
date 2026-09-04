@@ -38,12 +38,14 @@ guardian_js = read("admin/guardian.js")
 guardian_health = read("admin/guardian-health.js")
 menu_js = read("more-menu-v2.js")
 
-# Shared product navigation and help terminology. Console Pricing is intentionally reached
-# through Categories; GP replaced History as the fourth primary destination.
+# Shared product navigation and help terminology. Pricing workflows are reached through
+# Categories; GP replaced History as the fourth primary destination.
 for label in ('CATEGORIES("Categories", MorleyIcons.Categories)', 'GP("General Buys", MorleyIcons.Money)', "General Buys / GP"):
     require(dashboard, label, "Android primary navigation")
-for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
+for label in ("Categories → Laptops", "Categories → Desktops", "Categories → Mobile Phones", "Categories → Gaming Consoles", "General Buys / GP", "More → Support", "NFC", "Valuation"):
     require(android_help, label, "Android Help/FAQ content")
+for retired in ("Computer Pricing", "Console Pricing", "Menu → Report an Issue", "Menu → Updates", "Menu → Backup & Data"):
+    forbid(android_help, retired, "Android Help/FAQ navigation")
 for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
     require(web_parity, label, "web Help/FAQ content")
 require(index, "ultimate-parity.js?v=1", "web parity bootstrap")
