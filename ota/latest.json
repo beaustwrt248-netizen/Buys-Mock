@@ -1,7 +1,7 @@
 {
-  "versionCode": 105,
-  "versionName": "2.15.61",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.61/B-and-L-Morley-2.15.61.apk",
-  "sha256": "a1755582e7065700b8db591c08966ddc427585b8480e7127ddd9fd8a220c660b",
-  "notes": "Merge pull request #705 from beaustwrt248-netizen/fix/android-live-device-pricing"
+  "versionCode": 106,
+  "versionName": "2.15.62",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.62/B-and-L-Morley-2.15.62.apk",
+  "sha256": "a9f02df84aae342f4fa13ca86b6a2913edcb992b719416d97253207cb7a94e56",
+  "notes": "Use one live device catalogue across web and Android"
 }
