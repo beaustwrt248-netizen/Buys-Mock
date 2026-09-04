@@ -134,7 +134,7 @@ fun SmartWorkspaceSection() {
             Button(
                 onClick = { showDealMode = true },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White),
                 shape = RoundedCornerShape(14.dp)
             ) { Text("Quick Deal Mode", fontWeight = FontWeight.Black) }
             OutlinedButton(
@@ -173,7 +173,7 @@ fun SmartWorkspaceSection() {
             Button(
                 onClick = { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = MorleyTextPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White),
                 shape = RoundedCornerShape(14.dp)
             ) { Text("Open Valuations & Deals", fontWeight = FontWeight.Black) }
             OutlinedButton(onClick = { reload() }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, MorleyBorder)) {
@@ -247,7 +247,7 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                         }
                     }
                 }
-                OutlinedTextField(askText, { askText = it }, label = { Text("Seller asking price") }, singleLine = true)
+                OutlinedTextField(askText, { askText = it }, label = { Text("Seller Ask") }, singleLine = true)
                 OutlinedTextField(marketText, { marketText = it }, label = { Text("Market value / expected sale value") }, singleLine = true)
                 OutlinedTextField(
                     value = maxBuy?.let { "%.2f".format(it) } ?: "",
@@ -274,7 +274,7 @@ private fun DealModeDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = {
-                    if (!canSave) { error = "Enter an item, valid asking price and market value."; return@Button }
+                    if (!canSave) { error = "Enter an item, valid seller ask and market value."; return@Button }
                     busy = true; error = ""
                     scope.launch {
                         runCatching {
