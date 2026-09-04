@@ -28,10 +28,10 @@ test('phone pricing and cache-safe final parity assets load in the production bo
   assert.match(index,/web-universal-buy\.js\?v=2/);
   assert.match(index,/web-universal-buy\.css\?v=2/);
   assert.match(index,/mobile-layout-fix\.js\?v=202609042/);
-  assert.match(index,/mobile-app-parity-v4\.css\?v=202609042/);
-  assert.match(index,/mobile-app-parity-v4\.js\?v=202609043/);
-  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=202609042')>index.indexOf('morley-desktop-dashboard.css?v=2'));
-  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609043')>index.indexOf('morley-desktop-dashboard.js?v=1'));
+  assert.match(index,/mobile-app-parity-v4\.css\?v=202609044/);
+  assert.match(index,/mobile-app-parity-v4\.js\?v=202609044/);
+  assert.ok(index.indexOf('mobile-app-parity-v4.css?v=202609044')>index.indexOf('morley-desktop-dashboard.css?v=2'));
+  assert.ok(index.indexOf('mobile-app-parity-v4.js?v=202609044')>index.indexOf('morley-desktop-dashboard.js?v=1'));
 });
 
 test('legacy mobile layout yields navigation ownership to parity v4',()=>{
@@ -46,6 +46,19 @@ test('v4 stylesheet reclaims final runtime visual authority',()=>{
   assert.match(js,/document\.head\.appendChild\(link\)/);
   assert.match(js,/ensureVisualAuthority\(\);ensureCategories\(\)/);
   assert.match(js,/visualViewport\?\.addEventListener\('resize',schedule/);
+});
+
+test('More remains visible even if the legacy menu observer adds a hide marker',()=>{
+  assert.match(js,/classList\.remove\('morley-hide-more-tab'\)/);
+  assert.match(css,/body>nav button\[data-page="settings"\]\{display:flex!important\}/);
+});
+
+test('mobile More surfaces use the light emerald visual contract',()=>{
+  assert.match(css,/\.morley-menu-copy b\{color:var\(--morley-v4-text\)!important\}/);
+  assert.match(css,/\.morley-menu-icon\{background:var\(--morley-v4-soft\)!important/);
+  assert.match(css,/\.morley-menu-chevron\{color:var\(--morley-v4-secondary\)!important\}/);
+  assert.match(css,/\.morley-menu-signout\{background:var\(--morley-v4-raised\)!important/);
+  assert.match(css,/\.morley-menu-dialog-card \.morley-settings-body section,\.morley-menu-dialog-card \.morley-settings-body details\{background:var\(--morley-v4-raised\)!important/);
 });
 
 test('authoritative mobile theme is emerald-only and fixes reported home states',()=>{
