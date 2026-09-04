@@ -1,7 +1,7 @@
 {
-  "versionCode": 106,
-  "versionName": "2.15.62",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.62/B-and-L-Morley-2.15.62.apk",
-  "sha256": "a9f02df84aae342f4fa13ca86b6a2913edcb992b719416d97253207cb7a94e56",
-  "notes": "Use one live device catalogue across web and Android"
+  "versionCode": 107,
+  "versionName": "2.15.63",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.63/B-and-L-Morley-2.15.63.apk",
+  "sha256": "de995c995c064dfa5ac5c6e88b0d228199644eae292000b9c36bdcd6d3b6709b",
+  "notes": "Reconcile OTA and advance Morley to 2.15.63"
 }
