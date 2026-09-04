@@ -37,10 +37,8 @@ private enum class MobilePhonePricingContract(val catalogName: String) {
 }
 
 private val featuredPhoneBrands = listOf("Apple", "Samsung", "Google", "OnePlus", "Xiaomi")
-private val otherPhoneBrands = listOf(
-    "OPPO", "Nothing", "Motorola", "Vivo", "Realme", "Huawei", "HONOR", "ASUS", "HMD",
-    "Nokia", "Fairphone", "Meizu", "Lenovo", "Sony", "ZTE / nubia", "TCL"
-)
+private fun otherPhoneBrands(): List<String> =
+    MobilePhoneDeviceCatalog.brands().filterNot { brand -> brand in featuredPhoneBrands }
 
 private fun phoneBrandTitle(brand: String): String = when (brand) {
     "Apple" -> "Apple iPhone"
@@ -93,7 +91,7 @@ fun MobilePhonePricingScreen() {
                 }
                 Screen("Other Phone Brands") {
                     Text("Choose a brand to continue.", color = MorleyTextSecondary, fontSize = 15.sp)
-                    otherPhoneBrands.filter { it in MobilePhoneDeviceCatalog.brands() }.forEach { brand ->
+                    otherPhoneBrands().forEach { brand ->
                         BrandCard(brand) {
                             selectedBrand = brand
                             selectedModelFromSearch = null

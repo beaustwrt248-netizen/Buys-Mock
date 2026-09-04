@@ -18,12 +18,35 @@ data class LiveDevicePrice(
     val authoritative: Boolean,
 )
 
+data class LiveDeviceCatalogueRow(
+    val id: Long,
+    val category: String,
+    val brand: String,
+    val model: String,
+    val modelNumber: String?,
+    val storageOptions: List<String>,
+)
+
 object LiveDevicePricing {
     private const val PREFS = "morley_live_device_pricing"
-    private const val CACHE = "prices"
+    private const val PRICE_CACHE = "prices"
+    private const val DEVICE_CACHE = "devices"
 
     @Volatile
     private var snapshot: List<LiveDevicePrice> = emptyList()
+
+    @Volatile
+    private var catalogueSnapshot: List<LiveDeviceCatalogueRow> = emptyList()
+
+    fun catalogue(): List<LiveDeviceCatalogueRow> = catalogueSnapshot
+
+    internal fun replaceSnapshotsForTesting(
+        prices: List<LiveDevicePrice>,
+        devices: List<LiveDeviceCatalogueRow>,
+    ) {
+        snapshot = prices
+        catalogueSnapshot = devices
+    }
 
     fun normalizeStorage(value: String): String =
         value.trim().replace(" ", "").uppercase()
@@ -62,13 +85,12 @@ object LiveDevicePricing {
     ): LiveDevicePrice? = find(snapshot, brand, model, modelNumber, storage)
 
     fun cached(context: Context): List<LiveDevicePrice> {
-        val rows = parse(
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(CACHE, "[]")
-                .orEmpty(),
-        )
-        if (rows.isNotEmpty()) snapshot = rows
-        return rows
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prices = parsePrices(prefs.getString(PRICE_CACHE, "[]").orEmpty())
+        val devices = parseDevices(prefs.getString(DEVICE_CACHE, "[]").orEmpty())
+        snapshot = prices
+        catalogueSnapshot = devices
+        return prices
     }
 
     suspend fun refresh(context: Context): List<LiveDevicePrice> =
@@ -96,13 +118,17 @@ object LiveDevicePricing {
                 val response = JSONObject(
                     connection.inputStream.bufferedReader().use { it.readText() },
                 )
-                val raw = response.optJSONArray("prices")?.toString() ?: "[]"
-                val prices = parse(raw)
+                val rawPrices = response.optJSONArray("prices")?.toString() ?: "[]"
+                val rawDevices = response.optJSONArray("devices")?.toString() ?: "[]"
+                val prices = parsePrices(rawPrices)
+                val devices = parseDevices(rawDevices)
 
                 snapshot = prices
+                catalogueSnapshot = devices
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .edit()
-                    .putString(CACHE, raw)
+                    .putString(PRICE_CACHE, rawPrices)
+                    .putString(DEVICE_CACHE, rawDevices)
                     .apply()
 
                 prices
@@ -111,7 +137,7 @@ object LiveDevicePricing {
             }
         }
 
-    private fun parse(raw: String): List<LiveDevicePrice> =
+    private fun parsePrices(raw: String): List<LiveDevicePrice> =
         runCatching {
             val array = JSONArray(raw.ifBlank { "[]" })
             buildList {
@@ -135,6 +161,44 @@ object LiveDevicePricing {
                                 storage = storage,
                                 priceAud = price,
                                 authoritative = true,
+                            ),
+                        )
+                    }
+                }
+            }
+        }.getOrDefault(emptyList())
+
+    private fun parseDevices(raw: String): List<LiveDeviceCatalogueRow> =
+        runCatching {
+            val array = JSONArray(raw.ifBlank { "[]" })
+            buildList {
+                for (index in 0 until array.length()) {
+                    val row = array.getJSONObject(index)
+                    val id = row.optLong("id", -1)
+                    val category = row.optString("category").trim()
+                    val brand = row.optString("brand").trim()
+                    val model = row.optString("model_name").trim()
+                    val storages = row.optJSONArray("storage_options")?.let { storageArray ->
+                        buildList {
+                            for (storageIndex in 0 until storageArray.length()) {
+                                storageArray.optString(storageIndex).trim()
+                                    .takeIf { it.isNotBlank() }
+                                    ?.let(::add)
+                            }
+                        }.distinct()
+                    }.orEmpty()
+
+                    if (id > 0 && category.isNotBlank() && brand.isNotBlank() && model.isNotBlank()) {
+                        add(
+                            LiveDeviceCatalogueRow(
+                                id = id,
+                                category = category,
+                                brand = brand,
+                                model = model,
+                                modelNumber = row.optString("model_number")
+                                    .trim()
+                                    .takeIf { it.isNotBlank() },
+                                storageOptions = storages,
                             ),
                         )
                     }

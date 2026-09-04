@@ -1,56 +1,79 @@
 package com.buysloans.hub
 
+import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class MobilePhoneDeviceCatalogTest {
-    @Test
-    fun importedDocumentContainsExpectedModelCount() {
-        assertEquals(307, ImportedMobilePhoneCatalog.models.size)
+    private val devices = listOf(
+        LiveDeviceCatalogueRow(1, "mobile_phone", "Samsung", "Galaxy S24 Ultra", "SM-S928B", listOf("256 GB", "1 TB")),
+        LiveDeviceCatalogueRow(2, "mobile_phone", "Samsung", "Galaxy S24", "SM-S921B", listOf("128 GB", "256 GB")),
+        LiveDeviceCatalogueRow(3, "mobile_phone", "Apple", "iPhone 17 Pro Max", null, listOf("256 GB", "512 GB", "1 TB")),
+        LiveDeviceCatalogueRow(4, "mobile_phone", "Apple", "iPhone 17 Pro", null, listOf("256 GB", "512 GB")),
+        LiveDeviceCatalogueRow(5, "mobile_phone", "Apple", "iPhone 17", null, listOf("128 GB", "256 GB")),
+        LiveDeviceCatalogueRow(6, "mobile_phone", "Apple", "iPhone 16 Pro Max", null, listOf("256 GB")),
+        LiveDeviceCatalogueRow(7, "mobile_phone", "Apple", "iPhone 15 Pro Max", null, listOf("256 GB")),
+        LiveDeviceCatalogueRow(8, "mobile_phone", "Apple", "iPhone 14 Pro Max", null, listOf("128 GB")),
+        LiveDeviceCatalogueRow(9, "mobile_phone", "Apple", "iPhone 12 mini", null, listOf("64 GB")),
+        LiveDeviceCatalogueRow(10, "mobile_phone", "HONOR", "Magic7 Pro", null, listOf("512 GB")),
+        LiveDeviceCatalogueRow(11, "mobile_phone", "ASUS", "ROG Phone 9", null, listOf("512 GB")),
+        LiveDeviceCatalogueRow(12, "mobile_phone", "HMD", "Skyline", null, listOf("256 GB")),
+        LiveDeviceCatalogueRow(13, "mobile_phone", "Fairphone", "Fairphone 6", null, listOf("256 GB")),
+        LiveDeviceCatalogueRow(14, "tablet", "Samsung", "Galaxy Tab S10", "SM-X920", listOf("256 GB")),
+    )
+
+    private val prices = listOf(
+        LiveDevicePrice(1, "Samsung", "Galaxy S24 Ultra", "SM-S928B", "256 GB", 999.0, true),
+        LiveDevicePrice(10, "HONOR", "Magic7 Pro", null, "512 GB", 777.0, false),
+    )
+
+    @Before
+    fun setUp() {
+        LiveDevicePricing.replaceSnapshotsForTesting(prices, devices)
+    }
+
+    @After
+    fun tearDown() {
+        LiveDevicePricing.replaceSnapshotsForTesting(emptyList(), emptyList())
     }
 
     @Test
-    fun samsungModelNumbersResolveToFriendlySeriesNames() {
-        val s24Ultra = ImportedMobilePhoneCatalog.models.firstOrNull {
-            it.brand == "Samsung" && it.modelNumber == "SM-S928B"
-        }
-        assertNotNull(s24Ultra)
-        assertEquals("Galaxy S24 Ultra", s24Ultra!!.model)
-        assertTrue("1 TB" in s24Ultra.storages)
-
-        val s25Plus = ImportedMobilePhoneCatalog.models.firstOrNull {
-            it.brand == "Samsung" && it.modelNumber == "SM-S936B"
-        }
-        assertEquals("Galaxy S25 Plus", s25Plus?.model)
+    fun liveCatalogueOnlyIncludesMobilePhonesAndExpandsStorageVariants() {
+        val entries = MobilePhoneDeviceCatalog.entries
+        assertTrue(entries.none { it.model.startsWith("Galaxy Tab") })
+        assertTrue(entries.any { it.brand == "Samsung" && it.model == "Galaxy S24" && it.storage == "128 GB" })
+        assertTrue(entries.any { it.brand == "Samsung" && it.model == "Galaxy S24 Ultra" && it.storage == "1 TB" })
     }
 
     @Test
-    fun existingPricedVariantWinsOverImportedDuplicate() {
-        val existing = MobilePhoneDeviceCatalog.variants("Samsung", "Galaxy S24 Ultra")
+    fun authoritativeLivePriceWinsAndUnpricedVariantsStayUnpriced() {
+        val priced = MobilePhoneDeviceCatalog.variants("Samsung", "Galaxy S24 Ultra")
             .first { it.storage == "256 GB" }
-        assertEquals(999.0, existing.priceSheetValue!!, 0.0)
-        assertEquals("SM-S928B", existing.modelNumber)
-    }
+        assertEquals(999.0, priced.priceSheetValue!!, 0.0)
+        assertEquals("SM-S928B", priced.modelNumber)
 
-    @Test
-    fun importedMissingVariantIsAddedWithoutInventingPrice() {
-        val imported = MobilePhoneDeviceCatalog.variants("Samsung", "Galaxy S24")
+        val unpriced = MobilePhoneDeviceCatalog.variants("Samsung", "Galaxy S24")
             .first { it.storage == "128 GB" }
-        assertNull(imported.priceSheetValue)
-        assertEquals("SM-S921B", imported.modelNumber)
+        assertNull(unpriced.priceSheetValue)
+        assertEquals("SM-S921B", unpriced.modelNumber)
     }
 
     @Test
-    fun expandedCatalogueAddsOlderAndAdditionalBrandModelsWithoutPrices() {
-        val iphone12Mini = MobilePhoneDeviceCatalog.variants("Apple", "iPhone 12 mini")
-        assertTrue(iphone12Mini.any { it.storage == "64 GB" && it.priceSheetValue == null })
+    fun nonAuthoritativePricesNeverAuthoriseCatalogueEntries() {
+        val honor = MobilePhoneDeviceCatalog.variants("HONOR", "Magic7 Pro").single()
+        assertNull(honor.priceSheetValue)
+        assertTrue(!honor.hasPrice)
+    }
 
-        val honor = MobilePhoneDeviceCatalog.variants("HONOR", "Magic7 Pro")
-        assertTrue(honor.any { it.storage == "512 GB" && it.priceSheetValue == null })
-
+    @Test
+    fun liveCatalogueAddsOlderAndAdditionalBrandModelsWithoutInventingPrices() {
+        assertTrue(MobilePhoneDeviceCatalog.variants("Apple", "iPhone 12 mini").any {
+            it.storage == "64 GB" && it.priceSheetValue == null
+        })
+        assertTrue(MobilePhoneDeviceCatalog.variants("HONOR", "Magic7 Pro").all { it.priceSheetValue == null })
         assertTrue("ASUS" in MobilePhoneDeviceCatalog.brands())
         assertTrue("HMD" in MobilePhoneDeviceCatalog.brands())
         assertTrue("Fairphone" in MobilePhoneDeviceCatalog.brands())
@@ -66,31 +89,27 @@ class MobilePhoneDeviceCatalogTest {
 
     @Test
     fun premiumVariantsStayTogetherWithinPhoneGeneration() {
-        val models = MobilePhoneDeviceCatalog.models("Apple")
-        val seventeen = models.filter { it.startsWith("iPhone 17") }
-        assertTrue(seventeen.first().contains("Pro Max"))
+        val seventeen = MobilePhoneDeviceCatalog.models("Apple").filter { it.startsWith("iPhone 17") }
+        assertTrue(seventeen.isNotEmpty())
+        assertEquals("iPhone 17 Pro Max", seventeen.first())
         assertTrue(seventeen.all { it.startsWith("iPhone 17") })
     }
 
     @Test
     fun modelNumberSearchFindsFriendlyModel() {
         assertTrue(MobilePhoneDeviceCatalog.modelMatches("Samsung", "Galaxy S24 Ultra", "SM-S928B"))
+        val results = MobilePhoneDeviceCatalog.search("SM-S928B")
+        assertTrue(results.any { it.brand == "Samsung" && it.model == "Galaxy S24 Ultra" })
     }
 
     @Test
     fun globalSearchFindsAcrossBrandModelNumberAndStorage() {
-        val byModelNumber = MobilePhoneDeviceCatalog.search("SM-S928B")
-        assertTrue(byModelNumber.any { it.brand == "Samsung" && it.model == "Galaxy S24 Ultra" })
-
-        val byBrand = MobilePhoneDeviceCatalog.search("HONOR")
-        assertTrue(byBrand.any { it.model == "Magic7 Pro" })
-
-        val byStorage = MobilePhoneDeviceCatalog.search("1TB")
-        assertTrue(byStorage.any { "1 TB" in it.storages })
+        assertTrue(MobilePhoneDeviceCatalog.search("HONOR").any { it.model == "Magic7 Pro" })
+        assertTrue(MobilePhoneDeviceCatalog.search("1TB").any { "1 TB" in it.storages })
     }
 
     @Test
-    fun globalSearchMarksExistingPricedModelsWithoutAuthorisingNewOnes() {
+    fun globalSearchMarksOnlyAuthoritativelyPricedModels() {
         val priced = MobilePhoneDeviceCatalog.search("Galaxy S24 Ultra").first()
         assertTrue(priced.hasPricedVariant)
 
@@ -100,7 +119,7 @@ class MobilePhoneDeviceCatalogTest {
     }
 
     @Test
-    fun mergedCatalogueHasNoDuplicateBrandModelStorageKeys() {
+    fun catalogueHasNoDuplicateBrandModelStorageKeys() {
         val keys = MobilePhoneDeviceCatalog.entries.map {
             "${it.brand.lowercase()}|${it.model.lowercase()}|${it.storage.replace(" ", "").lowercase()}"
         }
