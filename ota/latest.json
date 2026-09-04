@@ -1,7 +1,7 @@
 {
-  "versionCode": 98,
-  "versionName": "2.15.54",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.54/B-and-L-Morley-2.15.54.apk",
-  "sha256": "dc9e83fbe44852763762b7dfc79d35ee81c2f85e47810f315a911e24edf54684",
-  "notes": "Harden valuation-history UI errors on current main (#651)"
+  "versionCode": 99,
+  "versionName": "2.15.55",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.55/B-and-L-Morley-2.15.55.apk",
+  "sha256": "091151e5255171184bc3a976bd9cd97954ecbf409e586bb00646aef4ef438628",
+  "notes": "Restore active Android workspace contrast (#661)"
 }
