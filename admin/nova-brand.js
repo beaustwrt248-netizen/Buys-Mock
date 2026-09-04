@@ -1,0 +1,1 @@
+(()=>{'use strict';function bind(){if(!window.MorleyAI)return false;if(!window.NovaAI)Object.defineProperty(window,'NovaAI',{value:window.MorleyAI,writable:false,configurable:false});return true}if(!bind())window.addEventListener('morley-ai-authorised',bind,{once:true});})();
