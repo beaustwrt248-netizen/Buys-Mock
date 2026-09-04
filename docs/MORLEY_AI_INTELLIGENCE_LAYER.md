@@ -1,23 +1,24 @@
 # Morley AI intelligence layer
 
-This layer extends the unified Morley AI capability registry with bounded, read-only operational intelligence.
+Morley AI now treats Guardian as a first-class diagnostic and experience source inside one operating intelligence, while Guardian remains the protected repair and approval boundary.
 
-## Connected capabilities
+## Connected read intelligence
 
-- `guardian.diagnostics` — reads recent Guardian diagnosis/proposed-action state without executing repairs.
-- `catalogue.summary` — reports active catalogue coverage and data-quality gaps.
-- `catalogue.search` — searches active catalogue records without mutating them.
-- `valuation.summary` — reports recent valuation, expected-profit and realised-profit signals.
+- Live catalogue health and device search.
+- Valuation performance and realised-profit summaries.
+- Guardian health, diagnoses, proposed actions and recurrence signals.
+- Outcome learning across verified Guardian incidents, repair outcomes and realised valuation results.
 
-## Safety boundaries
+## Deeper learning model
 
-- All new capabilities in this layer are `read` risk.
-- No catalogue, valuation, Guardian, release or support mutation is introduced.
-- Existing protected pricing application remains approval-gated.
-- Guardian repair execution remains human-approved.
-- No permission, RLS, auth, secret or deployment authority is widened.
-- Live authoritative sources remain preferred over Morley session memory.
+Morley synthesises patterns from historical operational outcomes at read time. It measures recurring incident classifications, verified/resolved outcomes, repair completion/failure rates, and valuation forecast error/bias. These signals can improve diagnosis, prioritisation and future recommendations.
 
-## Next layer
+This is bounded operational learning, not autonomous authority expansion. Learned patterns cannot modify permissions, RLS, secrets, release policy, pricing approval, Guardian repair approval or any other protected boundary.
 
-Inventory/sales intelligence can attach after its authoritative live sources and access contracts are verified. Protected catalogue and valuation writes should be added only through server-enforced approval and audit paths, never by direct client-side mutation.
+## Guardian relationship
+
+Guardian is part of Morley's intelligence surface but remains a separate enforcement/execution subsystem. Morley may inspect Guardian incidents and learn from verified repair outcomes; code repair execution continues through Guardian's protected human-approval path.
+
+## Next capabilities
+
+Inventory and sales intelligence, cross-domain operational recommendations, and explicit approval-gated write capabilities can attach to the same registry after their existing server-side controls and audit contracts are verified.
