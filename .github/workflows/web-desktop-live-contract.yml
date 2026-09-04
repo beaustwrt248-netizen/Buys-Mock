@@ -46,10 +46,10 @@ jobs:
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/index.html" 'morley-desktop-dashboard.js?v=2'
           fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "home|categories|general|settings"
           fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Categories'"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Laptops'"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Desktops'"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Mobile Phones'"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Gaming Consoles'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Laptops</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Desktops</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Mobile Phones</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Gaming Consoles</b>'
           node --check "$RUNNER_TEMP/desktop.js"
 
           if grep -Fq "['phones'," "$RUNNER_TEMP/desktop.js"; then
