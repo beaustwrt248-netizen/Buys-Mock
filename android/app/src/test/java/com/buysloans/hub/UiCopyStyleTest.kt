@@ -195,4 +195,14 @@ class UiCopyStyleTest {
         assertTrue("Mandatory-update error status must use darker semantic red", gate.contains("private val GateError = Color(0xFFB42318)"))
         assertTrue("Mandatory-update status must map to readable light-theme colours", gate.contains("Text(status, color = if (update == null && !busy) GateError else MorleyTextPrimary)"))
     }
+
+    @Test fun helpGuideMatchesCurrentNavigation() {
+        val help = sourceFile("HelpGuideActivity.kt")
+        listOf("Computer Pricing", "Console Pricing", "Menu → Report an Issue", "Menu → Updates", "Menu → Backup & Data").forEach { legacy ->
+            assertFalse("Stale Help navigation returned: $legacy", help.contains(legacy))
+        }
+        listOf("Categories → Laptops", "Categories → Gaming Consoles", "Categories → Mobile Phones", "More → Updates", "More → Support", "More → Backup & data").forEach { expected ->
+            assertTrue("Current Help navigation is missing: $expected", help.contains(expected))
+        }
+    }
 }
