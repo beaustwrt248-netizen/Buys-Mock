@@ -80,7 +80,7 @@ jobs:
               raise SystemExit('Desktop dashboard behaviour is not loaded')
           if index.index('mobile-app-parity-v5.css?v=202609041') < index.index('mobile-app-parity-v4.css?v=202609044'):
               raise SystemExit('Mobile parity v5 stylesheet must load after v4')
-          if index.index('mobile-app-parity-v5.js?v=202609041') < index.index('mobile-app-parity-v4.js?v=202609044'):
+          if index.index('mobile-app-parity-v5.js?v=202609042') < index.index('mobile-app-parity-v4.js?v=202609044'):
               raise SystemExit('Mobile parity v5 runtime must load after v4')
 
           auth_theme=Path('morley-light-web.css').read_text(encoding='utf-8')
