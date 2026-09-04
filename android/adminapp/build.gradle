@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace 'com.buysloans.admin'
-    compileSdk 35
+    compileSdk 37
 
     defaultConfig {
         applicationId 'com.buysloans.admin'
