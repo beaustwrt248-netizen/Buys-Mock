@@ -8,6 +8,7 @@ on:
       - '*.js'
       - 'index.html'
       - 'tests/desktop-dashboard-contract.test.js'
+      - 'tests/mobile-app-parity-v4.test.js'
       - '.github/workflows/web-no-blue-filter.yml'
   pull_request:
     branches: [ main ]
@@ -16,6 +17,7 @@ on:
       - '*.js'
       - 'index.html'
       - 'tests/desktop-dashboard-contract.test.js'
+      - 'tests/mobile-app-parity-v4.test.js'
       - '.github/workflows/web-no-blue-filter.yml'
   workflow_dispatch:
 
@@ -33,7 +35,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           forbidden=['#2f7cff','#1f5fd8','#12c9ff','#2468dd','#2875ff','#16c7ff','#70dfff','#7bdfff','rgba(47,124,255','rgba(18,201,255','rgb(47,124,255','rgb(18,201,255']
-          active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css','morley-desktop-dashboard.css']
+          active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css','morley-desktop-dashboard.css','mobile-app-parity-v4.css']
           failures=[]
           for file in active:
               text=Path(file).read_text(encoding='utf-8').lower()
@@ -101,3 +103,5 @@ jobs:
           PY
       - name: Desktop dashboard regression test
         run: node tests/desktop-dashboard-contract.test.js
+      - name: Android mobile web parity regression test
+        run: node --test tests/mobile-app-parity-v4.test.js
