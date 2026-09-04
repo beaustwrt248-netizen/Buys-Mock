@@ -22,7 +22,7 @@ async function authorise(){try{
  document.documentElement.dataset.novaAuthorised='true';
  $('aiAuth')?.classList.add('hidden');
  $('aiWorkspace')?.classList.remove('hidden');
- for(const src of ['morley-ai-core.js?v=1','nova-brand.js?v=1','morley-ai-ui.js?v=2','nova-training-ui.js?v=1','nova-control-centre.js?v=3'])await loadScript(src);
+ for(const src of ['morley-ai-core.js?v=1','nova-brand.js?v=1','morley-ai-ui.js?v=2','nova-training-ui.js?v=1','nova-knowledge-ui.js?v=1','nova-control-centre.js?v=3'])await loadScript(src);
  window.dispatchEvent(new Event('morley-ai-authorised'));
 }catch(error){console.error('Nova authorisation failed',error);status('Nova could not start safely. Return to Admin Control and try again.')}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorise,{once:true});else authorise();
