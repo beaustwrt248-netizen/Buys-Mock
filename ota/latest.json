@@ -1,7 +1,7 @@
 {
-  "versionCode": 99,
-  "versionName": "2.15.55",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.55/B-and-L-Morley-2.15.55.apk",
-  "sha256": "091151e5255171184bc3a976bd9cd97954ecbf409e586bb00646aef4ef438628",
-  "notes": "Restore active Android workspace contrast (#661)"
+  "versionCode": 100,
+  "versionName": "2.15.56",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.56/B-and-L-Morley-2.15.56.apk",
+  "sha256": "21fe89bb973a716f9e12bf0c3ee811cc1d0c01df2ad40ec1f67a119bebf617f6",
+  "notes": "Reconcile Notification Centre source with shipped light UI"
 }
