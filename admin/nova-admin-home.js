@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
-function loadCss(){if(q('#novaAdminHomeCss'))return;const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=2';document.head.appendChild(l)}
+function loadCss(){if(q('#novaAdminHomeCss'))return;const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=3';document.head.appendChild(l)}
 function clickTab(id){const b=q(`.tabs .tab[data-tab="${id}"]`);if(b)b.click()}
 function initials(){const raw=(q('#whoami')?.textContent||'Admin').trim();const parts=raw.split(/\s+/).filter(Boolean).filter(x=>!x.includes('@'));if(!parts.length)return'A';return(parts[0][0]+(parts[1]?.[0]||'')).toUpperCase()}
 function enhanceTopbar(){const bar=q('.topbar');if(!bar)return;const title=bar.querySelector('h1');if(title&&!q('.nova-admin-tagline',bar)){const tag=document.createElement('div');tag.className='nova-admin-tagline';tag.textContent='MANAGE • MONITOR • GROW';title.insertAdjacentElement('afterend',tag)}const badge=bar.querySelector('.badge');if(badge)badge.style.display='none';if(!q('.nova-header-actions',bar)){const a=document.createElement('div');a.className='nova-header-actions';a.innerHTML='<button type="button" class="nova-icon-button" data-nova-head="notify" aria-label="Notifications">◉</button><button type="button" class="nova-icon-button" data-nova-head="settings" aria-label="Controls and settings">⚙</button>';bar.appendChild(a);q('[data-nova-head="notify"]',a).onclick=()=>clickTab('notify');q('[data-nova-head="settings"]',a).onclick=()=>clickTab('controls')}}
@@ -9,7 +9,7 @@ function enhanceNav(){const nav=q('.tabs');if(!nav)return;if(!q('.admin-nova-dir
 function quickCard({label,desc,icon,tone='',href='',tab=''}){const el=document.createElement('a');el.className='nova-quick-card'+(label==='Nova AI'?' nova-primary':'');if(tone)el.dataset.tone=tone;el.href=href||'#';if(!href)el.onclick=e=>{e.preventDefault();clickTab(tab)};el.innerHTML=`<span class="nova-quick-icon" aria-hidden="true">${icon}</span><span><span class="nova-quick-label">${label}</span><span class="nova-quick-desc">${desc}</span></span>`;return el}
 function updateSystemStatus(){const att=q('#adminAttention'),label=q('#novaSystemLabel');if(label&&att&&att.children.length)label.textContent='All systems operational'}
 function enhanceOverview(){const panel=q('#tab-overview');if(!panel||q('#novaHero',panel))return;const hero=document.createElement('section');hero.id='novaHero';hero.className='nova-hero';hero.innerHTML='<div class="nova-hero-main"><div class="nova-orb" aria-hidden="true">N</div><div><div class="nova-hero-kicker">NOVA AI</div><h2>Your AI Command Partner</h2><p>Ask questions, get insights, train Nova and manage Morley intelligence directly from Admin.</p></div><div class="nova-hero-arrow" aria-hidden="true">›</div></div><a class="nova-chat-cta" href="morley-ai.html"><span class="nova-chat-icon" aria-hidden="true">✦</span><span class="nova-chat-copy"><strong>Chat with Nova</strong><span>Get live answers, insights and training</span></span></a>';
-const attention=q('#adminAttention',panel),grid=q(':scope > .grid',panel),head=q('.admin-page-head',panel);(attention||grid||head)?.insertAdjacentElement('beforebegin',hero);
+const attention=q('#adminAttention',panel),grid=q(':scope > .grid',panel),head=q('.admin-page-head',panel);(attention||grid||head||panel.firstElementChild)?.insertAdjacentElement('beforebegin',hero);if(!hero.isConnected)panel.prepend(hero);
 const sys=document.createElement('div');sys.className='nova-section-heading';sys.innerHTML='<h2>System Overview</h2><div class="nova-system-state"><span class="nova-system-dot"></span><span id="novaSystemLabel">Checking systems…</span></div>';hero.insertAdjacentElement('afterend',sys);
 const quickHead=document.createElement('div');quickHead.className='nova-quick-head';quickHead.innerHTML='<h2>Quick Access</h2><span>Morley Admin</span>';
 const quick=document.createElement('div');quick.className='nova-quick-grid';[
@@ -20,9 +20,9 @@ const quick=document.createElement('div');quick.className='nova-quick-grid';[
 {label:'Catalogue',desc:'Devices & stock',icon:'◇',tone:'violet',tab:'pricing'},
 {label:'Release',desc:'Updates & deploy',icon:'↗',tone:'rose',tab:'release'}
 ].forEach(x=>quick.appendChild(quickCard(x)));
-const anchor=q('#adminAttention',panel)||grid;anchor?.insertAdjacentElement('afterend',quickHead);quickHead.insertAdjacentElement('afterend',quick);
-if(attention)new MutationObserver(updateSystemStatus).observe(attention,{childList:true,subtree:true});updateSystemStatus()}
-function runEnhancements(){enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus()}
-function boot(){loadCss();setTimeout(runEnhancements,30);setTimeout(runEnhancements,350);setTimeout(updateSystemStatus,800);setTimeout(updateSystemStatus,1600)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+const anchor=q('#adminAttention',panel)||grid||sys;anchor.insertAdjacentElement('afterend',quickHead);quickHead.insertAdjacentElement('afterend',quick);
+const currentAttention=q('#adminAttention',panel);if(currentAttention)new MutationObserver(updateSystemStatus).observe(currentAttention,{childList:true,subtree:true});updateSystemStatus()}
+function runEnhancements(){loadCss();enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus();document.documentElement.dataset.novaAdminHome='ready'}
+function boot(){runEnhancements();let passes=0;const timer=setInterval(()=>{runEnhancements();if(++passes>=20)clearInterval(timer)},500);const root=q('#appView')||document.body;new MutationObserver(()=>runEnhancements()).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class']})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
