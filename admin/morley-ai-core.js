@@ -8,6 +8,6 @@ function record(type,data){memory.session.push({at:new Date().toISOString(),type
 function feedback(entry){memory.feedback.push({at:new Date().toISOString(),...entry});if(memory.feedback.length>100)memory.feedback.shift();record('feedback',entry);}
 function needsApproval(cap,input){if(cap.risk===RISK.PROTECTED||cap.risk===RISK.CRITICAL)return true;return typeof cap.approval==='function'?!!cap.approval(input):false;}
 async function run(id,input={},ctx={}){const cap=registry.get(id);if(!cap)throw new Error(`Unknown Morley AI capability: ${id}`);const approval=needsApproval(cap,input);if(approval&&!ctx.approved)return {status:'needs_approval',capability:id,risk:cap.risk,summary:cap.describe?.(input)||cap.label,input};record('run',{capability:id,risk:cap.risk});const result=await cap.execute(input,ctx);record('result',{capability:id,ok:true});return {status:'completed',capability:id,result};}
-function context(){return {capabilities:list(),recent:memory.session.slice(-30),feedback:memory.feedback.slice(-30)};}
+function context(){return {capabilities:list(),recent:memory.session.slice(-30),feedback:memory.feedback.slice(-30),learning_policy:{authoritative_sources_override_memory:true,learning_cannot_reduce_risk:true,learning_cannot_grant_authority:true,protected_actions_require_approval:true}};}
 window.MorleyAI=Object.freeze({RISK,register,list,run,context,feedback});
 })();
