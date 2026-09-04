@@ -26,6 +26,7 @@ function ensureNav(){
   nav.innerHTML=`<button data-page="home" type="button"><span aria-hidden="true">⌂</span><small>Home</small></button><button data-page="categories" type="button"><span aria-hidden="true">▦</span><small>Categories</small></button><button data-page="general" type="button"><span aria-hidden="true">$</span><small>General Buys</small></button><button data-page="settings" type="button"><span aria-hidden="true">•••</span><small>More</small></button>`;
   nav.dataset.morleyAndroidV4=signature;$$('button[data-page]',nav).forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
  }
+ $$('button[data-page]',nav).forEach(b=>b.classList.remove('morley-hide-more-tab'));
  syncNav();
 }
 function syncNav(){
