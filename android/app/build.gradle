@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace 'com.buysloans.hub'
-    compileSdk 36
+    compileSdk 37
 
     defaultConfig {
         applicationId 'com.buysloans.hub'
