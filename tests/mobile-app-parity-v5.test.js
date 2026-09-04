@@ -9,12 +9,26 @@ const product=fs.readFileSync('product-parity-v3.js','utf8');
 const layout=fs.readFileSync('mobile-layout-fix.js','utf8');
 const viewport=fs.readFileSync('mobile-viewport-lock.js','utf8');
 const premium=fs.readFileSync('premium-motion.css','utf8');
+const workspaceTransport=fs.readFileSync('workspace-fetch-resilience.js','utf8');
 
 test('v5 is the final production mobile CSS and JS authority',()=>{
   assert.match(index,/mobile-app-parity-v5\.css\?v=202609041/);
   assert.match(index,/mobile-app-parity-v5\.js\?v=202609041&route=2/);
   assert.ok(index.indexOf('mobile-app-parity-v5.css?v=202609041')>index.indexOf('mobile-app-parity-v4.css?v=202609044'));
   assert.ok(index.indexOf('mobile-app-parity-v5.js?v=202609041&route=2')>index.indexOf('mobile-app-parity-v4.js?v=202609044'));
+});
+
+test('workspace bootstrap has independent browser transport fallbacks',()=>{
+  assert.match(index,/workspace-fetch-resilience\.js\?v=1/);
+  assert.ok(index.indexOf('workspace-fetch-resilience.js?v=1')<index.indexOf("const CANDIDATE='web-base.html'"));
+  assert.doesNotThrow(()=>new Function(workspaceTransport));
+  assert.match(workspaceTransport,/window\.fetch=async function/);
+  assert.match(workspaceTransport,/function xhrResponse\(url\)/);
+  assert.match(workspaceTransport,/function frameResponse\(url\)/);
+  assert.match(workspaceTransport,/new Response\(/);
+  assert.match(workspaceTransport,/sandbox','allow-same-origin'/);
+  assert.match(workspaceTransport,/Buys and Loans Hub/);
+  assert.match(workspaceTransport,/Morley workspace transport fallbacks exhausted/);
 });
 
 test('v5 validates actual nav markup instead of trusting a stale dataset marker',()=>{
