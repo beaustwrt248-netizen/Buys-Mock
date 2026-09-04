@@ -125,7 +125,7 @@ class NotificationCentreActivity : ComponentActivity() {
                             UpdateManager.isValidSha256(item.sha256)
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (item.read) NCCard else Color(0xFF0E2038)
+                                containerColor = if (item.read) NCCard else MorleyAccentSoft
                             ),
                             border = BorderStroke(
                                 1.dp,
@@ -139,7 +139,7 @@ class NotificationCentreActivity : ComponentActivity() {
                                     Text(item.title, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
                                     if (!item.read) Text("NEW", color = NCAccent, fontWeight = FontWeight.Black, fontSize = 11.sp)
                                 }
-                                if (item.body.isNotBlank()) Text(item.body, color = Color.White)
+                                if (item.body.isNotBlank()) Text(item.body, color = MorleyTextPrimary)
                                 Text(
                                     "${labelFor(item.type)} • ${formatTime(item.createdAt)}",
                                     color = NCMuted,
