@@ -2,6 +2,7 @@
 const q=(s,r=document)=>r.querySelector(s);
 function appReady(){const app=q('#appView');return !!app&&!app.classList.contains('hidden')}
 function loadCss(){if(q('#novaAdminHomeCss'))return;const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=3';document.head.appendChild(l)}
+function loadLifecycle(){if(q('#adminLifecycleScript'))return;const s=document.createElement('script');s.id='adminLifecycleScript';s.src='admin-lifecycle-management.js?v=1';s.async=false;document.body.appendChild(s)}
 function clickTab(id){const b=q(`.tabs .tab[data-tab="${id}"]`);if(b)b.click()}
 function initials(){const raw=(q('#whoami')?.textContent||'Admin').trim();const parts=raw.split(/\s+/).filter(Boolean).filter(x=>!x.includes('@'));if(!parts.length)return'A';return(parts[0][0]+(parts[1]?.[0]||'')).toUpperCase()}
 function enhanceTopbar(){const bar=q('.topbar');if(!bar)return;const title=bar.querySelector('h1');if(title&&!q('.nova-admin-tagline',bar)){const tag=document.createElement('div');tag.className='nova-admin-tagline';tag.textContent='MANAGE • MONITOR • GROW';title.insertAdjacentElement('afterend',tag)}const badge=bar.querySelector('.badge');if(badge)badge.style.display='none';if(!q('.nova-header-actions',bar)){const a=document.createElement('div');a.className='nova-header-actions';a.innerHTML='<button type="button" class="nova-icon-button" data-nova-head="notify" aria-label="Notifications">◉</button><button type="button" class="nova-icon-button" data-nova-head="settings" aria-label="Controls and settings">⚙</button>';bar.appendChild(a);q('[data-nova-head="notify"]',a).onclick=()=>clickTab('notify');q('[data-nova-head="settings"]',a).onclick=()=>clickTab('controls')}}
@@ -23,7 +24,7 @@ const quick=document.createElement('div');quick.className='nova-quick-grid';[
 ].forEach(x=>quick.appendChild(quickCard(x)));
 const anchor=q('#adminAttention',panel)||grid||sys;anchor.insertAdjacentElement('afterend',quickHead);quickHead.insertAdjacentElement('afterend',quick);
 const currentAttention=q('#adminAttention',panel);if(currentAttention)new MutationObserver(updateSystemStatus).observe(currentAttention,{childList:true,subtree:true});updateSystemStatus()}
-function runEnhancements(){if(!appReady())return;loadCss();enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus();if(document.documentElement.dataset.novaAdminHome!=='ready')document.documentElement.dataset.novaAdminHome='ready'}
+function runEnhancements(){if(!appReady())return;loadCss();loadLifecycle();enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus();if(document.documentElement.dataset.novaAdminHome!=='ready')document.documentElement.dataset.novaAdminHome='ready'}
 function boot(){let scheduled=false;const schedule=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;runEnhancements()})};let passes=0;const timer=setInterval(()=>{schedule();if(++passes>=20)clearInterval(timer)},500);const root=q('#appView')||document.body;new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});schedule()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
