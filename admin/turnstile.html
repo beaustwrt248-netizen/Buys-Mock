@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="color-scheme" content="dark">
   <title>B&L Morley Security Check</title>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   <style>
     html,body{margin:0;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     main{min-height:86px;display:flex;align-items:center;justify-content:center;padding:8px}
@@ -20,40 +19,105 @@
   const status=document.getElementById('status');
   const parentOrigin=window.location.origin;
   const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*';
+  const MAX_API_ATTEMPTS=3;
+  let apiAttempt=0;
+  let apiWatchdog=0;
+  let rendered=false;
   window.__morleyTurnstileToken='';
   window.__morleyTurnstileState='loading';
-  function send(name,value){
-    const token=value||'';
-    if(name==='onToken'){window.__morleyTurnstileToken=token;window.__morleyTurnstileState='complete';}
-    else {window.__morleyTurnstileToken='';window.__morleyTurnstileState=name==='onExpired'?'expired':'error';}
-    try{ if(window.AndroidBridge && typeof window.AndroidBridge[name]==='function') window.AndroidBridge[name](token); }catch(_){}
+
+  function post(type,value){
     try{
-      if(window.parent && window.parent!==window){
-        const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
-        const payload={source:'morley-turnstile',type,value:token};
+      if(window.parent&&window.parent!==window){
+        const payload={source:'morley-turnstile',type,value:value||''};
         window.parent.postMessage(payload,postMessageOrigin);
-        if(name==='onToken'){
-          setTimeout(()=>window.parent.postMessage(payload,postMessageOrigin),150);
-          setTimeout(()=>window.parent.postMessage(payload,postMessageOrigin),600);
-        }
       }
     }catch(_){}
   }
-  function render(){
-    if(!window.turnstile){setTimeout(render,100);return;}
-    status.textContent='Complete the security check.';
-    window.__morleyTurnstileState='ready';
-    turnstile.render('#challenge',{
-      sitekey,
-      theme:'dark',
-      size:'flexible',
-      action:'blmorley_auth',
-      callback:function(token){status.textContent='Security check complete.';send('onToken',token);},
-      'expired-callback':function(){status.textContent='Security check expired. Complete it again.';send('onExpired','');},
-      'error-callback':function(code){status.textContent='Security check failed. Tap to retry.';send('onError',String(code||''));return true;}
-    });
+
+  function send(name,value){
+    const token=value||'';
+    if(name==='onToken'){
+      window.__morleyTurnstileToken=token;
+      window.__morleyTurnstileState='complete';
+    }else{
+      window.__morleyTurnstileToken='';
+      window.__morleyTurnstileState=name==='onExpired'?'expired':'error';
+    }
+    try{if(window.AndroidBridge&&typeof window.AndroidBridge[name]==='function')window.AndroidBridge[name](token);}catch(_){}
+    const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
+    post(type,token);
+    if(name==='onToken'){
+      setTimeout(()=>post(type,token),150);
+      setTimeout(()=>post(type,token),600);
+    }
   }
-  render();
+
+  function renderChallenge(){
+    if(rendered||!window.turnstile)return;
+    clearTimeout(apiWatchdog);
+    rendered=true;
+    window.__morleyTurnstileState='ready';
+    status.textContent='Complete the security check.';
+    post('ready','');
+    try{
+      window.turnstile.render('#challenge',{
+        sitekey,
+        theme:'dark',
+        size:'flexible',
+        action:'blmorley_auth',
+        callback:function(token){status.textContent='Security check complete.';send('onToken',token);},
+        'expired-callback':function(){status.textContent='Security check expired. Complete it again.';send('onExpired','');},
+        'error-callback':function(code){status.textContent='Security check failed. Retrying…';send('onError',String(code||''));return true;}
+      });
+    }catch(error){
+      rendered=false;
+      retryApi('Security check failed to start. Retrying…');
+    }
+  }
+
+  function retryApi(message){
+    clearTimeout(apiWatchdog);
+    if(apiAttempt>=MAX_API_ATTEMPTS){
+      status.textContent='Security check unavailable. Tap here to retry.';
+      window.__morleyTurnstileState='error';
+      post('bootstrap-error','api_unavailable');
+      return;
+    }
+    status.textContent=message||'Security check loading…';
+    const old=document.getElementById('morleyTurnstileApi');
+    if(old)old.remove();
+    loadApi();
+  }
+
+  function loadApi(){
+    apiAttempt+=1;
+    const script=document.createElement('script');
+    script.id='morleyTurnstileApi';
+    script.async=true;
+    script.defer=true;
+    script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&morley_retry='+apiAttempt+'&ts='+Date.now();
+    script.onload=function(){
+      if(window.turnstile)renderChallenge();
+      else retryApi('Security check script loaded incompletely. Retrying…');
+    };
+    script.onerror=function(){retryApi('Security check connection failed. Retrying…');};
+    document.head.appendChild(script);
+    apiWatchdog=setTimeout(function(){
+      if(!window.turnstile&&!rendered)retryApi('Security check is taking too long. Retrying…');
+    },5000);
+  }
+
+  status.addEventListener('click',function(){
+    if(window.__morleyTurnstileState==='error'){
+      apiAttempt=0;
+      rendered=false;
+      window.__morleyTurnstileState='loading';
+      retryApi('Retrying security check…');
+    }
+  });
+
+  loadApi();
 })();
 </script>
 </body>
