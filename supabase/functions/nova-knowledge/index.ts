@@ -1,0 +1,296 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const ADMIN_ORIGINS = new Set([
+  'https://buyshub.me',
+  'https://www.buyshub.me',
+  'https://beaustwrt248-netizen.github.io',
+]);
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+const CATEGORIES = new Set(['general','catalogue','pricing','valuation','inventory','sales','support','guardian','release','admin']);
+const TRUST_LEVELS = new Set(['reference','reviewed','verified']);
+const SOURCE_TYPES = new Set(['manual','file','import']);
+const MAX_CONTENT = 250_000;
+const MAX_RESULTS = 100;
+
+const cleanInline = (value: unknown, max = 220) =>
+  String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
+const cleanContent = (value: unknown) =>
+  String(value ?? '').replace(/\r\n/g, '\n').trim().slice(0, MAX_CONTENT);
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') || '';
+  const allowed = ADMIN_ORIGINS.has(origin) ? origin : 'https://buyshub.me';
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  };
+}
+
+async function authorise(req: Request) {
+  if (!SUPABASE_URL || !SERVICE_ROLE) throw new Error('Nova knowledge backend configuration unavailable');
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return { error: 'Authentication required', status: 401 } as const;
+  const { data: { user }, error } = await admin.auth.getUser(token);
+  if (error || !user) return { error: 'Invalid session', status: 401 } as const;
+  const { data: caller, error: profileError } = await admin
+    .from('profiles')
+    .select('id,role,is_enabled')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!caller?.is_enabled || !['admin','manager'].includes(caller.role)) {
+    return { error: 'Admin or Manager access required', status: 403 } as const;
+  }
+  return { user, caller } as const;
+}
+
+async function sha256(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function normaliseInput(body: any) {
+  const category = cleanInline(body?.category, 40).toLowerCase() || 'general';
+  const trustLevel = cleanInline(body?.trust_level, 40).toLowerCase() || 'reference';
+  const sourceType = cleanInline(body?.source_type, 40).toLowerCase() || 'manual';
+  const title = cleanInline(body?.title, 180);
+  const content = cleanContent(body?.content);
+  if (!CATEGORIES.has(category)) throw new Error('Invalid knowledge category');
+  if (!TRUST_LEVELS.has(trustLevel)) throw new Error('Invalid trust level');
+  if (!SOURCE_TYPES.has(sourceType)) throw new Error('Invalid source type');
+  if (!title) throw new Error('Knowledge title is required');
+  if (!content) throw new Error('Knowledge content is required');
+  return {
+    category,
+    trust_level: trustLevel,
+    source_type: sourceType,
+    title,
+    content,
+    source_label: cleanInline(body?.source_label, 220) || null,
+    source_filename: cleanInline(body?.source_filename, 220) || null,
+    mime_type: cleanInline(body?.mime_type, 120) || null,
+    version_label: cleanInline(body?.version_label, 120) || null,
+    metadata: body?.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata : {},
+  };
+}
+
+const ITEM_FIELDS = 'id,category,title,content,source_type,source_label,source_filename,mime_type,version_label,trust_level,status,content_hash,revision,metadata,created_by,updated_by,created_at,updated_at';
+
+function publicItem(row: any, full = false) {
+  if (!row) return null;
+  const out: any = {
+    id: row.id,
+    category: row.category,
+    title: row.title,
+    source_type: row.source_type,
+    source_label: row.source_label,
+    source_filename: row.source_filename,
+    mime_type: row.mime_type,
+    version_label: row.version_label,
+    trust_level: row.trust_level,
+    status: row.status,
+    revision: row.revision,
+    metadata: row.metadata || {},
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+  if (full) out.content = row.content;
+  else out.snippet = String(row.content || '').slice(0, 420);
+  return out;
+}
+
+async function getItem(id: string) {
+  const { data, error } = await admin.from('nova_knowledge_items').select(ITEM_FIELDS).eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function snapshot(row: any, userId: string) {
+  const snap = {
+    category: row.category,
+    title: row.title,
+    content: row.content,
+    source_type: row.source_type,
+    source_label: row.source_label,
+    source_filename: row.source_filename,
+    mime_type: row.mime_type,
+    version_label: row.version_label,
+    trust_level: row.trust_level,
+    status: row.status,
+    content_hash: row.content_hash,
+    revision: row.revision,
+    metadata: row.metadata || {},
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+  const { error } = await admin.from('nova_knowledge_revisions').upsert({
+    knowledge_id: row.id,
+    revision: row.revision,
+    snapshot: snap,
+    changed_by: userId,
+  }, { onConflict: 'knowledge_id,revision', ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+async function summary() {
+  const { data, error } = await admin.from('nova_knowledge_items').select('category,trust_level,status');
+  if (error) throw error;
+  const rows = data || [];
+  const byCategory: Record<string, number> = {};
+  const byTrust: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.status === 'active') {
+      byCategory[row.category] = (byCategory[row.category] || 0) + 1;
+      byTrust[row.trust_level] = (byTrust[row.trust_level] || 0) + 1;
+    }
+  }
+  return {
+    count: rows.length,
+    active_count: rows.filter((r) => r.status === 'active').length,
+    archived_count: rows.filter((r) => r.status === 'archived').length,
+    by_category: byCategory,
+    by_trust: byTrust,
+  };
+}
+
+async function listItems(body: any) {
+  const category = cleanInline(body?.category, 40).toLowerCase();
+  const includeArchived = body?.include_archived === true;
+  const q = cleanInline(body?.q, 180);
+  const limit = Math.min(Math.max(Number(body?.limit) || 50, 1), MAX_RESULTS);
+  let query = admin.from('nova_knowledge_items').select(ITEM_FIELDS).order('updated_at', { ascending: false }).limit(limit);
+  if (!includeArchived) query = query.eq('status', 'active');
+  if (category && category !== 'all') {
+    if (!CATEGORIES.has(category)) throw new Error('Invalid knowledge category');
+    query = query.eq('category', category);
+  }
+  if (q) query = query.textSearch('search_vector', q, { type: 'websearch', config: 'english' });
+  const { data, error } = await query;
+  if (error) throw error;
+  return { items: (data || []).map((row) => publicItem(row, false)) };
+}
+
+async function searchItems(body: any) {
+  const q = cleanInline(body?.q ?? body?.query, 180);
+  if (!q) return { query: q, items: [] };
+  const category = cleanInline(body?.category, 40).toLowerCase();
+  const limit = Math.min(Math.max(Number(body?.limit) || 8, 1), 20);
+  let query = admin.from('nova_knowledge_items').select(ITEM_FIELDS).eq('status', 'active').order('updated_at', { ascending: false }).limit(limit);
+  if (category && category !== 'all') {
+    if (!CATEGORIES.has(category)) throw new Error('Invalid knowledge category');
+    query = query.eq('category', category);
+  }
+  query = query.textSearch('search_vector', q, { type: 'websearch', config: 'english' });
+  const { data, error } = await query;
+  if (error) throw error;
+  return { query: q, items: (data || []).map((row) => publicItem(row, false)) };
+}
+
+Deno.serve(async (req: Request) => {
+  const headers = corsHeaders(req);
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers });
+  if (req.method !== 'POST') return reply({ error: 'POST required' }, 405);
+  try {
+    const auth = await authorise(req);
+    if ('error' in auth) return reply({ error: auth.error }, auth.status);
+    let body: any = {};
+    try { body = await req.json(); } catch { return reply({ error: 'Invalid JSON request' }, 400); }
+    const action = cleanInline(body?.action, 40).toLowerCase();
+
+    if (action === 'summary') return reply({ ok: true, ...(await summary()) });
+    if (action === 'list') return reply({ ok: true, ...(await listItems(body)) });
+    if (action === 'search') return reply({ ok: true, ...(await searchItems(body)) });
+
+    if (action === 'get') {
+      const id = cleanInline(body?.id, 80);
+      if (!id) return reply({ error: 'Knowledge id required' }, 400);
+      const row = await getItem(id);
+      if (!row) return reply({ error: 'Knowledge item not found' }, 404);
+      return reply({ ok: true, item: publicItem(row, true) });
+    }
+
+    if (action === 'create') {
+      const input = normaliseInput(body);
+      const contentHash = await sha256(input.content);
+      const now = new Date().toISOString();
+      const { data, error } = await admin.from('nova_knowledge_items').insert({
+        ...input,
+        content_hash: contentHash,
+        revision: 1,
+        status: 'active',
+        created_by: auth.user.id,
+        updated_by: auth.user.id,
+        created_at: now,
+        updated_at: now,
+      }).select(ITEM_FIELDS).single();
+      if (error) throw error;
+      return reply({ ok: true, item: publicItem(data, true) }, 201);
+    }
+
+    if (action === 'update') {
+      const id = cleanInline(body?.id, 80);
+      if (!id) return reply({ error: 'Knowledge id required' }, 400);
+      const existing = await getItem(id);
+      if (!existing) return reply({ error: 'Knowledge item not found' }, 404);
+      const input = normaliseInput(body);
+      await snapshot(existing, auth.user.id);
+      const { data, error } = await admin.from('nova_knowledge_items').update({
+        ...input,
+        content_hash: await sha256(input.content),
+        revision: Number(existing.revision || 1) + 1,
+        updated_by: auth.user.id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id).select(ITEM_FIELDS).single();
+      if (error) throw error;
+      return reply({ ok: true, item: publicItem(data, true) });
+    }
+
+    if (action === 'archive' || action === 'restore') {
+      const id = cleanInline(body?.id, 80);
+      if (!id) return reply({ error: 'Knowledge id required' }, 400);
+      const existing = await getItem(id);
+      if (!existing) return reply({ error: 'Knowledge item not found' }, 404);
+      const nextStatus = action === 'archive' ? 'archived' : 'active';
+      if (existing.status === nextStatus) return reply({ ok: true, item: publicItem(existing, true) });
+      await snapshot(existing, auth.user.id);
+      const { data, error } = await admin.from('nova_knowledge_items').update({
+        status: nextStatus,
+        revision: Number(existing.revision || 1) + 1,
+        updated_by: auth.user.id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id).select(ITEM_FIELDS).single();
+      if (error) throw error;
+      return reply({ ok: true, item: publicItem(data, true) });
+    }
+
+    if (action === 'delete') {
+      if (auth.caller.role !== 'admin') return reply({ error: 'Permanent delete requires Admin access. Archive is available to Managers.' }, 403);
+      const id = cleanInline(body?.id, 80);
+      if (!id) return reply({ error: 'Knowledge id required' }, 400);
+      const existing = await getItem(id);
+      if (!existing) return reply({ error: 'Knowledge item not found' }, 404);
+      const { error } = await admin.from('nova_knowledge_items').delete().eq('id', id);
+      if (error) throw error;
+      return reply({ ok: true, deleted: id });
+    }
+
+    return reply({ error: 'Unsupported action' }, 400);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : cleanInline(error, 500) || 'Nova knowledge backend error';
+    console.error(`[nova-knowledge] ${message}`);
+    return new Response(JSON.stringify({ error: message }), { status: 500, headers: corsHeaders(req) });
+  }
+});
