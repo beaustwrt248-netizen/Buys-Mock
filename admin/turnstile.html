@@ -29,7 +29,8 @@
   function post(type,value){
     try{
       if(window.parent&&window.parent!==window){
-        window.parent.postMessage({source:'morley-turnstile',type,value:value||''},postMessageOrigin);
+        const payload={source:'morley-turnstile',type,value:value||''};
+        window.parent.postMessage(payload,postMessageOrigin);
       }
     }catch(_){}
   }
