@@ -1,7 +1,7 @@
 {
-  "versionCode": 103,
-  "versionName": "2.15.59",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.59/B-and-L-Morley-2.15.59.apk",
-  "sha256": "8f079c68c9b1198dde310a8708519774275aa03e3a6658d147acc18594dbe688",
-  "notes": "Merge pull request #687 from beaustwrt248-netizen/upgrade/android-api37-agp-9-1-2"
+  "versionCode": 104,
+  "versionName": "2.15.60",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.60/B-and-L-Morley-2.15.60.apk",
+  "sha256": "277d57717f8351aedf8a6871815fa35f2121f024720281b44944b005ce0dd332",
+  "notes": "Upgrade Compose BOM to 2026.08 (#696)"
 }
