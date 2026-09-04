@@ -55,8 +55,12 @@ function ensureStyles(){
   document.head.appendChild(style);
 }
 
+function parityV4OwnsNav(){
+  return document.documentElement.dataset.morleyMobileAppParity==='4'||!!document.querySelector('link[data-morley-mobile-app-parity="4"]');
+}
+
 function mobileNav(){
-  if(!isMobile()) return;
+  if(!isMobile()||parityV4OwnsNav()) return;
   const nav=$('nav');
   if(!nav) return;
   const signature='home|laptop|general|settings';
