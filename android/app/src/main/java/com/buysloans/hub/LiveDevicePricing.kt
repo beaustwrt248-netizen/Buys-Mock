@@ -1,6 +1,9 @@
 package com.buysloans.hub
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -35,8 +38,7 @@ object LiveDevicePricing {
     @Volatile
     private var snapshot: List<LiveDevicePrice> = emptyList()
 
-    @Volatile
-    private var catalogueSnapshot: List<LiveDeviceCatalogueRow> = emptyList()
+    private var catalogueSnapshot by mutableStateOf<List<LiveDeviceCatalogueRow>>(emptyList())
 
     fun catalogue(): List<LiveDeviceCatalogueRow> = catalogueSnapshot
 
