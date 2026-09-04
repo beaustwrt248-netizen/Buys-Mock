@@ -327,6 +327,7 @@ jobs:
           cp -R admin site/admin
           if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
           touch site/.nojekyll
+          test -f site/.nojekyll
           test -s site/index.html
           test -s site/admin/index.html
           test -s site/admin/admin-update.json
@@ -336,12 +337,16 @@ jobs:
         with:
           enablement: true
       - name: Upload web site
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: site
+          include-hidden-files: true
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
       - name: Verify live Admin OTA feed
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
