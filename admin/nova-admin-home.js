@@ -1,5 +1,6 @@
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
+function appReady(){const app=q('#appView');return !!app&&!app.classList.contains('hidden')}
 function loadCss(){if(q('#novaAdminHomeCss'))return;const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=3';document.head.appendChild(l)}
 function clickTab(id){const b=q(`.tabs .tab[data-tab="${id}"]`);if(b)b.click()}
 function initials(){const raw=(q('#whoami')?.textContent||'Admin').trim();const parts=raw.split(/\s+/).filter(Boolean).filter(x=>!x.includes('@'));if(!parts.length)return'A';return(parts[0][0]+(parts[1]?.[0]||'')).toUpperCase()}
@@ -22,7 +23,7 @@ const quick=document.createElement('div');quick.className='nova-quick-grid';[
 ].forEach(x=>quick.appendChild(quickCard(x)));
 const anchor=q('#adminAttention',panel)||grid||sys;anchor.insertAdjacentElement('afterend',quickHead);quickHead.insertAdjacentElement('afterend',quick);
 const currentAttention=q('#adminAttention',panel);if(currentAttention)new MutationObserver(updateSystemStatus).observe(currentAttention,{childList:true,subtree:true});updateSystemStatus()}
-function runEnhancements(){loadCss();enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus();document.documentElement.dataset.novaAdminHome='ready'}
-function boot(){runEnhancements();let passes=0;const timer=setInterval(()=>{runEnhancements();if(++passes>=20)clearInterval(timer)},500);const root=q('#appView')||document.body;new MutationObserver(()=>runEnhancements()).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class']})}
+function runEnhancements(){if(!appReady())return;loadCss();enhanceTopbar();enhanceProfile();enhanceNav();enhanceOverview();updateSystemStatus();document.documentElement.dataset.novaAdminHome='ready'}
+function boot(){let passes=0;const timer=setInterval(()=>{runEnhancements();if(++passes>=20)clearInterval(timer)},500);const root=q('#appView')||document.body;new MutationObserver(()=>runEnhancements()).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});runEnhancements()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
