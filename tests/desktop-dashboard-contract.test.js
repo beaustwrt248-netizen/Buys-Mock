@@ -30,15 +30,23 @@ assert.match(css, /\.morley-menu-signout\{background:#b44552!important/);
 assert.match(dashboard, /const icon=paths=>/);
 assert.match(dashboard, /<svg viewBox="0 0 24 24"/);
 
-for (const route of ['Dashboard','Computer Pricing','Console Pricing','General Buys','Saved Deals','Inventory','Scanner','Sales','More']) {
+for (const route of ['Dashboard','Universal Search','Categories','General Buys','Saved Deals','Inventory','Scanner','Sales','More']) {
   assert.ok(dashboard.includes(route), `missing desktop route: ${route}`);
 }
+for (const category of ['Laptops','Desktops','Mobile Phones','Gaming Consoles']) {
+  assert.ok(dashboard.includes(category), `missing Categories destination: ${category}`);
+}
+assert.doesNotMatch(dashboard, /\['phones',[\s\S]*'Mobile Phones'\]/);
+assert.doesNotMatch(dashboard, /\['computer',[\s\S]*'Computer Pricing'\]/);
+assert.doesNotMatch(dashboard, /\['console',[\s\S]*'Console Pricing'\]/);
+assert.match(dashboard, /signature!==['"]home\|categories\|general\|settings['"]/);
+assert.match(dashboard, /categoryIds\.has\(active\)/);
 assert.match(dashboard, /window\.morleyDesktopGo/);
 assert.match(dashboard, /\.section\.active/);
 assert.match(mobile, /html\.morley-physical-phone/);
 assert.match(mobile, /max-height:60px/);
 assert.ok(index.indexOf('morley-desktop-dashboard.css') > index.indexOf('mobile-viewport-lock.css'));
 assert.match(index, /morley-desktop-dashboard\.css\?v=2/);
-assert.match(index, /morley-desktop-dashboard\.js\?v=1/);
+assert.match(index, /morley-desktop-dashboard\.js\?v=2/);
 
-console.log('Desktop finance dashboard and mobile boundary contract OK');
+console.log('Desktop finance dashboard and Categories navigation contract OK');
