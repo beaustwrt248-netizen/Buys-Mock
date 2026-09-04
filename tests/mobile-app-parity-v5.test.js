@@ -12,9 +12,9 @@ const premium=fs.readFileSync('premium-motion.css','utf8');
 
 test('v5 is the final production mobile CSS and JS authority',()=>{
   assert.match(index,/mobile-app-parity-v5\.css\?v=202609041/);
-  assert.match(index,/mobile-app-parity-v5\.js\?v=202609041/);
+  assert.match(index,/mobile-app-parity-v5\.js\?v=202609042/);
   assert.ok(index.indexOf('mobile-app-parity-v5.css?v=202609041')>index.indexOf('mobile-app-parity-v4.css?v=202609044'));
-  assert.ok(index.indexOf('mobile-app-parity-v5.js?v=202609041')>index.indexOf('mobile-app-parity-v4.js?v=202609044'));
+  assert.ok(index.indexOf('mobile-app-parity-v5.js?v=202609042')>index.indexOf('mobile-app-parity-v4.js?v=202609044'));
 });
 
 test('v5 validates actual nav markup instead of trusting a stale dataset marker',()=>{
@@ -38,6 +38,14 @@ test('mobile navigation matches the current Android destinations',()=>{
   for(const label of ['Home','Categories','General Buys','More']) assert.match(js,new RegExp(`'${label}'`));
   for(const category of ['Laptops','Desktops','Mobile Phones','Gaming Consoles']) assert.match(js,new RegExp(`<b>${category}</b>`));
   assert.match(js,/CATEGORY_IDS/);
+});
+
+test('phone navigation bypasses the desktop route allow-list',()=>{
+  assert.match(js,/function mobileShow\(page\)/);
+  assert.match(js,/if\(typeof window\.show==='function'\)window\.show\(page\)/);
+  assert.match(js,/const go=page=>\{if\(mobile\(\)\)mobileShow\(page\);else if\(typeof window\.morleyDesktopGo==='function'\)window\.morleyDesktopGo\(page\)/);
+  assert.match(js,/go\(b\.dataset\.page\)/);
+  assert.match(js,/go\(b\.dataset\.target\)/);
 });
 
 test('mobile Home mirrors Android ParityHome structure',()=>{
