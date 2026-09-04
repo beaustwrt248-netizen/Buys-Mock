@@ -40,6 +40,14 @@ object LiveDevicePricing {
 
     fun catalogue(): List<LiveDeviceCatalogueRow> = catalogueSnapshot
 
+    internal fun replaceSnapshotsForTesting(
+        prices: List<LiveDevicePrice>,
+        devices: List<LiveDeviceCatalogueRow>,
+    ) {
+        snapshot = prices
+        catalogueSnapshot = devices
+    }
+
     fun normalizeStorage(value: String): String =
         value.trim().replace(" ", "").uppercase()
 
