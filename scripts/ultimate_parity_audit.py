@@ -46,9 +46,15 @@ for label in ("Categories → Laptops", "Categories → Desktops", "Categories �
     require(android_help, label, "Android Help/FAQ content")
 for retired in ("Computer Pricing", "Console Pricing", "Menu → Report an Issue", "Menu → Updates", "Menu → Backup & Data"):
     forbid(android_help, retired, "Android Help/FAQ navigation")
-for label in ("Computer Pricing", "Console Pricing", "General Buys / GP", "NFC", "Valuation"):
+for label in ("Categories", "Laptops", "Desktops", "Mobile Phones", "Gaming Consoles", "General Buys / GP", "More → Support", "More → Updates", "NFC", "Valuation"):
     require(web_parity, label, "web Help/FAQ content")
-require(index, "ultimate-parity.js?v=1", "web parity bootstrap")
+for retired in ("Computer Pricing", "Console Pricing", "Menu → Report an Issue", "Menu → Updates", "Menu → Backup & Data"):
+    forbid(web_parity, retired, "web Help/FAQ navigation")
+for token in ("#f5f7f4", "#ffffff", "#167a5a", "#1c2b26", "#cedbd5", "color-scheme:light"):
+    require(web_parity.lower(), token.lower(), "web Help light-theme token")
+for retired in ("#080b0d", "#101619", "#151d20", "color-scheme:dark"):
+    forbid(web_parity.lower(), retired.lower(), "web Help dark-theme token")
+require(index, "ultimate-parity.js?v=2", "web parity bootstrap")
 require(dashboard, "Page.Laptop -> CategoriesPricingScreen()", "Categories pricing route")
 require(dashboard, "Page.Desktop -> ConsolePricingScreen()", "separate Console Pricing route")
 require(dashboard, "MorleyIcons.Categories", "Categories vector icon")
@@ -139,4 +145,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: adaptive Categories/GP navigation, console and mobile catalogues, theme, Help/FAQ, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
