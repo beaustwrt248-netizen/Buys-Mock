@@ -2,6 +2,27 @@
 'use strict';
 const PRIVILEGED_ROLES=new Set(['admin','manager']);
 const MUTATING_ACTIONS=new Set(['disable','enable','force_signout','delete','set_role','set_display_name']);
+const authLockQueues=new Map();
+async function morleyAuthLock(name,_acquireTimeout,fn){
+ const previous=authLockQueues.get(name)||Promise.resolve();
+ let release;
+ const gate=new Promise(resolve=>{release=resolve});
+ const tail=previous.catch(()=>{}).then(()=>gate);
+ authLockQueues.set(name,tail);
+ await previous.catch(()=>{});
+ try{return await fn()}finally{release();if(authLockQueues.get(name)===tail)authLockQueues.delete(name)}
+}
+function installSupabaseAuthLock(){
+ const api=window.supabase;
+ if(!api||typeof api.createClient!=='function'||window.__morleySupabaseAuthLockInstalled)return;
+ const createClient=api.createClient;
+ api.createClient=function(url,key,options={}){
+  const suppliedAuth=options.auth||{};
+  return createClient.call(api,url,key,{...options,auth:{...suppliedAuth,lock:suppliedAuth.lock||morleyAuthLock}});
+ };
+ Object.defineProperty(window,'__morleySupabaseAuthLockInstalled',{value:true,writable:false,configurable:false});
+}
+installSupabaseAuthLock();
 function normalizeRole(role){return String(role||'').trim().toLowerCase()}
 function canManageUser(actor,target,action,nextRole){
  const actorRole=normalizeRole(actor?.role),targetRole=normalizeRole(target?.role),next=normalizeRole(nextRole);
