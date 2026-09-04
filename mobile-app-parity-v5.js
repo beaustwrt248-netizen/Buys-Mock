@@ -5,7 +5,15 @@ const mobile=()=>document.documentElement.classList.contains('morley-physical-ph
 const NAV_SIGNATURE='home|categories|general|settings';
 const CATEGORY_IDS=new Set(['categories','computer','laptop','desktop','mobilePhones','console','universalBuySearch']);
 let queued=false,bodyObserver=null,headObserver=null;
-const go=page=>{if(typeof window.morleyDesktopGo==='function')window.morleyDesktopGo(page);else window.show?.(page)};
+function mobileShow(page){
+ const target=$('#'+page);
+ if(typeof window.show==='function')window.show(page);
+ if(target&&!target.classList.contains('active')){
+  $$('.section').forEach(sec=>sec.classList.toggle('active',sec===target));
+ }
+ if(target)window.scrollTo({top:0,behavior:'smooth'});
+}
+const go=page=>{if(mobile())mobileShow(page);else if(typeof window.morleyDesktopGo==='function')window.morleyDesktopGo(page);else window.show?.(page)};
 
 function markOwner(){
  if(!document.body.id)document.body.id='morleyMobileParityRoot';
