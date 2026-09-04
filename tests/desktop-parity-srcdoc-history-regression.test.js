@@ -1,3 +1,4 @@
+// Guardian regression: non-HTTP(S) embedded documents must never own browser history.
 const fs=require('fs');
 const assert=require('assert');
 
