@@ -18,8 +18,49 @@ function corsHeaders(req: Request) {
   };
 }
 
-const clean=(v:unknown,max=160)=>String(v??'').trim().replace(/\s+/g,' ').slice(0,max);
-const validCategory=(v:string)=>['phone','laptop','console','general'].includes(v);
+const clean=(v:unknown,max=240)=>String(v??'').trim().replace(/\s+/g,' ').slice(0,max);
+const categoryMap:Record<string,string>={mobile_phone:'phone',laptop:'laptop',desktop:'desktop',console:'console'};
+const normalise=(v:unknown)=>clean(v,240).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const moneyValue=(v:unknown)=>v===null||v===''?null:Number(v);
+
+async function getActiveDevices(){
+  const {data,error}=await admin.from('device_catalog').select('id,category,brand,model_name,model_number,storage_options,active').eq('active',true).order('brand').order('model_name');
+  if(error) throw error;
+  return (data||[]).filter((d:any)=>categoryMap[d.category]);
+}
+
+function scoreDevice(query:string,d:any){
+  const q=normalise(query), hay=normalise([d.brand,d.model_name,d.model_number].filter(Boolean).join(' '));
+  if(!q) return 0;
+  let score=0;
+  if(d.model_number&&q.includes(normalise(d.model_number))) score+=100;
+  if(q.includes(normalise(`${d.brand} ${d.model_name}`))) score+=90;
+  else if(q.includes(normalise(d.model_name))) score+=70;
+  const toks=q.split(' ').filter((x:string)=>x.length>1);
+  const matched=toks.filter((t:string)=>hay.includes(t)).length;
+  score+=matched*5;
+  return score;
+}
+
+function parseAssistantLine(line:string,devices:any[]){
+  const priceMatch=line.match(/(?:\$|aud\s*)(\d+(?:\.\d{1,2})?)/i)||line.match(/(?:\bto\b|\bat\b|=)\s*\$?\s*(\d+(?:\.\d{1,2})?)/i);
+  if(!priceMatch) return {input:line,error:'No price found. Use $450, AUD 450, or “to 450”.'};
+  const price=Number(priceMatch[1]);
+  if(!Number.isFinite(price)||price<0) return {input:line,error:'Invalid price.'};
+  const storageMatches=[...line.matchAll(/\b(\d+(?:\.\d+)?)\s*(TB|GB)\b/ig)].map(m=>`${m[1]}${m[2].toUpperCase()}`);
+  const ranked=devices.map(d=>({d,score:scoreDevice(line,d)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5);
+  if(!ranked.length) return {input:line,price_aud:price,error:'No matching catalogue device found.'};
+  const top=ranked[0];
+  const storage=storageMatches.find(s=>(top.d.storage_options||[]).map((x:string)=>x.toUpperCase()).includes(s.toUpperCase()))||((top.d.storage_options||[]).length===1?top.d.storage_options[0]:'');
+  return {
+    input:line,
+    price_aud:price,
+    storage,
+    confidence:Math.min(1,top.score/100),
+    device:{device_catalog_id:top.d.id,category:categoryMap[top.d.category],brand:top.d.brand,model:top.d.model_name,model_number:top.d.model_number,storage_options:top.d.storage_options||[]},
+    alternatives:ranked.slice(1,4).map(x=>({device_catalog_id:x.d.id,brand:x.d.brand,model:x.d.model_name,model_number:x.d.model_number,score:x.score}))
+  };
+}
 
 Deno.serve(async(req:Request)=>{
   const headers=corsHeaders(req);
@@ -38,45 +79,68 @@ Deno.serve(async(req:Request)=>{
     const action=clean(body?.action,40);
 
     if(action==='list'){
-      const category=clean(body?.category,30);
-      let query=admin.from('morley_catalogue_items').select('*').eq('is_active',true).order('brand').order('model').order('storage');
-      if(category){if(!validCategory(category)) return reply({error:'Invalid category'},400);query=query.eq('category',category)}
-      const {data,error}=await query;if(error) throw error;
-      return reply({ok:true,items:data||[]});
+      const devices=await getActiveDevices();
+      const {data:prices,error:priceError}=await admin.from('device_buy_prices').select('*').eq('is_active',true);
+      if(priceError) throw priceError;
+      const priceMap=new Map((prices||[]).map((p:any)=>[`${p.device_catalog_id}|${p.storage}|${p.condition_grade}`,p]));
+      const items:any[]=[];
+      for(const d of devices){
+        const storages=(d.storage_options||[]).length?d.storage_options:[''];
+        for(const storage of storages){
+          const p:any=priceMap.get(`${d.id}|${storage}|base`);
+          items.push({
+            id:p?.id||`device-${d.id}-${storage||'base'}`,
+            price_id:p?.id||null,
+            device_catalog_id:d.id,
+            category:categoryMap[d.category],brand:d.brand,model:d.model_name,model_number:d.model_number,storage,
+            price_aud:p?.price_aud??null,authoritative:p?.authoritative===true,source:p?.source||'',notes:p?.notes||'',is_active:p?.is_active!==false,version:p?.version??0
+          });
+        }
+      }
+      return reply({ok:true,items});
     }
 
     if(action==='history'){
-      const itemId=clean(body?.catalogue_item_id,80);if(!itemId) return reply({error:'catalogue_item_id required'},400);
-      const {data,error}=await admin.from('morley_price_history').select('*').eq('catalogue_item_id',itemId).order('changed_at',{ascending:false}).limit(200);if(error) throw error;
+      const priceId=clean(body?.price_id||body?.catalogue_item_id,80);
+      if(!priceId||priceId.startsWith('device-')) return reply({ok:true,history:[]});
+      const {data,error}=await admin.from('device_buy_price_history').select('*').eq('device_buy_price_id',priceId).order('changed_at',{ascending:false}).limit(200);
+      if(error) throw error;
       return reply({ok:true,history:data||[]});
     }
 
-    const category=clean(body?.category,30),brand=clean(body?.brand),model=clean(body?.model),modelNumber=clean(body?.model_number),storage=clean(body?.storage,80),source=clean(body?.source||'Morley catalogue',120);
-    if(action==='create'){
-      if(!validCategory(category)||!model) return reply({error:'Valid category and model required'},400);
-      const price=body?.price_aud===null||body?.price_aud===''?null:Number(body?.price_aud);
-      const authoritative=body?.authoritative===true;
-      if(price!==null&&(!Number.isFinite(price)||price<0)) return reply({error:'Invalid price'},400);
-      if(authoritative&&price===null) return reply({error:'Authoritative rows require a price'},400);
-      const {data,error}=await admin.from('morley_catalogue_items').insert({category,brand,model,model_number:modelNumber,storage,price_aud:price,authoritative,source,updated_by:user.id}).select('*').single();if(error) throw error;
-      await admin.from('admin_audit_log').insert({actor_user_id:user.id,action:'pricing_create',target_type:'catalogue_item',target_id:data.id,details:{category,brand,model,storage,price_aud:price,authoritative}});
-      return reply({ok:true,item:data});
+    if(action==='assistant_preview'){
+      const text=String(body?.text||'').trim().slice(0,12000);
+      if(!text) return reply({error:'Pricing instruction required'},400);
+      const devices=await getActiveDevices();
+      const lines=text.split(/\n|;/).map(x=>x.trim()).filter(Boolean).slice(0,30);
+      return reply({ok:true,proposals:lines.map(line=>parseAssistantLine(line,devices))});
     }
 
     if(action==='update'){
-      const id=clean(body?.catalogue_item_id,80);if(!id) return reply({error:'catalogue_item_id required'},400);
-      const {data:existing}=await admin.from('morley_catalogue_items').select('*').eq('id',id).single();if(!existing) return reply({error:'Catalogue item not found'},404);
-      const patch:Record<string,unknown>={updated_by:user.id};
-      if(body?.price_aud!==undefined){const price=body.price_aud===null||body.price_aud===''?null:Number(body.price_aud);if(price!==null&&(!Number.isFinite(price)||price<0)) return reply({error:'Invalid price'},400);patch.price_aud=price;}
-      if(body?.authoritative!==undefined) patch.authoritative=body.authoritative===true;
-      if(body?.source!==undefined) patch.source=source;
-      if(body?.is_active!==undefined) patch.is_active=body.is_active===true;
-      const nextPrice=patch.price_aud!==undefined?patch.price_aud:existing.price_aud;
-      const nextAuth=patch.authoritative!==undefined?patch.authoritative:existing.authoritative;
-      if(nextAuth===true&&nextPrice===null) return reply({error:'Authoritative rows require a price'},400);
-      const {data,error}=await admin.from('morley_catalogue_items').update(patch).eq('id',id).select('*').single();if(error) throw error;
-      await admin.from('admin_audit_log').insert({actor_user_id:user.id,action:'pricing_update',target_type:'catalogue_item',target_id:id,details:{old_price_aud:existing.price_aud,new_price_aud:data.price_aud,old_authoritative:existing.authoritative,new_authoritative:data.authoritative}});
-      return reply({ok:true,item:data});
+      const deviceId=Number(body?.device_catalog_id);
+      if(!Number.isInteger(deviceId)||deviceId<=0) return reply({error:'device_catalog_id required'},400);
+      const storage=clean(body?.storage,80),conditionGrade=clean(body?.condition_grade||'base',40)||'base';
+      const {data:device,error:deviceError}=await admin.from('device_catalog').select('id,brand,model_name,model_number,storage_options,active').eq('id',deviceId).single();
+      if(deviceError||!device?.active) return reply({error:'Active catalogue device not found'},404);
+      const allowedStorage=(device.storage_options||[]).map((x:string)=>String(x));
+      if(allowedStorage.length&&(!storage||!allowedStorage.includes(storage))) return reply({error:'Storage must match a catalogue storage option'},400);
+      const price=moneyValue(body?.price_aud);
+      const authoritative=body?.authoritative===true;
+      if(price!==null&&(!Number.isFinite(price)||price<0)) return reply({error:'Invalid price'},400);
+      if(authoritative&&price===null) return reply({error:'Authoritative rows require a price'},400);
+      const source=clean(body?.source||'Morley pricing',120),notes=clean(body?.notes||'',500),isActive=body?.is_active!==false;
+      const {data:existing}=await admin.from('device_buy_prices').select('*').eq('device_catalog_id',deviceId).eq('storage',storage).eq('condition_grade',conditionGrade).maybeSingle();
+      let saved:any;
+      if(existing){
+        const {data,error}=await admin.from('device_buy_prices').update({price_aud:price,authoritative,source,notes,is_active:isActive,updated_by:user.id,updated_at:new Date().toISOString(),version:(existing.version||1)+1}).eq('id',existing.id).select('*').single();
+        if(error) throw error;saved=data;
+      }else{
+        const {data,error}=await admin.from('device_buy_prices').insert({device_catalog_id:deviceId,storage,condition_grade:conditionGrade,price_aud:price,authoritative,source,notes,is_active:isActive,updated_by:user.id}).select('*').single();
+        if(error) throw error;saved=data;
+      }
+      await admin.from('device_buy_price_history').insert({device_buy_price_id:saved.id,device_catalog_id:deviceId,storage,condition_grade:conditionGrade,old_price_aud:existing?.price_aud??null,new_price_aud:saved.price_aud,old_authoritative:existing?.authoritative===true,new_authoritative:saved.authoritative===true,source,notes,changed_by:user.id});
+      await admin.from('admin_audit_log').insert({actor_user_id:user.id,action:existing?'device_pricing_update':'device_pricing_create',target_type:'device_catalog',target_id:String(deviceId),details:{brand:device.brand,model:device.model_name,model_number:device.model_number,storage,old_price_aud:existing?.price_aud??null,new_price_aud:saved.price_aud,authoritative:saved.authoritative,source}});
+      return reply({ok:true,item:{id:saved.id,price_id:saved.id,device_catalog_id:deviceId,brand:device.brand,model:device.model_name,model_number:device.model_number,storage,price_aud:saved.price_aud,authoritative:saved.authoritative,source:saved.source,notes:saved.notes,is_active:saved.is_active,version:saved.version}});
     }
 
     return reply({error:'Unsupported action'},400);
