@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source": "read-only Supabase device_catalog audit",
+  "checked_at": "2026-09-06T01:22:00+08:00",
+  "change_type": "production_data_cleanup_candidate",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "scope": "active Apple rows containing trailing percentage or battery-health listing text with an existing active canonical row",
+  "candidate_count": 9,
+  "safe_unreferenced_candidate_count": 8,
+  "pricing_blocked_candidate_count": 1,
+  "candidates": [
+    {"candidate_id":1049,"candidate_model_name":"iPhone 11 79%","canonical_id":537,"canonical_model_name":"iPhone 11","canonical_model_number":"A2221","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1050,"candidate_model_name":"iPhone 11 Pro 75%","canonical_id":538,"canonical_model_name":"iPhone 11 Pro","canonical_model_number":"A2215","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1051,"candidate_model_name":"iPhone 12 Pro 74%","canonical_id":543,"canonical_model_name":"iPhone 12 Pro","canonical_model_number":"A2407","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1054,"candidate_model_name":"iPhone 13 Pro Max - - 77%","canonical_id":548,"canonical_model_name":"iPhone 13 Pro Max","canonical_model_number":"A2643","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1058,"candidate_model_name":"iPhone 15 85%","canonical_id":523,"canonical_model_name":"iPhone 15","canonical_model_number":"A3090","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1059,"candidate_model_name":"iPhone 15 Plus - - 90%","canonical_id":525,"canonical_model_name":"iPhone 15 Plus","canonical_model_number":"A3094","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1060,"candidate_model_name":"iPhone 16 Plus - - 100%","canonical_id":550,"canonical_model_name":"iPhone 16 Plus","canonical_model_number":"A3290","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1062,"candidate_model_name":"iPhone 16 Pro - - 93%","canonical_id":35,"canonical_model_name":"iPhone 16 Pro","canonical_model_number":"A3293","proposed_action":"deactivate_duplicate_candidate","inventory_refs":0,"pricing_refs":0,"pricing_history_refs":0,"status":"ready_for_explicit_approval_after_fresh_recheck"},
+    {"candidate_id":1063,"candidate_model_name":"iPhone 16 Pro Max / Batt Health 100%","canonical_id":551,"canonical_model_name":"iPhone 16 Pro Max","canonical_model_number":"A3296","proposed_action":"none","inventory_refs":0,"pricing_refs":1,"pricing_history_refs":0,"status":"blocked_protected_pricing"}
+  ],
+  "safety_note": "Evidence only. Do not execute deactivation, deletion, merge, rewrite, pricing change, auth/RLS change, Guardian change, or any production mutation without explicit human authorization for the exact reviewed candidate set. Re-query candidate rows, canonical targets, and all dependency counts immediately before any future authorized mutation. Candidate 1063 must remain blocked unless a separate pricing-safe change is explicitly approved."
+}
