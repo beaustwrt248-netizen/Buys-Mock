@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source": "read-only Supabase device_catalog audit",
+  "checked_at": "2026-09-06T01:07:00+08:00",
+  "change_type": "production_data_cleanup_candidate",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "scope": "active Apple rows containing listing-specific condition/failure text with an existing active canonical row that covers the contaminated row's storage",
+  "candidate_count": 3,
+  "candidates": [
+    {"candidate_id":1070,"category":"mobile_phone","candidate_model_name":"iPhone 8 Plus \"Cracked Screen/Cant Update\"","candidate_model_number":null,"candidate_storage":["64GB"],"canonical_id":645,"canonical_model_name":"iPhone 8 Plus","canonical_model_number":null,"canonical_storage":["64GB","128GB","256GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1075,"category":"mobile_phone","candidate_model_name":"iPhone Xs Max - Back Cracked","candidate_model_number":null,"candidate_storage":["64GB"],"canonical_id":626,"canonical_model_name":"iPhone XS Max","canonical_model_number":null,"canonical_storage":["64GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1206,"category":"tablet","candidate_model_name":"iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty","candidate_model_number":null,"candidate_storage":["32GB"],"canonical_id":1203,"canonical_model_name":"iPad Air 2 Wi-Fi","canonical_model_number":"A1566","canonical_storage":["16GB","32GB","64GB","128GB"],"proposed_action":"deactivate_duplicate_candidate"}
+  ],
+  "safety_note": "Evidence only. Do not execute deactivation, deletion, merge, rewrite, pricing change, auth/RLS change, Guardian change, or any production mutation without explicit human authorization for the exact reviewed candidate set. Re-query candidate and canonical rows immediately before any future authorized mutation. Canonical iPhone 8 Plus and iPhone XS Max model numbers remain unresolved in the live catalogue and must not be guessed as part of this duplicate cleanup."
+}
