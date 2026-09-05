@@ -2,6 +2,8 @@
   "schema_version": 1,
   "source": "Supabase public.device_catalog aggregate health query",
   "checked_date": "2026-09-06",
+  "checked_at": "2026-09-06T00:40:00+08:00",
+  "snapshot_type": "point_in_time",
   "privacy": "aggregate-only; no device rows or protected pricing",
   "total_records": 1320,
   "active_records": 1302,
@@ -17,5 +19,5 @@
     {"category":"console","label":"Consoles","total":106,"active":102,"missing_model_number":15,"missing_storage":21,"au_region":68},
     {"category":"desktop","label":"Desktops","total":86,"active":85,"missing_model_number":4,"missing_storage":0,"au_region":50}
   ],
-  "data_quality_note": "Live catalogue cleanup is re-sourcing retailer-discovered rows to manufacturer/Australian-market evidence while retaining unique coverage. Health values report the database as captured at 2026-09-06 00:40 Australia/Perth and do not mask incomplete model or storage metadata."
+  "data_quality_note": "Point-in-time catalogue health snapshot captured at 2026-09-06 00:40 Australia/Perth. Live cleanup is re-sourcing retailer-discovered rows to manufacturer/Australian-market evidence while retaining unique coverage. The database may change after checked_at; this committed snapshot is not a continuously live database view."
 }
