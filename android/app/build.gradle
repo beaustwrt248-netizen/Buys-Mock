@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 36
-        versionCode 110
-        versionName '2.15.66'
+        versionCode 111
+        versionName '2.15.67'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
