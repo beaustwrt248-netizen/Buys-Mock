@@ -25,10 +25,10 @@ class LiveDeviceCatalogueScaleTest {
                     LiveDeviceCatalogueRow(
                         id = (1001 + index).toLong(),
                         category = "wearable",
-                        brand = "WatchBrand",
-                        model = "Watch $index",
-                        modelNumber = null,
-                        storageOptions = emptyList(),
+                        brand = if (index == 0) "Samsung" else "WatchBrand",
+                        model = if (index == 0) "Galaxy Watch9 LTE 44mm" else "Watch $index",
+                        modelNumber = if (index == 0) "SM-L355F" else null,
+                        storageOptions = if (index == 0) listOf("32GB") else emptyList(),
                     ),
                 )
             }
@@ -38,6 +38,8 @@ class LiveDeviceCatalogueScaleTest {
 
         assertEquals(139, watches.size)
         assertTrue(watches.all { normalizeCatalogueCategory(it.category) == "wearable" })
+        assertEquals(1, filterCatalogueDevices(devices, "smart_watch", "SM-L355F").size)
+        assertEquals("Galaxy Watch9 LTE 44mm", filterCatalogueDevices(devices, "wearables", "Samsung").single().model)
     }
 
     @Test
