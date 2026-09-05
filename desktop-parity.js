@@ -3,6 +3,7 @@
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const ROUTE_KEY='morley_desktop_route';
   const VALID=['home','categories','mobilePhones','computer','console','laptop','desktop','general','settings','deals','inventory','sales','scanner'];
+  const canWriteHistory=location.protocol==='http:'||location.protocol==='https:';
   let handlingPop=false;
 
   function renderPage(page){
@@ -20,7 +21,7 @@
     if(!VALID.includes(page)) return;
     renderPage(page);
     const hash=`#${page}`;
-    if(!handlingPop && location.hash!==hash){
+    if(!handlingPop&&canWriteHistory&&location.hash!==hash){
       if(opts.replace) history.replaceState({morleyPage:page},'',hash);
       else history.pushState({morleyPage:page},'',hash);
     }
@@ -145,7 +146,7 @@
     if(!VALID.includes(page)){try{page=localStorage.getItem(ROUTE_KEY)||''}catch{}}
     if(!VALID.includes(page)) page='home';
     renderPage(page);
-    history.replaceState({morleyPage:page},'',`#${page}`);
+    if(canWriteHistory) history.replaceState({morleyPage:page},'',`#${page}`);
   }
 
   function enableBrowserBack(){
