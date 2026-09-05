@@ -3,7 +3,6 @@
     <style name="Theme.MorleyAdmin" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:statusBarColor">#F7FBF9</item>
         <item name="android:navigationBarColor">#EDF3EF</item>
         <item name="android:windowBackground">#EDF3EF</item>
