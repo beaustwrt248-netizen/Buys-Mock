@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[m]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 let rows=[],timer=null,selected=null,searchVersion=0;
 function normalizeType(v){return ['mobile_phone','tablet','laptop','desktop','console','wearable'].includes(v)?v:'other'}
 function summary(row){return [row.brand,row.model_name].filter(Boolean).join(' ').replace(/\s+/g,' ').trim()}
