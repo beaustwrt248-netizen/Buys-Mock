@@ -52,7 +52,16 @@
 
       <section class="page" data-page="attention"><article class="card"><div class="eyebrow">HUMAN GATE</div><h2>Needs Attention</h2><p>Only work that genuinely needs a decision, approval, or manual action should appear here.</p><div id="attentionList" class="stack"><div class="empty">Checking current blockers…</div></div></article></section>
       <section class="page" data-page="development"><article class="card"><div class="eyebrow">ENGINEERING</div><h2>Development Agent</h2><p>Nova can inspect issues, create narrow branches, validate changes and prepare pull requests. High-risk work stops before merge.</p><div id="developmentList" class="stack"></div></article></section>
-      <section class="page" data-page="guardian"><article class="card"><div class="eyebrow">INDEPENDENT VALIDATION</div><h2>Guardian</h2><p>Guardian remains the independent safety and repair-review layer. Nova does not inherit Guardian authority.</p><div class="callout">Standalone Nova is intentionally not wired to execute protected Guardian repairs.</div></article></section>
+      <section class="page" data-page="guardian">
+        <div class="card"><div class="section-head"><div><div class="eyebrow">INDEPENDENT VALIDATION</div><h2>Guardian</h2></div><span id="guardianState" class="tag">LOADING</span></div><p>Live read-only evidence for Guardian-titled repair work. Nova observes Guardian outcomes but does not inherit Guardian authority.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Latest repair</span><strong id="guardianLatest">—</strong><small>latest merged Guardian repair PR</small></article>
+          <article class="card metric"><span>Open repairs</span><strong id="guardianOpen">—</strong><small>human-controlled Guardian PRs</small></article>
+          <article class="card metric"><span>Validated gates</span><strong id="guardianValidated">—</strong><small>latest repair evidence</small></article>
+          <article class="card metric"><span>Blocked gates</span><strong id="guardianBlocked">—</strong><small>latest repair failures</small></article>
+        </div>
+        <article class="card"><div class="eyebrow">VALIDATION EVIDENCE</div><h2>Latest Guardian repair</h2><div id="guardianEvidence" class="stack"><div class="empty">Loading Guardian evidence…</div></div><div class="callout" id="guardianBoundary">Guardian authority remains independent and protected.</div></article>
+      </section>
       <section class="page" data-page="catalogue">
         <div class="card"><div class="eyebrow">AUTHORITATIVE DATA HEALTH</div><h2>Catalogue Intelligence</h2><p>Aggregate-only health from the protected Supabase device catalogue. Nova can see coverage and data-quality gaps without reading device rows or protected buy prices.</p></div>
         <div class="metrics">
@@ -116,5 +125,6 @@
   </div>
   <script src="app.js?v=1"></script>
   <script src="release-readiness.js?v=1"></script>
+  <script src="guardian-status.js?v=1"></script>
 </body>
 </html>
