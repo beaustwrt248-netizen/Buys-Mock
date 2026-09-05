@@ -1,7 +1,7 @@
 {
-  "versionCode": 110,
-  "versionName": "2.15.66",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.66/B-and-L-Morley-2.15.66.apk",
-  "sha256": "483e7f7bd155e2d7f9369d668df8f21e41371d1711cf92d8caa59a61bb140bb4",
-  "notes": "Merge pull request #782 from beaustwrt248-netizen/fix-catalogue-pagination-wearables"
+  "versionCode": 111,
+  "versionName": "2.15.67",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.67/B-and-L-Morley-2.15.67.apk",
+  "sha256": "603b17edc7b0d487d42fb7635d44b68099857673d2c998232cd1543cdab14207",
+  "notes": "Remove pricing auth source rewrite from Android builds (#787)"
 }
