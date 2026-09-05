@@ -36,14 +36,21 @@ tasks.register('verifyDeterministicSourcePipeline') {
     group = 'verification'
     description = 'Prevent retired build-time source rewriters from returning.'
     doLast {
-        def retired = ['improve_exact_matching.py', 'secure_pricing_auth.py']
-        retired.each { name ->
+        def retiredScripts = [
+            ['improve', 'exact', 'matching.py'].join('_'),
+            ['secure', 'pricing', 'auth.py'].join('_'),
+        ]
+        retiredScripts.each { name ->
             if (file("${rootProject.projectDir}/${name}").exists()) {
                 throw new GradleException("Retired Android source rewriter returned: ${name}")
             }
         }
         def buildText = file("${projectDir}/build.gradle").getText('UTF-8')
-        ['improveExactMatching', 'securePricingAuth'].each { token ->
+        def retiredTasks = [
+            ['improve', 'Exact', 'Matching'].join(''),
+            ['secure', 'Pricing', 'Auth'].join(''),
+        ]
+        retiredTasks.each { token ->
             if (buildText.contains(token)) {
                 throw new GradleException("Retired Android build task returned: ${token}")
             }
