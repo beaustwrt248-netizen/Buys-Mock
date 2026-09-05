@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source": "read-only Supabase device_catalog audit",
+  "checked_at": "2026-09-06T01:51:00+08:00",
+  "change_type": "production_data_cleanup_candidate",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_id": 1078,
+      "candidate_brand": "HMD",
+      "candidate_model_name": "Skyline 5G Dual Sim +",
+      "candidate_model_number": "TA-1600",
+      "candidate_storage": ["256GB"],
+      "canonical_id": 800,
+      "canonical_brand": "HMD",
+      "canonical_model_name": "HMD Skyline",
+      "canonical_model_number": "TA-1600 / TA-1688",
+      "canonical_storage": ["256GB"],
+      "inventory_refs": 0,
+      "pricing_refs": 0,
+      "pricing_history_refs": 0,
+      "status": "ready_for_explicit_approval_after_fresh_recheck",
+      "evidence": "Candidate model number TA-1600 is explicitly included in the canonical HMD model-number set; category, brand and 256GB storage also match."
+    }
+  ],
+  "safety_note": "Evidence only. Do not deactivate, delete, merge, rewrite, remap, change pricing, or perform any production mutation without explicit human authorization for the exact reviewed candidate set after a fresh re-query of both rows and all dependency counts."
+}
