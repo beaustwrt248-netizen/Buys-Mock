@@ -74,6 +74,14 @@ test('rejects a different processor platform', () => {
   assert.ok(result.warnings.includes('different CPU platform') || result.warnings.includes('different CPU'));
 });
 
+test('rejects the wrong generation when both generations are explicit', () => {
+  const target = 'Lenovo ThinkPad X1 Carbon Gen 13 32GB RAM 1TB SSD';
+  const listing = 'Lenovo ThinkPad X1 Carbon Gen 12 Laptop 32GB RAM 1TB SSD';
+  const result = matcher.score(target, listing);
+  assert.equal(result.hardReject, true);
+  assert.ok(result.warnings.includes('different generation'));
+});
+
 test('rejects accessories and parts', () => {
   const target = 'Apple MacBook Air M3 16GB RAM 512GB SSD';
   const listing = '100W USB-C Charger Adapter for Apple MacBook Air M3';
