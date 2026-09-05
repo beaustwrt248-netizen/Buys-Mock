@@ -28,7 +28,7 @@ data class LiveDeviceCatalogueRow(
     val model: String,
     val modelNumber: String?,
     val storageOptions: List<String>,
-    val imageReferenceUrl: String?,
+    val imageReferenceUrl: String? = null,
 )
 
 object LiveDevicePricing {
