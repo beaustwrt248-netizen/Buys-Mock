@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const plan=JSON.parse(fs.readFileSync('nova/catalogue-apple-retail-part-current-state-plan.json','utf8'));
+assert.equal(plan.execution_authorized,false);
+assert.equal(plan.requires_explicit_human_authorization,true);
+assert.equal(plan.pre_execution_recheck_required,true);
+assert.equal(plan.rows.length,8);
+const byId=new Map(plan.rows.map(row=>[row.id,row]));
+for(const id of [1052,1055,1056,1057]) assert.equal(byId.get(id)?.classification,'foreign_region_variant_review');
+assert.equal(byId.get(1061)?.classification,'identity_mismatch_duplicate_candidate');
+assert.equal(byId.get(1061)?.canonical_id,550);
+assert.equal(byId.get(1061)?.canonical_au_model_number,'A3290');
+assert.equal(byId.get(1061)?.proposed_action,'deactivate_duplicate_candidate');
+assert.equal(byId.get(1068)?.pricing_refs,1);
+assert.equal(byId.get(1068)?.proposed_action,'none_pricing_protected');
+assert.equal(byId.get(1069)?.observed_model_number,'A1778');
+assert.equal(byId.get(1069)?.classification,'canonical_consolidation_review');
+assert.equal(byId.get(1074)?.pricing_refs,1);
+assert.equal(byId.get(1074)?.proposed_action,'none_pricing_protected');
+assert.equal(plan.rows.filter(row=>row.proposed_action==='deactivate_duplicate_candidate').length,1);
+console.log('nova apple retail-part current-state plan: PASS');

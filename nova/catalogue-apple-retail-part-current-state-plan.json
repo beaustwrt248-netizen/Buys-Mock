@@ -1,0 +1,23 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "authoritative_reference": "Apple Support AU identify-your-iPhone model table",
+  "rows": [
+    {"id":1052,"model_name":"iPhone 12 Pro Max Ng9a3ll/A |","observed_model_number":"A2342","classification":"foreign_region_variant_review","canonical_id":544,"canonical_au_model_number":"A2411","pricing_refs":0,"proposed_action":"none_review_required"},
+    {"id":1055,"model_name":"iPhone 13 Pro Max Mlhe3ch/A","observed_model_number":"A2644","classification":"foreign_region_variant_review","canonical_id":548,"canonical_au_model_number":"A2643","pricing_refs":0,"proposed_action":"none_review_required"},
+    {"id":1056,"model_name":"iPhone 13 Pro Mluf3j/A","observed_model_number":"A2636","classification":"foreign_region_variant_review","canonical_id":547,"canonical_au_model_number":"A2638","pricing_refs":0,"proposed_action":"none_review_required"},
+    {"id":1057,"model_name":"iPhone 14 Mpvh3ll/A","observed_model_number":"A2649","classification":"foreign_region_variant_review","canonical_id":528,"canonical_au_model_number":"A2882","pricing_refs":0,"proposed_action":"none_review_required"},
+    {"id":1061,"model_name":"iPhone 16 Plus Mxvx3x/A","observed_model_number":"A2390","classification":"identity_mismatch_duplicate_candidate","canonical_id":550,"canonical_au_model_number":"A3290","pricing_refs":0,"proposed_action":"deactivate_duplicate_candidate"},
+    {"id":1068,"model_name":"iPhone 6S Plus Mkud2x/A","observed_model_number":"A1687","classification":"protected_name_normalization_review","canonical_id":null,"canonical_au_model_number":null,"pricing_refs":1,"proposed_action":"none_pricing_protected"},
+    {"id":1069,"model_name":"iPhone 7 Mn922x/A","observed_model_number":"A1778","classification":"canonical_consolidation_review","canonical_id":625,"canonical_au_model_number":null,"pricing_refs":0,"proposed_action":"none_review_required"},
+    {"id":1074,"model_name":"iPhone Se Mmyd3j/A / 3rd Gen","observed_model_number":"A2782","classification":"protected_foreign_region_review","canonical_id":549,"canonical_au_model_number":"A2783","pricing_refs":1,"proposed_action":"none_pricing_protected"}
+  ],
+  "notes": [
+    "Retail part-number leakage is now prevented for future imports by the catalogue validator.",
+    "Foreign-region hardware variants are not silently rewritten to Australian hardware identities.",
+    "Pricing-linked rows are explicitly blocked from generic cleanup.",
+    "Only row 1061 is currently classified as a direct duplicate/deactivation candidate, subject to fresh re-query and human authorization."
+  ]
+}
