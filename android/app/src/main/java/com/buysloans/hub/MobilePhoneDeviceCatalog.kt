@@ -6,6 +6,7 @@ data class MobilePhoneDeviceEntry(
     val modelNumber: String?,
     val storage: String,
     val priceSheetValue: Double?,
+    val imageReferenceUrl: String?,
 ) {
     val hasPrice: Boolean
         get() = priceSheetValue != null || LiveDevicePricing.find(brand, model, modelNumber, storage) != null
@@ -17,6 +18,7 @@ data class MobilePhoneSearchResult(
     val modelNumber: String?,
     val storages: List<String>,
     val hasPricedVariant: Boolean,
+    val imageReferenceUrl: String?,
 )
 
 object MobilePhoneDeviceCatalog {
@@ -44,6 +46,7 @@ object MobilePhoneDeviceCatalog {
                             device.modelNumber,
                             storage,
                         )?.priceAud,
+                        imageReferenceUrl = device.imageReferenceUrl,
                     )
                 }
             }
@@ -107,6 +110,9 @@ object MobilePhoneDeviceCatalog {
     fun variants(brand: String, model: String) =
         entries.filter { it.brand == brand && it.model == model }
 
+    fun imageReference(brand: String, model: String): String? =
+        variants(brand, model).firstNotNullOfOrNull { it.imageReferenceUrl }
+
     fun modelMatches(brand: String, model: String, query: String): Boolean {
         if (query.isBlank()) return true
         if (brand.contains(query, true) || model.contains(query, true)) return true
@@ -131,6 +137,7 @@ object MobilePhoneDeviceCatalog {
                     modelNumber = variants.mapNotNull { it.modelNumber }.firstOrNull(),
                     storages = variants.map { it.storage }.distinct(),
                     hasPricedVariant = variants.any { it.hasPrice },
+                    imageReferenceUrl = variants.firstNotNullOfOrNull { it.imageReferenceUrl },
                 )
             }
             .take(limit)
