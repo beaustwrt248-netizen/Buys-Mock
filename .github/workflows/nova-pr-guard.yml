@@ -1,0 +1,69 @@
+name: Nova PR Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  nova-guard:
+    if: startsWith(github.event.pull_request.head.ref, 'nova/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" > /tmp/nova-files.txt
+          cat /tmp/nova-files.txt
+
+          protected=0
+          while IFS= read -r file; do
+            case "$file" in
+              supabase/migrations/*|supabase/functions/*|android/app/src/main/AndroidManifest.xml|android/app/build.gradle|.github/workflows/*)
+                protected=1
+                ;;
+            esac
+
+            lower="$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')"
+            case "$lower" in
+              *auth*|*permission*|*role*|*pricing*approval*|*guardian*policy*|*security*boundary*)
+                protected=1
+                ;;
+            esac
+          done < /tmp/nova-files.txt
+
+          echo "protected=$protected" >> "$GITHUB_OUTPUT"
+
+      - name: Require current-head owner approval for high-risk paths
+        if: steps.classify.outputs.protected == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          OWNER: beaustwrt248-netizen
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          approvals="$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '[.[] | select(.user.login == env.OWNER and .state == "APPROVED" and .commit_id == env.HEAD_SHA)] | length')"
+          if [ "$approvals" -lt 1 ]; then
+            echo "Nova touched a protected/high-risk area. Repository-owner approval of the current head commit is required before this PR can pass the Nova guard."
+            exit 1
+          fi
+
+      - name: Confirm guarded change
+        if: steps.classify.outputs.protected != '1'
+        run: echo "Nova change does not touch a path classified as high risk by the repository guard."
