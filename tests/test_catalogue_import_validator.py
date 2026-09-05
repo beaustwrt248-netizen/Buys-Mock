@@ -40,6 +40,24 @@ class CatalogueImportValidatorTests(unittest.TestCase):
                     self.codes(self.valid_row(model_name=name)),
                 )
 
+    def test_rejects_retail_part_number_in_canonical_name(self):
+        for name in (
+            "iPhone 16 Plus MXVX3X/A",
+            "iPhone SE MMYC3J/A / 3rd Gen",
+            "iPad 6th Gen MR6N2X/A",
+        ):
+            with self.subTest(name=name):
+                self.assertIn(
+                    "listing_text_in_model_name",
+                    self.codes(self.valid_row(model_name=name)),
+                )
+
+    def test_hardware_model_number_without_retail_suffix_stays_allowed(self):
+        self.assertNotIn(
+            "listing_text_in_model_name",
+            self.codes(self.valid_row(model_name="iPhone 16 Plus", model_number="A3290")),
+        )
+
     def test_rejects_condition_and_sold_as_is_text(self):
         for name in (
             "iPhone 13 Mini 128GB - Cracked Screen",
