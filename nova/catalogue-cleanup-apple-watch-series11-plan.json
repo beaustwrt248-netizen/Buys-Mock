@@ -1,0 +1,20 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidates": [
+    {
+      "candidate_id": 1136,
+      "candidate_name": "Apple Watch Series 11 46mm Rose Aluminium Case Gps Sport Band",
+      "canonical_id": 274,
+      "canonical_name": "Apple Watch Series 11 GPS 46mm",
+      "canonical_model_number": "A3333",
+      "canonical_storage_options": ["64GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "canonical_dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate",
+      "reason": "Retailer listing text describes the same GPS 46mm hardware plus case/band presentation details; canonical active row 274 preserves the verified AU model identity."
+    }
+  ]
+}
