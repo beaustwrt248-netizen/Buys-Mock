@@ -3,18 +3,19 @@
   "source": "Supabase public.device_catalog aggregate health query",
   "checked_date": "2026-09-05",
   "privacy": "aggregate-only; no device rows or protected pricing",
-  "total_records": 1315,
-  "active_records": 1297,
-  "au_region_records": 856,
-  "missing_model_number": 70,
-  "missing_storage_actionable": 47,
+  "total_records": 1317,
+  "active_records": 1299,
+  "au_region_records": 1060,
+  "missing_model_number": 165,
+  "missing_storage_actionable": 38,
   "source_url_missing": 0,
   "categories": [
-    {"category":"mobile_phone","label":"Mobile Phones","total":453,"active":443,"missing_model_number":31,"missing_storage":10,"au_region":208},
-    {"category":"tablet","label":"Tablets","total":259,"active":257,"missing_model_number":3,"missing_storage":15,"au_region":254},
-    {"category":"laptop","label":"Laptops","total":250,"active":250,"missing_model_number":6,"missing_storage":0,"au_region":139},
-    {"category":"wearable","label":"Wearables","total":162,"active":161,"missing_model_number":12,"missing_storage":56,"au_region":141,"storage_note":"Storage may be non-applicable for many wearables and is not counted as an actionable gap."},
-    {"category":"console","label":"Consoles","total":106,"active":102,"missing_model_number":15,"missing_storage":22,"au_region":70},
-    {"category":"desktop","label":"Desktops","total":85,"active":84,"missing_model_number":3,"missing_storage":0,"au_region":44}
-  ]
+    {"category":"mobile_phone","label":"Mobile Phones","total":454,"active":444,"missing_model_number":54,"missing_storage":10,"au_region":344},
+    {"category":"tablet","label":"Tablets","total":259,"active":257,"missing_model_number":45,"missing_storage":6,"au_region":254},
+    {"category":"laptop","label":"Laptops","total":250,"active":250,"missing_model_number":18,"missing_storage":0,"au_region":174},
+    {"category":"wearable","label":"Wearables","total":162,"active":161,"missing_model_number":29,"missing_storage":0,"au_region":152,"storage_note":"Storage may be non-applicable for many wearables and is not counted as an actionable gap."},
+    {"category":"console","label":"Consoles","total":106,"active":102,"missing_model_number":15,"missing_storage":22,"au_region":78},
+    {"category":"desktop","label":"Desktops","total":86,"active":85,"missing_model_number":4,"missing_storage":0,"au_region":58}
+  ],
+  "data_quality_note": "Live query shows a materially larger model-number gap than the previous snapshot. Listing-derived catalogue contamination is being investigated separately; health values intentionally report the database as it exists rather than masking suspected duplicates or dirty imports."
 }
