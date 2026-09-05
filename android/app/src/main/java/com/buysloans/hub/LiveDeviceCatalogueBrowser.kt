@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+private const val CATALOGUE_PAGE_SIZE = 60
 
 private fun categoryTitle(category: String?): String = when (category) {
     "mobile_phone" -> "Mobile Phones"
@@ -47,6 +50,7 @@ private fun categoryLabel(category: String): String = when (category) {
 @Composable
 fun LiveDeviceCatalogueBrowser(category: String? = null) {
     var query by remember(category) { mutableStateOf("") }
+    var visibleCount by remember(category, query) { mutableStateOf(CATALOGUE_PAGE_SIZE) }
     val all = LiveDevicePricing.catalogue()
     val filtered = remember(all, category, query) {
         val needle = query.trim().lowercase()
@@ -60,9 +64,14 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
                     it.storageOptions.joinToString(" "),
                 ).joinToString(" ").lowercase().contains(needle)
             }
-            .sortedWith(compareBy<LiveDeviceCatalogueRow> { it.category }.thenBy { it.brand.lowercase() }.thenBy { it.model.lowercase() })
+            .sortedWith(
+                compareBy<LiveDeviceCatalogueRow> { it.category }
+                    .thenBy { it.brand.lowercase() }
+                    .thenBy { it.model.lowercase() },
+            )
             .toList()
     }
+    val visibleDevices = remember(filtered, visibleCount) { filtered.take(visibleCount) }
 
     Screen(categoryTitle(category)) {
         Text(
@@ -81,13 +90,17 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
             shape = RoundedCornerShape(16.dp),
         )
         Text(
-            "${filtered.size} device${if (filtered.size == 1) "" else "s"}",
+            if (filtered.size > visibleDevices.size) {
+                "Showing ${visibleDevices.size} of ${filtered.size} devices"
+            } else {
+                "${filtered.size} device${if (filtered.size == 1) "" else "s"}"
+            },
             color = MorleyAccent,
             fontSize = 12.sp,
             fontWeight = FontWeight.Black,
         )
 
-        filtered.forEach { device ->
+        visibleDevices.forEach { device ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
                 border = BorderStroke(1.dp, MorleyBorder),
@@ -127,6 +140,21 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
                         }
                     }
                 }
+            }
+        }
+
+        if (visibleDevices.size < filtered.size) {
+            OutlinedButton(
+                onClick = { visibleCount = (visibleCount + CATALOGUE_PAGE_SIZE).coerceAtMost(filtered.size) },
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, MorleyAccent),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text(
+                    "Show ${minOf(CATALOGUE_PAGE_SIZE, filtered.size - visibleDevices.size)} more",
+                    color = MorleyAccent,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
