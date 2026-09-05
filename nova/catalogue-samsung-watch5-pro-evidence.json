@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-09-06T06:10:00+08:00",
+  "classification": "read_only_catalogue_evidence",
+  "risk": "low",
+  "candidate": {
+    "device_catalog_id": 1151,
+    "brand": "Samsung",
+    "category": "wearable",
+    "model_name": "Galaxy Watch5 Pro 1.5",
+    "model_number": "SM-925F",
+    "source": "Cash Converters Australia",
+    "inventory_refs": 0,
+    "pricing_refs": 0,
+    "pricing_history_refs": 0
+  },
+  "canonical_evidence": {
+    "device_catalog_id": 971,
+    "model_name": "Galaxy Watch5 Pro LTE 45mm",
+    "model_number": "SM-R925F",
+    "storage_options": ["16GB"],
+    "source": "Samsung",
+    "official_reference": "https://www.samsung.com/fr/support/model/SM-R925FZKAXEF/",
+    "inventory_refs": 0,
+    "pricing_refs": 1,
+    "pricing_history_refs": 0
+  },
+  "finding": "Samsung identifies the Galaxy Watch5 Pro LTE 45mm as model SM-R925F. The Cash Converters row uses SM-925F, which appears to omit the R and is a strong normalization candidate, but this evidence does not authorize any production mutation.",
+  "protected_boundary": "The canonical row has an active pricing reference. Any production remap, deactivation, deletion, pricing reassignment or other data mutation remains explicitly unauthorized and requires a fresh dependency check plus human approval where applicable.",
+  "execution_authorized": false
+}
