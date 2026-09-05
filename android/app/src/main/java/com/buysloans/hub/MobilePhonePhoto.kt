@@ -1,10 +1,10 @@
 package com.buysloans.hub
 
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
 
 @Composable
 fun MobilePhonePhoto(
@@ -14,8 +14,12 @@ fun MobilePhonePhoto(
     modifier: Modifier = Modifier,
     categoryRepresentative: Boolean = false,
 ) {
-    val referenceUrl = remember(brand, model, imageReferenceUrl, categoryRepresentative) {
+    val liveReference = model?.let {
+        LiveDevicePricing.device("mobile_phone", brand, it)?.imageReferenceUrl
+    }
+    val referenceUrl = remember(brand, model, imageReferenceUrl, liveReference, categoryRepresentative) {
         imageReferenceUrl?.trim()?.takeIf { it.isNotBlank() }
+            ?: liveReference?.trim()?.takeIf { it.isNotBlank() }
             ?: when {
                 model != null -> MobilePhonePhotoCatalog.exactModelPage(brand, model)
                 categoryRepresentative -> MobilePhonePhotoCatalog.categoryPage(brand)
