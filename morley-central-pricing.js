@@ -43,7 +43,12 @@ function catalogueRows(payload){
  }
  return rows.sort((a,b)=>String(a.category).localeCompare(String(b.category))||a.brand.localeCompare(b.brand)||a.model.localeCompare(b.model)||a.storage.localeCompare(b.storage));
 }
-async function sync(){const session=authSession();const token=session?.access_token;if(!token)return{ok:false,reason:'not-authenticated',...status()};try{const r=await fetch(CATALOGUE_API,{method:'GET',headers:{apikey:API_KEY,Authorization:`Bearer ${token}`,'Cache-Control':'no-cache'}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.error||`Catalogue sync failed (${r.status})`);const rows=catalogueRows(data);save(rows,'shared-device-catalogue');return{ok:true,...status()}}catch(error){dispatchEvent(new CustomEvent('morley-pricing-sync-failed',{detail:{message:String(error?.message||error)}}));return{ok:false,reason:'network',error:String(error?.message||error),...status()}}}
-window.MorleyCentralPricing={version:3,load,search,get,updatePrice,history,reset,sync,status,get extraBrands(){return[]},grades:{A:.70,B:.50,C:.30},money:v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(v)||0)};
-const kick=()=>sync();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',kick,{once:true});else kick();addEventListener('online',kick);
+let syncing=false;
+async function sync(){const session=authSession();const token=session?.access_token;if(!token)return{ok:false,reason:'not-authenticated',...status()};if(syncing)return{ok:false,reason:'sync-in-progress',...status()};syncing=true;try{const r=await fetch(CATALOGUE_API,{method:'GET',headers:{apikey:API_KEY,Authorization:`Bearer ${token}`,'Cache-Control':'no-cache'}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.error||`Catalogue sync failed (${r.status})`);const rows=catalogueRows(data);save(rows,'shared-device-catalogue');return{ok:true,...status()}}catch(error){dispatchEvent(new CustomEvent('morley-pricing-sync-failed',{detail:{message:String(error?.message||error)}}));return{ok:false,reason:'network',error:String(error?.message||error),...status()}}finally{syncing=false}}
+window.MorleyCentralPricing={version:4,load,search,get,updatePrice,history,reset,sync,status,get extraBrands(){return[]},grades:{A:.70,B:.50,C:.30},money:v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(v)||0)};
+let lastToken='';
+const watchAuth=()=>{const token=authSession()?.access_token||'';if(token&&token!==lastToken){lastToken=token;sync()}};
+const kick=()=>{watchAuth();if(authSession()?.access_token)sync()};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',kick,{once:true});else kick();
+addEventListener('online',kick);addEventListener('focus',watchAuth);setInterval(watchAuth,1000);
 })();

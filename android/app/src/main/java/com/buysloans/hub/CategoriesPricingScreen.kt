@@ -36,8 +36,8 @@ fun CategoriesPricingScreen() {
             Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 15.sp)
             CategoryCard(null, "All Device Catalogue", "Browse every live device with images", "ALL") { selected = PricingCategory.ALL_DEVICES }
             CategoryCard(PricingVisual.PHONE, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
-            CategoryCard(null, "Tablets", "Browse iPad, Galaxy Tab, Surface & more", "TAB") { selected = PricingCategory.TABLETS }
-            CategoryCard(null, "Smart Watches", "Browse Apple Watch, Galaxy Watch & wearables", "WATCH") { selected = PricingCategory.WEARABLES }
+            CategoryCard(null, "Tablets", "Price iPad, Galaxy Tab, Surface & more", "TAB") { selected = PricingCategory.TABLETS }
+            CategoryCard(null, "Smart Watches", "Price Apple Watch, Galaxy Watch & wearables", "WATCH") { selected = PricingCategory.WEARABLES }
             CategoryCard(PricingVisual.LAPTOP, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
             CategoryCard(PricingVisual.DESKTOP, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
             CategoryCard(PricingVisual.CONSOLE, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
@@ -53,8 +53,8 @@ fun CategoriesPricingScreen() {
             }
             when (selected) {
                 PricingCategory.ALL_DEVICES -> LiveDeviceCatalogueBrowser()
-                PricingCategory.TABLETS -> LiveDeviceCatalogueBrowser("tablet")
-                PricingCategory.WEARABLES -> LiveDeviceCatalogueBrowser("wearable")
+                PricingCategory.TABLETS -> LiveDeviceCategoryPricingScreen("tablet")
+                PricingCategory.WEARABLES -> LiveDeviceCategoryPricingScreen("wearable")
                 PricingCategory.LAPTOPS -> LaptopGuidedScreen()
                 PricingCategory.DESKTOPS -> Desktop()
                 PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()
