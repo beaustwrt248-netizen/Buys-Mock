@@ -1,6 +1,6 @@
 (()=>{
 const q=id=>document.getElementById(id), esc2=v=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let currentTicket=null,supportAgents=[],ticketFreshnessTimer=null,lastTicketRefreshAt=null;
+let currentTicket=null,supportAgents=[],ticketFreshnessTimer=null,lastTicketRefreshAt=null,ticketLoadVersion=0;
 const statusLabel=s=>({open:'Open',in_progress:'In Progress',waiting_on_user:'Waiting on User',resolved:'Resolved',closed:'Closed'})[s]||s;
 const isClosed=t=>['resolved','closed'].includes(t?.status);
 const slaLabel=t=>{if(!t?.sla_due_at||isClosed(t))return '';const due=new Date(t.sla_due_at),ms=due-Date.now(),abs=Math.abs(ms),h=Math.max(1,Math.round(abs/36e5));return ms<0?`SLA overdue ${h}h`:`SLA due in ${h}h`};
@@ -55,10 +55,13 @@ async function attachTicketProfiles(tickets){
 }
 async function loadTickets(){
  if(!window.sb||!q('ticketsList'))return;ensureQueueControls();ensureSupportStyles();
+ const requestVersion=++ticketLoadVersion;
  const status=q('ticketStatusFilter')?.value||'all',category=q('ticketCategoryFilter')?.value||'all',priority=q('ticketPriorityFilter')?.value||'all',assignee=q('ticketAssigneeFilter')?.value||'all',term=(q('ticketSearch')?.value||'').trim().toLowerCase();
  const {data,error}=await sb.from('support_tickets').select('*').order('updated_at',{ascending:false}).limit(100);
+ if(requestVersion!==ticketLoadVersion)return;
  if(error){q('ticketsList').textContent=`Support tickets could not be refreshed${error.message?`: ${error.message}`:'.'}`;return}
  const tickets=await attachTicketProfiles(data);
+ if(requestVersion!==ticketLoadVersion)return;
  markFresh();
  const rows=tickets.filter(t=>(status==='all'||t.status===status)&&(category==='all'||t.category===category)&&(priority==='all'||t.priority===priority)&&(assignee==='all'||(assignee==='unassigned'?!t.assigned_to:t.assigned_to===assignee))&&(!term||[t.subject,t.description,t.category,t.priority,t.profiles?.display_name,t.profiles?.email].some(v=>String(v||'').toLowerCase().includes(term))));
  q('ticketsList').innerHTML=rows.map(t=>{const sla=slaLabel(t),assigned=supportAgents.find(p=>p.id===t.assigned_to);return `<div class="ticket-row" data-ticket-id="${t.id}" role="button" tabindex="0" aria-label="Open support ticket ${esc2(t.subject)}"><div class="row-main"><div class="row-title">${esc2(t.subject)}</div><div class="muted">${esc2(t.profiles?.display_name||t.profiles?.email||t.user_id)} • ${esc2(t.category)} • ${esc2(t.priority||'normal')} • ${new Date(t.updated_at).toLocaleString()}</div><div class="muted">${assigned?`Assigned: ${esc2(assigned.display_name||assigned.email||assigned.id)}`:'Unassigned'}${sla?` • ${esc2(sla)}`:''}</div></div><div class="ticket-actions"><span class="pill ${t.status==='resolved'||t.status==='closed'?'ok':''}">${esc2(statusLabel(t.status))}</span><button type="button" class="ticket-open-btn" data-open-ticket="${t.id}">Open ticket</button></div></div>`}).join('')||'<div class="muted">No tickets match these filters.</div>';
