@@ -29,7 +29,7 @@ jobs:
           protected=0
           while IFS= read -r file; do
             case "$file" in
-              supabase/migrations/*|supabase/functions/*|android/app/src/main/AndroidManifest.xml|android/app/build.gradle|.github/workflows/*deploy*|.github/workflows/*release*|.github/workflows/*ota*)
+              supabase/migrations/*|supabase/functions/*|android/app/src/main/AndroidManifest.xml|android/app/build.gradle|.github/workflows/*)
                 protected=1
                 ;;
             esac
