@@ -16,6 +16,13 @@ test('development history distinguishes merged and closed outcomes', () => {
   assert.match(history, /label:'CLOSED'/);
 });
 
+test('development history rejects stale refresh results and failures', () => {
+  assert.match(history, /let refreshVersion=0/);
+  assert.match(history, /const requestVersion=\+\+refreshVersion/);
+  assert.match(history, /if\(requestVersion!==refreshVersion\)return/);
+  assert.match(history, /catch\(error\)\{if\(requestVersion!==refreshVersion\)return/);
+});
+
 test('development history is read-only', () => {
   assert.doesNotMatch(history, /method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/i);
   assert.doesNotMatch(history, /\/merge|\/reviews|\/comments|\/dispatches/);
