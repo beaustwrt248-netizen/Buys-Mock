@@ -24,10 +24,13 @@ CANONICAL_CATEGORIES = {
     "wearable",
 }
 
-# Condition, stock-listing and transaction language must never become a canonical model name.
+# Condition, stock-listing, retail-part and transaction language must never become a
+# canonical model name. Apple retail part numbers such as MXVX3X/A or MMYC3J/A identify
+# a saleable SKU/region variant, not the canonical hardware model identity.
 LISTING_TEXT_PATTERNS = (
     re.compile(r"\b(?:battery|batt)\s*(?:health)?\s*[-:]?\s*\d{1,3}\s*%", re.I),
     re.compile(r"\b\d{1,3}\s*%\s*$", re.I),
+    re.compile(r"\b[A-Z0-9]{5,}[A-Z]/A\b", re.I),
     re.compile(r"\bcracked\b|\bbroken\b|\bdamaged\b|\bscratched\b", re.I),
     re.compile(r"\bsold\s+as\s+is\b|\bas\s+is\b|\bno\s+warranty\b", re.I),
     re.compile(r"\bdoesn['’]?t\s+(?:turn|power)\s+on\b|\bnot\s+turning\s+on\b", re.I),
@@ -74,7 +77,7 @@ def validate_row(row: dict[str, Any]) -> list[ValidationIssue]:
     if not model_name:
         issues.append(ValidationIssue("missing_model_name", "model_name", "Canonical rows require a model name."))
     elif contains_listing_text(model_name):
-        issues.append(ValidationIssue("listing_text_in_model_name", "model_name", "Condition, stock-listing or transaction text must not be stored in a canonical model name."))
+        issues.append(ValidationIssue("listing_text_in_model_name", "model_name", "Condition, retail-part, stock-listing or transaction text must not be stored in a canonical model name."))
 
     # A storage token may be part of a legitimate retail title, so do not reject it merely
     # for appearing in model_name. Instead require storage to be represented structurally
