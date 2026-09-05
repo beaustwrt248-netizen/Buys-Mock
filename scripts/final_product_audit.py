@@ -55,6 +55,17 @@ def validate_release_version(path: str, build_text: str, manifest_path: str, pro
 
 
 build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
+main_activity = need(
+    'android/app/src/main/java/com/buysloans/hub/MainActivity.kt',
+    'AuthManager.validAccessToken(MorleyApplication.instance)',
+    'setRequestProperty("Authorization","Bearer $token")',
+    'BuildConfig.SUPABASE_PUBLISHABLE_KEY',
+    'Your secure session has expired. Sign in again.',
+)
+reject('android/app/build.gradle', build, 'securePricingAuth', 'secure_pricing_auth.py')
+if (ROOT / 'android/secure_pricing_auth.py').exists():
+    errors.append('android/secure_pricing_auth.py: obsolete build-time source rewriter still exists')
+
 admin_build = need(
     'android/adminapp/build.gradle',
     "namespace 'com.buysloans.admin'",
@@ -200,4 +211,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; Admin builds are deterministic; Morley and Admin release identities remain publication-safe.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; checked-in pricing authentication and Admin builds are deterministic; Morley and Admin release identities remain publication-safe.')
