@@ -1,7 +1,7 @@
 {
-  "versionCode": 108,
-  "versionName": "2.15.64",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.64/B-and-L-Morley-2.15.64.apk",
-  "sha256": "6ffd0b61d042ad30ee21dea648ead90e6abcad56303e4b5c8ed429925b680bcd",
-  "notes": "Roll out live device images across full catalogue"
+  "versionCode": 109,
+  "versionName": "2.15.65",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.65/B-and-L-Morley-2.15.65.apk",
+  "sha256": "35fae59963b28859c65f54223641a744de80593b813fe6e1e71d253b5bd563fb",
+  "notes": "Merge pull request #776 from beaustwrt248-netizen/catalogue-browser-performance"
 }
