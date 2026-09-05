@@ -11,22 +11,120 @@
 </head>
 <body>
   <div class="app-shell">
-    <header class="topbar"><div class="brand"><div class="nova-mark" aria-hidden="true">N</div><div><div class="eyebrow">MORLEY SYSTEMS</div><h1>Nova AI</h1><p>Standalone intelligence & development control centre</p></div></div><div class="status-pill"><span class="status-dot"></span><span id="connectionLabel">Connecting</span></div></header>
-    <nav class="nav" aria-label="Nova sections"><button class="active" data-section="overview">Overview</button><button data-section="attention">Needs Attention</button><button data-section="development">Development</button><button data-section="guardian">Guardian</button><button data-section="catalogue">Catalogue</button><button data-section="support">Support</button><button data-section="knowledge">Knowledge</button><button data-section="monitoring">Monitoring</button><button data-section="releases">Releases</button><button data-section="activity">Activity</button></nav>
+    <header class="topbar">
+      <div class="brand">
+        <div class="nova-mark" aria-hidden="true">N</div>
+        <div><div class="eyebrow">MORLEY SYSTEMS</div><h1>Nova AI</h1><p>Standalone intelligence & development control centre</p></div>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span id="connectionLabel">Connecting</span></div>
+    </header>
+
+    <nav class="nav" aria-label="Nova sections">
+      <button class="active" data-section="overview">Overview</button>
+      <button data-section="attention">Needs Attention</button>
+      <button data-section="development">Development</button>
+      <button data-section="guardian">Guardian</button>
+      <button data-section="catalogue">Catalogue</button>
+      <button data-section="support">Support</button>
+      <button data-section="knowledge">Knowledge</button>
+      <button data-section="monitoring">Monitoring</button>
+      <button data-section="releases">Releases</button>
+      <button data-section="activity">Activity</button>
+    </nav>
+
     <main>
-      <section class="page active" data-page="overview"><div class="hero card"><div><div class="eyebrow">NOVA CORE</div><h2 id="coreTitle">Initialising Nova</h2><p id="coreSummary">Reading the current Buys-Mock development state without changing production systems.</p></div><div class="core-orb" id="coreOrb"><span>NOVA</span><b id="coreState">LOADING</b></div></div><div class="metrics"><article class="card metric"><span>Open Nova PRs</span><strong id="metricPrs">—</strong><small>active improvement work</small></article><article class="card metric"><span>Needs Attention</span><strong id="metricAttention">—</strong><small>human decisions or blocks</small></article><article class="card metric"><span>Main</span><strong id="metricMain">—</strong><small>current repository state</small></article><article class="card metric"><span>Mode</span><strong>READ</strong><small>safe standalone phase</small></article></div><div class="grid-two"><article class="card"><div class="section-head"><div><div class="eyebrow">NOW</div><h2>Nova work queue</h2></div><button id="refreshBtn" class="secondary">Refresh</button></div><div id="workQueue" class="stack"><div class="empty">Loading current Nova work…</div></div></article><article class="card"><div class="eyebrow">BOUNDARIES</div><h2>Guardian protected</h2><div class="boundary-list"><div><b>Production writes</b><span>Disabled in this phase</span></div><div><b>Pricing approvals</b><span>Remain protected</span></div><div><b>Auth & permissions</b><span>Remain outside Nova</span></div><div><b>Release authority</b><span>Human gated</span></div></div></article></div></section>
+      <section class="page active" data-page="overview">
+        <div class="hero card">
+          <div><div class="eyebrow">NOVA CORE</div><h2 id="coreTitle">Initialising Nova</h2><p id="coreSummary">Reading the current Buys-Mock development state without changing production systems.</p></div>
+          <div class="core-orb" id="coreOrb"><span>NOVA</span><b id="coreState">LOADING</b></div>
+        </div>
+        <div class="metrics">
+          <article class="card metric"><span>Open Nova PRs</span><strong id="metricPrs">—</strong><small>active improvement work</small></article>
+          <article class="card metric"><span>Needs Attention</span><strong id="metricAttention">—</strong><small>human decisions or blocks</small></article>
+          <article class="card metric"><span>Main</span><strong id="metricMain">—</strong><small>current repository state</small></article>
+          <article class="card metric"><span>Mode</span><strong>READ</strong><small>safe standalone phase</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">NOW</div><h2>Nova work queue</h2></div><button id="refreshBtn" class="secondary">Refresh</button></div><div id="workQueue" class="stack"><div class="empty">Loading current Nova work…</div></div></article>
+          <article class="card"><div class="eyebrow">BOUNDARIES</div><h2>Guardian protected</h2><div class="boundary-list"><div><b>Production writes</b><span>Disabled in this phase</span></div><div><b>Pricing approvals</b><span>Remain protected</span></div><div><b>Auth & permissions</b><span>Remain outside Nova</span></div><div><b>Release authority</b><span>Human gated</span></div></div></article>
+        </div>
+      </section>
+
       <section class="page" data-page="attention"><article class="card"><div class="eyebrow">HUMAN GATE</div><h2>Needs Attention</h2><p>Only work that genuinely needs a decision, approval, or manual action should appear here.</p><div id="attentionList" class="stack"><div class="empty">Checking current blockers…</div></div></article></section>
       <section class="page" data-page="development"><article class="card"><div class="eyebrow">ENGINEERING</div><h2>Development Agent</h2><p>Nova can inspect issues, create narrow branches, validate changes and prepare pull requests. High-risk work stops before merge.</p><div id="developmentList" class="stack"></div></article></section>
-      <section class="page" data-page="guardian"><div class="card"><div class="section-head"><div><div class="eyebrow">INDEPENDENT VALIDATION</div><h2>Guardian</h2></div><span id="guardianState" class="tag">LOADING</span></div><p>Live read-only evidence for Guardian-titled repair work. Nova observes Guardian outcomes but does not inherit Guardian authority.</p></div><div class="metrics"><article class="card metric"><span>Latest repair</span><strong id="guardianLatest">—</strong><small>latest merged Guardian repair PR</small></article><article class="card metric"><span>Open repairs</span><strong id="guardianOpen">—</strong><small>human-controlled Guardian PRs</small></article><article class="card metric"><span>Validated gates</span><strong id="guardianValidated">—</strong><small>latest repair evidence</small></article><article class="card metric"><span>Blocked gates</span><strong id="guardianBlocked">—</strong><small>latest repair failures</small></article></div><article class="card"><div class="eyebrow">VALIDATION EVIDENCE</div><h2>Latest Guardian repair</h2><div id="guardianEvidence" class="stack"><div class="empty">Loading Guardian evidence…</div></div><div class="callout" id="guardianBoundary">Guardian authority remains independent and protected.</div></article></section>
-      <section class="page" data-page="catalogue"><div class="card"><div class="eyebrow">AUTHORITATIVE DATA HEALTH</div><h2>Catalogue Intelligence</h2><p>Aggregate-only health from the protected Supabase device catalogue. Nova can see coverage and data-quality gaps without reading device rows or protected buy prices.</p></div><div class="metrics"><article class="card metric"><span>Catalogue records</span><strong id="catalogueTotal">—</strong><small>all six device categories</small></article><article class="card metric"><span>Active</span><strong id="catalogueActive">—</strong><small>currently active records</small></article><article class="card metric"><span>AU region</span><strong id="catalogueAu">—</strong><small>explicit AU market mapping</small></article><article class="card metric"><span>Model gaps</span><strong id="catalogueModelGaps">—</strong><small>missing model number</small></article></div><article class="card"><div class="section-head"><div><div class="eyebrow">CATEGORY COVERAGE</div><h2>Health by category</h2></div><span id="catalogueChecked" class="tag">LOADING</span></div><div id="catalogueList" class="stack"><div class="empty">Loading aggregate catalogue health…</div></div><div class="callout">Protected pricing is intentionally excluded. Missing wearable storage is not treated as an actionable defect because storage is often not applicable.</div></article></section>
-      <section class="page" data-page="support"><div class="card"><div class="eyebrow">PRIVACY-SAFE OPERATIONS</div><h2>Support Intelligence</h2><p>Aggregate support health from the protected ticket system. Nova can detect workload and SLA pressure without reading subjects, descriptions, messages, identities, assignees, or diagnostics.</p></div><div class="metrics"><article class="card metric"><span>All tickets</span><strong id="supportTotal">—</strong><small>aggregate history only</small></article><article class="card metric"><span>Active</span><strong id="supportActive">—</strong><small>open / in progress / waiting</small></article><article class="card metric"><span>High priority</span><strong id="supportHigh">—</strong><small>active high or urgent</small></article><article class="card metric"><span>SLA overdue</span><strong id="supportSla">—</strong><small>active tickets past SLA</small></article></div><div class="grid-two"><article class="card"><div class="section-head"><div><div class="eyebrow">QUEUE HEALTH</div><h2>Status</h2></div><span id="supportChecked" class="tag">LOADING</span></div><div id="supportStatusList" class="stack"><div class="empty">Loading support health…</div></div></article><article class="card"><div class="eyebrow">CATEGORIES</div><h2>Ticket mix</h2><div id="supportCategoryList" class="stack"><div class="empty">Loading category aggregates…</div></div><div class="callout" id="supportResponseCallout">First-response health is loading.</div></article></div></section>
-      <section class="page" data-page="knowledge"><div class="card"><div class="eyebrow">TRUSTED CONTEXT & MEMORY HEALTH</div><h2>Nova Knowledge</h2><p>Trusted current-main project documents are kept separate from Nova's non-authoritative reference memory and learned experiences. Memory can inform recommendations but cannot override live source-of-truth data or protected controls.</p></div><div class="metrics"><article class="card metric"><span>Reference items</span><strong id="memoryKnowledge">—</strong><small>non-authoritative context</small></article><article class="card metric"><span>Learning experiences</span><strong id="memoryLearning">—</strong><small>active learned outcomes</small></article><article class="card metric"><span>Verified learning</span><strong id="memoryVerified">—</strong><small>verified experiences</small></article><article class="card metric"><span>Avg confidence</span><strong id="memoryConfidence">—</strong><small>active experience confidence</small></article></div><div class="grid-two"><article class="card"><div class="section-head"><div><div class="eyebrow">AUTHORITATIVE CONTEXT</div><h2>Trusted project sources</h2></div><span id="memoryChecked" class="tag">LOADING</span></div><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article><article class="card"><div class="eyebrow">LEARNING COVERAGE</div><h2>Experience domains</h2><div id="memoryDomainList" class="stack"><div class="empty">Loading memory health…</div></div><div class="callout" id="memoryBoundary">Reference memory remains non-authoritative.</div></article></div></section>
-      <section class="page" data-page="monitoring"><div class="card"><div class="eyebrow">LIVE ENGINEERING HEALTH</div><h2>Monitoring</h2><p>Current main-branch workflow health from GitHub Actions. Nova evaluates only the newest run for each workflow, so an old failure cannot incorrectly override a newer successful run.</p></div><div class="metrics"><article class="card metric"><span>Tracked workflows</span><strong id="monitorTracked">—</strong><small>latest run per workflow</small></article><article class="card metric"><span>Healthy</span><strong id="monitorHealthy">—</strong><small>latest run passed</small></article><article class="card metric"><span>Running</span><strong id="monitorRunning">—</strong><small>currently incomplete</small></article><article class="card metric"><span>Failed</span><strong id="monitorFailed">—</strong><small>current failures only</small></article></div><article class="card"><div class="section-head"><div><div class="eyebrow">LATEST PER WORKFLOW</div><h2>Current checks</h2></div><span id="monitorState" class="tag">LOADING</span></div><div id="monitoringList" class="stack"><div class="empty">Loading current workflow health…</div></div><div class="callout">Historical failures remain available in GitHub, but Nova does not treat them as current blockers after a newer run succeeds.</div></article></section>
-      <section class="page" data-page="releases"><div class="card"><div class="section-head"><div><div class="eyebrow">ADVISORY ONLY</div><h2>Deployments & Release Readiness</h2></div><span id="releaseOverall" class="tag">LOADING</span></div><p>Nova combines current deployment, quality, security, parity and email-contract evidence into a release-readiness signal. This view never deploys, signs, approves or bypasses a protected release step.</p></div><div class="metrics"><article class="card metric"><span>Production Pages</span><strong id="releaseDeploy">—</strong><small>latest deployment</small></article><article class="card metric"><span>Quality</span><strong id="releaseQuality">—</strong><small>latest quality gate</small></article><article class="card metric"><span>Security</span><strong id="releaseSecurity">—</strong><small>latest security audit</small></article><article class="card metric"><span>Parity</span><strong id="releaseParity">—</strong><small>latest parity gate</small></article></div><article class="card"><div class="eyebrow">RELEASE EVIDENCE</div><h2>Current readiness inputs</h2><div id="releaseEvidence" class="stack"><div class="empty">Loading release evidence…</div></div><div class="callout" id="releaseSummary">Readiness is loading. Nova has no release authority.</div></article></section>
+      <section class="page" data-page="guardian">
+        <div class="card"><div class="section-head"><div><div class="eyebrow">INDEPENDENT VALIDATION</div><h2>Guardian</h2></div><span id="guardianState" class="tag">LOADING</span></div><p>Live read-only evidence for Guardian-titled repair work. Nova observes Guardian outcomes but does not inherit Guardian authority.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Latest repair</span><strong id="guardianLatest">—</strong><small>latest merged Guardian repair PR</small></article>
+          <article class="card metric"><span>Open repairs</span><strong id="guardianOpen">—</strong><small>human-controlled Guardian PRs</small></article>
+          <article class="card metric"><span>Validated gates</span><strong id="guardianValidated">—</strong><small>latest repair evidence</small></article>
+          <article class="card metric"><span>Blocked gates</span><strong id="guardianBlocked">—</strong><small>latest repair failures</small></article>
+        </div>
+        <article class="card"><div class="eyebrow">VALIDATION EVIDENCE</div><h2>Latest Guardian repair</h2><div id="guardianEvidence" class="stack"><div class="empty">Loading Guardian evidence…</div></div><div class="callout" id="guardianBoundary">Guardian authority remains independent and protected.</div></article>
+      </section>
+      <section class="page" data-page="catalogue">
+        <div class="card"><div class="eyebrow">AUTHORITATIVE DATA HEALTH</div><h2>Catalogue Intelligence</h2><p>Aggregate-only health from the protected Supabase device catalogue. Nova can see coverage and data-quality gaps without reading device rows or protected buy prices.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Catalogue records</span><strong id="catalogueTotal">—</strong><small>all six device categories</small></article>
+          <article class="card metric"><span>Active</span><strong id="catalogueActive">—</strong><small>currently active records</small></article>
+          <article class="card metric"><span>AU region</span><strong id="catalogueAu">—</strong><small>explicit AU market mapping</small></article>
+          <article class="card metric"><span>Model gaps</span><strong id="catalogueModelGaps">—</strong><small>missing model number</small></article>
+        </div>
+        <article class="card"><div class="section-head"><div><div class="eyebrow">CATEGORY COVERAGE</div><h2>Health by category</h2></div><span id="catalogueChecked" class="tag">LOADING</span></div><div id="catalogueList" class="stack"><div class="empty">Loading aggregate catalogue health…</div></div><div class="callout">Protected pricing is intentionally excluded. Missing wearable storage is not treated as an actionable defect because storage is often not applicable.</div></article>
+      </section>
+      <section class="page" data-page="support">
+        <div class="card"><div class="eyebrow">PRIVACY-SAFE OPERATIONS</div><h2>Support Intelligence</h2><p>Aggregate support health from the protected ticket system. Nova can detect workload and SLA pressure without reading subjects, descriptions, messages, identities, assignees, or diagnostics.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>All tickets</span><strong id="supportTotal">—</strong><small>aggregate history only</small></article>
+          <article class="card metric"><span>Active</span><strong id="supportActive">—</strong><small>open / in progress / waiting</small></article>
+          <article class="card metric"><span>High priority</span><strong id="supportHigh">—</strong><small>active high or urgent</small></article>
+          <article class="card metric"><span>SLA overdue</span><strong id="supportSla">—</strong><small>active tickets past SLA</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">QUEUE HEALTH</div><h2>Status</h2></div><span id="supportChecked" class="tag">LOADING</span></div><div id="supportStatusList" class="stack"><div class="empty">Loading support health…</div></div></article>
+          <article class="card"><div class="eyebrow">CATEGORIES</div><h2>Ticket mix</h2><div id="supportCategoryList" class="stack"><div class="empty">Loading category aggregates…</div></div><div class="callout" id="supportResponseCallout">First-response health is loading.</div></article>
+        </div>
+      </section>
+      <section class="page" data-page="knowledge">
+        <div class="card"><div class="eyebrow">TRUSTED CONTEXT & MEMORY HEALTH</div><h2>Nova Knowledge</h2><p>Trusted current-main project documents are kept separate from Nova's non-authoritative reference memory and learned experiences. Memory can inform recommendations but cannot override live source-of-truth data or protected controls.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Reference items</span><strong id="memoryKnowledge">—</strong><small>non-authoritative context</small></article>
+          <article class="card metric"><span>Learning experiences</span><strong id="memoryLearning">—</strong><small>active learned outcomes</small></article>
+          <article class="card metric"><span>Verified learning</span><strong id="memoryVerified">—</strong><small>verified experiences</small></article>
+          <article class="card metric"><span>Avg confidence</span><strong id="memoryConfidence">—</strong><small>active experience confidence</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">AUTHORITATIVE CONTEXT</div><h2>Trusted project sources</h2></div><span id="memoryChecked" class="tag">LOADING</span></div><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article>
+          <article class="card"><div class="eyebrow">LEARNING COVERAGE</div><h2>Experience domains</h2><div id="memoryDomainList" class="stack"><div class="empty">Loading memory health…</div></div><div class="callout" id="memoryBoundary">Reference memory remains non-authoritative.</div></article>
+        </div>
+      </section>
+      <section class="page" data-page="monitoring">
+        <div class="card"><div class="eyebrow">LIVE ENGINEERING HEALTH</div><h2>Monitoring</h2><p>Current main-branch workflow health from GitHub Actions. Nova evaluates only the newest run for each workflow, so an old failure cannot incorrectly override a newer successful run.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Tracked workflows</span><strong id="monitorTracked">—</strong><small>latest run per workflow</small></article>
+          <article class="card metric"><span>Healthy</span><strong id="monitorHealthy">—</strong><small>latest run passed</small></article>
+          <article class="card metric"><span>Running</span><strong id="monitorRunning">—</strong><small>currently incomplete</small></article>
+          <article class="card metric"><span>Failed</span><strong id="monitorFailed">—</strong><small>current failures only</small></article>
+        </div>
+        <article class="card"><div class="section-head"><div><div class="eyebrow">LATEST PER WORKFLOW</div><h2>Current checks</h2></div><span id="monitorState" class="tag">LOADING</span></div><div id="monitoringList" class="stack"><div class="empty">Loading current workflow health…</div></div><div class="callout">Historical failures remain available in GitHub, but Nova does not treat them as current blockers after a newer run succeeds.</div></article>
+      </section>
+      <section class="page" data-page="releases">
+        <div class="card"><div class="section-head"><div><div class="eyebrow">ADVISORY ONLY</div><h2>Deployments & Release Readiness</h2></div><span id="releaseOverall" class="tag">LOADING</span></div><p>Nova combines current deployment, quality, security, parity and email-contract evidence into a release-readiness signal. This view never deploys, signs, approves or bypasses a protected release step.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Production Pages</span><strong id="releaseDeploy">—</strong><small>latest deployment</small></article>
+          <article class="card metric"><span>Quality</span><strong id="releaseQuality">—</strong><small>latest quality gate</small></article>
+          <article class="card metric"><span>Security</span><strong id="releaseSecurity">—</strong><small>latest security audit</small></article>
+          <article class="card metric"><span>Parity</span><strong id="releaseParity">—</strong><small>latest parity gate</small></article>
+        </div>
+        <article class="card"><div class="eyebrow">RELEASE EVIDENCE</div><h2>Current readiness inputs</h2><div id="releaseEvidence" class="stack"><div class="empty">Loading release evidence…</div></div><div class="callout" id="releaseSummary">Readiness is loading. Nova has no release authority.</div></article>
+      </section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
     </main>
+
     <footer>© 2026 Morley Buys · Nova AI standalone foundation · Guardian protected</footer>
   </div>
-  <script src="app.js?v=1"></script><script src="release-readiness.js?v=1"></script><script src="guardian-status.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+  <script src="release-readiness.js?v=1"></script>
+  <script src="guardian-status.js?v=1"></script>
 </body>
 </html>
