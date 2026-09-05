@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071814">
+  <meta name="color-scheme" content="dark">
+  <title>Nova AI Control Centre</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="nova-mark" aria-hidden="true">N</div>
+        <div><div class="eyebrow">MORLEY SYSTEMS</div><h1>Nova AI</h1><p>Standalone intelligence & development control centre</p></div>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span id="connectionLabel">Connecting</span></div>
+    </header>
+
+    <nav class="nav" aria-label="Nova sections">
+      <button class="active" data-section="overview">Overview</button>
+      <button data-section="attention">Needs Attention</button>
+      <button data-section="development">Development</button>
+      <button data-section="guardian">Guardian</button>
+      <button data-section="catalogue">Catalogue</button>
+      <button data-section="knowledge">Knowledge</button>
+      <button data-section="activity">Activity</button>
+    </nav>
+
+    <main>
+      <section class="page active" data-page="overview">
+        <div class="hero card">
+          <div><div class="eyebrow">NOVA CORE</div><h2 id="coreTitle">Initialising Nova</h2><p id="coreSummary">Reading the current Buys-Mock development state without changing production systems.</p></div>
+          <div class="core-orb" id="coreOrb"><span>NOVA</span><b id="coreState">LOADING</b></div>
+        </div>
+        <div class="metrics">
+          <article class="card metric"><span>Open Nova PRs</span><strong id="metricPrs">—</strong><small>active improvement work</small></article>
+          <article class="card metric"><span>Needs Attention</span><strong id="metricAttention">—</strong><small>human decisions or blocks</small></article>
+          <article class="card metric"><span>Main</span><strong id="metricMain">—</strong><small>current repository state</small></article>
+          <article class="card metric"><span>Mode</span><strong>READ</strong><small>safe standalone phase</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">NOW</div><h2>Nova work queue</h2></div><button id="refreshBtn" class="secondary">Refresh</button></div><div id="workQueue" class="stack"><div class="empty">Loading current Nova work…</div></div></article>
+          <article class="card"><div class="eyebrow">BOUNDARIES</div><h2>Guardian protected</h2><div class="boundary-list"><div><b>Production writes</b><span>Disabled in this phase</span></div><div><b>Pricing approvals</b><span>Remain protected</span></div><div><b>Auth & permissions</b><span>Remain outside Nova</span></div><div><b>Release authority</b><span>Human gated</span></div></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-page="attention"><article class="card"><div class="eyebrow">HUMAN GATE</div><h2>Needs Attention</h2><p>Only work that genuinely needs a decision, approval, or manual action should appear here.</p><div id="attentionList" class="stack"><div class="empty">Checking current blockers…</div></div></article></section>
+      <section class="page" data-page="development"><article class="card"><div class="eyebrow">ENGINEERING</div><h2>Development Agent</h2><p>Nova can inspect issues, create narrow branches, validate changes and prepare pull requests. High-risk work stops before merge.</p><div id="developmentList" class="stack"></div></article></section>
+      <section class="page" data-page="guardian"><article class="card"><div class="eyebrow">INDEPENDENT VALIDATION</div><h2>Guardian</h2><p>Guardian remains the independent safety and repair-review layer. Nova does not inherit Guardian authority.</p><div class="callout">Standalone Nova is intentionally not wired to execute protected Guardian repairs.</div></article></section>
+      <section class="page" data-page="catalogue"><article class="card"><div class="eyebrow">DATA INTELLIGENCE</div><h2>Catalogue Agent</h2><p>Next phase: device discovery, duplicate detection, specification validation, missing-variant detection and controlled import proposals.</p></article></section>
+      <section class="page" data-page="knowledge"><article class="card"><div class="eyebrow">MEMORY</div><h2>Nova Knowledge</h2><p>Next phase: migrate Nova's explicit knowledge and learning tools behind Nova-specific authentication, separate from Morley Admin UI.</p></article></section>
+      <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
+    </main>
+
+    <footer>© 2026 Morley Buys · Nova AI standalone foundation · Guardian protected</footer>
+  </div>
+  <script src="app.js?v=1"></script>
+</body>
+</html>

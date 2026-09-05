@@ -1,0 +1,9 @@
+{
+  "name": "Nova AI Control Centre",
+  "short_name": "Nova AI",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07110e",
+  "theme_color": "#071814",
+  "description": "Standalone Nova AI intelligence and development control centre for Morley systems."
+}
