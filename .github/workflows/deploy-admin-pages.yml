@@ -9,6 +9,7 @@ on:
       - '*.css'
       - '*.js'
       - 'admin/**'
+      - 'nova/**'
       - 'web-assets/**'
       - 'scripts/release_audit.py'
       - '.github/workflows/deploy-admin-pages.yml'
@@ -44,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js nova/app.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -60,6 +61,7 @@ jobs:
           cp -v ./*.css site/
           cp -v ./*.js site/
           cp -R admin site/admin
+          cp -R nova site/nova
           if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
           touch site/.nojekyll
           test -f site/.nojekyll
@@ -93,6 +95,10 @@ jobs:
           test -s site/admin/user-management-policy.js
           test -s site/admin/styles.css
           test -s site/admin/turnstile.html
+          test -s site/nova/index.html
+          test -s site/nova/app.js
+          test -s site/nova/styles.css
+          test -s site/nova/manifest.webmanifest
           test -s site/web-assets/morley_buys_login_bg_app.mp4
           test "$(stat -c%s site/web-assets/morley_buys_login_bg_app.mp4)" -gt 1000000
 
@@ -234,3 +240,6 @@ jobs:
           ! grep -q "sb.rpc('admin_set_user_role'" "$RUNNER_TEMP/admin-app.js"
           fetch_with_retry "$BASE/admin/styles.css" "$RUNNER_TEMP/admin-styles.css"
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/admin-styles.css"
+          fetch_until_contains "$BASE/nova/" "$RUNNER_TEMP/nova-index.html" 'Nova AI Control Centre'
+          fetch_until_contains "$BASE/nova/app.js" "$RUNNER_TEMP/nova-app.js" "const REPO='beaustwrt248-netizen/Buys-Mock'"
+          node --check "$RUNNER_TEMP/nova-app.js"
