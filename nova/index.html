@@ -74,7 +74,19 @@
           <article class="card"><div class="eyebrow">CATEGORIES</div><h2>Ticket mix</h2><div id="supportCategoryList" class="stack"><div class="empty">Loading category aggregates…</div></div><div class="callout" id="supportResponseCallout">First-response health is loading.</div></article>
         </div>
       </section>
-      <section class="page" data-page="knowledge"><article class="card"><div class="eyebrow">TRUSTED CONTEXT</div><h2>Nova Knowledge</h2><p>Read-only project context loaded from an allow-listed set of documents on the current <code>main</code> branch. These sources inform Nova without granting database, Admin, or production write access.</p><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article></section>
+      <section class="page" data-page="knowledge">
+        <div class="card"><div class="eyebrow">TRUSTED CONTEXT & MEMORY HEALTH</div><h2>Nova Knowledge</h2><p>Trusted current-main project documents are kept separate from Nova's non-authoritative reference memory and learned experiences. Memory can inform recommendations but cannot override live source-of-truth data or protected controls.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Reference items</span><strong id="memoryKnowledge">—</strong><small>non-authoritative context</small></article>
+          <article class="card metric"><span>Learning experiences</span><strong id="memoryLearning">—</strong><small>active learned outcomes</small></article>
+          <article class="card metric"><span>Verified learning</span><strong id="memoryVerified">—</strong><small>verified experiences</small></article>
+          <article class="card metric"><span>Avg confidence</span><strong id="memoryConfidence">—</strong><small>active experience confidence</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">AUTHORITATIVE CONTEXT</div><h2>Trusted project sources</h2></div><span id="memoryChecked" class="tag">LOADING</span></div><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article>
+          <article class="card"><div class="eyebrow">LEARNING COVERAGE</div><h2>Experience domains</h2><div id="memoryDomainList" class="stack"><div class="empty">Loading memory health…</div></div><div class="callout" id="memoryBoundary">Reference memory remains non-authoritative.</div></article>
+        </div>
+      </section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
     </main>
 
