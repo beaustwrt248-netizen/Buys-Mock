@@ -1,0 +1,20 @@
+{
+  "captured_at": "2026-09-06T02:13:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {"device_catalog_id":1009,"brand":"Fitbit","model_name":"Fitbit Sense","verified_model_number":"FB512","evidence":["Google/Fitbit UK PSTI compliance material lists Fitbit Sense as FB512"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1011,"brand":"Fitbit","model_name":"Fitbit Sense 2","verified_model_number":"FB521","evidence":["Google Australia cyber-security compliance statement lists Fitbit Sense 2 as FB521"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1006,"brand":"Fitbit","model_name":"Fitbit Versa","verified_model_number":"FB504","evidence":["Google-hosted Fitbit declaration of conformity lists Fitbit Versa radio-equipment model FB504"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1007,"brand":"Fitbit","model_name":"Fitbit Versa 2","verified_model_number":"FB507","evidence":["Google/Fitbit UK PSTI compliance material lists Fitbit Versa 2 as FB507"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1010,"brand":"Fitbit","model_name":"Fitbit Versa 3","verified_model_number":"FB511","evidence":["Google/Fitbit UK PSTI compliance material lists Fitbit Versa 3 as FB511"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1012,"brand":"Fitbit","model_name":"Fitbit Versa 4","verified_model_number":"FB523","evidence":["Google Australia cyber-security compliance statement lists Fitbit Versa 4 as FB523"],"proposed_action":"review_for_model_number_update"},
+    {"device_catalog_id":1008,"brand":"Fitbit","model_name":"Fitbit Versa Lite","verified_model_number":"FB415","evidence":["Google-hosted Fitbit declaration of conformity lists Fitbit Versa Lite radio-equipment model FB415"],"proposed_action":"review_for_model_number_update"}
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Re-query each device row immediately before any future authorized production update.",
+    "Abort on row drift, an existing conflicting model_number, or identity mismatch."
+  ]
+}
