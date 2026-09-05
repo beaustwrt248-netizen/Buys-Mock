@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
@@ -70,6 +72,39 @@ private object DeviceCataloguePhotoLoader {
         }.getOrNull()
     }
 
+    private fun decodeHtml(value: String): String = value
+        .replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+
+    private fun imageFromJsonLd(html: String): String? {
+        val scripts = Regex(
+            """<script[^>]+type=[\"']application/ld\+json[\"'][^>]*>(.*?)</script>""",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+        ).findAll(html)
+        scripts.forEach { match ->
+            runCatching {
+                val raw = match.groupValues[1].trim()
+                val root: Any = if (raw.startsWith("[")) JSONArray(raw) else JSONObject(raw)
+                fun findImage(value: Any?): String? = when (value) {
+                    is JSONObject -> {
+                        val image = value.opt("image")
+                        when (image) {
+                            is String -> image.takeIf { it.isNotBlank() }
+                            is JSONObject -> image.optString("url").takeIf { it.isNotBlank() }
+                            is JSONArray -> (0 until image.length()).firstNotNullOfOrNull { findImage(image.opt(it)) }
+                            else -> null
+                        } ?: value.keys().asSequence().firstNotNullOfOrNull { key -> findImage(value.opt(key)) }
+                    }
+                    is JSONArray -> (0 until value.length()).firstNotNullOfOrNull { findImage(value.opt(it)) }
+                    else -> null
+                }
+                findImage(root)
+            }.getOrNull()?.let { return it }
+        }
+        return null
+    }
+
     private fun resolveProductImage(pageUrl: String): String? {
         val connection = (URL(pageUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = 8_000
@@ -83,14 +118,17 @@ private object DeviceCataloguePhotoLoader {
             if (contentType.startsWith("image/")) return pageUrl
             val html = connection.inputStream.bufferedReader().use { it.readText() }
             val candidates = listOf(
-                Regex("""<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
-                Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+property=[\"']og:image(?::secure_url)?[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image(?::secure_url)?[\"']""", RegexOption.IGNORE_CASE),
                 Regex("""<meta[^>]+name=[\"']twitter:image(?::src)?[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
                 Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']twitter:image(?::src)?[\"']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+itemprop=[\"']image[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+itemprop=[\"']image[\"']""", RegexOption.IGNORE_CASE),
+                Regex("""<link[^>]+rel=[\"']image_src[\"'][^>]+href=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
             )
-            candidates.firstNotNullOfOrNull { regex -> regex.find(html)?.groupValues?.getOrNull(1) }
-                ?.replace("&amp;", "&")
-                ?.let { raw -> URL(URL(pageUrl), raw).toString() }
+            val raw = candidates.firstNotNullOfOrNull { regex -> regex.find(html)?.groupValues?.getOrNull(1) }
+                ?: imageFromJsonLd(html)
+            raw?.let(::decodeHtml)?.let { URL(URL(pageUrl), it).toString() }
         } finally {
             connection.disconnect()
         }
