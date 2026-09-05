@@ -22,15 +22,22 @@ import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
 private object DeviceCataloguePhotoLoader {
+    private const val FAILURE_RETRY_MS = 60_000L
     private val imageCache = ConcurrentHashMap<String, ImageBitmap>()
-    private val failed = ConcurrentHashMap.newKeySet<String>()
+    private val failedAt = ConcurrentHashMap<String, Long>()
 
     fun cached(referenceUrl: String): ImageBitmap? = imageCache[referenceUrl]
-    fun hasFailed(referenceUrl: String): Boolean = referenceUrl in failed
+
+    fun hasRecentFailure(referenceUrl: String, nowMs: Long = System.currentTimeMillis()): Boolean {
+        val failureTime = failedAt[referenceUrl] ?: return false
+        if (nowMs - failureTime < FAILURE_RETRY_MS) return true
+        failedAt.remove(referenceUrl, failureTime)
+        return false
+    }
 
     suspend fun load(referenceUrl: String): ImageBitmap? = withContext(Dispatchers.IO) {
         imageCache[referenceUrl]?.let { return@withContext it }
-        if (referenceUrl in failed) return@withContext null
+        if (hasRecentFailure(referenceUrl)) return@withContext null
 
         runCatching {
             val imageUrl = DeviceImageResolver.directImageUrl(referenceUrl)
@@ -55,9 +62,12 @@ private object DeviceCataloguePhotoLoader {
             } finally {
                 imageConnection.disconnect()
             }
-        }.onSuccess { bitmap -> imageCache[referenceUrl] = bitmap }
-            .onFailure { failed += referenceUrl }
-            .getOrNull()
+        }.onSuccess { bitmap ->
+            imageCache[referenceUrl] = bitmap
+            failedAt.remove(referenceUrl)
+        }.onFailure {
+            failedAt[referenceUrl] = System.currentTimeMillis()
+        }.getOrNull()
     }
 
     private fun resolveProductImage(pageUrl: String): String? {
@@ -76,7 +86,7 @@ private object DeviceCataloguePhotoLoader {
                 Regex("""<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
                 Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']""", RegexOption.IGNORE_CASE),
                 Regex("""<meta[^>]+name=[\"']twitter:image(?::src)?[\"'][^>]+content=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
-                Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']twitter:image(?::src)?[\"']""", RegexOption.IGNORE_CASE)
+                Regex("""<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']twitter:image(?::src)?[\"']""", RegexOption.IGNORE_CASE),
             )
             candidates.firstNotNullOfOrNull { regex -> regex.find(html)?.groupValues?.getOrNull(1) }
                 ?.replace("&amp;", "&")
@@ -97,15 +107,12 @@ fun DeviceCataloguePhoto(
 ) {
     val reference = remember(imageReferenceUrl) { imageReferenceUrl?.trim()?.takeIf { it.isNotBlank() } }
     var bitmap by remember(reference) { mutableStateOf(reference?.let(DeviceCataloguePhotoLoader::cached)) }
-    var failed by remember(reference) { mutableStateOf(reference?.let(DeviceCataloguePhotoLoader::hasFailed) ?: true) }
 
     LaunchedEffect(reference) {
         if (reference == null) {
             bitmap = null
-            failed = true
-        } else if (bitmap == null && !failed) {
+        } else if (bitmap == null && !DeviceCataloguePhotoLoader.hasRecentFailure(reference)) {
             bitmap = DeviceCataloguePhotoLoader.load(reference)
-            failed = bitmap == null
         }
     }
 
