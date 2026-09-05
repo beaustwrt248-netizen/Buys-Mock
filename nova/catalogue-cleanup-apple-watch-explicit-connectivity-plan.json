@@ -1,0 +1,38 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidates": [
+    {
+      "candidate_id": 1141,
+      "candidate_name": "Series 11 Sb M/L 46mm Cell",
+      "canonical_id": 263,
+      "canonical_name": "Apple Watch Series 11 GPS + Cellular 46mm",
+      "canonical_model_number": "A3337",
+      "canonical_storage_options": ["64GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1145,
+      "candidate_name": "Ultra Series 1 49mm,Gps/Lte",
+      "canonical_id": 303,
+      "canonical_name": "Apple Watch Ultra GPS + Cellular 49mm",
+      "canonical_model_number": "A2684",
+      "canonical_storage_options": ["32GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    }
+  ],
+  "pricing_blockers": [
+    {"candidate_id":1132,"canonical_id":437,"canonical_model_number":"A2375","candidate_pricing_refs":1},
+    {"candidate_id":1133,"canonical_id":438,"canonical_model_number":"A2376","candidate_pricing_refs":1},
+    {"candidate_id":1140,"canonical_id":263,"canonical_model_number":"A3337","candidate_pricing_refs":1},
+    {"candidate_id":1142,"canonical_id":313,"canonical_model_number":"A2478","candidate_pricing_refs":1},
+    {"candidate_id":1144,"canonical_id":281,"canonical_model_number":"A3281","candidate_pricing_refs":1},
+    {"candidate_id":1147,"canonical_id":314,"canonical_model_number":"A2724","candidate_pricing_refs":1}
+  ],
+  "excluded_ambiguous_rows": [1134,1135,1137,1138,1139,1143,1146,1148],
+  "exclusion_reason": "Generic or incomplete retailer names do not uniquely state enough size/connectivity identity for a one-to-one canonical mapping."
+}
