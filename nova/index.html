@@ -25,6 +25,7 @@
       <button data-section="development">Development</button>
       <button data-section="guardian">Guardian</button>
       <button data-section="catalogue">Catalogue</button>
+      <button data-section="support">Support</button>
       <button data-section="knowledge">Knowledge</button>
       <button data-section="activity">Activity</button>
     </nav>
@@ -59,6 +60,19 @@
           <article class="card metric"><span>Model gaps</span><strong id="catalogueModelGaps">—</strong><small>missing model number</small></article>
         </div>
         <article class="card"><div class="section-head"><div><div class="eyebrow">CATEGORY COVERAGE</div><h2>Health by category</h2></div><span id="catalogueChecked" class="tag">LOADING</span></div><div id="catalogueList" class="stack"><div class="empty">Loading aggregate catalogue health…</div></div><div class="callout">Protected pricing is intentionally excluded. Missing wearable storage is not treated as an actionable defect because storage is often not applicable.</div></article>
+      </section>
+      <section class="page" data-page="support">
+        <div class="card"><div class="eyebrow">PRIVACY-SAFE OPERATIONS</div><h2>Support Intelligence</h2><p>Aggregate support health from the protected ticket system. Nova can detect workload and SLA pressure without reading subjects, descriptions, messages, identities, assignees, or diagnostics.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>All tickets</span><strong id="supportTotal">—</strong><small>aggregate history only</small></article>
+          <article class="card metric"><span>Active</span><strong id="supportActive">—</strong><small>open / in progress / waiting</small></article>
+          <article class="card metric"><span>High priority</span><strong id="supportHigh">—</strong><small>active high or urgent</small></article>
+          <article class="card metric"><span>SLA overdue</span><strong id="supportSla">—</strong><small>active tickets past SLA</small></article>
+        </div>
+        <div class="grid-two">
+          <article class="card"><div class="section-head"><div><div class="eyebrow">QUEUE HEALTH</div><h2>Status</h2></div><span id="supportChecked" class="tag">LOADING</span></div><div id="supportStatusList" class="stack"><div class="empty">Loading support health…</div></div></article>
+          <article class="card"><div class="eyebrow">CATEGORIES</div><h2>Ticket mix</h2><div id="supportCategoryList" class="stack"><div class="empty">Loading category aggregates…</div></div><div class="callout" id="supportResponseCallout">First-response health is loading.</div></article>
+        </div>
       </section>
       <section class="page" data-page="knowledge"><article class="card"><div class="eyebrow">TRUSTED CONTEXT</div><h2>Nova Knowledge</h2><p>Read-only project context loaded from an allow-listed set of documents on the current <code>main</code> branch. These sources inform Nova without granting database, Admin, or production write access.</p><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article></section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
