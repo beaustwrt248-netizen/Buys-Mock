@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": "Supabase Nova knowledge/learning aggregate health query",
+  "checked_date": "2026-09-05",
+  "privacy": "aggregate-only; no raw knowledge content, lesson summaries, evidence, user IDs, or source payloads",
+  "knowledge_items": {
+    "total": 4696,
+    "active": 4696,
+    "trust_level": "reference"
+  },
+  "learning_experiences": {
+    "total": 26,
+    "active": 26,
+    "verified": 17,
+    "average_confidence": 0.934,
+    "below_070": 0,
+    "at_least_090": 20
+  },
+  "domains": [
+    {"domain":"guardian","total":26,"verified":17,"average_confidence":0.934}
+  ],
+  "boundary_note": "Reference memory and learned experiences are non-authoritative and cannot override live source-of-truth data, approvals, auth/RLS, pricing controls, secrets, or Guardian safety boundaries."
+}
