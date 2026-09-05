@@ -27,6 +27,7 @@
       <button data-section="catalogue">Catalogue</button>
       <button data-section="support">Support</button>
       <button data-section="knowledge">Knowledge</button>
+      <button data-section="monitoring">Monitoring</button>
       <button data-section="activity">Activity</button>
     </nav>
 
@@ -86,6 +87,16 @@
           <article class="card"><div class="section-head"><div><div class="eyebrow">AUTHORITATIVE CONTEXT</div><h2>Trusted project sources</h2></div><span id="memoryChecked" class="tag">LOADING</span></div><div id="knowledgeList" class="stack"><div class="empty">Loading trusted project context…</div></div></article>
           <article class="card"><div class="eyebrow">LEARNING COVERAGE</div><h2>Experience domains</h2><div id="memoryDomainList" class="stack"><div class="empty">Loading memory health…</div></div><div class="callout" id="memoryBoundary">Reference memory remains non-authoritative.</div></article>
         </div>
+      </section>
+      <section class="page" data-page="monitoring">
+        <div class="card"><div class="eyebrow">LIVE ENGINEERING HEALTH</div><h2>Monitoring</h2><p>Current main-branch workflow health from GitHub Actions. Nova evaluates only the newest run for each workflow, so an old failure cannot incorrectly override a newer successful run.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Tracked workflows</span><strong id="monitorTracked">—</strong><small>latest run per workflow</small></article>
+          <article class="card metric"><span>Healthy</span><strong id="monitorHealthy">—</strong><small>latest run passed</small></article>
+          <article class="card metric"><span>Running</span><strong id="monitorRunning">—</strong><small>currently incomplete</small></article>
+          <article class="card metric"><span>Failed</span><strong id="monitorFailed">—</strong><small>current failures only</small></article>
+        </div>
+        <article class="card"><div class="section-head"><div><div class="eyebrow">LATEST PER WORKFLOW</div><h2>Current checks</h2></div><span id="monitorState" class="tag">LOADING</span></div><div id="monitoringList" class="stack"><div class="empty">Loading current workflow health…</div></div><div class="callout">Historical failures remain available in GitHub, but Nova does not treat them as current blockers after a newer run succeeds.</div></article>
       </section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
     </main>
