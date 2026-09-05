@@ -32,9 +32,30 @@ tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectD
 tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
 tasks.register('verifyPricingNavigation', Exec) { group = 'verification'; description = 'Verify pricing navigation and catalogue contracts without mutating source.'; workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
 tasks.register('fixVideoUiErrors', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'fix_video_ui_errors.py' }
+tasks.register('verifyDeterministicSourcePipeline') {
+    group = 'verification'
+    description = 'Prevent retired build-time source rewriters from returning.'
+    doLast {
+        def retired = ['improve_exact_matching.py', 'secure_pricing_auth.py']
+        retired.each { name ->
+            if (file("${rootProject.projectDir}/${name}").exists()) {
+                throw new GradleException("Retired Android source rewriter returned: ${name}")
+            }
+        }
+        def buildText = file("${projectDir}/build.gradle").getText('UTF-8')
+        ['improveExactMatching', 'securePricingAuth'].each { token ->
+            if (buildText.contains(token)) {
+                throw new GradleException("Retired Android build task returned: ${token}")
+            }
+        }
+        if (!buildText.contains("tasks.register('verifyPricingNavigation'")) {
+            throw new GradleException('Pricing navigation verification must remain a read-only Gradle check task.')
+        }
+    }
+}
 tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('integrateMarketplaceValuation') }; tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }; tasks.named('fixVideoUiErrors') { mustRunAfter tasks.named('applyMorleyBrandPalette') }
 tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('integrateMarketplaceValuation'); dependsOn tasks.named('integrateLaptopCatalog'); dependsOn tasks.named('applyMorleyBrandPalette'); dependsOn tasks.named('fixVideoUiErrors') }
-tasks.matching { it.name == 'check' }.configureEach { dependsOn tasks.named('verifyPricingNavigation') }
+tasks.matching { it.name == 'check' }.configureEach { dependsOn tasks.named('verifyPricingNavigation'); dependsOn tasks.named('verifyDeterministicSourcePipeline') }
 afterEvaluate { tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') } }
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:34.18.0'); implementation 'com.google.firebase:firebase-messaging'; implementation 'com.google.android.gms:play-services-auth:21.3.0'; implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'; implementation 'com.google.android.play:integrity:1.4.0'; implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; implementation 'androidx.work:work-runtime-ktx:2.10.1'; implementation 'androidx.activity:activity-compose:1.10.1'; implementation platform('androidx.compose:compose-bom:2026.08.00'); implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material:material-icons-extended'; debugImplementation 'androidx.compose.ui:ui-tooling'; testImplementation 'junit:junit:4.13.2'; testImplementation 'org.json:json:20240303'
