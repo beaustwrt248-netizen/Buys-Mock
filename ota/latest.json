@@ -1,7 +1,7 @@
 {
-  "versionCode": 109,
-  "versionName": "2.15.65",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.65/B-and-L-Morley-2.15.65.apk",
-  "sha256": "35fae59963b28859c65f54223641a744de80593b813fe6e1e71d253b5bd563fb",
-  "notes": "Merge pull request #776 from beaustwrt248-netizen/catalogue-browser-performance"
+  "versionCode": 110,
+  "versionName": "2.15.66",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.66/B-and-L-Morley-2.15.66.apk",
+  "sha256": "483e7f7bd155e2d7f9369d668df8f21e41371d1711cf92d8caa59a61bb140bb4",
+  "notes": "Merge pull request #782 from beaustwrt248-netizen/fix-catalogue-pagination-wearables"
 }
