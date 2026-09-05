@@ -5,6 +5,8 @@ const app = fs.readFileSync('nova/app.js', 'utf8');
 const permissions = fs.readFileSync('nova/permissions.js', 'utf8');
 
 assert.match(app, /permissions\.js\?v=1/, 'Nova core must load the isolated permissions view');
+assert.match(app, /let refreshVersion=0;/, 'permissions branch must preserve current Nova refresh freshness protection');
+assert.match(app, /const requestVersion=\+\+refreshVersion/, 'permissions branch must preserve version-bound refreshes');
 assert.match(permissions, /data-section=\"permissions\"/, 'permissions view must add a navigation entry');
 assert.match(permissions, /data-page=\"permissions\"/, 'permissions view must add an isolated page');
 assert.match(permissions, /Production writes[\s\S]*?DISABLED/, 'production write authority must be visibly disabled');
