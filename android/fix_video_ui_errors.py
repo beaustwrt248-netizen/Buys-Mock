@@ -63,11 +63,11 @@ replace(history, {
     'label={Text("Seller asking price")}': 'label={Text("Seller Ask")}',
 })
 
+# Stale update filtering is now authoritative checked-in Kotlin. Keep the
+# build-time migration from silently restoring or depending on that behaviour.
 store = root / 'NotificationInboxStore.kt'
-text = store.read_text(encoding='utf-8')
-old = '''        }.getOrDefault(emptyList())\n    }\n\n    fun unreadCount(context: Context): Int = items(context).count { !it.read }'''
-new = '''        }.getOrDefault(emptyList()).filterNot { item ->\n            item.type.equals("update", ignoreCase = true) &&\n                item.versionCode > 0 &&\n                item.versionCode <= BuildConfig.VERSION_CODE\n        }\n    }\n\n    fun unreadCount(context: Context): Int = items(context).count { !it.read }'''
-if old in text:
-    store.write_text(text.replace(old, new), encoding='utf-8')
+store_text = store.read_text(encoding='utf-8')
+if 'item.versionCode <= BuildConfig.VERSION_CODE' not in store_text:
+    raise SystemExit('NotificationInboxStore.kt is missing authoritative stale-update filtering')
 
-print('Applied video-review UI, GP contrast, Smart Workspace Quick Deal spacing, Test & Buy, Valuation History, Notification Centre and stale-update corrections')
+print('Applied video-review UI, GP contrast, Smart Workspace Quick Deal spacing, Test & Buy and Valuation History corrections; verified checked-in stale-update filtering')
