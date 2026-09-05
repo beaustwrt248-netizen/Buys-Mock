@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
     id 'com.google.gms.google-services'
 }
@@ -21,7 +20,7 @@ android {
     def releaseStoreFile = System.getenv('B_AND_L_KEYSTORE_PATH'); def releaseStorePassword = System.getenv('B_AND_L_STORE_PASSWORD'); def releaseKeyAlias = System.getenv('B_AND_L_KEY_ALIAS'); def releaseKeyPassword = releaseStorePassword; def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias
     signingConfigs { if (hasReleaseSigning) { release { storeFile file(releaseStoreFile); storePassword releaseStorePassword; keyAlias releaseKeyAlias; keyPassword releaseKeyPassword } } }
     buildFeatures { compose true; buildConfig true }
-    kotlinOptions { jvmTarget = '17' }
+    // AGP 9 built-in Kotlin inherits JVM target from compileOptions.targetCompatibility.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     lint { disable 'NullSafeMutableLiveData' }
     buildTypes { release { minifyEnabled false; shrinkResources false; if (hasReleaseSigning) { signingConfig signingConfigs.release } } }
