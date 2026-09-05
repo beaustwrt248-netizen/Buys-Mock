@@ -28,6 +28,7 @@
       <button data-section="support">Support</button>
       <button data-section="knowledge">Knowledge</button>
       <button data-section="monitoring">Monitoring</button>
+      <button data-section="releases">Releases</button>
       <button data-section="activity">Activity</button>
     </nav>
 
@@ -98,11 +99,22 @@
         </div>
         <article class="card"><div class="section-head"><div><div class="eyebrow">LATEST PER WORKFLOW</div><h2>Current checks</h2></div><span id="monitorState" class="tag">LOADING</span></div><div id="monitoringList" class="stack"><div class="empty">Loading current workflow health…</div></div><div class="callout">Historical failures remain available in GitHub, but Nova does not treat them as current blockers after a newer run succeeds.</div></article>
       </section>
+      <section class="page" data-page="releases">
+        <div class="card"><div class="section-head"><div><div class="eyebrow">ADVISORY ONLY</div><h2>Deployments & Release Readiness</h2></div><span id="releaseOverall" class="tag">LOADING</span></div><p>Nova combines current deployment, quality, security, parity and email-contract evidence into a release-readiness signal. This view never deploys, signs, approves or bypasses a protected release step.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Production Pages</span><strong id="releaseDeploy">—</strong><small>latest deployment</small></article>
+          <article class="card metric"><span>Quality</span><strong id="releaseQuality">—</strong><small>latest quality gate</small></article>
+          <article class="card metric"><span>Security</span><strong id="releaseSecurity">—</strong><small>latest security audit</small></article>
+          <article class="card metric"><span>Parity</span><strong id="releaseParity">—</strong><small>latest parity gate</small></article>
+        </div>
+        <article class="card"><div class="eyebrow">RELEASE EVIDENCE</div><h2>Current readiness inputs</h2><div id="releaseEvidence" class="stack"><div class="empty">Loading release evidence…</div></div><div class="callout" id="releaseSummary">Readiness is loading. Nova has no release authority.</div></article>
+      </section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
     </main>
 
     <footer>© 2026 Morley Buys · Nova AI standalone foundation · Guardian protected</footer>
   </div>
   <script src="app.js?v=1"></script>
+  <script src="release-readiness.js?v=1"></script>
 </body>
 </html>
