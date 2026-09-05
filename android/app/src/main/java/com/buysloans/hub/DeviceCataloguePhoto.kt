@@ -107,15 +107,12 @@ fun DeviceCataloguePhoto(
 ) {
     val reference = remember(imageReferenceUrl) { imageReferenceUrl?.trim()?.takeIf { it.isNotBlank() } }
     var bitmap by remember(reference) { mutableStateOf(reference?.let(DeviceCataloguePhotoLoader::cached)) }
-    var failed by remember(reference) { mutableStateOf(reference?.let(DeviceCataloguePhotoLoader::hasRecentFailure) ?: true) }
 
     LaunchedEffect(reference) {
         if (reference == null) {
             bitmap = null
-            failed = true
         } else if (bitmap == null && !DeviceCataloguePhotoLoader.hasRecentFailure(reference)) {
             bitmap = DeviceCataloguePhotoLoader.load(reference)
-            failed = bitmap == null
         }
     }
 
