@@ -17,12 +17,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private enum class PricingCategory { LAPTOPS, DESKTOPS, MOBILE_PHONES, GAMING_CONSOLES }
+private enum class PricingCategory {
+    ALL_DEVICES, LAPTOPS, DESKTOPS, MOBILE_PHONES, TABLETS, WEARABLES, GAMING_CONSOLES
+}
 
 @Composable
 fun CategoriesPricingScreen() {
@@ -31,9 +34,12 @@ fun CategoriesPricingScreen() {
     if (selected == null) {
         Screen("Categories") {
             Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 15.sp)
+            CategoryCard(null, "All Device Catalogue", "Browse every live device with images", "ALL") { selected = PricingCategory.ALL_DEVICES }
+            CategoryCard(PricingVisual.PHONE, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
+            CategoryCard(null, "Tablets", "Browse iPad, Galaxy Tab, Surface & more", "TAB") { selected = PricingCategory.TABLETS }
+            CategoryCard(null, "Smart Watches", "Browse Apple Watch, Galaxy Watch & wearables", "WATCH") { selected = PricingCategory.WEARABLES }
             CategoryCard(PricingVisual.LAPTOP, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
             CategoryCard(PricingVisual.DESKTOP, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
-            CategoryCard(PricingVisual.PHONE, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
             CategoryCard(PricingVisual.CONSOLE, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
         }
     } else {
@@ -46,6 +52,9 @@ fun CategoriesPricingScreen() {
                 ) { Text("‹  Categories", color = MorleyTextPrimary, fontWeight = FontWeight.Bold) }
             }
             when (selected) {
+                PricingCategory.ALL_DEVICES -> LiveDeviceCatalogueBrowser()
+                PricingCategory.TABLETS -> LiveDeviceCatalogueBrowser("tablet")
+                PricingCategory.WEARABLES -> LiveDeviceCatalogueBrowser("wearable")
                 PricingCategory.LAPTOPS -> LaptopGuidedScreen()
                 PricingCategory.DESKTOPS -> Desktop()
                 PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()
@@ -58,9 +67,10 @@ fun CategoriesPricingScreen() {
 
 @Composable
 private fun CategoryCard(
-    visual: PricingVisual,
+    visual: PricingVisual?,
     title: String,
     subtitle: String,
+    badge: String? = null,
     highlighted: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -73,9 +83,20 @@ private fun CategoryCard(
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            PricingCategoryVisual(visual, Modifier.size(54.dp))
+            if (visual != null) {
+                PricingCategoryVisual(visual, Modifier.size(54.dp))
+            } else {
+                Text(
+                    badge.orEmpty(),
+                    modifier = Modifier.size(54.dp),
+                    color = MorleyAccent,
+                    fontSize = if (badge == "WATCH") 10.sp else 12.sp,
+                    fontWeight = FontWeight.Black,
+                )
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text(subtitle, color = MorleyTextSecondary, fontSize = 13.sp)

@@ -6,6 +6,7 @@ data class MobilePhoneDeviceEntry(
     val modelNumber: String?,
     val storage: String,
     val priceSheetValue: Double?,
+    val imageReferenceUrl: String?,
 ) {
     val hasPrice: Boolean
         get() = priceSheetValue != null || LiveDevicePricing.find(brand, model, modelNumber, storage) != null
@@ -17,19 +18,16 @@ data class MobilePhoneSearchResult(
     val modelNumber: String?,
     val storages: List<String>,
     val hasPricedVariant: Boolean,
+    val imageReferenceUrl: String?,
 )
 
 object MobilePhoneDeviceCatalog {
-    private fun key(brand: String, model: String, storage: String) =
-        listOf(
-            brand.trim().lowercase(),
-            model.trim().lowercase(),
-            storage.replace(" ", "").lowercase(),
-        ).joinToString("|")
+    private fun key(brand: String, model: String, storage: String) = listOf(
+        brand.trim().lowercase(), model.trim().lowercase(), storage.replace(" ", "").lowercase(),
+    ).joinToString("|")
 
     val entries: List<MobilePhoneDeviceEntry>
-        get() = LiveDevicePricing.catalogue()
-            .asSequence()
+        get() = LiveDevicePricing.catalogue().asSequence()
             .filter { it.category == "mobile_phone" }
             .flatMap { device ->
                 device.storageOptions.asSequence().map { storage ->
@@ -38,12 +36,8 @@ object MobilePhoneDeviceCatalog {
                         model = device.model,
                         modelNumber = device.modelNumber,
                         storage = storage,
-                        priceSheetValue = LiveDevicePricing.find(
-                            device.brand,
-                            device.model,
-                            device.modelNumber,
-                            storage,
-                        )?.priceAud,
+                        priceSheetValue = LiveDevicePricing.find(device.brand, device.model, device.modelNumber, storage)?.priceAud,
+                        imageReferenceUrl = device.imageReferenceUrl,
                     )
                 }
             }
@@ -63,20 +57,12 @@ object MobilePhoneDeviceCatalog {
 
     private fun generation(model: String): Int {
         val patterns = listOf(
-            Regex("(?i)iphone\\s+(\\d+)"),
-            Regex("(?i)galaxy\\s+s(\\d+)"),
-            Regex("(?i)galaxy\\s+z\\s+(?:fold|flip)\\s*(\\d+)"),
-            Regex("(?i)galaxy\\s+a(\\d+)"),
-            Regex("(?i)pixel\\s+(\\d+)"),
-            Regex("(?i)oneplus\\s+(\\d+)"),
-            Regex("(?i)find\\s+x(\\d+)"),
-            Regex("(?i)reno\\s*(\\d+)"),
-            Regex("(?i)xiaomi\\s+(\\d+)"),
-            Regex("(?i)fairphone\\s+(\\d+)"),
+            Regex("(?i)iphone\\s+(\\d+)"), Regex("(?i)galaxy\\s+s(\\d+)"), Regex("(?i)galaxy\\s+z\\s+(?:fold|flip)\\s*(\\d+)"),
+            Regex("(?i)galaxy\\s+a(\\d+)"), Regex("(?i)pixel\\s+(\\d+)"), Regex("(?i)oneplus\\s+(\\d+)"), Regex("(?i)find\\s+x(\\d+)"),
+            Regex("(?i)reno\\s*(\\d+)"), Regex("(?i)xiaomi\\s+(\\d+)"), Regex("(?i)fairphone\\s+(\\d+)"),
         )
-        return patterns.firstNotNullOfOrNull {
-            it.find(model)?.groupValues?.getOrNull(1)?.toIntOrNull()
-        } ?: Regex("\\d+").find(model)?.value?.toIntOrNull() ?: 0
+        return patterns.firstNotNullOfOrNull { it.find(model)?.groupValues?.getOrNull(1)?.toIntOrNull() }
+            ?: Regex("\\d+").find(model)?.value?.toIntOrNull() ?: 0
     }
 
     private fun variantRank(model: String): Int {
@@ -93,26 +79,17 @@ object MobilePhoneDeviceCatalog {
         }
     }
 
-    private val modelComparator = compareByDescending<String> { generation(it) }
-        .thenBy { variantRank(it) }
-        .thenBy { it.lowercase() }
+    private val modelComparator = compareByDescending<String> { generation(it) }.thenBy { variantRank(it) }.thenBy { it.lowercase() }
 
-    fun models(brand: String) = entries.asSequence()
-        .filter { it.brand == brand }
-        .map { it.model }
-        .distinct()
-        .toList()
-        .sortedWith(modelComparator)
-
-    fun variants(brand: String, model: String) =
-        entries.filter { it.brand == brand && it.model == model }
+    fun models(brand: String) = entries.asSequence().filter { it.brand == brand }.map { it.model }.distinct().toList().sortedWith(modelComparator)
+    fun variants(brand: String, model: String) = entries.filter { it.brand == brand && it.model == model }
+    fun imageReference(brand: String, model: String): String? = variants(brand, model).firstNotNullOfOrNull { it.imageReferenceUrl }
 
     fun modelMatches(brand: String, model: String, query: String): Boolean {
         if (query.isBlank()) return true
         if (brand.contains(query, true) || model.contains(query, true)) return true
         return variants(brand, model).any {
-            it.modelNumber?.contains(query, true) == true ||
-                it.storage.contains(query, true) ||
+            it.modelNumber?.contains(query, true) == true || it.storage.contains(query, true) ||
                 it.storage.replace(" ", "").contains(query.replace(" ", ""), true)
         }
     }
@@ -131,21 +108,17 @@ object MobilePhoneDeviceCatalog {
                     modelNumber = variants.mapNotNull { it.modelNumber }.firstOrNull(),
                     storages = variants.map { it.storage }.distinct(),
                     hasPricedVariant = variants.any { it.hasPrice },
+                    imageReferenceUrl = variants.firstNotNullOfOrNull { it.imageReferenceUrl },
                 )
             }
-            .take(limit)
-            .toList()
+            .take(limit).toList()
     }
 
     fun pricedEntry(entry: MobilePhoneDeviceEntry): MobilePhonePriceEntry? {
         val live = LiveDevicePricing.find(entry.brand, entry.model, entry.modelNumber, entry.storage)
-        if (live != null) {
-            return MobilePhonePriceEntry(entry.brand, entry.model, entry.storage, live.priceAud)
-        }
+        if (live != null) return MobilePhonePriceEntry(entry.brand, entry.model, entry.storage, live.priceAud)
         return MobilePhonePricingCatalog.entries.firstOrNull {
-            it.brand == entry.brand &&
-                it.model == entry.model &&
-                key(it.brand, it.model, it.storage) == key(entry.brand, entry.model, entry.storage)
+            it.brand == entry.brand && it.model == entry.model && key(it.brand, it.model, it.storage) == key(entry.brand, entry.model, entry.storage)
         }
     }
 }
