@@ -11,7 +11,6 @@ function intentFor(text){const x=normalise(text);if(!x)return null;
  if(/\b(your performance|performance like|how (are|is) (we|morley|business) doing|business performance|overall performance|sales performance|how are sales|how('?s| is) sales|sell[- ]?through|sales results|profitability|profit margin|profits?)\b/.test(x))return'performance';
  if(/\b(inventory health|inventory status|stock health|stock levels?|what('?s| is) in stock|inventory performance)\b/.test(x))return'inventory';
  return null}
-async function count(table,filter){let q=sb.from(table).select('id',{count:'exact',head:true});if(filter)q=filter(q);const r=await q;if(r.error)throw r.error;return r.count||0}
 async function performanceSummary(){
  const [sales,inventory,valuations,incidents]=await Promise.all([
   sb.from('sales_records').select('id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at').order('sold_at',{ascending:false}).limit(100),
@@ -20,11 +19,11 @@ async function performanceSummary(){
   sb.from('guardian_incidents').select('id,state,risk_level,requires_approval,updated_at').order('updated_at',{ascending:false}).limit(100)
  ]);
  for(const r of [sales,inventory,valuations,incidents])if(r.error)throw r.error;
- const s=sales.data||[], inv=inventory.data||[], vals=valuations.data||[], gi=incidents.data||[];
- const profits=s.map(x=>Number(x.realised_profit)).filter(Number.isFinite), totalProfit=profits.reduce((a,b)=>a+b,0), avgProfit=profits.length?totalProfit/profits.length:0;
- const positive=profits.filter(x=>x>0).length, winRate=profits.length?positive/profits.length*100:0;
+ const s=sales.data||[],inv=inventory.data||[],vals=valuations.data||[],gi=incidents.data||[];
+ const profits=s.map(x=>Number(x.realised_profit)).filter(Number.isFinite),totalProfit=profits.reduce((a,b)=>a+b,0),avgProfit=profits.length?totalProfit/profits.length:0;
+ const positive=profits.filter(x=>x>0).length,winRate=profits.length?positive/profits.length*100:0;
  const available=inv.filter(x=>!['sold','closed','disposed'].includes(String(x.status||'').toLowerCase())).length;
- const realised=vals.filter(x=>x.expected_profit!=null&&x.actual_profit!=null), mae=realised.length?realised.reduce((n,x)=>n+Math.abs(Number(x.actual_profit)-Number(x.expected_profit)),0)/realised.length:null;
+ const realised=vals.filter(x=>x.expected_profit!=null&&x.actual_profit!=null),mae=realised.length?realised.reduce((n,x)=>n+Math.abs(Number(x.actual_profit)-Number(x.expected_profit)),0)/realised.length:null;
  const openGuardian=gi.filter(x=>!['resolved','ignored','closed'].includes(String(x.state||'').toLowerCase()));
  const approvals=openGuardian.filter(x=>x.requires_approval).length;
  return `Here’s Morley’s current performance from the live records I can read:\n\nSales: ${s.length} recent realised sale${s.length===1?'':'s'} • total realised profit ${money(totalProfit)} • average profit ${money(avgProfit)} • profitable-sale rate ${profits.length?winRate.toFixed(0)+'%':'not enough data'}.\nInventory: ${available} active/available item${available===1?'':'s'} across ${inv.length} recent inventory records.\nValuations: ${realised.length} realised forecast outcome${realised.length===1?'':'s'}${mae==null?'':` • average absolute profit forecast error ${money(mae)}`}.\nGuardian: ${openGuardian.length} open signal${openGuardian.length===1?'':'s'} • ${approvals} requiring approval.\n\nI can drill into sales, profit, inventory, valuations or Guardian if you want a specific breakdown.`
