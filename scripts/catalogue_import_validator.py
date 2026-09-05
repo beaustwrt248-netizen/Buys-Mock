@@ -24,6 +24,8 @@ CANONICAL_CATEGORIES = {
     "wearable",
 }
 
+APPLE_RETAIL_PART_NUMBER = re.compile(r"^[A-Z0-9]{5,}[A-Z]/A$", re.I)
+
 # Condition, stock-listing, retail-part and transaction language must never become a
 # canonical model name. Apple retail part numbers such as MXVX3X/A or MMYC3J/A identify
 # a saleable SKU/region variant, not the canonical hardware model identity.
@@ -88,6 +90,8 @@ def validate_row(row: dict[str, Any]) -> list[ValidationIssue]:
 
     if not model_number:
         issues.append(ValidationIssue("missing_model_number", "model_number", "Model number requires verification before the row is considered canonical-complete."))
+    elif brand.casefold() == "apple" and APPLE_RETAIL_PART_NUMBER.fullmatch(model_number):
+        issues.append(ValidationIssue("retail_part_number_in_model_number", "model_number", "Apple retail part/SKU numbers do not establish canonical hardware model identity; verify the device A-number instead."))
     if not source_url:
         issues.append(ValidationIssue("missing_source_url", "source_url", "Canonical identity metadata requires a source URL."))
 
