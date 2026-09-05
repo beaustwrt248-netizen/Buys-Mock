@@ -1,7 +1,7 @@
 {
-  "versionCode": 111,
-  "versionName": "2.15.67",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.67/B-and-L-Morley-2.15.67.apk",
-  "sha256": "603b17edc7b0d487d42fb7635d44b68099857673d2c998232cd1543cdab14207",
-  "notes": "Remove pricing auth source rewrite from Android builds (#787)"
+  "versionCode": 112,
+  "versionName": "2.15.68",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.68/B-and-L-Morley-2.15.68.apk",
+  "sha256": "33100ce4b5254a508283447451a16d8e0cf671c7e15b1b1c1474449f511c97fc",
+  "notes": "Merge pull request #792 from beaustwrt248-netizen/fix-web-mobile-catalogue-and-unified-pricing"
 }
