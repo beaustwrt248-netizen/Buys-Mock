@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source": "read-only Supabase device_catalog audit",
+  "checked_at": "2026-09-06T01:02:00+08:00",
+  "change_type": "production_data_cleanup_candidate",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "scope": "active Apple mobile_phone rows whose model_name ends in listing-specific battery-health percentage text and which have a one-to-one active canonical match",
+  "candidate_count": 9,
+  "candidates": [
+    {"candidate_id":1049,"candidate_model_name":"iPhone 11 79%","candidate_model_number":null,"candidate_storage":["128GB"],"canonical_id":537,"canonical_model_name":"iPhone 11","canonical_model_number":"A2221","canonical_storage":["64GB","128GB","256GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1050,"candidate_model_name":"iPhone 11 Pro 75%","candidate_model_number":null,"candidate_storage":["64GB"],"canonical_id":538,"canonical_model_name":"iPhone 11 Pro","canonical_model_number":"A2215","canonical_storage":["64GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1051,"candidate_model_name":"iPhone 12 Pro 74%","candidate_model_number":null,"candidate_storage":["128GB"],"canonical_id":543,"canonical_model_name":"iPhone 12 Pro","canonical_model_number":"A2407","canonical_storage":["128GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1054,"candidate_model_name":"iPhone 13 Pro Max - - 77%","candidate_model_number":null,"candidate_storage":["256GB"],"canonical_id":548,"canonical_model_name":"iPhone 13 Pro Max","canonical_model_number":"A2643","canonical_storage":["128GB","256GB","512GB","1TB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1058,"candidate_model_name":"iPhone 15 85%","candidate_model_number":null,"candidate_storage":[],"canonical_id":523,"canonical_model_name":"iPhone 15","canonical_model_number":"A3090","canonical_storage":["128GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1059,"candidate_model_name":"iPhone 15 Plus - - 90%","candidate_model_number":null,"candidate_storage":["128GB"],"canonical_id":525,"canonical_model_name":"iPhone 15 Plus","canonical_model_number":"A3094","canonical_storage":["128GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1060,"candidate_model_name":"iPhone 16 Plus - - 100%","candidate_model_number":null,"candidate_storage":["128GB"],"canonical_id":550,"canonical_model_name":"iPhone 16 Plus","canonical_model_number":"A3290","canonical_storage":["128GB","256GB","512GB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1062,"candidate_model_name":"iPhone 16 Pro - - 93%","candidate_model_number":null,"candidate_storage":["256GB"],"canonical_id":35,"canonical_model_name":"iPhone 16 Pro","canonical_model_number":"A3293","canonical_storage":["128GB","256GB","512GB","1TB"],"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1063,"candidate_model_name":"iPhone 16 Pro Max / Batt Health 100%","candidate_model_number":null,"candidate_storage":["256GB"],"canonical_id":551,"canonical_model_name":"iPhone 16 Pro Max","canonical_model_number":"A3296","canonical_storage":["256GB","512GB","1TB"],"proposed_action":"deactivate_duplicate_candidate"}
+  ],
+  "safety_note": "Evidence only. Do not execute deactivation, deletion, merge, rewrite, pricing change, auth/RLS change, or any production mutation without explicit human authorization for the exact reviewed candidate set. Re-query the nine candidate IDs and canonical targets immediately before any authorized mutation to detect drift."
+}
