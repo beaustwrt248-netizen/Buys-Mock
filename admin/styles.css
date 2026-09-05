@@ -10,3 +10,26 @@
 #pricingList .pricing-row strong{color:#173a2f!important;font-weight:900!important}
 #pricingList .pricing-row>div:last-child{flex:0 0 auto!important;text-align:right!important}
 @media(max-width:900px){#pricingList{padding-bottom:118px!important}#pricingList .pricing-row{align-items:flex-start!important;flex-direction:column!important;gap:10px!important;padding:16px!important}#pricingList .pricing-row>div:last-child{width:100%!important;text-align:left!important;border-top:1px solid #e0e9e4!important;padding-top:10px!important}#pricingList .pricing-row .row-title{font-size:17px!important}}
+
+/* 2026-09-05 mobile Admin stability: pricing must not move the viewport nav and support rows must not collapse. */
+@media(max-width:900px){
+html,body{width:100%;max-width:100%;overflow-x:clip!important}
+body.admin-v2 .shell,body.admin-v2 #appView,body.admin-v2 .panel,body.admin-v2 .card,body.admin-v2 .grid,body.admin-v2 .toolbar{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+body.admin-v2 .panel,body.admin-v2 #tab-pricing,body.admin-v2 #tab-tickets{width:100%!important;overflow-x:hidden!important}
+body.admin-v2 input,body.admin-v2 textarea,body.admin-v2 select,body.admin-v2 button{max-width:100%!important;box-sizing:border-box!important}
+body.admin-v2 .tabs{position:fixed!important;left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-width:calc(100vw - 20px)!important;margin:0!important;transform:none!important;box-sizing:border-box!important;overflow:hidden!important;contain:layout paint!important}
+body.admin-v2 .tabs .tab,body.admin-v2 .tabs>a{min-width:0!important;width:100%!important;max-width:100%!important;margin:0!important;transform:none!important}
+body.admin-v2 #tab-pricing>*,body.admin-v2 #tab-pricing .card>*,body.admin-v2 #tab-pricing .grid>*{min-width:0!important;max-width:100%!important}
+body.admin-v2 #tab-pricing .grid{width:100%!important;grid-template-columns:minmax(0,1fr)!important}
+body.admin-v2 #tab-pricing input,body.admin-v2 #tab-pricing select,body.admin-v2 #tab-pricing textarea,body.admin-v2 #tab-pricing button{width:100%!important;min-width:0!important}
+body.admin-v2 #pricingList,body.admin-v2 #pricingList .pricing-row,body.admin-v2 #pricingList .row-main{min-width:0!important;max-width:100%!important;width:100%!important}
+body.admin-v2 #ticketsList{width:100%!important;min-width:0!important}
+body.admin-v2 #ticketsList .ticket-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important;max-width:100%!important;align-items:stretch!important;gap:12px!important;overflow:hidden!important}
+body.admin-v2 #ticketsList .ticket-row .row-main{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;flex:none!important}
+body.admin-v2 #ticketsList .ticket-row .row-title,body.admin-v2 #ticketsList .ticket-row .muted{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important}
+body.admin-v2 #ticketsList .ticket-actions{display:flex!important;width:100%!important;min-width:0!important;justify-content:space-between!important;align-items:center!important;gap:10px!important}
+body.admin-v2 #ticketsList .ticket-actions .pill{flex:0 1 auto!important;min-width:0!important}
+body.admin-v2 #ticketsList .ticket-open-btn{flex:0 0 auto!important;width:auto!important;min-width:118px!important}
+body.admin-v2 #ticketDetail pre{max-width:100%!important;overflow-x:auto!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}
+}
+@media(max-width:390px){body.admin-v2 .tabs{left:8px!important;right:8px!important;max-width:calc(100vw - 16px)!important}body.admin-v2 #ticketsList .ticket-actions{align-items:stretch!important;flex-direction:column!important}body.admin-v2 #ticketsList .ticket-open-btn{width:100%!important}}
