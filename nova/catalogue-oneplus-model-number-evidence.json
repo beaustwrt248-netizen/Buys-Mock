@@ -1,0 +1,58 @@
+{
+  "captured_at": "2026-09-06T02:02:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 901,
+      "brand": "OnePlus",
+      "model_name": "OnePlus 13s",
+      "verified_model_number": "CPH2723",
+      "catalogue_source": "https://www.oneplus.in/13s/specs",
+      "evidence": ["Official OnePlus 13s software/update material identifies the IN model as CPH2723"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 865,
+      "brand": "OnePlus",
+      "model_name": "OnePlus 15",
+      "verified_model_number": "CPH2747",
+      "catalogue_source": "https://www.oneplus.com/au/15",
+      "evidence": ["Official OnePlus PSTI/product-security material identifies OnePlus 15 as CPH2747"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 976,
+      "brand": "OnePlus",
+      "model_name": "OnePlus 15R",
+      "verified_model_number": "CPH2769",
+      "catalogue_source": "https://www.oneplus.com/sg/15r/specs",
+      "evidence": ["Official OnePlus PSTI/product-security material identifies OnePlus 15R as CPH2769"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 900,
+      "brand": "OnePlus",
+      "model_name": "OnePlus Nord 5",
+      "verified_model_number": "CPH2709",
+      "catalogue_source": "https://www.oneplus.com/au/nord-5/specs",
+      "evidence": ["Official OnePlus OxygenOS material identifies the EU/GLO OnePlus Nord 5 as CPH2709; the AU catalogue row is treated as the global variant rather than the India-only CPH2707"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 928,
+      "brand": "OnePlus",
+      "model_name": "OnePlus Nord CE5",
+      "verified_model_number": "CPH2719",
+      "catalogue_source": "https://www.oneplus.in/nord-ce5/specs",
+      "evidence": ["Official OnePlus PSTI/safety material identifies OnePlus Nord CE5 as CPH2719"],
+      "proposed_action": "review_for_model_number_update"
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Re-query each device row immediately before any future authorized production update.",
+    "Abort on row drift, an existing conflicting model_number, regional-variant mismatch, or identity mismatch."
+  ]
+}
