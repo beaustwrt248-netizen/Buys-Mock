@@ -27,7 +27,7 @@ CANONICAL_CATEGORIES = {
 # Condition, stock-listing and transaction language must never become a canonical model name.
 LISTING_TEXT_PATTERNS = (
     re.compile(r"\b(?:battery|batt)\s*(?:health)?\s*[-:]?\s*\d{1,3}\s*%", re.I),
-    re.compile(r"(?:^|\s[-–—]\s)\d{1,3}\s*%\s*$", re.I),
+    re.compile(r"\b\d{1,3}\s*%\s*$", re.I),
     re.compile(r"\bcracked\b|\bbroken\b|\bdamaged\b|\bscratched\b", re.I),
     re.compile(r"\bsold\s+as\s+is\b|\bas\s+is\b|\bno\s+warranty\b", re.I),
     re.compile(r"\bdoesn['’]?t\s+(?:turn|power)\s+on\b|\bnot\s+turning\s+on\b", re.I),
