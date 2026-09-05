@@ -5,6 +5,11 @@ const source = fs.readFileSync('nova/recommendations.js', 'utf8');
 
 assert.match(source, /Fix current failure: \$\{r\.name\}/, 'current workflow failures must be recommendation blockers');
 assert.match(source, /,1,'BLOCKER'/, 'workflow failures must have priority 1');
+assert.match(source, /const skipped=current\.filter\(r=>r\.status==='completed'&&r\.conclusion==='skipped'\)/, 'skipped current workflow evidence must be identified');
+assert.match(source, /Re-establish workflow evidence: \$\{r\.name\}/, 'skipped workflow evidence must produce an explicit next action');
+assert.match(source, /,1,'EVIDENCE'/, 'incomplete skipped evidence must rank before discretionary work');
+assert.match(source, /evidenceIncomplete\?'INCOMPLETE'/, 'recommendation state must remain incomplete when skipped evidence exists');
+assert.match(source, /r\.kind==='BLOCKER'\|\|r\.kind==='HUMAN'/, 'urgent metric must remain limited to blockers and human gates');
 assert.match(source, /,2,'HUMAN'/, 'explicit high-risk Nova PRs must have priority 2');
 assert.match(source, /,3,'SUPPORT'/, 'support pressure must rank after blockers and human gates');
 assert.match(source, /,4,'DATA'/, 'catalogue data quality must rank after operational pressure');
