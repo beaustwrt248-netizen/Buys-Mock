@@ -13,7 +13,7 @@ function activate(name){document.querySelectorAll('.page').forEach(x=>x.classLis
 document.addEventListener('click',e=>{const b=e.target.closest('[data-section]');if(b)activate(b.dataset.section)});
 async function api(path){const r=await fetch(API+path,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!r.ok)throw new Error(`GitHub ${r.status}`);return r.json()}
 async function localJson(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(`Local ${r.status}`);return r.json()}
-function riskFor(pr){const text=`${pr.title||''} ${(pr.body||'')}`.toLowerCase();return /risk\s*[:\-]?\s*high|auth|permission|security|pricing|supabase|migration|release|deploy|workflow|guardian|androidmanifest|signing/.test(text)?'high':'normal'}
+function riskFor(pr){const ref=String(pr?.head?.ref||''),text=`${pr?.title||''}\n${pr?.body||''}`;if(!ref.startsWith('nova/'))return'normal';return /\bhigh[- ]risk\b/i.test(text)||/\brisk\s*[:=-]\s*(?:\*\*)?high\b/i.test(text)||/(?:^|\n)#{1,6}\s*risk\s*\n+\s*(?:\*\*)?high\b/im.test(text)?'high':'normal'}
 function prState(pr){if(pr.draft)return{label:'DRAFT',tone:''};if(riskFor(pr)==='high')return{label:'HUMAN GATE',tone:'high'};return{label:'ACTIVE',tone:'ok'}}
 function item(title,detail,tag='',tone='',href=''){const inner=`<div><b>${esc(title)}</b><small>${esc(detail)}</small></div>${tag?`<span class="tag ${tone}">${esc(tag)}</span>`:''}`;return href?`<a class="item" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>`:`<div class="item">${inner}</div>`}
 function latestRun(name){return state.runs.find(r=>r.name===name)||null}
