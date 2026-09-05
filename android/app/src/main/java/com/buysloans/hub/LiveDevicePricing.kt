@@ -28,6 +28,7 @@ data class LiveDeviceCatalogueRow(
     val model: String,
     val modelNumber: String?,
     val storageOptions: List<String>,
+    val imageReferenceUrl: String?,
 )
 
 object LiveDevicePricing {
@@ -41,6 +42,22 @@ object LiveDevicePricing {
     private var catalogueSnapshot by mutableStateOf<List<LiveDeviceCatalogueRow>>(emptyList())
 
     fun catalogue(): List<LiveDeviceCatalogueRow> = catalogueSnapshot
+
+    fun device(
+        category: String,
+        brand: String,
+        model: String,
+        modelNumber: String? = null,
+    ): LiveDeviceCatalogueRow? {
+        val normalizedCode = modelNumber?.trim()?.lowercase().orEmpty()
+        return catalogueSnapshot.firstOrNull { row ->
+            row.category == category &&
+                (
+                    normalizedCode.isNotBlank() && row.modelNumber?.trim()?.lowercase() == normalizedCode ||
+                        row.brand.equals(brand, ignoreCase = true) && row.model.equals(model, ignoreCase = true)
+                )
+        }
+    }
 
     internal fun replaceSnapshotsForTesting(
         prices: List<LiveDevicePrice>,
@@ -201,6 +218,9 @@ object LiveDevicePricing {
                                     .trim()
                                     .takeIf { it.isNotBlank() },
                                 storageOptions = storages,
+                                imageReferenceUrl = row.optString("image_reference_url")
+                                    .trim()
+                                    .takeIf { it.isNotBlank() },
                             ),
                         )
                     }
