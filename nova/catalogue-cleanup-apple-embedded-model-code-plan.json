@@ -1,0 +1,35 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidates": [
+    {
+      "candidate_id": 1048,
+      "candidate_name": "iPhone 11 2221",
+      "canonical_id": 537,
+      "canonical_name": "iPhone 11",
+      "canonical_model_number": "A2221",
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1195,
+      "candidate_name": "iPad A16 A 3355",
+      "canonical_id": 133,
+      "canonical_name": "iPad (A16) Cellular",
+      "canonical_model_number": "A3355",
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1225,
+      "candidate_name": "iPad Mini 5th Gen A 2133",
+      "canonical_id": 1223,
+      "canonical_name": "iPad mini (5th generation) Wi-Fi",
+      "canonical_model_number": "A2133",
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    }
+  ]
+}
