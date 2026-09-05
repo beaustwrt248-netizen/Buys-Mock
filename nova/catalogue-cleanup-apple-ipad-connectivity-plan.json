@@ -1,0 +1,50 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidates": [
+    {
+      "candidate_id": 1160,
+      "candidate_name": "iPad 10Th Gen Wi-Fi + Cellular",
+      "canonical_id": 1157,
+      "canonical_name": "iPad (10th generation) Wi-Fi + Cellular",
+      "canonical_model_number": "A2757",
+      "candidate_storage_options": ["256GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1161,
+      "candidate_name": "iPad 10Th Gen Wifi",
+      "canonical_id": 134,
+      "canonical_name": "iPad 10th generation Wi-Fi",
+      "canonical_model_number": "A2696",
+      "candidate_storage_options": ["64GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1172,
+      "candidate_name": "iPad 5th Gen Wifi",
+      "canonical_id": 139,
+      "canonical_name": "iPad 5th generation Wi-Fi",
+      "canonical_model_number": "A1822",
+      "candidate_storage_options": ["128GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    },
+    {
+      "candidate_id": 1173,
+      "candidate_name": "iPad 5th Gen Wifi + Cellular",
+      "canonical_id": 1167,
+      "canonical_name": "iPad (5th generation) Wi-Fi + Cellular",
+      "canonical_model_number": "A1823",
+      "candidate_storage_options": ["32GB"],
+      "candidate_dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "proposed_action": "deactivate_duplicate_candidate"
+    }
+  ],
+  "excluded_ambiguous_rows": [1158, 1159],
+  "exclusion_reason": "Generic 10th-generation names do not state Wi-Fi versus Cellular, so no canonical connectivity target is inferred."
+}
