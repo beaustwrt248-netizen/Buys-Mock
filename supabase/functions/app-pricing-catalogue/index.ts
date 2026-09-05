@@ -11,6 +11,50 @@ const headers = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
 };
+const PAGE_SIZE = 1000;
+
+async function fetchAllPrices() {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("device_buy_prices")
+      .select("device_catalog_id,storage,price_aud,authoritative")
+      .eq("is_active", true)
+      .eq("authoritative", true)
+      .eq("condition_grade", "base")
+      .not("price_aud", "is", null)
+      .order("device_catalog_id", { ascending: true })
+      .order("storage", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return { data: rows, error: null };
+}
+
+async function fetchAllDevices() {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("device_catalog")
+      .select(
+        "id,category,brand,family,model_name,model_number,release_year,storage_options,ram_options,image_reference_url,market_region",
+      )
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .order("brand", { ascending: true })
+      .order("model_name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return { data: rows, error: null };
+}
 
 Deno.serve(async (req: Request) => {
   const reply = (body: unknown, status = 200) =>
@@ -40,24 +84,8 @@ Deno.serve(async (req: Request) => {
   }
 
   const [priceResult, deviceResult] = await Promise.all([
-    admin
-      .from("device_buy_prices")
-      .select("device_catalog_id,storage,price_aud,authoritative")
-      .eq("is_active", true)
-      .eq("authoritative", true)
-      .eq("condition_grade", "base")
-      .not("price_aud", "is", null)
-      .limit(5000),
-    admin
-      .from("device_catalog")
-      .select(
-        "id,category,brand,family,model_name,model_number,release_year,storage_options,ram_options,image_reference_url,market_region",
-      )
-      .eq("active", true)
-      .order("category", { ascending: true })
-      .order("brand", { ascending: true })
-      .order("model_name", { ascending: true })
-      .limit(5000),
+    fetchAllPrices(),
+    fetchAllDevices(),
   ]);
 
   if (priceResult.error) return reply({ error: "Pricing catalogue unavailable" }, 500);
@@ -70,5 +98,5 @@ Deno.serve(async (req: Request) => {
     device: byId.get(price.device_catalog_id) || null,
   }));
 
-  return reply({ devices, prices });
+  return reply({ devices, prices, device_count: devices.length });
 });

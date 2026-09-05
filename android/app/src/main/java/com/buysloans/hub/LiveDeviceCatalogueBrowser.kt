@@ -27,7 +27,42 @@ import androidx.compose.ui.unit.sp
 
 private const val CATALOGUE_PAGE_SIZE = 60
 
-private fun categoryTitle(category: String?): String = when (category) {
+internal fun normalizeCatalogueCategory(value: String): String {
+    val normalized = value.trim().lowercase().replace('-', '_').replace(' ', '_')
+    return when (normalized) {
+        "smart_watch", "smartwatch", "smart_watches", "watch", "watches", "wearables" -> "wearable"
+        else -> normalized
+    }
+}
+
+internal fun deviceMatchesCatalogueCategory(deviceCategory: String, requestedCategory: String?): Boolean =
+    requestedCategory == null || normalizeCatalogueCategory(deviceCategory) == normalizeCatalogueCategory(requestedCategory)
+
+internal fun filterCatalogueDevices(
+    devices: List<LiveDeviceCatalogueRow>,
+    category: String?,
+    query: String = "",
+): List<LiveDeviceCatalogueRow> {
+    val needle = query.trim().lowercase()
+    return devices.asSequence()
+        .filter { deviceMatchesCatalogueCategory(it.category, category) }
+        .filter {
+            needle.isBlank() || listOfNotNull(
+                it.brand,
+                it.model,
+                it.modelNumber,
+                it.storageOptions.joinToString(" "),
+            ).joinToString(" ").lowercase().contains(needle)
+        }
+        .sortedWith(
+            compareBy<LiveDeviceCatalogueRow> { normalizeCatalogueCategory(it.category) }
+                .thenBy { it.brand.lowercase() }
+                .thenBy { it.model.lowercase() },
+        )
+        .toList()
+}
+
+private fun categoryTitle(category: String?): String = when (category?.let(::normalizeCatalogueCategory)) {
     "mobile_phone" -> "Mobile Phones"
     "tablet" -> "Tablets"
     "wearable" -> "Smart Watches & Wearables"
@@ -37,7 +72,7 @@ private fun categoryTitle(category: String?): String = when (category) {
     else -> "Live Device Catalogue"
 }
 
-private fun categoryLabel(category: String): String = when (category) {
+private fun categoryLabel(category: String): String = when (normalizeCatalogueCategory(category)) {
     "mobile_phone" -> "Phone"
     "tablet" -> "Tablet"
     "wearable" -> "Watch / wearable"
@@ -52,25 +87,7 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
     var query by remember(category) { mutableStateOf("") }
     var visibleCount by remember(category, query) { mutableStateOf(CATALOGUE_PAGE_SIZE) }
     val all = LiveDevicePricing.catalogue()
-    val filtered = remember(all, category, query) {
-        val needle = query.trim().lowercase()
-        all.asSequence()
-            .filter { category == null || it.category == category }
-            .filter {
-                needle.isBlank() || listOfNotNull(
-                    it.brand,
-                    it.model,
-                    it.modelNumber,
-                    it.storageOptions.joinToString(" "),
-                ).joinToString(" ").lowercase().contains(needle)
-            }
-            .sortedWith(
-                compareBy<LiveDeviceCatalogueRow> { it.category }
-                    .thenBy { it.brand.lowercase() }
-                    .thenBy { it.model.lowercase() },
-            )
-            .toList()
-    }
+    val filtered = remember(all, category, query) { filterCatalogueDevices(all, category, query) }
     val visibleDevices = remember(filtered, visibleCount) { filtered.take(visibleCount) }
 
     Screen(categoryTitle(category)) {
