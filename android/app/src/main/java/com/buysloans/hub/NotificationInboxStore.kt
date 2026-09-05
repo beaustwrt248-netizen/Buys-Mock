@@ -86,7 +86,11 @@ object NotificationInboxStore {
                     )
                 }
             }
-        }.getOrDefault(emptyList())
+        }.getOrDefault(emptyList()).filterNot { item ->
+            item.type.equals("update", ignoreCase = true) &&
+                item.versionCode > 0 &&
+                item.versionCode <= BuildConfig.VERSION_CODE
+        }
     }
 
     fun unreadCount(context: Context): Int = items(context).count { !it.read }
