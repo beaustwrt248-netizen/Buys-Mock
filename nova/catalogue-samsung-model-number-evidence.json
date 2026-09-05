@@ -1,0 +1,40 @@
+{
+  "captured_at": "2026-09-06T01:57:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 967,
+      "brand": "Samsung",
+      "model_name": "Galaxy Z Flip8",
+      "verified_model_number": "SM-F776B",
+      "catalogue_source": "https://www.samsung.com/au/smartphones/galaxy-z-flip8/specs/",
+      "evidence": ["Samsung Australia support/update material identifies Galaxy Z Flip8 as SM-F776B"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 965,
+      "brand": "Samsung",
+      "model_name": "Galaxy Z Fold8",
+      "verified_model_number": "SM-F971B",
+      "catalogue_source": "https://www.samsung.com/au/smartphones/galaxy-z-fold8/",
+      "evidence": ["Samsung Australia support/business material identifies Galaxy Z Fold8 as SM-F971B"],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 966,
+      "brand": "Samsung",
+      "model_name": "Galaxy Z Fold8 Ultra",
+      "verified_model_number": "SM-F976B",
+      "catalogue_source": "https://www.samsung.com/au/smartphones/galaxy-z-fold8-ultra/",
+      "evidence": ["Samsung Australia support/update material identifies Galaxy Z Fold8 Ultra as SM-F976B"],
+      "proposed_action": "review_for_model_number_update"
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Re-query each device row immediately before any future authorized production update.",
+    "Abort on row drift, an existing conflicting model_number, or identity mismatch."
+  ]
+}
