@@ -29,6 +29,7 @@
       <button data-section="knowledge">Knowledge</button>
       <button data-section="monitoring">Monitoring</button>
       <button data-section="releases">Releases</button>
+      <button data-section="recommendations">Recommendations</button>
       <button data-section="activity">Activity</button>
     </nav>
 
@@ -118,6 +119,16 @@
         </div>
         <article class="card"><div class="eyebrow">RELEASE EVIDENCE</div><h2>Current readiness inputs</h2><div id="releaseEvidence" class="stack"><div class="empty">Loading release evidence…</div></div><div class="callout" id="releaseSummary">Readiness is loading. Nova has no release authority.</div></article>
       </section>
+      <section class="page" data-page="recommendations">
+        <div class="card"><div class="section-head"><div><div class="eyebrow">EVIDENCE-BACKED ADVICE</div><h2>Recommendations</h2></div><span id="recommendState" class="tag">LOADING</span></div><p>Nova ranks the next useful action from current workflow, human-gate, support, catalogue and memory evidence. Recommendations remain advisory and never create protected authority.</p></div>
+        <div class="metrics">
+          <article class="card metric"><span>Urgent items</span><strong id="recommendUrgent">—</strong><small>blockers + human gates</small></article>
+          <article class="card metric"><span>High-risk PRs</span><strong id="recommendHighRisk">—</strong><small>explicit High declarations</small></article>
+          <article class="card metric"><span>Model gaps</span><strong id="recommendDataGaps">—</strong><small>catalogue quality signal</small></article>
+          <article class="card metric"><span>Learned domains</span><strong id="recommendDomains">—</strong><small>current experience coverage</small></article>
+        </div>
+        <article class="card"><div class="eyebrow">ONE VALIDATED ITEM AT A TIME</div><h2>Priority order</h2><div id="recommendationList" class="stack"><div class="empty">Ranking current evidence…</div></div><div class="callout" id="recommendNext">Nova is calculating the next advisory action.</div></article>
+      </section>
       <section class="page" data-page="activity"><article class="card"><div class="eyebrow">AUDIT</div><h2>Recent activity</h2><div id="activityList" class="stack"><div class="empty">Loading GitHub activity…</div></div></article></section>
     </main>
 
@@ -126,5 +137,6 @@
   <script src="app.js?v=1"></script>
   <script src="release-readiness.js?v=1"></script>
   <script src="guardian-status.js?v=1"></script>
+  <script src="recommendations.js?v=1"></script>
 </body>
 </html>
