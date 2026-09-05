@@ -35,7 +35,6 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                databaseEnabled = true
                 cacheMode = WebSettings.LOAD_NO_CACHE
                 loadWithOverviewMode = true
                 useWideViewPort = true
