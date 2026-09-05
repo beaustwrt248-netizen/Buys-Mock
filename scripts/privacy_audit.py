@@ -30,6 +30,13 @@ def between(value: str, start: str, end: str, label: str) -> str:
     return value[left:right]
 
 
+def manifest_element(value: str, element: str, android_name: str) -> str:
+    """Return one manifest start tag without leaking into a later component."""
+    pattern = rf'<{element}\b(?=[^>]*android:name="{re.escape(android_name)}")[^>]*>'
+    match = re.search(pattern, value)
+    return match.group(0) if match else ""
+
+
 web_issue = require(
     "web-issue-report.js",
     "diagnostics_opt_in:includeDiagnostics",
@@ -88,7 +95,10 @@ main_manifest = require(
     'android:name=".EmbeddedAdminActivity" android:exported="false"',
     'android:name=".SupportTicketActivity"',
 )
-if re.search(r'android:name="\.SupportTicketActivity"[\s\S]{0,180}?android:exported="true"', main_manifest):
+support_activity = manifest_element(main_manifest, "activity", ".SupportTicketActivity")
+if not support_activity:
+    failures.append("AndroidManifest.xml: could not isolate SupportTicketActivity")
+elif 'android:exported="true"' in support_activity:
     failures.append("AndroidManifest.xml: SupportTicketActivity must not be exported")
 
 admin_manifest = require(
@@ -99,9 +109,15 @@ admin_manifest = require(
     'android:name="androidx.core.content.FileProvider"',
     'android:exported="false"',
 )
-if re.search(r'android:name="\.AdminActivity"[\s\S]{0,160}?android:exported="true"', admin_manifest):
+admin_activity = manifest_element(admin_manifest, "activity", ".AdminActivity")
+if not admin_activity:
+    failures.append("Admin AndroidManifest.xml: could not isolate AdminActivity")
+elif 'android:exported="false"' not in admin_activity:
     failures.append("Admin AndroidManifest.xml: AdminActivity must not be exported")
-if re.search(r'android:name="androidx\.core\.content\.FileProvider"[\s\S]{0,240}?android:exported="true"', admin_manifest):
+provider = manifest_element(admin_manifest, "provider", "androidx.core.content.FileProvider")
+if not provider:
+    failures.append("Admin AndroidManifest.xml: could not isolate update FileProvider")
+elif 'android:exported="false"' not in provider:
     failures.append("Admin AndroidManifest.xml: update FileProvider must not be exported")
 
 for path in (
