@@ -28,6 +28,7 @@ data class LiveDeviceCatalogueRow(
     val model: String,
     val modelNumber: String?,
     val storageOptions: List<String>,
+    val imageReferenceUrl: String? = null,
 )
 
 object LiveDevicePricing {
@@ -42,49 +43,34 @@ object LiveDevicePricing {
 
     fun catalogue(): List<LiveDeviceCatalogueRow> = catalogueSnapshot
 
-    internal fun replaceSnapshotsForTesting(
-        prices: List<LiveDevicePrice>,
-        devices: List<LiveDeviceCatalogueRow>,
-    ) {
+    fun device(category: String, brand: String, model: String, modelNumber: String? = null): LiveDeviceCatalogueRow? {
+        val normalizedCode = modelNumber?.trim()?.lowercase().orEmpty()
+        return catalogueSnapshot.firstOrNull { row ->
+            row.category == category &&
+                ((normalizedCode.isNotBlank() && row.modelNumber?.trim()?.lowercase() == normalizedCode) ||
+                    (row.brand.equals(brand, true) && row.model.equals(model, true)))
+        }
+    }
+
+    internal fun replaceSnapshotsForTesting(prices: List<LiveDevicePrice>, devices: List<LiveDeviceCatalogueRow>) {
         snapshot = prices
         catalogueSnapshot = devices
     }
 
-    fun normalizeStorage(value: String): String =
-        value.trim().replace(" ", "").uppercase()
+    fun normalizeStorage(value: String): String = value.trim().replace(" ", "").uppercase()
 
-    fun find(
-        prices: List<LiveDevicePrice>,
-        brand: String,
-        model: String,
-        modelNumber: String?,
-        storage: String,
-    ): LiveDevicePrice? {
+    fun find(prices: List<LiveDevicePrice>, brand: String, model: String, modelNumber: String?, storage: String): LiveDevicePrice? {
         val normalizedModelNumber = modelNumber?.trim()?.lowercase().orEmpty()
         val normalizedStorage = normalizeStorage(storage)
-
         return prices.firstOrNull { price ->
-            val sameDevice =
-                (
-                    normalizedModelNumber.isNotBlank() &&
-                        price.modelNumber?.trim()?.lowercase() == normalizedModelNumber
-                ) || (
-                    price.brand.equals(brand, ignoreCase = true) &&
-                        price.model.equals(model, ignoreCase = true)
-                )
-
-            price.authoritative &&
-                normalizeStorage(price.storage) == normalizedStorage &&
-                sameDevice
+            val sameDevice = (normalizedModelNumber.isNotBlank() && price.modelNumber?.trim()?.lowercase() == normalizedModelNumber) ||
+                (price.brand.equals(brand, true) && price.model.equals(model, true))
+            price.authoritative && normalizeStorage(price.storage) == normalizedStorage && sameDevice
         }
     }
 
-    fun find(
-        brand: String,
-        model: String,
-        modelNumber: String?,
-        storage: String,
-    ): LiveDevicePrice? = find(snapshot, brand, model, modelNumber, storage)
+    fun find(brand: String, model: String, modelNumber: String?, storage: String): LiveDevicePrice? =
+        find(snapshot, brand, model, modelNumber, storage)
 
     fun cached(context: Context): List<LiveDevicePrice> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -95,116 +81,78 @@ object LiveDevicePricing {
         return prices
     }
 
-    suspend fun refresh(context: Context): List<LiveDevicePrice> =
-        withContext(Dispatchers.IO) {
-            val token = AuthManager.validAccessToken(context)
-            val connection = (
-                URL("${BuildConfig.SUPABASE_URL}/functions/v1/app-pricing-catalogue")
-                    .openConnection() as HttpURLConnection
-            ).apply {
-                requestMethod = "GET"
-                connectTimeout = 10_000
-                readTimeout = 10_000
-                setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
-                setRequestProperty("Authorization", "Bearer $token")
-                setRequestProperty("Cache-Control", "no-cache")
-            }
+    suspend fun refresh(context: Context): List<LiveDevicePrice> = withContext(Dispatchers.IO) {
+        val token = AuthManager.validAccessToken(context)
+        val connection = (URL("${BuildConfig.SUPABASE_URL}/functions/v1/app-pricing-catalogue").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 10_000
+            readTimeout = 10_000
+            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Cache-Control", "no-cache")
+        }
+        try {
+            if (connection.responseCode !in 200..299) throw IllegalStateException("Pricing refresh failed (${connection.responseCode}).")
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val rawPrices = response.optJSONArray("prices")?.toString() ?: "[]"
+            val rawDevices = response.optJSONArray("devices")?.toString() ?: "[]"
+            val prices = parsePrices(rawPrices)
+            val devices = parseDevices(rawDevices)
+            snapshot = prices
+            catalogueSnapshot = devices
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(PRICE_CACHE, rawPrices).putString(DEVICE_CACHE, rawDevices).apply()
+            prices
+        } finally {
+            connection.disconnect()
+        }
+    }
 
-            try {
-                if (connection.responseCode !in 200..299) {
-                    throw IllegalStateException(
-                        "Pricing refresh failed (${connection.responseCode}).",
-                    )
+    private fun parsePrices(raw: String): List<LiveDevicePrice> = runCatching {
+        val array = JSONArray(raw.ifBlank { "[]" })
+        buildList {
+            for (index in 0 until array.length()) {
+                val row = array.getJSONObject(index)
+                if (!row.optBoolean("authoritative", false)) continue
+                val device = row.optJSONObject("device") ?: continue
+                val id = row.optLong("device_catalog_id", -1)
+                val storage = row.optString("storage").trim()
+                val price = row.optDouble("price_aud", Double.NaN)
+                if (id > 0 && storage.isNotBlank() && price.isFinite() && price >= 0) {
+                    add(LiveDevicePrice(id, device.optString("brand"), device.optString("model_name"), device.optString("model_number").takeIf { it.isNotBlank() }, storage, price, true))
                 }
-
-                val response = JSONObject(
-                    connection.inputStream.bufferedReader().use { it.readText() },
-                )
-                val rawPrices = response.optJSONArray("prices")?.toString() ?: "[]"
-                val rawDevices = response.optJSONArray("devices")?.toString() ?: "[]"
-                val prices = parsePrices(rawPrices)
-                val devices = parseDevices(rawDevices)
-
-                snapshot = prices
-                catalogueSnapshot = devices
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .edit()
-                    .putString(PRICE_CACHE, rawPrices)
-                    .putString(DEVICE_CACHE, rawDevices)
-                    .apply()
-
-                prices
-            } finally {
-                connection.disconnect()
             }
         }
+    }.getOrDefault(emptyList())
 
-    private fun parsePrices(raw: String): List<LiveDevicePrice> =
-        runCatching {
-            val array = JSONArray(raw.ifBlank { "[]" })
-            buildList {
-                for (index in 0 until array.length()) {
-                    val row = array.getJSONObject(index)
-                    if (!row.optBoolean("authoritative", false)) continue
-
-                    val device = row.optJSONObject("device") ?: continue
-                    val id = row.optLong("device_catalog_id", -1)
-                    val storage = row.optString("storage").trim()
-                    val price = row.optDouble("price_aud", Double.NaN)
-
-                    if (id > 0 && storage.isNotBlank() && price.isFinite() && price >= 0) {
-                        add(
-                            LiveDevicePrice(
-                                deviceCatalogId = id,
-                                brand = device.optString("brand"),
-                                model = device.optString("model_name"),
-                                modelNumber = device.optString("model_number")
-                                    .takeIf { it.isNotBlank() },
-                                storage = storage,
-                                priceAud = price,
-                                authoritative = true,
-                            ),
-                        )
-                    }
+    private fun parseDevices(raw: String): List<LiveDeviceCatalogueRow> = runCatching {
+        val array = JSONArray(raw.ifBlank { "[]" })
+        buildList {
+            for (index in 0 until array.length()) {
+                val row = array.getJSONObject(index)
+                val id = row.optLong("id", -1)
+                val category = row.optString("category").trim()
+                val brand = row.optString("brand").trim()
+                val model = row.optString("model_name").trim()
+                val storages = row.optJSONArray("storage_options")?.let { storageArray ->
+                    buildList {
+                        for (storageIndex in 0 until storageArray.length()) {
+                            storageArray.optString(storageIndex).trim().takeIf { it.isNotBlank() }?.let(::add)
+                        }
+                    }.distinct()
+                }.orEmpty()
+                if (id > 0 && category.isNotBlank() && brand.isNotBlank() && model.isNotBlank()) {
+                    add(LiveDeviceCatalogueRow(
+                        id = id,
+                        category = category,
+                        brand = brand,
+                        model = model,
+                        modelNumber = row.optString("model_number").trim().takeIf { it.isNotBlank() },
+                        storageOptions = storages,
+                        imageReferenceUrl = row.optString("image_reference_url").trim().takeIf { it.isNotBlank() },
+                    ))
                 }
             }
-        }.getOrDefault(emptyList())
-
-    private fun parseDevices(raw: String): List<LiveDeviceCatalogueRow> =
-        runCatching {
-            val array = JSONArray(raw.ifBlank { "[]" })
-            buildList {
-                for (index in 0 until array.length()) {
-                    val row = array.getJSONObject(index)
-                    val id = row.optLong("id", -1)
-                    val category = row.optString("category").trim()
-                    val brand = row.optString("brand").trim()
-                    val model = row.optString("model_name").trim()
-                    val storages = row.optJSONArray("storage_options")?.let { storageArray ->
-                        buildList {
-                            for (storageIndex in 0 until storageArray.length()) {
-                                storageArray.optString(storageIndex).trim()
-                                    .takeIf { it.isNotBlank() }
-                                    ?.let(::add)
-                            }
-                        }.distinct()
-                    }.orEmpty()
-
-                    if (id > 0 && category.isNotBlank() && brand.isNotBlank() && model.isNotBlank()) {
-                        add(
-                            LiveDeviceCatalogueRow(
-                                id = id,
-                                category = category,
-                                brand = brand,
-                                model = model,
-                                modelNumber = row.optString("model_number")
-                                    .trim()
-                                    .takeIf { it.isNotBlank() },
-                                storageOptions = storages,
-                            ),
-                        )
-                    }
-                }
-            }
-        }.getOrDefault(emptyList())
+        }
+    }.getOrDefault(emptyList())
 }
