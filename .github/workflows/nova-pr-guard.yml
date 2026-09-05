@@ -1,0 +1,67 @@
+name: Nova PR Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  nova-guard:
+    if: startsWith(github.event.pull_request.head.ref, 'nova/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" > /tmp/nova-files.txt
+          cat /tmp/nova-files.txt
+
+          protected=0
+          while IFS= read -r file; do
+            case "$file" in
+              supabase/migrations/*|supabase/functions/*|android/app/src/main/AndroidManifest.xml|android/app/build.gradle|.github/workflows/*)
+                protected=1
+                ;;
+            esac
+
+            lower="$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')"
+            case "$lower" in
+              *auth*|*permission*|*role*|*pricing*approval*|*guardian*policy*|*security*boundary*)
+                protected=1
+                ;;
+            esac
+          done < /tmp/nova-files.txt
+
+          echo "protected=$protected" >> "$GITHUB_OUTPUT"
+
+      - name: Block protected Nova changes pending conversational approval
+        if: steps.classify.outputs.protected == '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat <<'EOF'
+          Nova touched a protected/high-risk area.
+          Nova and the repository owner currently share one GitHub identity, so GitHub reviews,
+          labels, comments, reactions, assignments, or other repository actions from that identity
+          cannot count as independent human approval.
+
+          This guard intentionally remains blocked. Beau must explicitly instruct ChatGPT in a user
+          conversation to merge the specific ready high-risk PR after its exact risk and validation
+          state are presented. Repository metadata alone cannot clear this gate.
+          EOF
+          exit 1
+
+      - name: Confirm guarded change
+        if: steps.classify.outputs.protected != '1'
+        run: echo "Nova change does not touch a path classified as high risk by the repository guard."
