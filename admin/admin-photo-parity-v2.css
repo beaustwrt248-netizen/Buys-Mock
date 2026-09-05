@@ -1,0 +1,39 @@
+/* Supplemental Admin/Nova photo-parity polish. Loaded after admin-photo-parity.css. */
+:root{--parity-soft:#f7faf8;--parity-soft-2:#eef5f1;--parity-danger:#b83b45;--parity-warning:#986b00}
+body.admin-v2 .panel>.card{overflow:hidden}
+body.admin-v2 .panel>.card>h2{color:#18342b!important;letter-spacing:-.35px}
+body.admin-v2 .panel>.card>p.muted{max-width:760px;line-height:1.45}
+#tab-users,#tab-devices,#tab-passwords,#tab-controls,#tab-release,#tab-notify,#tab-announce,#tab-audit{min-width:0;overflow-x:hidden}
+#tab-users>.card,#tab-devices>.card,#tab-passwords>.card,#tab-controls>.card,#tab-release>.card,#tab-notify>.card,#tab-announce>.card,#tab-audit>.card{padding:24px!important;border-radius:26px!important}
+#usersList>.row,#devicesList>.row,#notificationList>.row,#annList>.row,#auditList>.row{background:#fff;border:1px solid #dbe5e0!important;border-radius:18px!important;padding:16px!important;margin:10px 0!important;box-shadow:0 6px 18px rgba(28,58,48,.04)}
+#usersList .row-title,#devicesList .row-title,#notificationList .row-title,#annList .row-title,#auditList .row-title{font-size:17px!important;font-weight:900!important;color:#18342b!important}
+#featureFlags .switchrow{background:var(--parity-soft);border:1px solid #dbe5e0!important;border-radius:16px;padding:14px!important;margin:9px 0!important}
+#tab-release .metric{border-radius:18px!important;background:var(--parity-soft)!important;box-shadow:none!important}
+#tab-release input[readonly],#tab-release textarea[readonly]{background:#f3f6f4!important;color:#50655c!important}
+#tab-notify textarea,#tab-announce textarea,#ticketReply,#pricingNotes{min-height:120px!important;border-radius:17px!important}
+#ticketDetail{border-radius:26px!important;padding:24px!important}
+#ticketDetailTitle{font-size:28px!important;letter-spacing:-.4px}
+#ticketDescription{font-size:16px;line-height:1.55;background:var(--parity-soft);border:1px solid #dce6e1;border-radius:16px;padding:14px}
+#ticketDiagnostics{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;overflow:auto;background:#f4f7f5;border:1px solid #dce6e1;border-radius:16px;padding:14px}
+#ticketMessages .row{border-radius:16px!important}
+#pricingEditor{border-radius:26px!important;padding:24px!important}
+#pricingEditor label,#ticketDetail label{font-weight:800}
+#pricingAssistantProposals>.row{border:1px solid #dbe5e0!important;border-radius:18px!important;padding:14px!important;margin:10px 0!important;background:var(--parity-soft)!important}
+.admin-reset-grid>.card{border-radius:22px!important}
+.admin-reset-output{border:1px solid #cfe1d8;border-radius:18px;padding:16px;background:#f4faf7}
+.admin-reset-output code{display:block;font-size:20px;overflow-wrap:anywhere;margin:8px 0}
+body:not(.admin-v2) .nova-shell{width:min(100%,780px)}
+body:not(.admin-v2) .nova-nav{scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+body:not(.admin-v2) .nova-nav button{scroll-snap-align:start;border-radius:16px!important;font-weight:900!important}
+body:not(.admin-v2) .nova-section>.card{border-radius:26px!important;padding:22px!important}
+body:not(.admin-v2) .nova-section h2{letter-spacing:-.35px;color:#18342b!important}
+body:not(.admin-v2) .nova-map{gap:10px}.nova-node{border-radius:16px!important;background:#f8fbf9!important;padding:14px!important}
+body:not(.admin-v2) .nova-metric{border-radius:20px!important;background:#fff!important}
+body:not(.admin-v2) .nova-item{border-radius:17px!important;background:#f8fbf9!important}
+.nova-chat-prompts{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0 4px}
+.nova-chat-prompts button{min-height:46px!important;border-radius:15px!important;padding:9px 14px!important;font-weight:900!important;background:#0b6d54!important;color:#fff!important;border-color:#0b6d54!important}
+.nova-chat-prompts button:hover{background:#095943!important}
+.nova-source-warning{margin-top:12px;padding:11px 13px;border-radius:14px;background:#fff8e7;color:#705714;border:1px solid #eadba8;font-size:13px;line-height:1.4}
+@media(max-width:900px){body.admin-v2 .admin-page-head{margin-bottom:12px!important}body.admin-v2 .admin-page-head h2{font-size:26px!important}body.admin-v2 .admin-page-head p{font-size:13px!important}#tab-users>.card,#tab-devices>.card,#tab-passwords>.card,#tab-controls>.card,#tab-release>.card,#tab-notify>.card,#tab-announce>.card,#tab-audit>.card,#ticketDetail,#pricingEditor{padding:18px!important;border-radius:23px!important}#usersList>.row,#devicesList>.row,#notificationList>.row,#annList>.row,#auditList>.row{padding:14px!important;border-radius:17px!important}#tab-release .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}body:not(.admin-v2) .nova-section>.card{padding:18px!important;border-radius:23px!important}}
+@media(max-width:560px){body.admin-v2 .panel input,body.admin-v2 .panel select,body.admin-v2 .panel textarea{width:100%;box-sizing:border-box}body.admin-v2 .panel button:not(.tab){max-width:100%}#tab-release .grid{grid-template-columns:1fr!important}#ticketDetail .grid{grid-template-columns:1fr!important}#pricingAssistantProposals>.row{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}body:not(.admin-v2) .nova-nav{position:sticky;top:0;z-index:30;background:rgba(237,243,239,.96);backdrop-filter:blur(14px);padding:7px 0!important}body:not(.admin-v2) .nova-nav button{min-height:50px!important;font-size:12px!important;padding:9px 14px!important}.nova-chat-prompts{display:grid;grid-template-columns:1fr 1fr}.nova-chat-prompts button{width:100%;font-size:12px!important}}
+@media(max-width:380px){.nova-chat-prompts{grid-template-columns:1fr}}
