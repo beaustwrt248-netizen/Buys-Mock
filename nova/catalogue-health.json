@@ -1,21 +1,33 @@
 {
   "schema_version": 1,
-  "source": "Supabase public.device_catalog aggregate health query",
-  "checked_date": "2026-09-05",
+  "source": "Supabase public.device_catalog atomic aggregate snapshot",
+  "checked_date": "2026-09-05T16:39:52Z",
+  "checked_at": "2026-09-05T16:39:52.314919Z",
+  "catalogue_latest_updated_at": "2026-09-05T16:38:26.49185Z",
+  "snapshot_type": "atomic_point_in_time",
   "privacy": "aggregate-only; no device rows or protected pricing",
-  "total_records": 1317,
-  "active_records": 1299,
-  "au_region_records": 1060,
+  "total_records": 1320,
+  "active_records": 1302,
+  "au_region_records": 1046,
   "missing_model_number": 165,
-  "missing_storage_actionable": 38,
+  "missing_storage_actionable": 37,
   "source_url_missing": 0,
+  "contamination_candidates": 85,
+  "contamination_cash_converters": 77,
+  "contamination_missing_model_number": 34,
   "categories": [
-    {"category":"mobile_phone","label":"Mobile Phones","total":454,"active":444,"missing_model_number":54,"missing_storage":10,"au_region":344},
-    {"category":"tablet","label":"Tablets","total":259,"active":257,"missing_model_number":45,"missing_storage":6,"au_region":254},
-    {"category":"laptop","label":"Laptops","total":250,"active":250,"missing_model_number":18,"missing_storage":0,"au_region":174},
-    {"category":"wearable","label":"Wearables","total":162,"active":161,"missing_model_number":29,"missing_storage":0,"au_region":152,"storage_note":"Storage may be non-applicable for many wearables and is not counted as an actionable gap."},
-    {"category":"console","label":"Consoles","total":106,"active":102,"missing_model_number":15,"missing_storage":22,"au_region":78},
-    {"category":"desktop","label":"Desktops","total":86,"active":85,"missing_model_number":4,"missing_storage":0,"au_region":58}
+    {"category":"mobile_phone","label":"Mobile Phones","total":454,"active":444,"missing_model_number":54,"missing_storage":10,"au_region":335},
+    {"category":"tablet","label":"Tablets","total":259,"active":257,"missing_model_number":45,"missing_storage":6,"au_region":252},
+    {"category":"laptop","label":"Laptops","total":253,"active":253,"missing_model_number":18,"missing_storage":0,"au_region":176},
+    {"category":"wearable","label":"Wearables","total":162,"active":161,"missing_model_number":29,"missing_storage":0,"au_region":151,"storage_note":"Storage may be non-applicable for many wearables and is not counted as an actionable gap."},
+    {"category":"console","label":"Consoles","total":106,"active":102,"missing_model_number":15,"missing_storage":21,"au_region":75},
+    {"category":"desktop","label":"Desktops","total":86,"active":85,"missing_model_number":4,"missing_storage":0,"au_region":57}
   ],
-  "data_quality_note": "Live query shows a materially larger model-number gap than the previous snapshot. Listing-derived catalogue contamination is being investigated separately; health values intentionally report the database as it exists rather than masking suspected duplicates or dirty imports."
+  "contamination_by_category": [
+    {"category":"mobile_phone","candidates":31,"cash_converters":24,"missing_model_number":7},
+    {"category":"tablet","candidates":21,"cash_converters":20,"missing_model_number":10},
+    {"category":"wearable","candidates":22,"cash_converters":22,"missing_model_number":17},
+    {"category":"console","candidates":11,"cash_converters":11,"missing_model_number":0}
+  ],
+  "data_quality_note": "Point-in-time atomic snapshot. The catalogue may change after checked_at; values intentionally report one consistent database snapshot rather than combining reads taken at different times. Listing-derived candidates remain evidence only and are not authorization for production cleanup."
 }
