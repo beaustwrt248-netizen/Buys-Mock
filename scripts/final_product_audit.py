@@ -14,6 +14,12 @@ def need(path: str, *tokens: str):
     return text
 
 
+def reject(path: str, text: str, *tokens: str):
+    for token in tokens:
+        if token in text:
+            errors.append(f'{path}: deprecated token remains {token!r}')
+
+
 def semver(value: str):
     match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:[-+].*)?', value.strip())
     return tuple(map(int, match.groups())) if match else None
@@ -49,7 +55,20 @@ def validate_release_version(path: str, build_text: str, manifest_path: str, pro
 
 
 build = need('android/app/build.gradle', "namespace 'com.buysloans.hub'")
-admin_build = need('android/adminapp/build.gradle', 'applyAdminMorleyPalette')
+admin_build = need(
+    'android/adminapp/build.gradle',
+    "namespace 'com.buysloans.admin'",
+    "tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }",
+)
+reject(
+    'android/adminapp/build.gradle',
+    admin_build,
+    'applyAdminMorleyPalette',
+    'apply_admin_morley_palette.py',
+)
+if (ROOT / 'android/apply_admin_morley_palette.py').exists():
+    errors.append('android/apply_admin_morley_palette.py: obsolete build-time source rewriter still exists')
+
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
     'CATEGORIES("Categories", MorleyIcons.Categories)',
@@ -181,4 +200,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; Morley and Admin release identities remain publication-safe.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; Admin builds are deterministic; Morley and Admin release identities remain publication-safe.')

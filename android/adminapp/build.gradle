@@ -62,12 +62,6 @@ tasks.register('verifyReleaseSigning') {
     }
 }
 
-tasks.register('applyAdminMorleyPalette', Exec) {
-    workingDir rootProject.projectDir
-    commandLine 'python3', 'apply_admin_morley_palette.py'
-}
-
-tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('applyAdminMorleyPalette') }
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
