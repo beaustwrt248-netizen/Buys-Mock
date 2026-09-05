@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source": "Supabase public.support_tickets aggregate health query",
+  "checked_date": "2026-09-05",
+  "privacy": "aggregate-only; no subjects, descriptions, messages, user IDs, assignees, or diagnostics",
+  "total_tickets": 5,
+  "active_tickets": 0,
+  "high_priority_active": 0,
+  "sla_overdue": 0,
+  "awaiting_first_response": 0,
+  "status_counts": [
+    {"status":"closed","total":5}
+  ],
+  "category_counts": [
+    {"category":"other","label":"Other","total":4},
+    {"category":"valuation","label":"Valuation","total":1}
+  ]
+}
