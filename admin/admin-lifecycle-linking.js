@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[m]));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 let rows=[];
 function loadCss(){if(q('#adminLifecycleLinkCss'))return;const l=document.createElement('link');l.id='adminLifecycleLinkCss';l.rel='stylesheet';l.href='admin-lifecycle-linking.css?v=1';document.head.appendChild(l)}
 function loadSalesContext(){if(q('#adminSalesContextScript'))return;const s=document.createElement('script');s.id='adminSalesContextScript';s.src='admin-sales-context.js?v=1';s.async=false;document.body.appendChild(s)}
