@@ -1,13 +1,10 @@
-import importlib.util
 import pathlib
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "scripts" / "catalogue_import_validator.py"
-spec = importlib.util.spec_from_file_location("catalogue_import_validator", MODULE_PATH)
-validator = importlib.util.module_from_spec(spec)
-assert spec and spec.loader
-spec.loader.exec_module(validator)
+sys.path.insert(0, str(ROOT / "scripts"))
+import catalogue_import_validator as validator  # noqa: E402
 
 
 class CatalogueImportValidatorTests(unittest.TestCase):
