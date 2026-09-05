@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
 function appReady(){const app=q('#appView');return !!app&&!app.classList.contains('hidden')}
-function loadCss(){if(q('#novaAdminHomeCss'))return;const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=3';document.head.appendChild(l)}
+function loadCss(){if(!q('#novaAdminHomeCss')){const l=document.createElement('link');l.id='novaAdminHomeCss';l.rel='stylesheet';l.href='nova-admin-home.css?v=3';document.head.appendChild(l)}if(!q('#adminPhotoParityCss')){const p=document.createElement('link');p.id='adminPhotoParityCss';p.rel='stylesheet';p.href='admin-photo-parity.css?v=1';document.head.appendChild(p)}}
 function loadLifecycle(){if(!q('#adminLifecycleScript')){const s=document.createElement('script');s.id='adminLifecycleScript';s.src='admin-lifecycle-management.js?v=1';s.async=false;document.body.appendChild(s)}if(!q('#adminLifecycleLinkScript')){const x=document.createElement('script');x.id='adminLifecycleLinkScript';x.src='admin-lifecycle-linking.js?v=1';x.async=false;document.body.appendChild(x)}}
 function clickTab(id){const b=q(`.tabs .tab[data-tab="${id}"]`);if(b)b.click()}
 function initials(){const raw=(q('#whoami')?.textContent||'Admin').trim();const parts=raw.split(/\s+/).filter(Boolean).filter(x=>!x.includes('@'));if(!parts.length)return'A';return(parts[0][0]+(parts[1]?.[0]||'')).toUpperCase()}
