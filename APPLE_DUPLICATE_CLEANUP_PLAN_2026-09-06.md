@@ -1,8 +1,8 @@
-# Apple Canonical Duplicate Cleanup Plan — 2026-09-06
+# Apple Percentage-Text Duplicate Cleanup Plan — 2026-09-06
 
 Status: **Prepared only — no production mutation has been executed.**
 
-This plan records the exact active Apple catalogue rows that still contain retailer/listing condition text after their evidence source was re-aligned to Apple Support. Every dirty row already has a separate clean active canonical equivalent, so the safe cleanup direction is duplicate deactivation rather than renaming dirty rows into collisions.
+This plan records the remaining active Apple catalogue duplicates whose model names contain percentage or battery-health listing text. Condition/failure-text rows are intentionally excluded because that cleanup subset is already owned by merged PR #843.
 
 ## Safety boundary
 
@@ -12,17 +12,17 @@ Protected pricing must not be altered, copied, deleted, or remapped as part of a
 
 ## Verified live baseline
 
-The following dependency columns reference `device_catalog.id`:
+The dependency columns relevant to this cleanup are:
 
 - `inventory_items.device_catalog_id`
 - `device_buy_prices.device_catalog_id`
 - `device_buy_price_history.device_catalog_id`
 
-At the latest read-only check, all 12 dirty rows had zero inventory references and zero pricing-history references. Ten also had zero current pricing references. Two rows had one current protected pricing reference each.
+At the latest read-only check, all nine percentage/battery-health rows had zero inventory references and zero pricing-history references. Eight also had zero current pricing references. One row had one current protected pricing reference.
 
 ## Group A — unreferenced duplicate deactivation candidates
 
-These ten rows have a clean active target and zero inventory/pricing/pricing-history references. They are candidates for deactivation only after exact human approval and a final precondition recheck immediately before execution.
+These eight rows have a clean active target and zero inventory/pricing/pricing-history references. They are candidates for deactivation only after exact human approval and a final precondition recheck immediately before execution.
 
 | Dirty ID | Dirty model name | Clean target ID | Clean canonical model | AU model number | Dependency refs |
 |---:|---|---:|---|---|---|
@@ -34,21 +34,18 @@ These ten rows have a clean active target and zero inventory/pricing/pricing-his
 | 1059 | iPhone 15 Plus - - 90% | 525 | iPhone 15 Plus | A3094 | 0 / 0 / 0 |
 | 1060 | iPhone 16 Plus - - 100% | 550 | iPhone 16 Plus | A3290 | 0 / 0 / 0 |
 | 1062 | iPhone 16 Pro - - 93% | 35 | iPhone 16 Pro | A3293 | 0 / 0 / 0 |
-| 1070 | iPhone 8 Plus "Cracked Screen/Cant Update" | 645 | iPhone 8 Plus | unverified | 0 / 0 / 0 |
-| 1075 | iPhone Xs Max - Back Cracked | 626 | iPhone XS Max | unverified | 0 / 0 / 0 |
 
-The clean iPhone 8 Plus and iPhone XS Max targets are already active canonical rows but still have their own model-number verification gaps. Deactivating the dirty duplicates does **not** authorize guessing or filling those model numbers.
+## Group B — protected pricing blocker
 
-## Group B — protected pricing blockers
-
-These rows must **not** be deactivated or remapped by the generic cleanup because each has a live `device_buy_prices` reference.
+This row must **not** be deactivated or remapped by the generic cleanup because it has a live `device_buy_prices` reference.
 
 | Dirty ID | Dirty model name | Clean target ID | Clean canonical model | AU model number | Dependency refs | Status |
 |---:|---|---:|---|---|---|---|
 | 1063 | iPhone 16 Pro Max / Batt Health 100% | 551 | iPhone 16 Pro Max | A3296 | inventory 0 / pricing **1** / history 0 | BLOCKED — protected pricing |
-| 1206 | iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty | 1204 | iPad Air 2 | unverified | inventory 0 / pricing **1** / history 0 | BLOCKED — protected pricing |
 
-For ID 1206, the clean iPad Air 2 target is active but its AU model number is not yet verified. That metadata gap is independent of the duplicate cleanup.
+## Explicit exclusions
+
+IDs 1070, 1075, and 1206 are not part of this plan. They are condition/failure-text rows handled separately by the cleanup work already merged in PR #843. Their presence must not be inferred from this document, and this plan does not authorize any action on them.
 
 ## Required execution preconditions for Group A
 
@@ -59,7 +56,7 @@ Immediately before any approved production write, all of the following must stil
 3. `inventory_items` reference count is zero.
 4. `device_buy_prices` reference count is zero.
 5. `device_buy_price_history` reference count is zero.
-6. The dirty model name still matches a catalogue listing-text rejection rule.
+6. The dirty model name still matches the percentage/battery-health duplicate classification.
 7. No pricing, approval, Guardian, auth/RLS, release, or permission boundary is being changed.
 8. The exact approved ID set has not changed since human review.
 
@@ -75,27 +72,26 @@ The intended mutation for an explicitly approved Group A operation is **deactiva
 
 begin;
 
--- Recheck that none of the candidate rows acquired references.
 do $$
 begin
   if exists (
     select 1
-    from (values (1049),(1050),(1051),(1054),(1058),(1059),(1060),(1062),(1070),(1075)) v(id)
+    from (values (1049),(1050),(1051),(1054),(1058),(1059),(1060),(1062)) v(id)
     where exists (select 1 from public.inventory_items i where i.device_catalog_id=v.id)
        or exists (select 1 from public.device_buy_prices p where p.device_catalog_id=v.id)
        or exists (select 1 from public.device_buy_price_history h where h.device_catalog_id=v.id)
   ) then
-    raise exception 'Apple duplicate cleanup aborted: dependency precondition changed';
+    raise exception 'Apple percentage-text cleanup aborted: dependency precondition changed';
   end if;
 end $$;
 
 update public.device_catalog
 set active = false,
     updated_at = now()
-where id in (1049,1050,1051,1054,1058,1059,1060,1062,1070,1075)
+where id in (1049,1050,1051,1054,1058,1059,1060,1062)
   and active = true;
 
--- Expected affected-row count: exactly 10. Verify before commit.
+-- Expected affected-row count: exactly 8. Verify before commit.
 -- If the count or resulting state is unexpected: ROLLBACK.
 
 commit;
@@ -113,7 +109,7 @@ begin;
 update public.device_catalog
 set active = true,
     updated_at = now()
-where id in (1049,1050,1051,1054,1058,1059,1060,1062,1070,1075)
+where id in (1049,1050,1051,1054,1058,1059,1060,1062)
   and active = false;
 commit;
 ```
@@ -122,13 +118,14 @@ Rollback does not restore arbitrary metadata edits because the proposed operatio
 
 ## Validation after an approved execution
 
-- All ten approved dirty rows are inactive and their clean targets remain active.
-- IDs 1063 and 1206 remain unchanged unless a separate protected-pricing change was explicitly approved.
-- No inventory, pricing, or pricing-history references were created, deleted, or moved by this operation.
+- All eight approved percentage-text rows are inactive and their clean targets remain active.
+- ID 1063 remains unchanged unless a separate protected-pricing change is explicitly approved.
+- IDs 1070, 1075, and 1206 remain outside this plan.
+- No inventory, pricing, or pricing-history references are created, deleted, or moved by this operation.
 - Catalogue health is refreshed from one consistent live aggregate query.
 - Catalogue import validator and cleanup classifier remain green.
 - No protected pricing values or approvals change.
 
 ## Evidence note
 
-The live rows and target mappings were read from Supabase on 2026-09-06 Australia/Perth. Because another catalogue-normalization process has been active, this document must never substitute for the immediate pre-execution database recheck described above.
+The live rows and target mappings were read from Supabase on 2026-09-06 Australia/Perth. Because catalogue normalization can change production state, this document must never substitute for the immediate pre-execution database recheck described above.
