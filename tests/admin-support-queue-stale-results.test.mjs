@@ -18,4 +18,18 @@ const secondGuard = source.indexOf('if(requestVersion!==ticketLoadVersion)return
 const renderRows = source.indexOf("q('ticketsList').innerHTML=rows.map");
 assert.ok(attachProfiles >= 0 && secondGuard > attachProfiles && secondGuard < renderRows, 'a stale profile-enriched request must not render over newer filters');
 
-console.log('admin support queue stale-result regression: PASS');
+assert.match(source, /ticketDetailVersion=0/, 'ticket detail must track the newest open request');
+assert.match(source, /const requestVersion=\+\+ticketDetailVersion;/, 'each ticket detail load must claim a new request version');
+const detailGuards = source.match(/if\(requestVersion!==ticketDetailVersion\)return;/g) || [];
+assert.ok(detailGuards.length >= 2, 'ticket detail must reject stale results after the main fetch and after profile attachment');
+
+const detailStart = source.indexOf('async function openTicket(id)');
+const detailFetch = source.indexOf('await Promise.all', detailStart);
+const detailFirstGuard = source.indexOf('if(requestVersion!==ticketDetailVersion)return;', detailFetch);
+const detailAttach = source.indexOf('await attachTicketProfiles', detailFirstGuard);
+const detailSecondGuard = source.indexOf('if(requestVersion!==ticketDetailVersion)return;', detailAttach);
+const detailCommit = source.indexOf('currentTicket=t;', detailSecondGuard);
+assert.ok(detailStart >= 0 && detailFirstGuard > detailFetch, 'stale ticket fetches must be rejected before rendering errors or details');
+assert.ok(detailSecondGuard > detailAttach && detailSecondGuard < detailCommit, 'stale enriched ticket details must be rejected before becoming current');
+
+console.log('admin support async freshness regression: PASS');
