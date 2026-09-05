@@ -1,0 +1,37 @@
+{
+  "captured_at": "2026-09-06T01:51:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 927,
+      "brand": "Xiaomi",
+      "model_name": "REDMI Note 15 Pro 5G",
+      "verified_model_number": "25080RABDG",
+      "catalogue_source": "https://www.mi.com/au/product/redmi-note-15-pro-5g/specs/",
+      "evidence": [
+        "Xiaomi REDMI Note 15 Pro 5G regulatory/user-guide material identifies model 25080RABDG",
+        "FCC and product-information-sheet records identify Xiaomi Communications Co., Ltd. model 25080RABDG"
+      ],
+      "proposed_action": "review_for_model_number_update"
+    },
+    {
+      "device_catalog_id": 987,
+      "brand": "Xiaomi",
+      "model_name": "Xiaomi 15T Pro",
+      "verified_model_number": "2506PN68G",
+      "catalogue_source": "https://www.mi.com/global/product/xiaomi-15t-pro/specs/",
+      "evidence": [
+        "Xiaomi 15T Pro safety/regulatory material identifies model 2506PN68G"
+      ],
+      "proposed_action": "review_for_model_number_update"
+    }
+  ],
+  "excluded_unresolved_rows": [891, 892, 866, 893, 894, 903],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Do not infer model numbers for excluded rows from product names, codenames, retailer SKUs, or community-only lists.",
+    "Re-query each device row immediately before any future authorized production update and abort on drift, existing conflicting model_number, or identity mismatch."
+  ]
+}
