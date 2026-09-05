@@ -1,0 +1,15 @@
+{
+  "checked_date": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidates": [
+    {"candidate_id":1183,"candidate_name":"iPad 7th Gen Wifi","canonical_id":137,"canonical_name":"iPad 7th generation Wi-Fi","canonical_model_number":"A2197","candidate_storage_options":["128GB"],"candidate_dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0},"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1194,"candidate_name":"iPad A16 11-Inch Wifi + Cellular","canonical_id":133,"canonical_name":"iPad (A16) Cellular","canonical_model_number":"A3355","candidate_storage_options":["256GB"],"candidate_dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0},"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1237,"candidate_name":"iPad Pro 11-Inch M5 Wi-Fi Celluar","canonical_id":1239,"canonical_name":"iPad Pro 11-inch (M5) Wi-Fi + Cellular","canonical_model_number":"A3358","candidate_storage_options":["256GB"],"candidate_dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0},"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1238,"candidate_name":"iPad Pro 11-Inch, 4th Gen,Wifi","canonical_id":1251,"canonical_name":"iPad Pro 11-inch (4th generation) Wi-Fi","canonical_model_number":"A2759","candidate_storage_options":["128GB"],"candidate_dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0},"proposed_action":"deactivate_duplicate_candidate"},
+    {"candidate_id":1265,"candidate_name":"Pro 11-Inch Gen 2 , Wifi/Cell","canonical_id":1243,"canonical_name":"iPad Pro 11-inch (2nd generation) Wi-Fi + Cellular","canonical_model_number":"A2230","candidate_storage_options":["128GB"],"candidate_dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0},"proposed_action":"deactivate_duplicate_candidate"}
+  ],
+  "excluded_ambiguous_rows": [1182,1191,1192,1207,1232,1240,1241,1261,1263,1264],
+  "exclusion_reason": "These rows lack a unique connectivity, size, generation, or canonical counterpart in the current live catalogue; no hardware identity is inferred."
+}
