@@ -28,10 +28,17 @@ class CatalogueImportValidatorTests(unittest.TestCase):
         self.assertEqual(self.codes(self.valid_row()), set())
 
     def test_rejects_battery_health_listing_suffix(self):
-        self.assertIn(
-            "listing_text_in_model_name",
-            self.codes(self.valid_row(model_name="iPhone 16 Pro Max 256GB - 81%")),
-        )
+        for name in (
+            "iPhone 16 Pro Max 256GB - 81%",
+            "iPhone 11 79%",
+            "iPhone 15 85%",
+            "iPhone 16 Pro Max / Batt Health 100%",
+        ):
+            with self.subTest(name=name):
+                self.assertIn(
+                    "listing_text_in_model_name",
+                    self.codes(self.valid_row(model_name=name)),
+                )
 
     def test_rejects_condition_and_sold_as_is_text(self):
         for name in (
