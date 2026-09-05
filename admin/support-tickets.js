@@ -1,6 +1,6 @@
 (()=>{
 const q=id=>document.getElementById(id), esc2=v=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let currentTicket=null,supportAgents=[],ticketFreshnessTimer=null,lastTicketRefreshAt=null,ticketLoadVersion=0;
+let currentTicket=null,supportAgents=[],ticketFreshnessTimer=null,lastTicketRefreshAt=null,ticketLoadVersion=0,ticketDetailVersion=0;
 const statusLabel=s=>({open:'Open',in_progress:'In Progress',waiting_on_user:'Waiting on User',resolved:'Resolved',closed:'Closed'})[s]||s;
 const isClosed=t=>['resolved','closed'].includes(t?.status);
 const slaLabel=t=>{if(!t?.sla_due_at||isClosed(t))return '';const due=new Date(t.sla_due_at),ms=due-Date.now(),abs=Math.abs(ms),h=Math.max(1,Math.round(abs/36e5));return ms<0?`SLA overdue ${h}h`:`SLA due in ${h}h`};
@@ -68,10 +68,14 @@ async function loadTickets(){
 }
 async function openTicket(id){
  ensureTicketControls();ensureSupportStyles();
+ const requestVersion=++ticketDetailVersion;
  const detail=q('ticketDetail');if(detail){detail.classList.remove('hidden');q('ticketDetailTitle').textContent='Loading ticket…';detail.setAttribute('aria-busy','true');}
  const [{data:rawTicket,error},{data:m,error:messagesError}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_ticket_messages').select('*').eq('ticket_id',id).order('created_at')]);
+ if(requestVersion!==ticketDetailVersion)return;
  if(error){if(detail)detail.setAttribute('aria-busy','false');alert(error.message);return}
- const [t]=await attachTicketProfiles(rawTicket?[rawTicket]:[]);if(!t){if(detail)detail.setAttribute('aria-busy','false');alert('Support ticket could not be loaded.');return}currentTicket=t;
+ const [t]=await attachTicketProfiles(rawTicket?[rawTicket]:[]);
+ if(requestVersion!==ticketDetailVersion)return;
+ if(!t){if(detail)detail.setAttribute('aria-busy','false');alert('Support ticket could not be loaded.');return}currentTicket=t;
  q('ticketDetail').classList.remove('hidden'); q('ticketDetailTitle').textContent=t.subject;
  q('ticketDetailMeta').textContent=`${t.profiles?.display_name||t.profiles?.email||t.user_id} • ${t.category} • ${new Date(t.created_at).toLocaleString()} • ${t.app_version||'unknown app'} • ${t.device_model||'unknown device'}`;
  q('ticketDescription').textContent=t.description; q('ticketStatus').value=t.status;q('ticketPriority').value=t.priority;
