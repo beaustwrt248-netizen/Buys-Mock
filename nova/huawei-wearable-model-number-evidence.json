@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-09-06T09:23:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "rows": [
+    {
+      "id": 954,
+      "model_name": "HUAWEI WATCH FIT 4",
+      "verified_model_number": "SYA-B09",
+      "official_evidence": "HUAWEI WATCH FIT 4 official support model mapping",
+      "evidence_url": "https://consumer.huawei.com/jp/support/content/ja-jp15938700/",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 955,
+      "model_name": "HUAWEI WATCH GT 6 41mm",
+      "verified_model_number": "KSU-B19",
+      "official_evidence": "HUAWEI WATCH GT 6 official support downloads",
+      "evidence_url": "https://consumer.huawei.com/en/support/wearables/watch-gt6/",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 956,
+      "model_name": "HUAWEI WATCH GT 6 46mm",
+      "verified_model_number": "ATM-B19",
+      "official_evidence": "HUAWEI WATCH GT 6 official support downloads",
+      "evidence_url": "https://consumer.huawei.com/en/support/wearables/watch-gt6/",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "No active catalogue row used any of SYA-B09, KSU-B19 or ATM-B19 at the conflict-check point.",
+    "Re-query candidate rows, model-number conflicts and dependencies immediately before any future authorized production update.",
+    "Abort on row drift, identifier collision, identity mismatch or regional ambiguity."
+  ]
+}
