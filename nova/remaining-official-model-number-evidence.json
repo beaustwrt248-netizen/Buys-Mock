@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-09-06T09:23:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "rows": [
+    {
+      "id": 950,
+      "brand": "OnePlus",
+      "category": "tablet",
+      "model_name": "OnePlus Pad 3",
+      "verified_model_number": "OPD2415",
+      "market_region": "Global",
+      "official_evidence": "OnePlus PSTI Statement of Compliance",
+      "evidence_url": "https://www.oneplus.com/uk/pstisoc",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 957,
+      "brand": "OnePlus",
+      "category": "wearable",
+      "model_name": "OnePlus Watch 3 46mm",
+      "verified_model_number": "OPWWE251",
+      "market_region": "Global",
+      "official_evidence": "OnePlus PSTI Statement of Compliance",
+      "evidence_url": "https://www.oneplus.com/uk/pstisoc",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 959,
+      "brand": "Huawei",
+      "category": "tablet",
+      "model_name": "HUAWEI MatePad 12 X (2025)",
+      "verified_model_number": "LRT-W09",
+      "market_region": "Global",
+      "official_evidence": "HUAWEI MatePad 12 X 2025 support download identity",
+      "evidence_url": "https://consumer.huawei.com/en/support/tablets/matepad-12-x-2025/",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 958,
+      "brand": "Xiaomi",
+      "category": "wearable",
+      "model_name": "Xiaomi Watch S4",
+      "verified_model_number": "M2425W1",
+      "market_region": "Australia",
+      "official_evidence": "Xiaomi official Watch S4 specification",
+      "evidence_url": "https://www.mi.com/tw/product/xiaomi-watch-s4/specs/",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "explicitly_unresolved": [
+    {"id": 951, "reason": "Xiaomi Pad 7 Pro official product/FAQ evidence did not expose a sufficiently clear exact device model identifier in this audit."},
+    {"id": 880, "reason": "TCL official US evidence exposes T807W/T807M regional variants, but the catalogue row is Global/Brazil-sourced; do not collapse regions."}
+  ],
+  "safety_notes": [
+    "Game Boy Micro row 1367 is intentionally omitted from unresolved items because PR #870 recorded Nintendo first-party OXY-001 evidence on current main.",
+    "No Supabase write is performed by this evidence file.",
+    "Re-query every candidate and dependency reference immediately before any future authorized production update.",
+    "Abort on row drift, conflicting model_number values, identity mismatch, or regional ambiguity."
+  ]
+}
