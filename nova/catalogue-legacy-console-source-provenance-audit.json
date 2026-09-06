@@ -1,0 +1,63 @@
+{
+  "checked_at": "2026-09-06T10:22:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "rows": [
+    {
+      "id": 1030,
+      "brand": "Nintendo",
+      "model_name": "Super Nintendo Entertainment System",
+      "model_number": "SNSP-001A",
+      "release_year": 1992,
+      "current_source_name": "Nintendo / Australian launch reference",
+      "current_source_url": "https://www.cashconverters.com.au/shop/gaming/consoles-equipment/gaming-consoles/nintendo-game-console/028600297881",
+      "current_host_authority": "reseller",
+      "first_party_backstop_url": "https://www.nintendo.com/au/about/history/",
+      "first_party_backstop_scope": "Nintendo Australia history confirms the Super NES product lineage, but the page does not publish the exact Australian SNSP-001A chassis identifier.",
+      "source_upgrade_status": "exact_first_party_identifier_source_not_found",
+      "recommended_action": "Do not replace exact identifier evidence with a broader first-party page that does not prove SNSP-001A. Keep the row flagged for legacy-source review until manufacturer-authored exact hardware documentation is located.",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 1031,
+      "brand": "Sony",
+      "model_name": "PlayStation",
+      "model_number": "SCPH-7502",
+      "release_year": 1998,
+      "current_source_name": "Sony PlayStation / SCPH-7502 manual",
+      "current_source_url": "https://manualmachine.com/sony/scph7502/14503476-instruction-manual/",
+      "current_host_authority": "third_party_manual_archive",
+      "document_authority": "Sony Computer Entertainment",
+      "source_upgrade_status": "manufacturer_document_archived_offsite",
+      "recommended_action": "Preserve the distinction between Sony-authored manual evidence and third-party hosting. Do not label the hosting URL itself as a Sony first-party webpage.",
+      "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0}
+    },
+    {
+      "id": 1035,
+      "brand": "Sony",
+      "model_name": "PlayStation 3",
+      "model_number": "CECHH02",
+      "release_year": 2007,
+      "current_source_name": "Sony / PlayStation",
+      "current_source_url": "https://www.vgcollect.com/item/229977",
+      "current_host_authority": "secondary_database",
+      "first_party_backstop_url": "https://www.sony.com/en/SonyInfo/IR/news/2007_p.html",
+      "first_party_backstop_scope": "Sony's 2007 IR archive confirms the CECHH00-series 40GB revision family and November 2007 timing, but does not identify the Australian CECHH02 regional suffix.",
+      "source_upgrade_status": "exact_regional_first_party_source_not_found",
+      "recommended_action": "Do not represent VGCollect as Sony/PlayStation. Retain CECHH02 as secondary exact-region evidence with Sony first-party CECHH00-series evidence as a family-level backstop until an exact manufacturer-authored CECHH02 source is located.",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "audit_rules": [
+    "source_name must describe the authority actually represented by source_url, not a stronger manufacturer authority than the host/evidence supports.",
+    "A broad first-party family page must not replace exact regional/revision evidence unless it proves the exact catalogue identity.",
+    "Manufacturer-authored documents hosted by archives may be used as document evidence, but hosting authority must be recorded separately."
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Row 1031 has one protected pricing reference; source-provenance cleanup must not modify or reassign pricing.",
+    "Re-query row identity, source metadata and dependency references before any future authorized production update.",
+    "Abort if stronger contradictory manufacturer evidence is found."
+  ]
+}
