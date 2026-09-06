@@ -7,6 +7,14 @@ on:
       - 'android/novaapp/**'
       - 'android/settings.gradle'
       - '.github/workflows/nova-apk-build.yml'
+      - 'nova/nova-update.json'
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/novaapp/**'
+      - 'android/settings.gradle'
+      - '.github/workflows/nova-apk-build.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,11 +23,25 @@ jobs:
   build-nova-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      nova_app_changed: ${{ steps.nova-change.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Detect Nova app source change
+        id: nova-change
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- android/novaapp; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Java 17
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
@@ -36,25 +58,182 @@ jobs:
           set -euo pipefail
           gradle :novaapp:testDebugUnitTest :novaapp:lintDebug --stacktrace --console=plain
       - name: Build Nova debug APK
+        if: github.event_name == 'pull_request'
         working-directory: android
         shell: bash
         run: |
           set -euo pipefail
           gradle :novaapp:assembleDebug --stacktrace --console=plain
-      - name: Stage Nova APK
+      - name: Stage Nova PR APK
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NAME="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
+          match=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not match: raise SystemExit('Missing Nova versionName')
+          print(match.group(1))
+          PY
+          )"
+          mkdir -p dist
+          cp android/novaapp/build/outputs/apk/debug/novaapp-debug.apk "dist/Nova-AI-${VERSION_NAME}-debug.apk"
+          sha256sum "dist/Nova-AI-${VERSION_NAME}-debug.apk" > "dist/Nova-AI-${VERSION_NAME}-debug.apk.sha256"
+          sha256sum --check "dist/Nova-AI-${VERSION_NAME}-debug.apk.sha256"
+      - name: Upload Nova PR APK artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nova-ai-debug-apk
+          path: dist/Nova-AI-*-debug.apk*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-nova-ota:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || needs.build-nova-apk.outputs.nova_app_changed == 'true')
+    needs: build-nova-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout exact Nova release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Java 17
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '9.3.1'
+      - name: Resolve and validate Nova release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          text=Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)', text)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not code or not name:
+              raise SystemExit('Invalid Nova release identity')
+          current_code=int(code.group(1)); current_name=name.group(1).strip()
+          metadata=Path('nova/nova-update.json')
+          published=json.loads(metadata.read_text(encoding='utf-8')) if metadata.exists() else {'versionCode':0}
+          published_code=int(published.get('versionCode',0))
+          if current_code != published_code + 1:
+              raise SystemExit(f'Nova app source changed: versionCode {current_code} must be exactly one above published Nova OTA {published_code}.')
+          safe=re.sub(r'[^A-Za-z0-9._-]+','-',current_name).strip('-')
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as fh:
+              fh.write(f'NOVA_VERSION_CODE={current_code}\n')
+              fh.write(f'NOVA_VERSION_NAME={current_name}\n')
+              fh.write(f'NOVA_VERSION_SAFE={safe}\n')
+              fh.write(f'NOVA_RELEASE_TAG=nova-v{safe}\n')
+              fh.write(f'NOVA_RELEASE_FILE=Nova-AI-{safe}.apk\n')
+          PY
+      - name: Prepare stable Nova signing key
+        env:
+          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
+          KEY_PASSWORD_RAW: ${{ secrets.BL_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
+          STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
+          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
+          KEY_PASSWORD="$(printf '%s' "$KEY_PASSWORD_RAW" | tr -d '\r\n')"
+          test -n "$KEYSTORE_BASE64" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS"
+          KEYSTORE_PATH="$RUNNER_TEMP/nova-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          if [ -n "$KEY_PASSWORD" ]; then echo "B_AND_L_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"; fi
+      - name: Build stable signed Nova release APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :novaapp:assembleRelease --stacktrace --console=plain
+      - name: Stage and verify Nova release APK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android/novaapp/build/outputs/apk/debug/novaapp-debug.apk dist/Nova-AI-0.1.0-debug.apk
-          sha256sum dist/Nova-AI-0.1.0-debug.apk > dist/Nova-AI-0.1.0-debug.apk.sha256
-          sha256sum --check dist/Nova-AI-0.1.0-debug.apk.sha256
-      - name: Upload Nova APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: nova-ai-debug-apk
-          path: |
-            dist/Nova-AI-0.1.0-debug.apk
-            dist/Nova-AI-0.1.0-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
+          cp android/novaapp/build/outputs/apk/release/novaapp-release.apk "dist/${NOVA_RELEASE_FILE}"
+          sha256sum "dist/${NOVA_RELEASE_FILE}" | tee "dist/${NOVA_RELEASE_FILE}.sha256"
+          sha256sum --check "dist/${NOVA_RELEASE_FILE}.sha256"
+          EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b
+          APKSIGNER="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "dist/${NOVA_RELEASE_FILE}")"
+          ACTUAL_CERT_SHA256="$(printf '%s\n' "$SIGNATURE_OUTPUT" | sed -n -E 's/^(V2 Signer: |Signer #1 )?certificate SHA-256 digest: ([0-9a-fA-F]+)$/\2/p' | head -n 1 | tr '[:upper:]' '[:lower:]')"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+          NOVA_SHA256="$(sha256sum "dist/${NOVA_RELEASE_FILE}" | awk '{print $1}')"
+          echo "NOVA_SHA256=$NOVA_SHA256" >> "$GITHUB_ENV"
+      - name: Publish immutable Nova GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$NOVA_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Nova release tag $NOVA_RELEASE_TAG already exists; refusing version identity reuse." >&2
+            exit 1
+          fi
+          gh release create "$NOVA_RELEASE_TAG" "dist/${NOVA_RELEASE_FILE}" "dist/${NOVA_RELEASE_FILE}.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nova AI ${NOVA_VERSION_NAME}" \
+            --notes "Verified Nova AI Android OTA release. Built from ${GITHUB_SHA}; Nova tests, lint, stable signer verification and SHA-256 integrity verification passed." \
+            --latest=false
+      - name: Publish Nova OTA metadata through protected main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          gradle=Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
+          code=re.search(r'\bversionCode\s+(\d+)', gradle)
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          expected_code=int(os.environ['NOVA_VERSION_CODE'])
+          expected_name=os.environ['NOVA_VERSION_NAME']
+          if not code or not name or int(code.group(1)) != expected_code or name.group(1) != expected_name:
+              raise SystemExit('Main advanced to a different Nova version; refusing stale OTA metadata.')
+          release_file=os.environ['NOVA_RELEASE_FILE']
+          data={
+              'versionCode': expected_code,
+              'versionName': expected_name,
+              'apkUrl': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['NOVA_RELEASE_TAG']}/{release_file}",
+              'sha256': os.environ['NOVA_SHA256'],
+              'mandatory': False,
+              'notes': f"Nova AI {expected_name} is available."
+          }
+          Path('nova').mkdir(exist_ok=True)
+          Path('nova/nova-update.json').write_text(json.dumps(data, indent=2)+"\n", encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nova/nova-update.json
+          if git diff --cached --quiet; then
+            echo 'Nova OTA metadata already current.'
+            exit 0
+          fi
+          git commit -m "Publish Nova OTA ${NOVA_VERSION_NAME} [skip ci]"
+          gh auth setup-git
+          git push origin HEAD:main
