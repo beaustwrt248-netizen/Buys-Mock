@@ -5,14 +5,6 @@
   "pre_execution_recheck_required": true,
   "rows": [
     {
-      "id": 954,
-      "model_name": "HUAWEI WATCH FIT 4",
-      "verified_model_number": "SYA-B09",
-      "official_evidence": "HUAWEI WATCH FIT 4 official support model mapping",
-      "evidence_url": "https://consumer.huawei.com/jp/support/content/ja-jp15938700/",
-      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
-    },
-    {
       "id": 955,
       "model_name": "HUAWEI WATCH GT 6 41mm",
       "verified_model_number": "KSU-B19",
@@ -29,9 +21,22 @@
       "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
     }
   ],
+  "explicitly_unresolved": [
+    {
+      "id": 954,
+      "model_name": "HUAWEI WATCH FIT 4",
+      "market_region": "Australia",
+      "source_name": "HUAWEI Australia",
+      "source_url": "https://consumer.huawei.com/au/wearables/watch-fit4/",
+      "known_first_party_variant_codes": ["SYA-B09", "SYA-B19"],
+      "reason": "Huawei first-party support material maps WATCH FIT 4 to different model codes across regions/variants, while the Australian product page used by this catalogue row does not expose a definitive hardware model code. Do not assign a universal code without Australia-specific variant evidence.",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
   "safety_notes": [
     "No Supabase write is performed by this evidence file.",
-    "No active catalogue row used any of SYA-B09, KSU-B19 or ATM-B19 at the conflict-check point.",
+    "GT 6 model codes remain size-specific first-party mappings: KSU-B19 for 41mm and ATM-B19 for 46mm.",
+    "WATCH FIT 4 row 954 is deliberately unresolved rather than choosing SYA-B09 or SYA-B19 without Australia-specific variant proof.",
     "Re-query candidate rows, model-number conflicts and dependencies immediately before any future authorized production update.",
     "Abort on row drift, identifier collision, identity mismatch or regional ambiguity."
   ]
