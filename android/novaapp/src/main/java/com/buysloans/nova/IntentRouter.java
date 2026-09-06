@@ -3,15 +3,21 @@ package com.buysloans.nova;
 import java.util.Locale;
 
 final class IntentRouter {
-    enum Intent { GREETING, CAPABILITIES, ATTENTION, PERFORMANCE, INVENTORY, GUARDIAN, SUPPORT, RELEASES, CATALOGUE, LEARNING, UNKNOWN }
+    enum Intent { GREETING, SMALL_TALK, CAPABILITIES, ATTENTION, PERFORMANCE, INVENTORY, GUARDIAN, SUPPORT, RELEASES, CATALOGUE, LEARNING, UNKNOWN }
 
     private IntentRouter() {}
 
     static Intent classify(String text) {
         String x = normalise(text);
         if (x.isEmpty()) return Intent.UNKNOWN;
-        if (x.matches("(hi|hey|hello|hiya|yo|howdy)( nova)?")) return Intent.GREETING;
-        if (x.contains("what can you do") || x.contains("capabilities") || x.contains("help me use nova")) return Intent.CAPABILITIES;
+        if (x.matches("(hi|hey|hello|hiya|yo|howdy|good morning|good afternoon|good evening)( nova)?")) return Intent.GREETING;
+        if (containsAny(x,
+                "how are you", "how are things", "how s it going", "how is it going", "you good", "are you okay",
+                "thanks", "thank you", "cheers", "nice", "awesome", "great", "good job", "well done",
+                "who are you", "what are you", "what s your name", "what is your name", "tell me about yourself",
+                "what are you doing", "what do you think", "are you there", "good night", "bye", "goodbye", "see you",
+                "tell me a joke", "joke", "i m tired", "im tired", "i am tired", "i m bored", "im bored", "i am bored")) return Intent.SMALL_TALK;
+        if (x.contains("what can you do") || x.contains("capabilities") || x.contains("help me use nova") || x.contains("how can you help")) return Intent.CAPABILITIES;
         if (containsAny(x,
                 "what needs my attention", "what needs attention", "needs attention", "need my attention",
                 "what should i look at", "what should i check", "highest priority", "urgent items", "anything urgent")) return Intent.ATTENTION;
@@ -27,15 +33,15 @@ final class IntentRouter {
 
     static boolean isFollowUp(String text) {
         String x = normalise(text);
-        if (x.isEmpty() || x.length() >= 100) return false;
+        if (x.isEmpty() || x.length() >= 120) return false;
         return x.equals("why") || x.equals("how") || x.equals("which") || x.equals("tell me more") ||
-                x.equals("more") || x.equals("what else") || x.equals("what about that") ||
+                x.equals("more") || x.equals("what else") || x.equals("what about that") || x.equals("really") ||
                 x.equals("and that") || x.startsWith("why ") || x.startsWith("which ") ||
                 x.startsWith("what about ") || x.startsWith("how about ") || x.startsWith("and ") ||
                 x.startsWith("tell me more") || x.startsWith("go deeper") || x.startsWith("explain that");
     }
 
-    private static String normalise(String text) {
+    static String normalise(String text) {
         return text == null ? "" : text.toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9 ]", " ")
                 .replaceAll("\\s+", " ")
