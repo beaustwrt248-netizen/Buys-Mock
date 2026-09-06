@@ -13,9 +13,14 @@ fun MobilePhonePhoto(
     imageReferenceUrl: String? = null,
     modifier: Modifier = Modifier,
     categoryRepresentative: Boolean = false,
+    allowLiveReference: Boolean = true,
 ) {
-    val liveReference = model?.let { LiveDevicePricing.device("mobile_phone", brand, it)?.imageReferenceUrl }
-    val referenceUrl = remember(brand, model, imageReferenceUrl, liveReference, categoryRepresentative) {
+    val liveReference = if (allowLiveReference) {
+        model?.let { LiveDevicePricing.device("mobile_phone", brand, it)?.imageReferenceUrl }
+    } else {
+        null
+    }
+    val referenceUrl = remember(brand, model, imageReferenceUrl, liveReference, categoryRepresentative, allowLiveReference) {
         imageReferenceUrl?.trim()?.takeIf { it.isNotBlank() }
             ?: liveReference?.trim()?.takeIf { it.isNotBlank() }
             ?: when {

@@ -86,6 +86,38 @@ private fun categoryLabel(category: String): String = when (normalizeCatalogueCa
 }
 
 @Composable
+private fun CatalogueDevicePhoto(device: LiveDeviceCatalogueRow) {
+    val category = normalizeCatalogueCategory(device.category)
+    val directImage = DeviceImageResolver.directImageUrl(device.imageReferenceUrl)
+    if (category == "mobile_phone") {
+        MobilePhonePhoto(
+            brand = device.brand,
+            model = device.model,
+            imageReferenceUrl = directImage,
+            modifier = Modifier.padding(6.dp).size(64.dp),
+            allowLiveReference = false,
+        )
+        return
+    }
+
+    DeviceCataloguePhoto(
+        brand = device.brand,
+        model = device.model,
+        imageReferenceUrl = directImage,
+        modifier = Modifier.padding(6.dp).size(64.dp),
+    ) {
+        val visual = when (category) {
+            "laptop" -> PricingVisual.LAPTOP
+            "desktop" -> PricingVisual.DESKTOP
+            "console" -> PricingVisual.CONSOLE
+            "tablet", "wearable" -> PricingVisual.PHONE
+            else -> PricingVisual.PHONE
+        }
+        PricingCategoryVisual(visual, Modifier.size(40.dp))
+    }
+}
+
+@Composable
 fun LiveDeviceCatalogueBrowser(category: String? = null) {
     var query by remember(category) { mutableStateOf("") }
     val all = LiveDevicePricing.catalogue()
@@ -140,20 +172,7 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(color = MorleyAccentSoft, shape = RoundedCornerShape(14.dp)) {
-                        DeviceCataloguePhoto(
-                            brand = device.brand,
-                            model = device.model,
-                            imageReferenceUrl = device.imageReferenceUrl,
-                            modifier = Modifier.padding(6.dp).size(64.dp),
-                        ) {
-                            Text(
-                                device.brand.take(2).uppercase(),
-                                modifier = Modifier.padding(16.dp),
-                                color = MorleyAccent,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                            )
-                        }
+                        CatalogueDevicePhoto(device)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(device.model, color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
