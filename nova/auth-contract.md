@@ -6,4 +6,4 @@ Nova web and Nova Android must use the same Morley Supabase Auth identity store.
 
 The public/publishable Supabase key may be present in client code; no service-role key, password, or privileged credential may be shipped to the browser or APK. Protected database rows and Edge Function operations must remain guarded by the authenticated bearer token and server-side RLS/authorization.
 
-The web control centre must stay visually locked and defer its normal network reads until the shared Morley account has been validated. Sign-out must clear the Nova browser session. Static hosting cannot make shipped static files confidential, so sensitive Nova data must not be emitted as static JSON/assets.
+The web control centre must stay visually locked and defer its own same-origin and GitHub data reads until the shared Morley account has been validated. The network gate must not intercept Cloudflare Turnstile or authentication-provider infrastructure needed to complete sign-in. Sign-out must clear the Nova browser session. Static hosting cannot make shipped static files confidential, so sensitive Nova data must not be emitted as static JSON/assets.
