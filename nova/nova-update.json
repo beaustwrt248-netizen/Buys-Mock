@@ -1,8 +1,8 @@
 {
-  "versionCode": 11,
-  "versionName": "0.3.7",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.7/Nova-AI-0.3.7.apk",
-  "sha256": "3e40a980336157b8b8056f2cbea23d4d78cbf328ab3b4e69cb79c0c2dafb8529",
+  "versionCode": 12,
+  "versionName": "0.3.8",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.8/Nova-AI-0.3.8.apk",
+  "sha256": "a0a30bb79c04021e8623ecd576eb98474da48ba6ea83fadd5d61402f4372f23c",
   "mandatory": false,
-  "notes": "Nova AI 0.3.7 is available."
+  "notes": "Nova AI 0.3.8 is available."
 }
