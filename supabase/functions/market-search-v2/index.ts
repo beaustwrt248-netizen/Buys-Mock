@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { dedupeListings, isAllowedMarketplaceResult, isAllowedRetailResult } from "./source-policy.mjs";
 
 const ORIGIN = "https://beaustwrt248-netizen.github.io";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -45,11 +46,12 @@ async function ebay(q: string, limit: number) {
   const r = await fetch(u, { headers: { Authorization: `Bearer ${await token()}`, "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU", "Accept-Language": "en-AU" } });
   if (!r.ok) throw Error(`eBay search ${r.status}`);
   const d = await r.json();
-  const items = (d.itemSummaries || []).map((i: any) => {
+  const raw = (d.itemSummaries || []).map((i: any) => {
     const p = Number(i?.price?.value), vals = (i.shippingOptions || []).map((s: any) => Number(s?.shippingCost?.value)).filter((v: number) => Number.isFinite(v) && v >= 0), ship = vals.length ? Math.min(...vals) : 0;
-    return { title: i.title || "", price: p, deliveredPrice: p + ship, condition: i.condition || "", url: i.itemWebUrl || null, seller: i.seller?.username || "eBay AU", source: "eBay AU" };
+    return { title: i.title || "", price: p, deliveredPrice: p + ship, condition: i.condition || "", url: i.itemWebUrl || null, seller: i.seller?.username || "eBay AU", source: "eBay AU", sourceClass: "used-marketplace" };
   }).filter((x: any) => Number.isFinite(x.price) && x.price > 0);
-  return { provider: "ebay", items };
+  const items = dedupeListings(raw);
+  return { provider: "ebay", items, analysedListings: raw.length, retainedListings: items.length };
 }
 async function braveWeb(q: string, count: number) {
   const key = Deno.env.get("BRAVE_SEARCH_API_KEY");
@@ -67,28 +69,23 @@ async function braveWeb(q: string, count: number) {
 }
 async function braveRetail(q: string, limit: number) {
   const d = await braveWeb(`${q} price Australia buy new`, limit);
-  const items = (d.web?.results || []).map((x: any) => {
+  const raw = (d.web?.results || []).map((x: any) => {
     const text = `${x.title || ""} ${x.description || ""} ${(x.extra_snippets || []).join(" ")}`, price = priceFromText(text);
     let source = "";
     try { source = new URL(x.url).hostname.replace(/^www\./, ""); } catch {}
-    return { title: x.title || "", price, source: source || "Brave Search", store: source || "Brave Search", url: x.url || null, description: x.description || "" };
+    return { title: x.title || "", price, source: source || "Brave Search", store: source || "Brave Search", url: x.url || null, description: x.description || "", seller: "", sourceClass: "retail-reference" };
   }).filter((x: any) => x.price > 0);
-  return { provider: "brave", items, analysedListings: items.length };
+  const items = dedupeListings(raw.filter((x: any) => isAllowedRetailResult(x)));
+  return { provider: "brave", items, analysedListings: raw.length, retainedListings: items.length };
 }
 async function braveMarketplace(q: string, source: "gumtree" | "facebook", limit: number) {
   const site = source === "gumtree" ? "site:gumtree.com.au" : "site:facebook.com/marketplace/item";
   const d = await braveWeb(`${site} ${q}`, limit);
-  const items = (d.web?.results || []).map((x: any) => {
+  const raw = (d.web?.results || []).map((x: any) => {
     const text = `${x.title || ""} ${x.description || ""}`, price = priceFromText(text);
-    return { title: x.title || "", price, source: source === "gumtree" ? "Gumtree" : "Facebook Marketplace", url: x.url || "", condition: "Used / marketplace", snippet: x.description || "" };
+    return { title: x.title || "", price, source: source === "gumtree" ? "Gumtree" : "Facebook Marketplace", url: x.url || "", condition: "Used / marketplace", snippet: x.description || "", sourceClass: "used-marketplace" };
   }).filter((x: any) => x.title && x.url && x.price > 0);
-  const seen = new Set<string>();
-  return items.filter((x: any) => {
-    const k = `${n(x.title)}|${Math.round(x.price)}|${x.url}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  }).slice(0, 20);
+  return dedupeListings(raw.filter((x: any) => isAllowedMarketplaceResult(x, source))).slice(0, 20);
 }
 async function serpRetail(q: string, limit: number) {
   const key = Deno.env.get("SERPAPI_KEY");
@@ -102,8 +99,9 @@ async function serpRetail(q: string, limit: number) {
   const r = await fetch(u);
   if (!r.ok) throw Error(`SerpApi ${r.status}`);
   const d = await r.json();
-  const items = (d.shopping_results || []).slice(0, limit).map((x: any) => ({ title: x.title || "", price: Number(x.extracted_price ?? String(x.price || "").replace(/[^0-9.]/g, "")), source: x.source || x.merchant || "Google Shopping", store: x.source || x.merchant || "Google Shopping", url: x.product_link || x.link || null })).filter((x: any) => Number.isFinite(x.price) && x.price > 0);
-  return { provider: "serpapi-google-shopping", items, analysedListings: items.length };
+  const raw = (d.shopping_results || []).slice(0, limit).map((x: any) => ({ title: x.title || "", price: Number(x.extracted_price ?? String(x.price || "").replace(/[^0-9.]/g, "")), source: x.source || x.merchant || "Google Shopping", store: x.source || x.merchant || "Google Shopping", seller: x.merchant || x.source || "", url: x.product_link || x.link || null, sourceClass: "retail-reference" })).filter((x: any) => Number.isFinite(x.price) && x.price > 0);
+  const items = dedupeListings(raw.filter((x: any) => isAllowedRetailResult(x)));
+  return { provider: "serpapi-google-shopping", items, analysedListings: raw.length, retainedListings: items.length };
 }
 async function serpMarketplace(q: string, source: "gumtree" | "facebook") {
   const key = Deno.env.get("SERPAPI_KEY");
@@ -119,10 +117,11 @@ async function serpMarketplace(q: string, source: "gumtree" | "facebook") {
   const r = await fetch(u);
   if (!r.ok) throw Error(`${source} fallback ${r.status}`);
   const d = await r.json();
-  return (d.organic_results || []).map((x: any) => {
+  const raw = (d.organic_results || []).map((x: any) => {
     const text = `${x.title || ""} ${x.snippet || ""}`, price = priceFromText(text);
-    return { title: x.title || "", price, source: source === "gumtree" ? "Gumtree" : "Facebook Marketplace", url: x.link || "", condition: "Used / marketplace", snippet: x.snippet || "" };
-  }).filter((x: any) => x.title && x.url && x.price > 0).slice(0, 20);
+    return { title: x.title || "", price, source: source === "gumtree" ? "Gumtree" : "Facebook Marketplace", url: x.link || "", condition: "Used / marketplace", snippet: x.snippet || "", sourceClass: "used-marketplace" };
+  }).filter((x: any) => x.title && x.url && x.price > 0);
+  return dedupeListings(raw.filter((x: any) => isAllowedMarketplaceResult(x, source))).slice(0, 20);
 }
 
 Deno.serve(async req => {
@@ -151,7 +150,7 @@ Deno.serve(async req => {
     if (gumtree.length < 1) { try { gumtree = await serpMarketplace(q, "gumtree"); gumtreeFallback = "serpapi"; } catch (err) { gumtreeFallback = String(err); } }
     if (facebook.length < 1) { try { facebook = await serpMarketplace(q, "facebook"); facebookFallback = "serpapi"; } catch (err) { facebookFallback = String(err); } }
     if (!e && !webRetail && !gumtree.length && !facebook.length) throw Error("All market sources failed");
-    return reply({ success: true, query: q, currency: "AUD", ebay: e, webRetail, google: webRetail, retailProvider: webRetail?.provider || null, gumtree: { provider: gumtreeFallback ? "serpapi" : "brave", items: gumtree }, facebook: { provider: facebookFallback ? "serpapi" : "brave", items: facebook }, sourcePriority: { retail: ["brave", "serpapi-google-shopping"], marketplaces: ["brave", "serpapi"] }, sourceErrors: { ebay: er.status === "rejected" ? String(er.reason) : null, braveRetail: br.status === "rejected" ? String(br.reason) : null, braveGumtree: gm.status === "rejected" ? String(gm.reason) : null, braveFacebook: fm.status === "rejected" ? String(fm.reason) : null, retailFallback, gumtreeFallback, facebookFallback } });
+    return reply({ success: true, query: q, currency: "AUD", ebay: e, webRetail, google: webRetail, retailProvider: webRetail?.provider || null, gumtree: { provider: gumtreeFallback ? "serpapi" : "brave", items: gumtree }, facebook: { provider: facebookFallback ? "serpapi" : "brave", items: facebook }, sourcePriority: { used: ["ebay", "gumtree", "facebook"], retail: ["brave", "serpapi-google-shopping"], marketplaces: ["brave", "serpapi"] }, sourcePolicy: { mode: "trusted-sellers-only", rejectsEditorial: true, rejectsReddit: true, retailIsReferenceOnly: true }, sourceErrors: { ebay: er.status === "rejected" ? String(er.reason) : null, braveRetail: br.status === "rejected" ? String(br.reason) : null, braveGumtree: gm.status === "rejected" ? String(gm.reason) : null, braveFacebook: fm.status === "rejected" ? String(fm.reason) : null, retailFallback, gumtreeFallback, facebookFallback } });
   } catch (err) {
     return reply({ error: err instanceof Error ? err.message : String(err) }, 500);
   }
