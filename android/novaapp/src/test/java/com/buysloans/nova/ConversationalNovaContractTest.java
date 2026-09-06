@@ -9,19 +9,14 @@ import java.nio.file.Path;
 import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
+    private static String readUtf8(String path) throws Exception {
+        return new String(Files.readAllBytes(Path.of(path)), StandardCharsets.UTF_8);
+    }
+
     @Test public void conversationAndNavigationFeaturesRemainPresent() throws Exception {
-        String source = Files.readString(
-                Path.of("src/main/java/com/buysloans/nova/MainActivity.java"),
-                StandardCharsets.UTF_8
-        );
-        String engine = Files.readString(
-                Path.of("src/main/java/com/buysloans/nova/NovaAssistantEngine.java"),
-                StandardCharsets.UTF_8
-        );
-        String router = Files.readString(
-                Path.of("src/main/java/com/buysloans/nova/IntentRouter.java"),
-                StandardCharsets.UTF_8
-        );
+        String source = readUtf8("src/main/java/com/buysloans/nova/MainActivity.java");
+        String engine = readUtf8("src/main/java/com/buysloans/nova/NovaAssistantEngine.java");
+        String router = readUtf8("src/main/java/com/buysloans/nova/IntentRouter.java");
 
         assertTrue(source.contains("enum Tab { CHAT, INTELLIGENCE, UPDATES, ACCOUNT }"));
         assertTrue(source.contains("navButton(\"Chat\",Tab.CHAT)"));
