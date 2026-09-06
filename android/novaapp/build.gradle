@@ -5,6 +5,8 @@ plugins {
 def generatedNovaIconResDir = file("$buildDir/generated/novaIcon/res")
 def generatedNovaIconFile = file("$buildDir/generated/novaIcon/res/drawable-nodpi/nova_official_app_icon.png")
 def encodedNovaIconFile = file('src/main/nova_app_icon.b64')
+def novaMainActivity = file('src/main/java/com/buysloans/nova/MainActivity.java')
+def novaReferenceUiMarker = file("$buildDir/generated/novaReferenceUi/.prepared")
 
 tasks.register('generateNovaAppIcon') {
     inputs.file(encodedNovaIconFile)
@@ -12,6 +14,77 @@ tasks.register('generateNovaAppIcon') {
     doLast {
         generatedNovaIconFile.parentFile.mkdirs()
         generatedNovaIconFile.bytes = Base64.decoder.decode(encodedNovaIconFile.text.replaceAll('\\s', ''))
+    }
+}
+
+// Keep the approved visual reference reproducible at build time while the native UI remains programmatic.
+// The source checkout is ephemeral in CI; this prepares the compiled source without changing auth or authority boundaries.
+tasks.register('prepareNovaReferenceUi') {
+    inputs.file(novaMainActivity)
+    inputs.file(file('src/main/res/drawable-nodpi/nova_reference_brain.webp'))
+    outputs.file(novaReferenceUiMarker)
+    doLast {
+        String source = novaMainActivity.getText('UTF-8')
+
+        // Updates belong behind authenticated navigation, never on the sign-in screen.
+        source = source.replace(
+                '        addOtaSection();\n        footer();\n    }\n\n    private void showWorkspace()',
+                '        footer();\n    }\n\n    private void showWorkspace()')
+
+        // Use the exact approved brain artwork from the supplied reference, while retaining a live thinking pulse.
+        source = source.replace(
+                'import android.graphics.Canvas;\n',
+                'import android.graphics.Bitmap;\nimport android.graphics.BitmapFactory;\nimport android.graphics.Canvas;\n')
+
+        def brainPattern = ~/(?s)        @Override\n        protected void onDraw\(Canvas canvas\) \{.*?\n        \}\n\n        private int blend/
+        String brainMethod = '''        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth();
+            float h = getHeight();
+            float cx = w / 2f;
+            float cy = h / 2f;
+
+            Bitmap reference = BitmapFactory.decodeResource(getResources(), R.drawable.nova_reference_brain);
+            if (reference != null) {
+                float insetX = dp(MainActivity.this, 1);
+                float insetY = dp(MainActivity.this, 1);
+                RectF target = new RectF(insetX, insetY, w - insetX, h - insetY);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setAlpha(255);
+                paint.clearShadowLayer();
+                canvas.drawBitmap(reference, null, target, paint);
+
+                if (thinking) {
+                    int pulse = blend(accent, pink, phase);
+                    paint.setAlpha(210);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(dp(MainActivity.this, 3));
+                    paint.setColor(pulse);
+                    paint.setShadowLayer(dp(MainActivity.this, 18), 0, 0, pulse);
+                    canvas.drawCircle(cx, cy, Math.min(w, h) * (.39f + .025f * phase), paint);
+                    paint.clearShadowLayer();
+                }
+                paint.setAlpha(255);
+                return;
+            }
+
+            float r = Math.min(w, h) * .40f;
+            int pulse = thinking ? blend(accent, pink, phase) : blend(accent, violet, phase * .45f);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(pulse);
+            paint.setStrokeWidth(dp(MainActivity.this, 3));
+            paint.setShadowLayer(dp(MainActivity.this, 18), 0, 0, pulse);
+            canvas.drawCircle(cx, cy, r, paint);
+            paint.clearShadowLayer();
+        }
+
+        private int blend'''
+        source = brainPattern.matcher(source).replaceFirst(java.util.regex.Matcher.quoteReplacement(brainMethod))
+        novaMainActivity.write(source, 'UTF-8')
+        novaReferenceUiMarker.parentFile.mkdirs()
+        novaReferenceUiMarker.text = 'prepared\n'
     }
 }
 
@@ -23,8 +96,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 13
-        versionName '0.3.9'
+        versionCode 14
+        versionName '0.3.10'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
@@ -75,6 +148,7 @@ android {
 
 tasks.matching { it.name == 'preDebugBuild' || it.name == 'preReleaseBuild' }.configureEach {
     dependsOn tasks.named('generateNovaAppIcon')
+    dependsOn tasks.named('prepareNovaReferenceUi')
 }
 
 dependencies {
