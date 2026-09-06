@@ -1,1 +1,0 @@
-(()=>{'use strict';if(document.getElementById('adminHomeCompatibilityLoader'))return;const s=document.createElement('script');s.id='adminHomeCompatibilityLoader';s.src='admin-home.js?v=1';s.async=false;document.body.appendChild(s)})();
