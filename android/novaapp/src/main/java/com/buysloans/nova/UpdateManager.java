@@ -20,6 +20,8 @@ import java.security.MessageDigest;
 import java.util.Locale;
 
 final class UpdateManager {
+    private static final String RELEASE_PREFIX = "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v";
+
     interface Listener {
         void onStatus(String message);
         void onUpdateAvailable(UpdateInfo info);
@@ -71,14 +73,20 @@ final class UpdateManager {
                 JSONObject object = new JSONObject(json);
                 UpdateInfo info = new UpdateInfo(
                         object.getInt("versionCode"),
-                        object.getString("versionName"),
-                        object.getString("apkUrl"),
+                        object.getString("versionName").trim(),
+                        object.getString("apkUrl").trim(),
                         object.getString("sha256").toLowerCase(Locale.US),
                         object.optBoolean("mandatory", false),
                         object.optString("notes", "Nova update available."));
 
+                if (info.versionCode < 0 || info.versionName.isBlank()) {
+                    throw new IllegalStateException("Update manifest has an invalid release identity");
+                }
                 if (!info.sha256.matches("[0-9a-f]{64}")) {
                     throw new IllegalStateException("Update manifest has an invalid SHA-256 digest");
+                }
+                if (info.versionCode > BuildConfig.VERSION_CODE && !info.apkUrl.startsWith(RELEASE_PREFIX)) {
+                    throw new SecurityException("Update manifest points outside the approved Nova release channel");
                 }
                 activity.runOnUiThread(() -> {
                     if (info.versionCode > BuildConfig.VERSION_CODE) {
@@ -100,6 +108,9 @@ final class UpdateManager {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
+                if (!info.apkUrl.startsWith(RELEASE_PREFIX)) {
+                    throw new SecurityException("Update URL is outside the approved Nova release channel");
+                }
                 File updateDir = new File(activity.getCacheDir(), "updates");
                 if (!updateDir.exists() && !updateDir.mkdirs()) {
                     throw new IllegalStateException("Could not create update directory");
@@ -117,7 +128,12 @@ final class UpdateManager {
                      FileOutputStream out = new FileOutputStream(apk)) {
                     byte[] buffer = new byte[16 * 1024];
                     int read;
-                    while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+                    long total = 0;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                        total += read;
+                    }
+                    if (total == 0) throw new IllegalStateException("Downloaded APK is empty");
                 }
 
                 String actual = sha256(apk);
