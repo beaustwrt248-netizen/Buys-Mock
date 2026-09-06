@@ -60,11 +60,18 @@ final class UpdateManager {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) new URL(BuildConfig.OTA_MANIFEST_URL).openConnection();
+                String separator = BuildConfig.OTA_MANIFEST_URL.contains("?") ? "&" : "?";
+                String cacheBuster = "nova=" + BuildConfig.VERSION_CODE + "&ts=" + System.currentTimeMillis();
+                URL manifestUrl = new URL(BuildConfig.OTA_MANIFEST_URL + separator + cacheBuster);
+                connection = (HttpURLConnection) manifestUrl.openConnection();
                 connection.setConnectTimeout(12_000);
                 connection.setReadTimeout(12_000);
                 connection.setUseCaches(false);
+                connection.setDefaultUseCaches(false);
                 connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
+                connection.setRequestProperty("Pragma", "no-cache");
+                connection.setRequestProperty("Expires", "0");
                 int response = connection.getResponseCode();
                 if (response != HttpURLConnection.HTTP_OK) {
                     throw new IllegalStateException("Update service returned HTTP " + response);
