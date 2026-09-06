@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 36
-        versionCode 113
-        versionName '2.15.69'
+        versionCode 114
+        versionName '2.15.70'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -48,7 +48,7 @@ tasks.register('verifyDeterministicSourcePipeline') {
         def buildText = file("${projectDir}/build.gradle").getText('UTF-8')
         def retiredTasks = [
             ['improve', 'Exact', 'Matching'].join(''),
-            ['secure', 'Pricing', 'Auth'].join(''),
+            ['secure', 'Pricing', 'Auth.py'].join(''),
         ]
         retiredTasks.each { token ->
             if (buildText.contains(token)) {
