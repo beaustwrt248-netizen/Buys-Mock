@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:gravity="fill">
-        <bitmap
-            android:gravity="fill"
-            android:src="@drawable/morley_buys_app_icon" />
-    </item>
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M31,72 L31,36 L40,36 L54,54 L68,36 L77,36 L77,72 L68,72 L68,50 L54,67 L40,50 L40,72 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M25,63 C34,75 54,81 76,71 C80,69 83,67 86,64 C82,71 76,76 69,79 C48,88 29,78 22,68 Z" />
+</vector>
