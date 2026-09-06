@@ -1,0 +1,73 @@
+{
+  "checked_at": "2026-09-06T10:26:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "verified_records": [
+    {
+      "device_catalog_id": 1007,
+      "model_name": "Fitbit Versa 2",
+      "verified_model_number": "FB507",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://support.google.com/product-documentation/answer/14811041?hl=en"],
+      "authority": "Google/Fitbit declaration of conformity"
+    },
+    {
+      "device_catalog_id": 1010,
+      "model_name": "Fitbit Versa 3",
+      "verified_model_number": "FB511",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://www.fitbit.com/content/assets/help/manuals/manual_versa_3_en_US.pdf"],
+      "authority": "Fitbit user manual regulatory section"
+    },
+    {
+      "device_catalog_id": 1009,
+      "model_name": "Fitbit Sense",
+      "verified_model_number": "FB512",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://support.google.com/product-documentation/answer/14810752?hl=en-GB"],
+      "authority": "Google/Fitbit declaration of conformity"
+    },
+    {
+      "device_catalog_id": 1011,
+      "model_name": "Fitbit Sense 2",
+      "verified_model_number": "FB521",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://support.google.com/product-documentation/answer/16920350?hl=en"],
+      "authority": "Google Australia cyber security rules statement of compliance"
+    },
+    {
+      "device_catalog_id": 1012,
+      "model_name": "Fitbit Versa 4",
+      "verified_model_number": "FB523",
+      "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0},
+      "evidence_urls": ["https://support.google.com/product-documentation/answer/16920538?hl=en-NG"],
+      "authority": "Google Australia cyber security rules statement of compliance"
+    },
+    {
+      "device_catalog_id": 1008,
+      "model_name": "Fitbit Versa Lite",
+      "verified_model_number": "FB415",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://www.fitbit.com/content/assets/help/manuals/manual_versa_lite_en_US.pdf"],
+      "authority": "Fitbit user manual regulatory section"
+    }
+  ],
+  "unresolved_records": [
+    {
+      "device_catalog_id": 1006,
+      "model_name": "Fitbit Versa",
+      "known_official_model_numbers": ["FB504", "FB505"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": ["https://www.fitbit.com/content/assets/help/manuals/manual_versa_en_US.pdf"],
+      "reason": "The official Versa manual lists both FB504 and FB505. The generic catalogue row does not contain evidence that selects one variant, so no single model number should be guessed."
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Fitbit Versa row 1006 remains unresolved because first-party evidence exposes multiple hardware identifiers.",
+    "The existing pricing reference on Versa 4 row 1012 is protected and must not be moved, rewritten, or removed by model-number cleanup.",
+    "Any future production update requires explicit human authorization plus an immediate active-status, dependency, collision, and identity recheck.",
+    "Abort on row drift, newly discovered regional ambiguity, duplicate model-number collision, or pricing conflict."
+  ]
+}
