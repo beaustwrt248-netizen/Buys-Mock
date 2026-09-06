@@ -29,9 +29,7 @@ final class NovaApiClient {
     private Session session;
 
     Session signIn(String email, String password, String captchaToken) throws Exception {
-        if (captchaToken == null || captchaToken.isBlank()) {
-            throw new SecurityException("Complete the security check before signing in.");
-        }
+        if (captchaToken == null || captchaToken.isBlank()) throw new SecurityException("Complete the security check before signing in.");
         JSONObject body = new JSONObject()
                 .put("email", email)
                 .put("password", password)
@@ -41,9 +39,7 @@ final class NovaApiClient {
         Session candidate = new Session(json.getString("access_token"), json.optString("refresh_token"), user.getString("id"), user.optString("email", email));
         JSONObject profile = first(getWith(candidate, "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
         String role = profile.optString("role");
-        if (!profile.optBoolean("is_enabled", false) || !("admin".equals(role) || "manager".equals(role))) {
-            throw new SecurityException("This account is not authorised for Nova AI.");
-        }
+        if (!profile.optBoolean("is_enabled", false) || !("admin".equals(role) || "manager".equals(role))) throw new SecurityException("This account is not authorised for Nova AI.");
         session = candidate;
         return candidate;
     }
@@ -61,6 +57,18 @@ final class NovaApiClient {
     JSONArray catalogue() throws Exception { return get("/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,active,updated_at&active=eq.true&order=release_year.desc.nullslast&limit=1000"); }
     JSONArray releaseConfig() throws Exception { return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)"); }
 
+    JSONObject knowledgeSearch(String query) throws Exception {
+        return edge("nova-knowledge", new JSONObject().put("action", "search").put("q", query).put("limit", 6));
+    }
+
+    JSONObject knowledgeSummary() throws Exception {
+        return edge("nova-knowledge", new JSONObject().put("action", "summary"));
+    }
+
+    JSONObject learningSummary() throws Exception {
+        return edge("nova-learning", new JSONObject().put("action", "summary"));
+    }
+
     private JSONArray get(String path) throws Exception {
         if (session == null) throw new SecurityException("Sign in to Nova first.");
         return getWith(session, path);
@@ -70,14 +78,17 @@ final class NovaApiClient {
         return new JSONArray(request("GET", path, null, useSession.accessToken));
     }
 
+    private JSONObject edge(String function, JSONObject body) throws Exception {
+        if (session == null) throw new SecurityException("Sign in to Nova first.");
+        return new JSONObject(request("POST", "/functions/v1/" + function, body.toString(), session.accessToken));
+    }
+
     private static JSONObject first(JSONArray rows) throws Exception {
         if (rows.length() == 0) throw new SecurityException("Authorised profile was not found.");
         return rows.getJSONObject(0);
     }
 
-    private static String encode(String value) throws Exception {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-    }
+    private static String encode(String value) throws Exception { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()); }
 
     private String request(String method, String path, String body, String bearer) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(BuildConfig.SUPABASE_URL + path).openConnection();
@@ -100,7 +111,7 @@ final class NovaApiClient {
             String message = "Nova request failed (" + code + ")";
             try {
                 JSONObject error = new JSONObject(response);
-                String detail = error.optString("msg", error.optString("message", error.optString("error_description")));
+                String detail = error.optString("msg", error.optString("message", error.optString("error_description", error.optString("error"))));
                 if (!detail.isBlank()) message += ": " + detail;
             } catch (Exception ignored) {}
             throw new Exception(message);
