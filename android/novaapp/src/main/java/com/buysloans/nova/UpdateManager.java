@@ -60,11 +60,16 @@ final class UpdateManager {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) new URL(BuildConfig.OTA_MANIFEST_URL).openConnection();
+                URL manifestUrl = new URL(freshManifestUrl(BuildConfig.OTA_MANIFEST_URL));
+                connection = (HttpURLConnection) manifestUrl.openConnection();
                 connection.setConnectTimeout(12_000);
                 connection.setReadTimeout(12_000);
                 connection.setUseCaches(false);
+                connection.setDefaultUseCaches(false);
                 connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
+                connection.setRequestProperty("Pragma", "no-cache");
+                connection.setRequestProperty("Expires", "0");
                 int response = connection.getResponseCode();
                 if (response != HttpURLConnection.HTTP_OK) {
                     throw new IllegalStateException("Update service returned HTTP " + response);
@@ -148,6 +153,11 @@ final class UpdateManager {
                 if (connection != null) connection.disconnect();
             }
         }, "nova-update-download").start();
+    }
+
+    static String freshManifestUrl(String baseUrl) {
+        String separator = baseUrl.contains("?") ? "&" : "?";
+        return baseUrl + separator + "nova_cache_bust=" + System.currentTimeMillis();
     }
 
     private void installVerifiedApk(File apk) {
