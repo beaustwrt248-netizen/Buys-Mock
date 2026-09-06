@@ -148,14 +148,12 @@ jobs:
           KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
           STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
           KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
-          KEY_PASSWORD_RAW: ${{ secrets.BL_KEY_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
           KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
           STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
           KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
-          KEY_PASSWORD="$(printf '%s' "$KEY_PASSWORD_RAW" | tr -d '\r\n')"
           test -n "$KEYSTORE_BASE64" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS"
           KEYSTORE_PATH="$RUNNER_TEMP/nova-release.jks"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
@@ -163,7 +161,6 @@ jobs:
           echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
           echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
-          if [ -n "$KEY_PASSWORD" ]; then echo "B_AND_L_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"; fi
       - name: Build stable signed Nova release APK
         working-directory: android
         shell: bash
