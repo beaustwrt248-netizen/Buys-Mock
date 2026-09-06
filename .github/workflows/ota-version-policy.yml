@@ -18,8 +18,22 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect Morley app source change
+        id: morley-change
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" -- android/app; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'No android/app changes; Morley OTA version policy is not applicable.'
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Require exactly one OTA version advance
+        if: steps.morley-change.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail

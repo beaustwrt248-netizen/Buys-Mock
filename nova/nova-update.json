@@ -1,0 +1,8 @@
+{
+  "versionCode": 1,
+  "versionName": "0.1.0",
+  "apkUrl": "",
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "mandatory": false,
+  "notes": "Nova OTA baseline for the 0.1.0 debug milestone."
+}

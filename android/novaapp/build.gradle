@@ -10,8 +10,24 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0'
+        versionCode 2
+        versionName '0.1.1'
+        buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
+    }
+
+    signingConfigs {
+        release {
+            def keyPath = System.getenv('B_AND_L_KEYSTORE_PATH')
+            def storePass = System.getenv('B_AND_L_STORE_PASSWORD')
+            def keyAliasEnv = System.getenv('B_AND_L_KEY_ALIAS')
+            def keyPass = System.getenv('B_AND_L_KEY_PASSWORD') ?: storePass
+            if (keyPath && storePass && keyAliasEnv) {
+                storeFile file(keyPath)
+                storePassword storePass
+                keyAlias keyAliasEnv
+                keyPassword keyPass
+            }
+        }
     }
 
     buildTypes {
@@ -21,12 +37,21 @@ android {
         }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.17.0'
 }
