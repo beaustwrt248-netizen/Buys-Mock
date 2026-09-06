@@ -1,7 +1,7 @@
 {
-  "versionCode": 118,
-  "versionName": "2.15.74",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.74/B-and-L-Morley-2.15.74.apk",
-  "sha256": "978f54a1ef8a50a62585bde724545886ad73736105a9c932d1bee2c18ce9fa0c",
-  "notes": "Fix all-device catalogue image rendering (#990)"
+  "versionCode": 119,
+  "versionName": "2.15.75",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.75/B-and-L-Morley-2.15.75.apk",
+  "sha256": "7c48ef0e051020395e322cf1cdef99a46e6c0d1be80c7b9adb96d667af41b9d2",
+  "notes": "Fix exact catalogue image section boundaries (#1005)"
 }
