@@ -1,7 +1,7 @@
 {
-  "versionCode": 116,
-  "versionName": "2.15.72",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.72/B-and-L-Morley-2.15.72.apk",
-  "sha256": "da709525a565e28f4ad727590082af304ea72a88d51a56cded0653b6f9e2968b",
-  "notes": "Fix live catalogue search and scrolling at scale"
+  "versionCode": 117,
+  "versionName": "2.15.73",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.73/B-and-L-Morley-2.15.73.apk",
+  "sha256": "a2d8700931af645bbd1804f7615cd4a4d3943c4cc575176e227621b5c83c84e8",
+  "notes": "Merge pull request #985 from beaustwrt248-netizen/fix/remove-main-admin-mode-20260907"
 }
