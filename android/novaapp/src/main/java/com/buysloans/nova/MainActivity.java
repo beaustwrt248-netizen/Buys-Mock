@@ -29,6 +29,7 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     private Button updateButton;
     private UpdateManager updateManager;
     private UpdateManager.UpdateInfo pendingUpdate;
+    private CaptchaChallenge captchaChallenge;
     private int background, surface, primary, secondary, accent, success, danger;
 
     private static int dp(Activity activity, int value) { return Math.round(value * activity.getResources().getDisplayMetrics().density); }
@@ -45,6 +46,7 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     }
 
     private void base(String subtitle) {
+        if(captchaChallenge!=null){captchaChallenge.destroy();captchaChallenge=null;}
         ScrollView scroll=new ScrollView(this); scroll.setBackgroundColor(background);
         root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(this,24),dp(this,38),dp(this,24),dp(this,34));
         scroll.addView(root,new ScrollView.LayoutParams(ScrollView.LayoutParams.MATCH_PARENT,ScrollView.LayoutParams.WRAP_CONTENT));
@@ -65,9 +67,20 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         TextView h=text("Sign in to Morley",21,primary); card.addView(h);
         TextView note=text("Use your existing authorised Morley Admin account. Nova only reads data your account is already permitted to read; protected writes remain unavailable here.",14,secondary); note.setPadding(0,dp(this,8),0,dp(this,8)); card.addView(note);
         EditText email=input("Email",false), password=input("Password",true); card.addView(email); card.addView(password);
+        TextView challengeStatus=text("Security check loading…",13,secondary); challengeStatus.setPadding(0,dp(this,8),0,dp(this,4)); card.addView(challengeStatus);
+        Button signIn=button("Complete security check"); signIn.setEnabled(false);
+        captchaChallenge=new CaptchaChallenge(this,(ready,message)->{challengeStatus.setText(message);challengeStatus.setTextColor(ready?success:secondary);signIn.setEnabled(ready);signIn.setText(ready?"Sign in securely":"Complete security check");});
+        card.addView(captchaChallenge.view());
         TextView status=text("",13,secondary); card.addView(status);
-        Button signIn=button("Sign in securely"); card.addView(signIn);
-        signIn.setOnClickListener(v->{ String e=email.getText().toString().trim(),p=password.getText().toString(); if(e.isEmpty()||p.isEmpty()){status.setText("Enter your email and password.");return;} signIn.setEnabled(false); status.setText("Verifying your authorised Morley account…"); worker.execute(()->{try{api.signIn(e,p); runOnUiThread(this::showWorkspace);}catch(Exception ex){runOnUiThread(()->{status.setText(ex.getMessage());status.setTextColor(danger);signIn.setEnabled(true);});}}); });
+        card.addView(signIn);
+        signIn.setOnClickListener(v->{
+            String e=email.getText().toString().trim(),p=password.getText().toString();
+            if(e.isEmpty()||p.isEmpty()){status.setText("Enter your email and password.");return;}
+            if(captchaChallenge==null||!captchaChallenge.isReady()){status.setText("Complete the security check first.");return;}
+            String captchaToken=captchaChallenge.token();
+            signIn.setEnabled(false); status.setTextColor(secondary); status.setText("Verifying your authorised Morley account…");
+            worker.execute(()->{try{api.signIn(e,p,captchaToken);runOnUiThread(this::showWorkspace);}catch(Exception ex){runOnUiThread(()->{status.setText(ex.getMessage());status.setTextColor(danger);if(captchaChallenge!=null)captchaChallenge.reset();});}});
+        });
         addOtaSection();
         footer();
     }
@@ -169,5 +182,5 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     @Override public void onUpdateAvailable(UpdateManager.UpdateInfo info){pendingUpdate=info;if(updateStatus!=null)updateStatus.setText("Nova "+info.versionName+" is available.\n"+info.notes);if(updateButton!=null){updateButton.setText("Install update "+info.versionName);updateButton.setEnabled(true);}}
     @Override public void onUpToDate(){pendingUpdate=null;if(updateStatus!=null)updateStatus.setText("Nova is up to date.");if(updateButton!=null){updateButton.setText("Check again");updateButton.setEnabled(true);}}
     @Override public void onError(String message){if(updateStatus!=null)updateStatus.setText(message);if(updateButton!=null){updateButton.setText("Retry update check");updateButton.setEnabled(true);}}
-    @Override protected void onDestroy(){worker.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy(){if(captchaChallenge!=null)captchaChallenge.destroy();worker.shutdownNow();super.onDestroy();}
 }

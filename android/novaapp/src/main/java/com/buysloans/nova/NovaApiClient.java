@@ -28,8 +28,14 @@ final class NovaApiClient {
 
     private Session session;
 
-    Session signIn(String email, String password) throws Exception {
-        JSONObject body = new JSONObject().put("email", email).put("password", password);
+    Session signIn(String email, String password, String captchaToken) throws Exception {
+        if (captchaToken == null || captchaToken.isBlank()) {
+            throw new SecurityException("Complete the security check before signing in.");
+        }
+        JSONObject body = new JSONObject()
+                .put("email", email)
+                .put("password", password)
+                .put("gotrue_meta_security", new JSONObject().put("captcha_token", captchaToken));
         JSONObject json = new JSONObject(request("POST", "/auth/v1/token?grant_type=password", body.toString(), null));
         JSONObject user = json.getJSONObject("user");
         Session candidate = new Session(json.getString("access_token"), json.optString("refresh_token"), user.getString("id"), user.optString("email", email));
