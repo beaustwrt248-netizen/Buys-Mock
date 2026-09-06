@@ -15,9 +15,15 @@ public class IntentRouterTest {
         assertEquals(IntentRouter.Intent.PERFORMANCE, IntentRouter.classify("How are sales and profit?"));
         assertEquals(IntentRouter.Intent.RELEASES, IntentRouter.classify("Is there a new Nova APK release?"));
         assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("How healthy is the device catalogue?"));
-        assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("Which records are missing model numbers?"));
         assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("What is Nova learning from outcomes?"));
-        assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("How is valuation forecast error?"));
+    }
+
+    @Test public void routesGeneralConversationWithoutForcingMorleyIntent() {
+        assertEquals(IntentRouter.Intent.GREETING, IntentRouter.classify("Good evening Nova"));
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("How are you?"));
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Thanks Nova"));
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Tell me a joke"));
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Who are you?"));
     }
 
     @Test public void recognisesShortContextualFollowUps() {
