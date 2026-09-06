@@ -22,3 +22,4 @@ recommendations.sort((a,b)=>a.priority-b.priority);const urgent=recommendations.
 window.addEventListener('DOMContentLoaded',refreshRecommendations);document.addEventListener('click',e=>{if(e.target.closest('[data-section="recommendations"]'))refreshRecommendations();if(e.target?.id==='refreshBtn')refreshRecommendations()});
 })();
 (()=>{'use strict';const script=document.createElement('script');script.src='development-history.js?v=1';script.defer=true;document.head.appendChild(script)})();
+(()=>{'use strict';const css=document.createElement('link');css.rel='stylesheet';css.href='conversation.css?v=1';document.head.appendChild(css);const script=document.createElement('script');script.src='conversation.js?v=1';script.defer=true;document.head.appendChild(script)})();
