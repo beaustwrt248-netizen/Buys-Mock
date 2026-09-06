@@ -10,11 +10,11 @@ import androidx.compose.ui.unit.dp
 fun MobilePhonePhoto(
     brand: String,
     model: String? = null,
-    modelNumber: String? = null,
     imageReferenceUrl: String? = null,
     modifier: Modifier = Modifier,
     categoryRepresentative: Boolean = false,
     allowLiveReference: Boolean = true,
+    modelNumber: String? = null,
 ) {
     val liveReference = if (allowLiveReference) {
         model?.let { LiveDevicePricing.device("mobile_phone", brand, it, modelNumber)?.imageReferenceUrl }
