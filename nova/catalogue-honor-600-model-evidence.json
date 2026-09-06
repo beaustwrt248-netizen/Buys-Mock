@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "evidence_type": "catalogue_model_number",
+  "execution_authorized": false,
+  "captured_at": "2026-09-06",
+  "catalogue_row": {
+    "id": 747,
+    "brand": "HONOR",
+    "model_name": "HONOR 600 5G",
+    "model_number": null,
+    "release_year": 2026,
+    "category": "mobile_phone",
+    "market_region": "AU",
+    "storage_options": ["256GB"],
+    "active": true
+  },
+  "candidate": {
+    "model_number": "VKJ-NX9",
+    "confidence": "high",
+    "basis": "HONOR Australia confirms the Australian HONOR 600 product identity and 256GB configuration, while an Australian Woolworths marketplace listing explicitly identifies the global HONOR 600 5G 256GB as model VKJ-NX9."
+  },
+  "sources": [
+    {
+      "type": "manufacturer_au",
+      "url": "https://www.honor.com/au/phones/honor-600/",
+      "claim": "HONOR Australia confirms the HONOR 600 product identity for the Australian market."
+    },
+    {
+      "type": "australian_retail",
+      "url": "https://www.woolworths.com.au/shop/productdetails/1139681374/honor-600-5g-dual-sim-esim-vkj-nx9-256gb-12gb-ram-black",
+      "claim": "Australian Woolworths marketplace listing identifies HONOR 600 5G 256GB global version as VKJ-NX9."
+    },
+    {
+      "type": "australian_retail",
+      "url": "https://www.thegoodguys.com.au/honor-600-5g-256gb-black-h600-bk",
+      "claim": "The Good Guys confirms the Australian HONOR 600 5G 256GB retail configuration."
+    }
+  ],
+  "fresh_dependency_snapshot": {
+    "inventory_refs": 0,
+    "pricing_refs": 0,
+    "pricing_history_refs": 0,
+    "active_model_number_collisions": 0
+  },
+  "safety": {
+    "production_write_performed": false,
+    "pricing_changed": false,
+    "requires_recheck_before_any_future_write": true,
+    "abort_if_distinct_australian_hardware_variant_is_demonstrated": true,
+    "note": "Evidence only. This file does not authorize or perform a production catalogue mutation."
+  }
+}
