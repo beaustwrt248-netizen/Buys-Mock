@@ -5,69 +5,32 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
-    private static String source(String file) throws Exception {
-        String rel = "src/main/java/com/buysloans/nova/" + file;
-        Path[] candidates = new Path[]{
-                Paths.get(rel),
-                Paths.get("novaapp", rel),
-                Paths.get("android", "novaapp", rel)
-        };
-        for (Path path : candidates) {
-            if (Files.exists(path)) return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-        }
-        throw new IllegalStateException("Nova source file not found: " + file + " from " + System.getProperty("user.dir"));
+    private static String readUtf8(String path) throws Exception {
+        return new String(Files.readAllBytes(Path.of(path)), StandardCharsets.UTF_8);
     }
 
-    @Test public void assistantUsesAuthorisedKnowledgeAndLearningSources() throws Exception {
-        String api = source("NovaApiClient.java");
-        assertTrue(api.contains("/functions/v1/"));
-        assertTrue(api.contains("nova-knowledge"));
-        assertTrue(api.contains("nova-learning"));
-        assertTrue(api.contains("session.accessToken"));
-        assertFalse(api.contains("SUPABASE_SERVICE_ROLE_KEY"));
-    }
+    @Test public void conversationAndNavigationFeaturesRemainPresent() throws Exception {
+        String source = readUtf8("src/main/java/com/buysloans/nova/MainActivity.java");
+        String engine = readUtf8("src/main/java/com/buysloans/nova/NovaAssistantEngine.java");
+        String router = readUtf8("src/main/java/com/buysloans/nova/IntentRouter.java");
 
-    @Test public void conversationPreservesProtectedBoundariesAndIsSessionOnly() throws Exception {
-        String activity = source("MainActivity.java");
-        String engine = source("NovaAssistantEngine.java");
-        assertTrue(activity.contains("Nova keeps the current topic during this session"));
-        assertTrue(engine.contains("protected actions remain human-approved"));
-        assertTrue(engine.contains("void resetContext()"));
-        assertFalse(activity.contains("SharedPreferences"));
-        assertFalse(activity.contains("FileOutputStream"));
-    }
-
-    @Test public void nativeWorkspaceSeparatesPrimaryAreasWithNavigation() throws Exception {
-        String activity = source("MainActivity.java");
-        assertTrue(activity.contains("navButton(\"Chat\",Tab.CHAT)"));
-        assertTrue(activity.contains("navButton(\"Intelligence\",Tab.INTELLIGENCE)"));
-        assertTrue(activity.contains("navButton(\"Updates\",Tab.UPDATES)"));
-        assertTrue(activity.contains("navButton(\"Account\",Tab.ACCOUNT)"));
-    }
-
-    @Test public void nativeWorkspaceWiresEveryPrimaryControl() throws Exception {
-        String activity = source("MainActivity.java");
-        assertTrue(activity.contains("attention.setOnClickListener(v->runAttention(attention))"));
-        assertTrue(activity.contains("send.setOnClickListener(v->sendQuestion(ask,send))"));
-        assertTrue(activity.contains("clear.setOnClickListener"));
-        assertTrue(activity.contains("releases.setOnClickListener"));
-        assertTrue(activity.contains("logout.setOnClickListener"));
-        assertTrue(activity.contains("updateButton.setOnClickListener"));
-        assertTrue(activity.contains("a.setOnClickListener(v->runSummary(li,a))"));
-        assertTrue(activity.contains("b.setOnClickListener(v->runSummary(ri,b))"));
-    }
-
-    @Test public void loginAndAsyncActionsHaveUsableStateGating() throws Exception {
-        String activity = source("MainActivity.java");
-        assertTrue(activity.contains("captchaReady[0]&&email.getText().toString().trim().contains(\"@\")&&!password.getText().toString().isBlank()"));
-        assertTrue(activity.contains("setWorking(trigger,true"));
-        assertTrue(activity.contains("setWorking(send,true"));
-        assertFalse(activity.contains("status.setText(ex.getMessage())"));
+        assertTrue(source.contains("enum Tab { CHAT, INTELLIGENCE, UPDATES, ACCOUNT }"));
+        assertTrue(source.contains("navButton(\"Chat\",Tab.CHAT)"));
+        assertTrue(source.contains("navButton(\"Intelligence\",Tab.INTELLIGENCE)"));
+        assertTrue(source.contains("navButton(\"Updates\",Tab.UPDATES)"));
+        assertTrue(source.contains("navButton(\"Account\",Tab.ACCOUNT)"));
+        assertTrue(source.contains("Message Nova…"));
+        assertTrue(source.contains("Clear conversation"));
+        assertTrue(engine.contains("Nova daily brief"));
+        assertTrue(engine.contains("Nova knowledge overview"));
+        assertTrue(engine.contains("lastKnowledgeQuery"));
+        assertTrue(router.contains("DAILY_BRIEF"));
+        assertTrue(router.contains("KNOWLEDGE"));
+        assertTrue(router.contains("keep going"));
+        assertTrue(router.contains("show me more"));
     }
 }

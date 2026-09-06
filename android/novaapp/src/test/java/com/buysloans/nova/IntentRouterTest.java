@@ -18,9 +18,20 @@ public class IntentRouterTest {
         assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("What is Nova learning from outcomes?"));
     }
 
+    @Test public void routesEnhancedNovaFeatures() {
+        assertEquals(IntentRouter.Intent.DAILY_BRIEF, IntentRouter.classify("Give me the daily brief"));
+        assertEquals(IntentRouter.Intent.DAILY_BRIEF, IntentRouter.classify("What's happening today?"));
+        assertEquals(IntentRouter.Intent.KNOWLEDGE, IntentRouter.classify("Show me the Nova knowledge base"));
+        assertEquals(IntentRouter.Intent.ATTENTION, IntentRouter.classify("Any blockers right now?"));
+        assertEquals(IntentRouter.Intent.PERFORMANCE, IntentRouter.classify("How is Morley doing?"));
+        assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("Are there missing specs or duplicate devices?"));
+        assertEquals(IntentRouter.Intent.RELEASES, IntentRouter.classify("What's new in the latest build?"));
+    }
+
     @Test public void routesGeneralConversationWithoutForcingMorleyIntent() {
         assertEquals(IntentRouter.Intent.GREETING, IntentRouter.classify("Good evening Nova"));
         assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("How are you?"));
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("How was your day?"));
         assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Thanks Nova"));
         assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Tell me a joke"));
         assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Who are you?"));
@@ -31,6 +42,8 @@ public class IntentRouterTest {
         assertTrue(IntentRouter.isFollowUp("tell me more"));
         assertTrue(IntentRouter.isFollowUp("what about that?"));
         assertTrue(IntentRouter.isFollowUp("and which one is worst?"));
+        assertTrue(IntentRouter.isFollowUp("keep going"));
+        assertTrue(IntentRouter.isFollowUp("show me more"));
         assertFalse(IntentRouter.isFollowUp("write me a detailed unrelated report about the moon and its geology"));
     }
 

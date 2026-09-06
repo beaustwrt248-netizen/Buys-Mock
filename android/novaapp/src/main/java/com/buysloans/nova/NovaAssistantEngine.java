@@ -11,6 +11,7 @@ import java.util.TreeMap;
 final class NovaAssistantEngine {
     private final NovaApiClient api;
     private IntentRouter.Intent lastIntent = IntentRouter.Intent.UNKNOWN;
+    private String lastKnowledgeQuery = "";
 
     NovaAssistantEngine(NovaApiClient api) { this.api = api; }
 
@@ -19,8 +20,22 @@ final class NovaAssistantEngine {
         IntentRouter.Intent intent = IntentRouter.classify(q);
         if (intent == IntentRouter.Intent.GREETING) return greeting();
         if (intent == IntentRouter.Intent.SMALL_TALK) return smallTalk(q);
-        if (intent == IntentRouter.Intent.CAPABILITIES) return "I can chat normally as well as reason across live sales, profit, inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. Ask naturally — you do not need to phrase everything like a command. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.";
-        if (intent == IntentRouter.Intent.UNKNOWN && IntentRouter.isFollowUp(q) && lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
+        if (intent == IntentRouter.Intent.CAPABILITIES) return "I can chat normally, give you a daily Morley brief, surface what needs attention, summarise sales and profit, inspect inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I can also keep short follow-ups tied to the current topic. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.";
+        if (intent == IntentRouter.Intent.UNKNOWN && IntentRouter.isFollowUp(q)) {
+            if (lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
+            else if (!lastKnowledgeQuery.isBlank()) {
+                String knowledge = knowledgeAnswer(lastKnowledgeQuery + " " + q);
+                if (knowledge != null) return knowledge;
+            }
+        }
+        if (intent == IntentRouter.Intent.DAILY_BRIEF) {
+            lastIntent = intent;
+            return dailyBrief();
+        }
+        if (intent == IntentRouter.Intent.KNOWLEDGE) {
+            lastIntent = intent;
+            return knowledgeOverview();
+        }
         if (intent == IntentRouter.Intent.ATTENTION) {
             lastIntent = intent;
             return attention();
@@ -30,22 +45,27 @@ final class NovaAssistantEngine {
             return summarise(intent);
         }
         String knowledge = knowledgeAnswer(q);
-        if (knowledge != null) return knowledge;
+        if (knowledge != null) {
+            lastKnowledgeQuery = q;
+            lastIntent = IntentRouter.Intent.UNKNOWN;
+            return knowledge;
+        }
         return conversationalFallback(q);
     }
 
-    void resetContext() { lastIntent = IntentRouter.Intent.UNKNOWN; }
+    void resetContext() { lastIntent = IntentRouter.Intent.UNKNOWN; lastKnowledgeQuery = ""; }
 
     private String greeting() {
         int hour = LocalTime.now().getHour();
         String part = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-        return part + " — I’m Nova. I’m here and ready. We can just talk, or you can ask me about anything happening across Morley.";
+        return part + " — I’m Nova. I’m here and ready. We can just talk, or you can ask for a daily brief, what needs attention, or anything happening across Morley.";
     }
 
     private String smallTalk(String question) {
         String x = IntentRouter.normalise(question);
         if (x.contains("how are you") || x.contains("how are things") || x.contains("how s it going") || x.contains("how is it going") || x.contains("you good") || x.contains("are you okay"))
             return "I’m doing well — connected, responsive and ready to help. How are you going?";
+        if (x.contains("how was your day") || x.contains("how has your day been")) return "Pretty productive — mostly keeping an eye on Morley, learning from verified outcomes and waiting for you to give me the next thing to work through.";
         if (x.contains("thank") || x.equals("thanks") || x.equals("cheers")) return "Anytime. What do you want to work on next?";
         if (x.contains("who are you") || x.contains("what are you") || x.contains("your name") || x.contains("about yourself"))
             return "I’m Nova AI — your standalone Morley intelligence companion. I can have a normal conversation, remember the current topic during this session, and work with the authorised Morley data and knowledge I’m connected to.";
@@ -66,7 +86,23 @@ final class NovaAssistantEngine {
             return "Yes — we can talk it through. Give me a little more detail about what you want to change or decide, and I’ll help you work through it.";
         if (x.startsWith("i think ") || x.startsWith("i feel ") || x.startsWith("i want ") || x.startsWith("i need "))
             return "Got it. Tell me a bit more and I’ll stay with the thread instead of forcing it into a Morley data category.";
+        if (x.startsWith("help me decide") || x.startsWith("help me choose") || x.startsWith("compare "))
+            return "I can help with that. Give me the options or trade-offs you’re weighing and I’ll help you compare them clearly.";
         return "I can chat about that normally, but I don’t yet have enough context to give you a useful answer. Tell me a little more about what you mean and I’ll follow the conversation from there.";
+    }
+
+    String dailyBrief() throws Exception {
+        String attention = attention();
+        String performance = summarise(IntentRouter.Intent.PERFORMANCE);
+        String releases = summarise(IntentRouter.Intent.RELEASES);
+        return "Nova daily brief\n\n" + attention + "\n\n" + performance + "\n\n" + releases;
+    }
+
+    private String knowledgeOverview() throws Exception {
+        JSONObject knowledge = api.knowledgeSummary();
+        JSONObject learning = api.learningSummary();
+        JSONObject byDomain = learning.optJSONObject("by_domain");
+        return "Nova knowledge overview\n\nKnowledge base: " + knowledge.optInt("active_count") + " active items.\nVerified learning: " + learning.optInt("verified_count") + " of " + learning.optInt("count") + " active experiences.\nDomains: " + (byDomain == null ? "{}" : byDomain.toString()) + "\n\nAsk about a specific process, decision or topic and I’ll search the stored knowledge directly.";
     }
 
     String attention() throws Exception {
@@ -138,6 +174,7 @@ final class NovaAssistantEngine {
         if(q.isBlank()) return null;
         JSONObject result=api.knowledgeSearch(q); JSONArray items=result.optJSONArray("items");
         if(items==null||items.length()==0) return null;
+        lastKnowledgeQuery = q;
         StringBuilder out=new StringBuilder("I found relevant Nova knowledge:\n\n");
         int limit=Math.min(items.length(),3);
         for(int i=0;i<limit;i++){
