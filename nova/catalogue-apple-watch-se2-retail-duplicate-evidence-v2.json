@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-09-06T10:52:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_duplicate_identity_evidence",
+  "canonical_record": {
+    "device_catalog_id": 314,
+    "brand": "Apple",
+    "model_name": "Apple Watch SE 2 GPS + Cellular 44mm",
+    "model_number": "A2724",
+    "market_region": "AU",
+    "storage_options": ["32GB"],
+    "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0}
+  },
+  "candidate_record": {
+    "device_catalog_id": 1143,
+    "brand": "Apple",
+    "model_name": "Apple Watch SE (2nd generation) GPS + Cellular 44mm (MNQ23ZP/A retail configuration)",
+    "model_number": null,
+    "market_region": "AU",
+    "storage_options": ["32GB"],
+    "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0}
+  },
+  "manufacturer_evidence": {
+    "url": "https://support.apple.com/en-au/108056",
+    "finding": "Apple identifies Apple Watch SE 2 GPS + Cellular 44mm for Europe and Asia-Pacific as model A2724. Australia is in the Asia-Pacific region for this Apple model mapping."
+  },
+  "assessment": "candidate_duplicate_of_canonical",
+  "safety_notes": [
+    "Both records are active and each has one protected pricing reference.",
+    "No pricing reference is moved, merged, deleted, or rewritten by this evidence package.",
+    "No catalogue record is deactivated or mutated by this evidence package.",
+    "Any future deduplication requires explicit human authorization plus immediate row, pricing, history, and identity rechecks.",
+    "Abort if the retail SKU is shown to encode a materially distinct hardware identity rather than a sales configuration."
+  ]
+}
