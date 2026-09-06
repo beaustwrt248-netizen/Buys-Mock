@@ -29,17 +29,42 @@ final class NovaApiClient {
     private Session session;
 
     Session signIn(String email, String password, String captchaToken) throws Exception {
-        if (captchaToken == null || captchaToken.isBlank()) throw new SecurityException("Complete the security check before signing in.");
+        if (captchaToken == null || captchaToken.isBlank()) {
+            throw new SecurityException("Complete the security check before signing in.");
+        }
         JSONObject body = new JSONObject()
                 .put("email", email)
                 .put("password", password)
                 .put("gotrue_meta_security", new JSONObject().put("captcha_token", captchaToken));
-        JSONObject json = new JSONObject(request("POST", "/auth/v1/token?grant_type=password", body.toString(), null));
+        JSONObject json = new JSONObject(request(
+                "POST", "/auth/v1/token?grant_type=password", body.toString(), null));
+        return acceptSession(json, email);
+    }
+
+    Session restoreSession(String refreshToken) throws Exception {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new SecurityException("No remembered Nova session is available.");
+        }
+        JSONObject body = new JSONObject().put("refresh_token", refreshToken);
+        JSONObject json = new JSONObject(request(
+                "POST", "/auth/v1/token?grant_type=refresh_token", body.toString(), null));
+        return acceptSession(json, "");
+    }
+
+    private Session acceptSession(JSONObject json, String fallbackEmail) throws Exception {
         JSONObject user = json.getJSONObject("user");
-        Session candidate = new Session(json.getString("access_token"), json.optString("refresh_token"), user.getString("id"), user.optString("email", email));
-        JSONObject profile = first(getWith(candidate, "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
+        Session candidate = new Session(
+                json.getString("access_token"),
+                json.optString("refresh_token"),
+                user.getString("id"),
+                user.optString("email", fallbackEmail));
+        JSONObject profile = first(getWith(candidate,
+                "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
         String role = profile.optString("role");
-        if (!profile.optBoolean("is_enabled", false) || !("admin".equals(role) || "manager".equals(role))) throw new SecurityException("This account is not authorised for Nova AI.");
+        if (!profile.optBoolean("is_enabled", false)
+                || !("admin".equals(role) || "manager".equals(role))) {
+            throw new SecurityException("This account is not authorised for Nova AI.");
+        }
         session = candidate;
         return candidate;
     }
