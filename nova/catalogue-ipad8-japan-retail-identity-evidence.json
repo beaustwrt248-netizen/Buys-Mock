@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-09-06T10:12:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_variant_identity_evidence",
+  "candidate_row": {
+    "id": 1188,
+    "current_model_name": "iPad (8th generation) Wi-Fi + Cellular 128GB (Japan retail configuration)",
+    "current_model_number": null,
+    "retail_part_number": "MYML2J/A",
+    "storage": "128GB",
+    "market_region": "AU",
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "verified_identity": {
+    "model_name": "iPad (8th generation) Wi-Fi + Cellular",
+    "hardware_model_number": "A2429",
+    "release_year": 2020,
+    "storage": "128GB",
+    "notes": "Apple Support Australia identifies A2429 as an iPad (8th generation) Wi-Fi + Cellular hardware model. Japanese reseller evidence explicitly pairs retail part MYML2J/A with A2429 and 128GB Wi-Fi + Cellular hardware."
+  },
+  "canonical_row": {
+    "id": 1184,
+    "model_name": "iPad (8th generation) Wi-Fi + Cellular",
+    "model_number": "A2429",
+    "storage_options": ["32GB", "128GB"],
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "evidence_urls": [
+    "https://support.apple.com/en-au/108043",
+    "https://iosys.co.jp/items/tablet/ios/ipad2020/au/ipad2020_wi-fi%2Bcellular/339265",
+    "https://auctions.yahoo.co.jp/jp/auction/f1235889444"
+  ],
+  "proposed_action": "review_row_1188_as_duplicate_variant_of_1184_after_fresh_dependency_recheck",
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Do not treat a foreign retail part number as an Australian retail SKU; preserve MYML2J/A only as provenance/alias evidence.",
+    "Any future deactivation or normalization requires explicit human authorization and an immediate dependency/identity recheck.",
+    "Abort on dependency drift, identity mismatch, or newly discovered variant ambiguity."
+  ]
+}
