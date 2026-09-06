@@ -4,6 +4,7 @@ const fs = require('fs');
 const assert = require('assert');
 
 const source = fs.readFileSync('web-route-contract-fix.js', 'utf8');
+const shell = fs.readFileSync('index.html', 'utf8');
 
 assert(
   source.includes("const canWriteHistory=location.protocol==='http:'||location.protocol==='https:';"),
@@ -19,4 +20,17 @@ assert(
   'normal top-level HTTP(S) route history behavior must remain intact'
 );
 
-console.log('Web srcdoc History API regression contract verified');
+assert(
+  shell.includes('const requiredRecentRender='),
+  'srcdoc bootstrap must identify the source recent-activity render write before iframe creation'
+);
+assert(
+  shell.includes('Morley render invariant failed: missing #recent target in embedded workspace.'),
+  'a missing required srcdoc render target must produce a controlled invariant diagnostic'
+);
+assert(
+  shell.includes('html=html.replace(requiredRecentRender,guardedRecentRender);'),
+  'srcdoc bootstrap must install the guarded recent-activity renderer before assigning srcdoc'
+);
+
+console.log('Web srcdoc History API and required render-target regression contracts verified');
