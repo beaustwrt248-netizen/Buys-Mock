@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-09-06T10:30:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "record": {
+    "device_catalog_id": 1385,
+    "brand": "Logitech",
+    "model_name": "Logitech G CLOUD Gaming Handheld",
+    "verified_model_number": "GR0006",
+    "release_year": 2022,
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+    "evidence_urls": [
+      "https://support.logi.com/hc/en-gb/articles/7712804682647-Logitech-G-CLOUD-Gaming-Handheld",
+      "https://www.logitech.com/assets/70307/agy-700-036817.001_agy_doc_na_rc_gr0006_halo_%28french%29_france_%283%29.pdf"
+    ],
+    "authority": "Logitech support product page and Logitech declaration of conformity",
+    "proposed_action": "review_for_model_number_update_after_fresh_dependency_recheck"
+  },
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Logitech directly identifies the G CLOUD Gaming Handheld as model GR0006.",
+    "Any future production model-number update requires explicit human authorization plus an immediate active-status, dependency, collision, and identity recheck.",
+    "Abort on row drift, identity mismatch, or model-number collision."
+  ]
+}
