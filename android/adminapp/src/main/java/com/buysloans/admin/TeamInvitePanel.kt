@@ -53,7 +53,6 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
     var role by remember(session.role) { mutableStateOf(allowedRoles.firstOrNull() ?: "staff") }
     var useTemporaryPassword by remember { mutableStateOf(false) }
     var temporaryPassword by remember { mutableStateOf(TeamInviteApi.generateTemporaryPassword()) }
-    var revealed by remember { mutableStateOf<TeamInviteSecret?>(null) }
     var revealedTemporaryUser by remember { mutableStateOf<TemporaryUserSecret?>(null) }
     var pendingReissue by remember { mutableStateOf<TeamInvite?>(null) }
     var pendingRevoke by remember { mutableStateOf<TeamInvite?>(null) }
@@ -164,7 +163,6 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                             runCatching { TeamInviteApi.createTemporaryUser(session, name, email, role, temporaryPassword) }
                                 .onSuccess { secret ->
                                     revealedTemporaryUser = secret
-                                    revealed = null
                                     name = ""
                                     email = ""
                                     temporaryPassword = TeamInviteApi.generateTemporaryPassword()
@@ -172,12 +170,11 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                                 }
                         } else {
                             runCatching { TeamInviteApi.create(session, name, email, role) }
-                                .onSuccess { secret ->
-                                    revealed = secret
+                                .onSuccess { invite ->
                                     revealedTemporaryUser = null
                                     name = ""
                                     email = ""
-                                    status = "Invite created. Copy the one-time code now."
+                                    status = "Private invite emailed to ${invite.email}."
                                     invites = TeamInviteApi.list(session)
                                 }
                         }
@@ -190,7 +187,7 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    if (useTemporaryPassword) "Create account with temporary password" else "Create secure invite",
+                    if (useTemporaryPassword) "Create account with temporary password" else "Email private invite",
                     fontWeight = FontWeight.Black
                 )
             }
@@ -217,29 +214,6 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Copy temporary password") }
                 TextButton(onClick = { revealedTemporaryUser = null }, modifier = Modifier.fillMaxWidth()) { Text("Hide password") }
-            }
-        }
-    }
-
-    revealed?.let { secret ->
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("ONE-TIME INVITE CODE", fontWeight = FontWeight.Black, fontSize = 11.sp)
-                Text(secret.code, fontWeight = FontWeight.Black, fontSize = 20.sp)
-                Text("${secret.invite.displayName} • ${secret.invite.email} • ${secret.invite.role.uppercase()} • valid for 7 days", fontSize = 11.sp)
-                Button(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("Morley team invite", secret.code))
-                        status = "Invite code copied."
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Copy code") }
-                TextButton(onClick = { revealed = null }, modifier = Modifier.fillMaxWidth()) { Text("Hide code") }
             }
         }
     }
@@ -290,7 +264,7 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
         AlertDialog(
             onDismissRequest = { if (!loading) pendingReissue = null },
             title = { Text("Issue a new invite code?") },
-            text = { Text("The previous code for ${invite.displayName} will stop working and a fresh 7-day code will be shown once.") },
+            text = { Text("The previous code for ${invite.displayName} will stop working and a fresh 7-day code will be emailed directly to ${invite.email}.") },
             confirmButton = {
                 Button(onClick = {
                     pendingReissue = null
@@ -298,15 +272,14 @@ internal fun TeamInvitePanel(session: AdminSession, hostBusy: Boolean) {
                     error = ""
                     scope.launch {
                         runCatching { TeamInviteApi.reissue(session, invite) }
-                            .onSuccess { secret ->
-                                revealed = secret
-                                status = "New invite code issued. Copy it now."
+                            .onSuccess { updated ->
+                                status = "New private invite emailed to ${updated.email}."
                                 invites = TeamInviteApi.list(session)
                             }
                             .onFailure { error = it.message ?: "Invite could not be reissued." }
                         loading = false
                     }
-                }, enabled = !loading) { Text("Issue new code") }
+                }, enabled = !loading) { Text("Email new code") }
             },
             dismissButton = { TextButton(onClick = { pendingReissue = null }, enabled = !loading) { Text("Cancel") } }
         )
