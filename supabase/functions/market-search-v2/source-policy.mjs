@@ -1,7 +1,8 @@
 const RETAIL_HOSTS = [
   'jbhifi.com.au','officeworks.com.au','apple.com','bigw.com.au','harveynorman.com.au','thegoodguys.com.au',
-  'kmart.com.au','target.com.au','costco.com.au','cashconverters.com.au','binglee.com.au','mobileciti.com.au',
+  'kmart.com.au','target.com.au','costco.com.au','cashconverters.com.au','binglee.com.au','mobileciti.com.au','lmc.com.au',
   'kogan.com','dicksmith.com.au','umart.com.au','scorptec.com.au','centrecom.com.au','mwave.com.au','pccasegear.com',
+  'ple.com.au','computeralliance.com.au','jw.com.au','shoppingexpress.com.au','devicedeal.com.au','bpctech.com.au','msy.com.au',
   'telstra.com.au','optus.com.au','vodafone.com.au','samsung.com','lenovo.com','dell.com','hp.com','asus.com',
   'acer.com','microsoft.com','sony.com','oppo.com','vivo.com','realme.com','motorola.com','store.google.com','amazon.com.au'
 ];
