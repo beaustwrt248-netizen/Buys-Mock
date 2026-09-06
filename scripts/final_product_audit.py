@@ -91,9 +91,9 @@ dashboard = need(
     'AdaptiveBackHandler(enabled = showMenu || page != Page.Home)',
     'MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})',
     'AdaptiveContentFrame',
-    'Admin mode',
     'consumeWindowInsets',
 )
+reject('android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt', dashboard, 'Admin mode', 'EmbeddedAdminActivity')
 categories = need(
     'android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt',
     'Laptops',
@@ -136,20 +136,14 @@ need(
     'Game Boy Advance SP',
     'fun buyPrice(entry: ConsoleDeviceEntry',
 )
-need('android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt', 'admin', 'manager')
-need(
+for retired in (
+    'android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt',
     'android/app/src/main/java/com/buysloans/hub/EmbeddedAdminActivity.kt',
-    'Support operations',
-    'Save Ticket Controls',
-    'Confirm user access change',
-)
-need(
     'android/app/src/main/java/com/buysloans/hub/EmbeddedAdminClient.kt',
-    '/functions/v1/admin-user-control',
-    '/rest/v1/support_tickets',
-    'updateTicket',
-    'updateUserAccess',
-)
+    'web-admin-mode.js',
+):
+    if (ROOT / retired).exists():
+        errors.append(f'{retired}: redundant embedded main-product Admin Mode must remain removed')
 need(
     'android/app/src/main/java/com/buysloans/hub/TemporaryPasswordGateActivity.kt',
     'must_change_password',
@@ -162,15 +156,19 @@ need(
     'Skip email verification',
     'Create account with temporary password',
 )
-need(
+if not (ROOT / 'admin/index.html').is_file():
+    errors.append('admin/index.html: dedicated Morley Admin website must remain present')
+if not (ROOT / 'android/adminapp').is_dir():
+    errors.append('android/adminapp: dedicated Morley Admin Android app must remain present')
+index = need(
     'index.html',
     'product-parity-v3.js',
     'ultimate-parity.js',
-    'web-admin-mode.js',
     'mobile-parity-v3.css',
     'morley-light-web.css?v=2',
     'mobile-layout-fix.js',
 )
+reject('index.html', index, 'web-admin-mode.js')
 need('morley-light-web.css', 'color-scheme:light', '#f5f7f4', '#167a5a', '#1c2b26', '#morleyWebAuth')
 need(
     'mobile-parity-v3.css',
@@ -182,7 +180,8 @@ need('mobile-layout-fix.js', "home|laptop|general|settings", 'morley-mobile-over
 need('product-parity-v3.js', 'Computer Pricing', 'Console Pricing', 'Laptop / MacBook', 'Desktop / Gaming PC')
 need('more-menu-v2.js', 'How-to Guide & FAQ')
 need('admin/guardian-health.js', 'guardian')
-need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC', 'TemporaryPasswordGateActivity')
+main_manifest = need('android/app/src/main/AndroidManifest.xml', 'android.permission.NFC', 'TemporaryPasswordGateActivity')
+reject('android/app/src/main/AndroidManifest.xml', main_manifest, 'EmbeddedAdminActivity')
 
 validate_release_version('android/app/build.gradle', build, 'ota/latest.json', 'Morley OTA')
 validate_release_version('android/adminapp/build.gradle', admin_build, 'admin/admin-update.json', 'Admin update')
@@ -211,4 +210,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; checked-in pricing authentication and Admin builds are deterministic; Morley and Admin release identities remain publication-safe.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
