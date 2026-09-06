@@ -37,4 +37,17 @@ test('Android Admin shares the same emailed invite endpoint', () => {
   assert.match(source, /\/functions\/v1\/send-morley-email/);
   assert.match(source, /put\("action", "create_invite"\)/);
   assert.match(source, /put\("action", "reissue_invite"\)/);
+  assert.match(source, /delivery/);
+  assert.doesNotMatch(source, /invite_code/);
+});
+
+test('private invite codes are delivered by email and are not returned to clients', () => {
+  const edgeFunction = read('supabase/functions/send-morley-email/index.ts');
+  const androidPanel = read('android/adminapp/src/main/java/com/buysloans/admin/TeamInvitePanel.kt');
+  const adminHtml = read('admin/index.html');
+  assert.match(edgeFunction, /delivery: "email"/);
+  assert.doesNotMatch(edgeFunction, /invite_code:/);
+  assert.doesNotMatch(androidPanel, /Copy code|ONE-TIME INVITE CODE/);
+  assert.match(androidPanel, /Email private invite/);
+  assert.match(adminHtml, /Email private invite/);
 });
