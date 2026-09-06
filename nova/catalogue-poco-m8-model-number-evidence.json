@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-09-06T09:31:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 889,
+      "brand": "POCO",
+      "model_name": "POCO M8 5G",
+      "verified_model_number": "25118PC98G",
+      "evidence": [
+        "Xiaomi Taiwan's official POCO M8 5G specifications explicitly list product model 25118PC98G.",
+        "Xiaomi Australia's official POCO M8 5G specifications match the catalogue device identity and regional product configuration."
+      ],
+      "evidence_urls": [
+        "https://www.mi.com/tw/product/poco-m8-5g/specs/",
+        "https://www.mi.com/au/product/poco-m8-5g/specs/"
+      ],
+      "proposed_action": "review_for_model_number_update"
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Re-query device_catalog id 889 immediately before any future authorized production update.",
+    "Abort on row drift, an existing conflicting model_number, or identity mismatch.",
+    "Do not infer POCO X8 Pro or X8 Pro Max identifiers from this evidence package."
+  ]
+}
