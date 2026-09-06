@@ -1,0 +1,80 @@
+{
+  "checked_at": "2026-09-06T10:10:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_catalogue_name_and_identity_evidence",
+  "candidate_row": {
+    "id": 1206,
+    "brand": "Apple",
+    "current_model_name": "iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty",
+    "current_model_number": null,
+    "storage_options": ["32GB"],
+    "market_region": "AU",
+    "release_year": 2014,
+    "aliases": [
+      "Apple iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty Mnv62x/A 32GB White",
+      "MNV62X/A"
+    ],
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+    "classification": "reseller_condition_text_embedded_in_model_name",
+    "proposed_canonical_identity": {
+      "model_name": "iPad Air 2 Wi-Fi",
+      "model_number": "A1566",
+      "storage": "32GB"
+    },
+    "proposed_action": "review_for_name_and_model_normalization_after_explicit_production_write_authorization"
+  },
+  "first_party_identity": {
+    "manufacturer": "Apple",
+    "support_region": "Australia",
+    "official_model_name": "iPad Air 2",
+    "release_period": "Late 2014",
+    "capacity_options": ["16GB", "32GB", "64GB", "128GB"],
+    "hardware_variants": [
+      {"model_number": "A1566", "variant": "Wi-Fi"},
+      {"model_number": "A1567", "variant": "Wi-Fi + Cellular"}
+    ],
+    "evidence_url": "https://support.apple.com/en-au/108043"
+  },
+  "australian_retail_part_mapping": [
+    {
+      "source": "Grays Australia",
+      "url": "https://www.grays.com/retail/BN-MNV62XA-N/computers-and-it-equipment/apple-ipad-air-2-32gb-wi-fi-silver-mnv62x-a",
+      "finding": "MNV62X/A is Apple iPad Air 2 32GB Wi-Fi (Silver)."
+    },
+    {
+      "source": "Trade.com.au",
+      "url": "https://www.trade.com.au/products/ipad-air-2nd-gen-11",
+      "finding": "Australian reseller records MNV62X/A with hardware model A1566 and 32GB storage."
+    }
+  ],
+  "identity_reasoning": [
+    "Apple identifies A1566 as the Wi-Fi iPad Air 2 hardware variant.",
+    "Independent Australian retail evidence maps MNV62X/A to the 32GB Wi-Fi configuration, and one Australian reseller explicitly pairs MNV62X/A with A1566.",
+    "Therefore the row's retail part number supports A1566 rather than A1567; condition text must not remain in canonical model_name."
+  ],
+  "related_rows": [
+    {
+      "id": 1203,
+      "model_name": "iPad Air 2 Wi-Fi",
+      "model_number": "A1566",
+      "storage_options": ["16GB", "32GB", "64GB", "128GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 2, "pricing_history": 0},
+      "note": "Existing canonical A1566 identity is pricing-linked; do not merge or rewrite pricing references automatically."
+    },
+    {
+      "id": 1204,
+      "model_name": "iPad Air 2",
+      "model_number": null,
+      "storage_options": ["16GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "drift_note": "Superseded PR #882 recorded row 1206 pricing_refs=1 and row 1203 pricing_refs=1. Fresh live recheck before this restage shows row 1206 at 0/0/0 and row 1203 at 0/2/0, so stale evidence was closed unmerged.",
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Do not move or rewrite row 1203 pricing references as part of generic catalogue cleanup.",
+    "Even though row 1206 currently has zero dependencies, any future production normalization/deactivation requires explicit human authorization and an immediate fresh dependency/identity recheck.",
+    "Abort on dependency drift, pricing conflict, retail-part mismatch, or contradictory first-party hardware evidence."
+  ]
+}
