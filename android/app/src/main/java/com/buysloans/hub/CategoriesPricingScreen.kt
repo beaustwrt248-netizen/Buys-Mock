@@ -2,8 +2,10 @@ package com.buysloans.hub
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,7 +45,7 @@ fun CategoriesPricingScreen() {
             CategoryCard(PricingVisual.CONSOLE, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
         }
     } else {
-        Column {
+        Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
                 OutlinedButton(
                     onClick = { selected = null },
@@ -51,15 +53,17 @@ fun CategoriesPricingScreen() {
                     shape = RoundedCornerShape(14.dp)
                 ) { Text("‹  Categories", color = MorleyTextPrimary, fontWeight = FontWeight.Bold) }
             }
-            when (selected) {
-                PricingCategory.ALL_DEVICES -> LiveDeviceCatalogueBrowser()
-                PricingCategory.TABLETS -> LiveDeviceCategoryPricingScreen("tablet")
-                PricingCategory.WEARABLES -> LiveDeviceCategoryPricingScreen("wearable")
-                PricingCategory.LAPTOPS -> LaptopGuidedScreen()
-                PricingCategory.DESKTOPS -> Desktop()
-                PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()
-                PricingCategory.MOBILE_PHONES -> MobilePhonePricingScreen()
-                null -> Unit
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when (selected) {
+                    PricingCategory.ALL_DEVICES -> LiveDeviceCatalogueBrowser()
+                    PricingCategory.TABLETS -> LiveDeviceCategoryPricingScreen("tablet")
+                    PricingCategory.WEARABLES -> LiveDeviceCategoryPricingScreen("wearable")
+                    PricingCategory.LAPTOPS -> LaptopGuidedScreen()
+                    PricingCategory.DESKTOPS -> Desktop()
+                    PricingCategory.GAMING_CONSOLES -> ConsolePricingScreen()
+                    PricingCategory.MOBILE_PHONES -> MobilePhonePricingScreen()
+                    null -> Unit
+                }
             }
         }
     }

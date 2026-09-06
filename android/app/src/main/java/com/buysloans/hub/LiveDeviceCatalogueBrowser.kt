@@ -4,13 +4,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,8 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-private const val CATALOGUE_PAGE_SIZE = 60
 
 internal fun normalizeCatalogueCategory(value: String): String {
     val normalized = value.trim().lowercase().replace('-', '_').replace(' ', '_')
@@ -43,16 +43,19 @@ internal fun filterCatalogueDevices(
     category: String?,
     query: String = "",
 ): List<LiveDeviceCatalogueRow> {
-    val needle = query.trim().lowercase()
+    val terms = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
     return devices.asSequence()
         .filter { deviceMatchesCatalogueCategory(it.category, category) }
-        .filter {
-            needle.isBlank() || listOfNotNull(
-                it.brand,
-                it.model,
-                it.modelNumber,
-                it.storageOptions.joinToString(" "),
-            ).joinToString(" ").lowercase().contains(needle)
+        .filter { device ->
+            if (terms.isEmpty()) true else {
+                val searchable = listOfNotNull(
+                    device.brand,
+                    device.model,
+                    device.modelNumber,
+                    device.storageOptions.joinToString(" "),
+                ).joinToString(" ").lowercase()
+                terms.all(searchable::contains)
+            }
         }
         .sortedWith(
             compareBy<LiveDeviceCatalogueRow> { normalizeCatalogueCategory(it.category) }
@@ -85,39 +88,46 @@ private fun categoryLabel(category: String): String = when (normalizeCatalogueCa
 @Composable
 fun LiveDeviceCatalogueBrowser(category: String? = null) {
     var query by remember(category) { mutableStateOf("") }
-    var visibleCount by remember(category, query) { mutableStateOf(CATALOGUE_PAGE_SIZE) }
     val all = LiveDevicePricing.catalogue()
     val filtered = remember(all, category, query) { filterCatalogueDevices(all, category, query) }
-    val visibleDevices = remember(filtered, visibleCount) { filtered.take(visibleCount) }
 
-    Screen(categoryTitle(category)) {
-        Text(
-            if (category == null) "Browse every live catalogue device and its verified image reference."
-            else "Browse every live ${categoryTitle(category).lowercase()} catalogue record.",
-            color = MorleyTextSecondary,
-            fontSize = 14.sp,
-        )
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("Search catalogue") },
-            supportingText = { Text("Brand, model, model number or storage") },
-            shape = RoundedCornerShape(16.dp),
-        )
-        Text(
-            if (filtered.size > visibleDevices.size) {
-                "Showing ${visibleDevices.size} of ${filtered.size} devices"
-            } else {
-                "${filtered.size} device${if (filtered.size == 1) "" else "s"}"
-            },
-            color = MorleyAccent,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-        )
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        item(key = "catalogue-title") {
+            Text(categoryTitle(category), fontSize = 26.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
+        }
+        item(key = "catalogue-description") {
+            Text(
+                if (category == null) "Browse every live catalogue device and its verified image reference."
+                else "Browse every live ${categoryTitle(category).lowercase()} catalogue record.",
+                color = MorleyTextSecondary,
+                fontSize = 14.sp,
+            )
+        }
+        item(key = "catalogue-search") {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Search catalogue") },
+                supportingText = { Text("Brand, model, model number or storage") },
+                shape = RoundedCornerShape(16.dp),
+            )
+        }
+        item(key = "catalogue-count") {
+            Text(
+                "${filtered.size} device${if (filtered.size == 1) "" else "s"}",
+                color = MorleyAccent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black,
+            )
+        }
 
-        visibleDevices.forEach { device ->
+        items(filtered, key = { it.id }) { device ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
                 border = BorderStroke(1.dp, MorleyBorder),
@@ -157,21 +167,6 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
                         }
                     }
                 }
-            }
-        }
-
-        if (visibleDevices.size < filtered.size) {
-            OutlinedButton(
-                onClick = { visibleCount = (visibleCount + CATALOGUE_PAGE_SIZE).coerceAtMost(filtered.size) },
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, MorleyAccent),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Text(
-                    "Show ${minOf(CATALOGUE_PAGE_SIZE, filtered.size - visibleDevices.size)} more",
-                    color = MorleyAccent,
-                    fontWeight = FontWeight.Bold,
-                )
             }
         }
     }
