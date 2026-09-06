@@ -1,0 +1,33 @@
+{
+  "task": "catalogue_redmi_note17_pro_regional_model_boundary",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "explicitly_unresolved": [
+    {
+      "device_catalog_id": 891,
+      "brand": "Xiaomi",
+      "catalogue_name": "REDMI Note 17 Pro 5G",
+      "market_region": "Australia",
+      "release_year": 2026,
+      "current_model_number": null,
+      "storage_options_snapshot": ["128GB UFS 2.2", "256GB UFS 3.1"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "candidate_model_numbers": ["2607DRA18G", "2607DRA18T"],
+      "evidence": [
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/product/redmi-note-17-pro-5g/specs/", "supports": "Australian REDMI Note 17 Pro 5G identity and 128GB/256GB storage configuration, but does not expose a hardware model code"},
+        {"authority": "Global Certification Forum", "url": "https://www.globalcertificationforum.org/pub_product/13785.html", "supports": "Xiaomi Communications model 2607DRA18G marketed as REDMI Note 17 Pro 5G"},
+        {"authority": "Global Certification Forum", "url": "https://www.globalcertificationforum.org/pub_product/13810.html", "supports": "Xiaomi Communications model 2607DRA18T marketed as REDMI Note 17 Pro 5G"},
+        {"authority": "Xiaomi Taiwan", "url": "https://www.mi.com/tw/product/redmi-note-17-pro-5g/specs/", "supports": "Taiwan product model 2607DRA18G; this is not sufficient evidence that the Australian row uses the same regional code"}
+      ],
+      "reason": "First-party/regulatory evidence establishes at least two certified hardware codes for the same marketing name. The Australian product page does not identify which applies to the AU catalogue row, so assigning either code would introduce false precision.",
+      "required_to_resolve": "Australia-specific package label, local regulatory record, carrier certification, or other manufacturer-authoritative evidence that identifies the exact AU hardware code."
+    }
+  ],
+  "safety_notes": [
+    "Do not populate model_number for row 891 from regional inference alone.",
+    "Collision absence is not identity evidence.",
+    "Any future production update requires exact Australian configuration evidence plus a fresh active/dependency/collision recheck and explicit human authorization."
+  ]
+}
