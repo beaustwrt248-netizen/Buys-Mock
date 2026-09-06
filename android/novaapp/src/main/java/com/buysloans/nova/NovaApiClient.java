@@ -49,8 +49,11 @@ final class NovaApiClient {
     JSONArray sales() throws Exception { return get("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc&limit=100"); }
     JSONArray inventory() throws Exception { return get("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc&limit=500"); }
     JSONArray valuations() throws Exception { return get("/rest/v1/valuation_history?select=id,expected_profit,actual_profit,status,created_at&order=created_at.desc&limit=250"); }
-    JSONArray guardian() throws Exception { return get("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,updated_at&order=updated_at.desc&limit=200"); }
+    JSONArray guardian() throws Exception { return get("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc&limit=250"); }
+    JSONArray guardianRepairs() throws Exception { return get("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc&limit=250"); }
     JSONArray support() throws Exception { return get("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,updated_at&order=updated_at.desc&limit=200"); }
+    JSONArray catalogue() throws Exception { return get("/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,active,updated_at&active=eq.true&order=release_year.desc.nullslast&limit=1000"); }
+    JSONArray releaseConfig() throws Exception { return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)"); }
 
     private JSONArray get(String path) throws Exception {
         if (session == null) throw new SecurityException("Sign in to Nova first.");
