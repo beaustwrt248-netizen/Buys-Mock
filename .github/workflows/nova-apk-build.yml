@@ -79,9 +79,13 @@ jobs:
           PY
           )"
           mkdir -p dist
-          cp android/novaapp/build/outputs/apk/debug/novaapp-debug.apk "dist/Nova-AI-${VERSION_NAME}-debug.apk"
-          sha256sum "dist/Nova-AI-${VERSION_NAME}-debug.apk" > "dist/Nova-AI-${VERSION_NAME}-debug.apk.sha256"
-          sha256sum --check "dist/Nova-AI-${VERSION_NAME}-debug.apk.sha256"
+          APK_NAME="Nova-AI-${VERSION_NAME}-debug.apk"
+          cp android/novaapp/build/outputs/apk/debug/novaapp-debug.apk "dist/${APK_NAME}"
+          (
+            cd dist
+            sha256sum "$APK_NAME" > "$APK_NAME.sha256"
+            sha256sum --check "$APK_NAME.sha256"
+          )
       - name: Upload Nova PR APK artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -172,8 +176,11 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cp android/novaapp/build/outputs/apk/release/novaapp-release.apk "dist/${NOVA_RELEASE_FILE}"
-          sha256sum "dist/${NOVA_RELEASE_FILE}" | tee "dist/${NOVA_RELEASE_FILE}.sha256"
-          sha256sum --check "dist/${NOVA_RELEASE_FILE}.sha256"
+          (
+            cd dist
+            sha256sum "$NOVA_RELEASE_FILE" > "$NOVA_RELEASE_FILE.sha256"
+            sha256sum --check "$NOVA_RELEASE_FILE.sha256"
+          )
           EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b
           APKSIGNER="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "dist/${NOVA_RELEASE_FILE}")"
