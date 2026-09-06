@@ -10,7 +10,10 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -19,6 +22,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
@@ -63,6 +67,7 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     private EditText chatInput;
     private NovaBrainView brainView;
     private UpdateManager updateManager;
+    private NovaCredentialStore credentialStore;
     private UpdateManager.UpdateInfo pendingUpdate;
     private CaptchaChallenge captchaChallenge;
     private Tab activeTab = Tab.CHAT;
@@ -167,6 +172,7 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         outline = Color.rgb(38, 66, 101);
         outlineBlue = Color.rgb(23, 91, 166);
         updateManager = new UpdateManager(this, this);
+        credentialStore = new NovaCredentialStore(this);
         showLogin();
         updateManager.checkForUpdates();
     }
@@ -290,6 +296,82 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         });
     }
 
+    private boolean biometricsAvailable() {
+        try {
+            BiometricManager manager = getSystemService(BiometricManager.class);
+            return manager != null && manager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void restoreRememberedSession(TextView status, Button trigger) {
+        trigger.setEnabled(false);
+        trigger.setAlpha(.6f);
+        status.setTextColor(secondary);
+        status.setText("Restoring your secure Nova session…");
+        worker.execute(() -> {
+            try {
+                String refreshToken = credentialStore.refreshToken();
+                NovaApiClient.Session restored = api.restoreSession(refreshToken);
+                credentialStore.save(restored);
+                runOnUiThread(() -> {
+                    activeTab = Tab.CHAT;
+                    showWorkspace();
+                });
+            } catch (Exception error) {
+                credentialStore.clear();
+                runOnUiThread(() -> {
+                    status.setText("The remembered session expired. Sign in again to continue.");
+                    status.setTextColor(danger);
+                    trigger.setEnabled(true);
+                    trigger.setAlpha(1f);
+                });
+            }
+        });
+    }
+
+    private void requestBiometricUnlock(TextView status, Button trigger) {
+        if (!biometricsAvailable()) {
+            restoreRememberedSession(status, trigger);
+            return;
+        }
+        BiometricPrompt prompt = new BiometricPrompt.Builder(this)
+                .setTitle("Unlock Nova AI")
+                .setSubtitle("Use your biometrics to open your remembered Morley session")
+                .setNegativeButton("Use password", getMainExecutor(), (dialog, which) -> {
+                    status.setText("Use your Morley password to sign in.");
+                    status.setTextColor(secondary);
+                })
+                .build();
+
+        CancellationSignal cancellationSignal = new CancellationSignal();
+        prompt.authenticate(cancellationSignal, getMainExecutor(),
+                new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                        super.onAuthenticationSucceeded(result);
+                        restoreRememberedSession(status, trigger);
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int errorCode, CharSequence errString) {
+                        super.onAuthenticationError(errorCode, errString);
+                        status.setText("Biometric unlock cancelled. You can sign in with your password.");
+                        status.setTextColor(secondary);
+                        trigger.setEnabled(true);
+                        trigger.setAlpha(1f);
+                    }
+
+                    @Override
+                    public void onAuthenticationFailed() {
+                        super.onAuthenticationFailed();
+                        status.setText("Biometric check did not match. Try again or use your password.");
+                        status.setTextColor(danger);
+                    }
+                });
+    }
+
     private void showLogin() {
         assistant.resetContext();
         chatHistory.clear();
@@ -303,12 +385,14 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         c.addView(heading);
 
         TextView note = text(
-                "Use your authorised Morley Admin account. Nova can read approved intelligence; protected writes remain unavailable.",
+                "Use your authorised Morley Admin account. Nova can remember this device securely and unlock with biometrics.",
                 14, secondary);
         note.setPadding(0, dp(this, 7), 0, dp(this, 12));
         c.addView(note);
 
         EditText email = input("Email", false);
+        String rememberedEmail = credentialStore.email();
+        if (rememberedEmail != null && !rememberedEmail.isBlank()) email.setText(rememberedEmail);
         EditText password = input("Password", true);
         c.addView(email);
         LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(
@@ -316,6 +400,29 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         pp.topMargin = dp(this, 8);
         c.addView(password, pp);
+
+        CheckBox remember = new CheckBox(this);
+        remember.setText("Remember me on this device");
+        remember.setTextColor(primary);
+        remember.setTextSize(13);
+        remember.setChecked(credentialStore.hasRememberedSession());
+        remember.setPadding(0, dp(this, 7), 0, dp(this, 2));
+        c.addView(remember);
+
+        TextView status = text("", 13, secondary);
+        status.setPadding(0, dp(this, 7), 0, dp(this, 4));
+
+        if (credentialStore.hasRememberedSession()) {
+            Button unlock = button(biometricsAvailable()
+                    ? "Unlock Nova with biometrics"
+                    : "Continue remembered session", true);
+            unlock.setOnClickListener(v -> requestBiometricUnlock(status, unlock));
+            LinearLayout.LayoutParams unlockLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            unlockLp.bottomMargin = dp(this, 10);
+            c.addView(unlock, unlockLp);
+        }
 
         TextView challengeStatus = text("Security check loading…", 13, secondary);
         challengeStatus.setPadding(0, dp(this, 10), 0, dp(this, 5));
@@ -343,8 +450,6 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         });
         c.addView(captchaChallenge.view());
 
-        TextView status = text("", 13, secondary);
-        status.setPadding(0, dp(this, 6), 0, dp(this, 4));
         c.addView(status);
         c.addView(signIn);
         watch(email, sync);
@@ -364,13 +469,23 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
                 return;
             }
             String token = captchaChallenge.token();
+            boolean rememberDevice = remember.isChecked();
             signIn.setEnabled(false);
             signIn.setAlpha(.55f);
             status.setTextColor(secondary);
             status.setText("Verifying your authorised Morley account…");
             worker.execute(() -> {
                 try {
-                    api.signIn(e, p, token);
+                    NovaApiClient.Session signedIn = api.signIn(e, p, token);
+                    if (rememberDevice) {
+                        try {
+                            credentialStore.save(signedIn);
+                        } catch (Exception storageError) {
+                            credentialStore.clear();
+                        }
+                    } else {
+                        credentialStore.clear();
+                    }
                     runOnUiThread(() -> {
                         activeTab = Tab.CHAT;
                         showWorkspace();
@@ -763,11 +878,20 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         boundary.setPadding(0, dp(this, 10), 0, 0);
         account.addView(boundary);
 
+        TextView remembered = text(
+                credentialStore.hasRememberedSession()
+                        ? "Biometric / remembered sign-in is enabled on this device."
+                        : "Remembered sign-in is not enabled on this device.",
+                12, secondary);
+        remembered.setPadding(0, dp(this, 10), 0, 0);
+        account.addView(remembered);
+
         Button logout = button("Sign out of Nova");
         logout.setOnClickListener(v -> {
             assistant.resetContext();
             chatHistory.clear();
             api.signOut();
+            credentialStore.clear();
             showLogin();
         });
         add(logout, 18);
