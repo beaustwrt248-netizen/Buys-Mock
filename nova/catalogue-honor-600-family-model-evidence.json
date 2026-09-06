@@ -1,0 +1,68 @@
+{
+  "checked_at": "2026-09-06T21:02:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_honor_600_family_model_number_evidence",
+  "market": "AU",
+  "manufacturer_sources": [
+    {
+      "name": "HONOR Australia - HONOR 600",
+      "url": "https://www.honor.com/au/phones/honor-600/",
+      "finding": "HONOR Australia confirms the HONOR 600 is an Australian-market 5G product in the current N Series lineup."
+    },
+    {
+      "name": "HONOR Australia - phones catalogue",
+      "url": "https://www.honor.com/au/phones/",
+      "finding": "HONOR Australia lists both HONOR 600 and HONOR 600 Pro as current Australian N Series products."
+    }
+  ],
+  "supporting_sources": [
+    {
+      "name": "Woolworths Australia marketplace listing",
+      "url": "https://www.woolworths.com.au/shop/productdetails/1139681374/honor-600-5g-dual-sim-esim-vkj-nx9-256gb-12gb-ram-black",
+      "finding": "Australian retail listing identifies HONOR 600 5G 256GB global version as VKJ-NX9."
+    },
+    {
+      "name": "BIG W Australia marketplace listing",
+      "url": "https://www.bigw.com.au/product/honor-600-pro-5g-dual-sim-esim-vkp-nx9-512gb-12gb-ram-black/p/9904473700",
+      "finding": "Australian retail listing identifies HONOR 600 Pro 5G 512GB global version as VKP-NX9."
+    }
+  ],
+  "records": [
+    {
+      "device_catalog_id": 747,
+      "brand": "HONOR",
+      "model_name": "HONOR 600 5G",
+      "current_model_number": null,
+      "verified_model_number": "VKJ-NX9",
+      "release_year": 2026,
+      "market_region": "AU",
+      "storage_options": ["256GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "active_model_number_collisions": 0,
+      "assessment": "model_number_correction_candidate",
+      "confidence": "high"
+    },
+    {
+      "device_catalog_id": 753,
+      "brand": "HONOR",
+      "model_name": "HONOR 600 Pro 5G",
+      "current_model_number": null,
+      "verified_model_number": "VKP-NX9",
+      "release_year": 2026,
+      "market_region": "AU",
+      "storage_options": ["512GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "active_model_number_collisions": 0,
+      "assessment": "model_number_correction_candidate",
+      "confidence": "high"
+    }
+  ],
+  "safety_notes": [
+    "No production catalogue row is changed by this evidence package.",
+    "No pricing, inventory or pricing-history record is changed.",
+    "The dependency and collision counts are point-in-time read-only checks from production and must be repeated immediately before any future write.",
+    "Abort any future write if a distinct Australian hardware variant is demonstrated or if either candidate collides with an active catalogue row.",
+    "Retail model identifiers are supporting evidence; manufacturer Australia sources remain authoritative for product identity and market applicability."
+  ]
+}
