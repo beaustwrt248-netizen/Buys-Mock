@@ -1,0 +1,1 @@
+Regression intent: the main Morley Android app and buyshub.me must not expose embedded Admin Mode. The dedicated Morley Admin website (`admin/`) and Android Admin app (`android/adminapp/`) must remain available and continue to own privileged administration.
