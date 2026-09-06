@@ -1,8 +1,8 @@
 {
-  "versionCode": 5,
-  "versionName": "0.3.1",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.1/Nova-AI-0.3.1.apk",
-  "sha256": "a1779ba0d0e41b428764393412077b4db78773bce04b949c13d6bac7de608251",
+  "versionCode": 6,
+  "versionName": "0.3.2",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.2/Nova-AI-0.3.2.apk",
+  "sha256": "ca3b3d0e04411b872e97ccc246b5e6da1e95e95f888a4ef9053d0a8db8f4eccf",
   "mandatory": false,
-  "notes": "Nova AI 0.3.1 fixes protected Morley sign-in by adding the required Cloudflare Turnstile CAPTCHA challenge while preserving Nova's read-only boundaries."
+  "notes": "Nova AI 0.3.2 adds conversational follow-up context, live Nova knowledge and verified learning, an attention scan, and a more compact control experience."
 }
