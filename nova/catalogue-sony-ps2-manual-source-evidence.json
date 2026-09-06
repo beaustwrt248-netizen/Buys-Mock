@@ -1,0 +1,45 @@
+{
+  "checked_at": "2026-09-06T10:12:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "rows": [
+    {
+      "id": 1032,
+      "model_name": "PlayStation 2",
+      "verified_model_number": "SCPH-39002",
+      "verified_release_year": 2002,
+      "verified_storage_status": "no_internal_user_storage_uses_memory_card",
+      "manufacturer_document": "Sony Computer Entertainment PlayStation 2 Instruction Manual",
+      "document_number": "3-077-227-41(1)",
+      "document_evidence": "Manual title page identifies SCPH-39002 and is copyright 2002 Sony Computer Entertainment Inc.",
+      "archival_evidence_url": "https://delta-island.com/downloads/sony-ps2-psx/user-manual/ps2-manual-notice-scph-39002.pdf",
+      "current_source_url_is_reseller": true,
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "id": 1033,
+      "model_name": "PlayStation 2 Slim",
+      "verified_model_number": "SCPH-77002",
+      "verified_release_year": 2006,
+      "verified_storage_status": "no_internal_user_storage_uses_memory_card",
+      "manufacturer_document": "Sony Computer Entertainment PlayStation 2 Instruction Manual",
+      "document_number": "2-697-297-21(1)",
+      "document_evidence": "Manual identifies SCPH-77002/SCPH-77003; SCPH-77002 is the region-code-4 model and the guarantee section explicitly covers Australia. The manufacturer document dates this exact revision family to 2006.",
+      "archival_evidence_url": "https://www.manualslib.com/manual/539861/Sony-Playstation-2-Cph-77002.html",
+      "current_source_url_is_reseller": true,
+      "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0}
+    }
+  ],
+  "source_quality_notes": [
+    "These are manufacturer-authored Sony Computer Entertainment instruction manuals preserved by archival/manual mirrors because current first-party legacy-host URLs were not discoverable.",
+    "The manufacturer-authored documents are stronger identity/year evidence than the current Cash Converters listing URLs.",
+    "Do not represent a third-party mirror as a current Sony-hosted webpage; preserve the distinction between document authority and hosting authority."
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Row 1033 has one protected pricing reference; future source-metadata cleanup must not alter or reassign pricing.",
+    "Re-query row identity, dependency references and current source metadata immediately before any future authorized production update.",
+    "Abort on row drift, identity mismatch, unexpected dependency changes or contradictory first-party evidence."
+  ]
+}
