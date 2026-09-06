@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
+        android:name=".NovaApplication"
         android:allowBackup="false"
         android:icon="@drawable/nova_official_app_icon"
         android:roundIcon="@drawable/nova_official_app_icon"
