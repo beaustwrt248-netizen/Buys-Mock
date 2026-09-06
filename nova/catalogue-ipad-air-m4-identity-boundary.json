@@ -1,0 +1,43 @@
+{
+  "checked_at": "2026-09-06T21:16:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_ipad_air_m4_identity_ambiguity",
+  "catalogue_row": {
+    "device_catalog_id": 1197,
+    "category": "tablet",
+    "brand": "Apple",
+    "model_name": "iPad Air - M4",
+    "current_model_number": null,
+    "release_year": 2026,
+    "market_region": "AU",
+    "storage_options": ["128GB"],
+    "aliases": [
+      "Apple *Sealed* iPad Air Mh5qax/A - M4 - 128GB 128GB",
+      "MH5QAX/A"
+    ],
+    "retail_sku": "MH5QAX/A",
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "manufacturer_source": {
+    "name": "Apple Support Australia - Identify your iPad model",
+    "url": "https://support.apple.com/en-au/108043",
+    "finding": "Apple identifies four non-China hardware model numbers for 2026 iPad Air (M4) configurations relevant to Australia: 11-inch Wi-Fi A3459, 11-inch Wi-Fi + Cellular A3460, 13-inch Wi-Fi A3461, and 13-inch Wi-Fi + Cellular A3462. All are available in 128GB, so capacity alone cannot disambiguate the row."
+  },
+  "candidate_variants": [
+    {"size": "11-inch", "connectivity": "Wi-Fi", "model_number": "A3459"},
+    {"size": "11-inch", "connectivity": "Wi-Fi + Cellular", "model_number": "A3460"},
+    {"size": "13-inch", "connectivity": "Wi-Fi", "model_number": "A3461"},
+    {"size": "13-inch", "connectivity": "Wi-Fi + Cellular", "model_number": "A3462"}
+  ],
+  "assessment": "identity_under_specified_do_not_guess",
+  "reason": "The catalogue row and preserved reseller alias identify only iPad Air M4, 128GB and retail SKU MH5QAX/A. They do not establish 11-inch versus 13-inch or Wi-Fi versus Wi-Fi + Cellular, and no authoritative source located maps MH5QAX/A to one exact Apple hardware model number.",
+  "safety_notes": [
+    "Keep model_number null until the row's exact size and connectivity are independently verified from authoritative Australian evidence.",
+    "Do not treat Apple retail/order SKU MH5QAX/A as the canonical hardware model number.",
+    "Do not assign one of A3459, A3460, A3461 or A3462 solely from the 128GB capacity because all four relevant variants support 128GB.",
+    "The row may ultimately need to be normalized or split by physical size and connectivity before a canonical hardware model number can be assigned.",
+    "No production catalogue, pricing, inventory or history record is changed by this evidence package.",
+    "Any future production mutation requires a fresh dependency/identity/collision recheck and explicit human authorization."
+  ]
+}
