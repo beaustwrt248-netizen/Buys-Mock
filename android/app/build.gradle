@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.hub'
         minSdk 26
         targetSdk 36
-        versionCode 115
-        versionName '2.15.71'
+        versionCode 116
+        versionName '2.15.72'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
         buildConfigField 'String', 'TURNSTILE_SITE_KEY', '"0x4AAAAAAEZul-Qo6dqMim2U"'
@@ -65,5 +65,5 @@ tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('
 tasks.matching { it.name == 'check' }.configureEach { dependsOn tasks.named('verifyPricingNavigation'); dependsOn tasks.named('verifyDeterministicSourcePipeline') }
 afterEvaluate { tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') } }
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.18.0'); implementation 'com.google.firebase:firebase-messaging'; implementation 'com.google.android.gms:play-services-auth:21.3.0'; implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'; implementation 'com.google.android.play:integrity:1.4.0'; implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; implementation 'androidx.work:work-runtime-ktx:2.10.1'; implementation 'androidx.activity:activity-compose:1.10.1'; implementation platform('androidx.compose:compose-bom:2026.08.00'); implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material:material-icons-extended'; debugImplementation 'androidx.compose.ui:ui-tooling'; testImplementation 'junit:junit:4.13.2'; testImplementation 'org.json:json:20240303'
+    implementation platform('com.google.firebase:firebase-bom:34.18.0'); implementation 'com.google.firebase:firebase-messaging'; implementation 'com.google.android.gms.google-services:google-services:4.4.3'; implementation 'com.google.android.gms:play-services-auth:21.3.0'; implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'; implementation 'com.google.android.play:integrity:1.4.0'; implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; implementation 'androidx.work:work-runtime-ktx:2.10.1'; implementation 'androidx.activity:activity-compose:1.10.1'; implementation platform('androidx.compose:compose-bom:2026.08.00'); implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material:material-icons-extended'; debugImplementation 'androidx.compose.ui:ui-tooling'; testImplementation 'junit:junit:4.13.2'; testImplementation 'org.json:json:20240303'
 }
