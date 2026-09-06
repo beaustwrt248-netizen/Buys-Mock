@@ -1,0 +1,33 @@
+{
+  "task": "catalogue_aspera_chat_model_number_evidence",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "verified_rows": [
+    {
+      "device_catalog_id": 91,
+      "brand": "Aspera",
+      "catalogue_name": "Aspera Chat",
+      "market_region": "AU",
+      "release_year": 2024,
+      "current_model_number": null,
+      "verified_model_number": "H6031",
+      "storage_options_snapshot": ["64GB"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "collision_snapshot": {"active_rows_using_verified_model_number": 0},
+      "evidence": [
+        {"authority": "Aspera Mobile", "url": "https://asperamobile.com/phones/smart-phones/aspera-chat/", "supports": "Australian Aspera Chat product identity, Android 14 Go, 64GB ROM and local network specification"},
+        {"authority": "Aspera Mobile", "url": "https://asperamobile.com/wp-content/uploads/2025/02/Chat-user-manual.pdf", "supports": "Aspera-hosted user manual resource indexed as 'Aspera H6031 User Manual' and describing the Aspera Chat"},
+        {"authority": "Aspera Mobile", "url": "https://asperamobile.com/aspera-chat-faqs/", "supports": "Manufacturer FAQ links the Aspera Chat user guide and confirms Australian 4G product identity"}
+      ],
+      "confidence": "high",
+      "production_action": "candidate_model_number_normalization_only_after_explicit_authorization_and_fresh_recheck"
+    }
+  ],
+  "safety_notes": [
+    "Evidence only; no production catalogue write is authorized.",
+    "The SC9863T value on the product page is a processor identifier and must not be confused with the handset model number.",
+    "Before any future write, recheck active status, dependencies, collision state and manufacturer identity."
+  ]
+}
