@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-09-06T21:10:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_honor_model_code_unresolved_boundary",
+  "records": [
+    {
+      "device_catalog_id": 930,
+      "brand": "HONOR",
+      "model_name": "HONOR Magic V6",
+      "current_model_number": null,
+      "release_year": 2026,
+      "market_region": "Australia / Global",
+      "storage_options": ["512GB", "1TB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "assessment": "model_number_unresolved_do_not_guess",
+      "manufacturer_source": {
+        "name": "HONOR Australia",
+        "url": "https://www.honor.com/au/phones/honor-magic-v6/",
+        "finding": "Confirms the Australian HONOR Magic V6 product identity, but the public Australian product/spec pages inspected do not expose an exact hardware model code."
+      }
+    },
+    {
+      "device_catalog_id": 931,
+      "brand": "HONOR",
+      "model_name": "HONOR X6d 5G",
+      "current_model_number": null,
+      "release_year": 2026,
+      "market_region": "Australia",
+      "storage_options": ["128GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "assessment": "model_number_unresolved_do_not_guess",
+      "manufacturer_source": {
+        "name": "HONOR Australia",
+        "url": "https://www.honor.com/au/phones/honor-x6d-5g/",
+        "finding": "Confirms the Australian HONOR X6d 5G 128GB product identity. The public Australian product/spec pages inspected do not expose an exact hardware model code."
+      },
+      "regional_variation_note": "HONOR's global X6d 5G page surfaces a 256GB configuration while the Australian page surfaces 128GB, so regional configuration differences are material and an overseas model code must not be copied into the AU row without direct evidence."
+    }
+  ],
+  "safety_notes": [
+    "No production catalogue row is changed by this evidence package.",
+    "No pricing, inventory or pricing-history record is changed.",
+    "Do not infer an Australian hardware code from a foreign-market listing solely because the marketing name matches.",
+    "Keep model_number null until an Australian manufacturer, regulatory, carrier or authoritative retail source identifies the exact AU hardware variant.",
+    "Any future production write requires a fresh dependency, collision, region and identity recheck plus explicit human authorization."
+  ]
+}
