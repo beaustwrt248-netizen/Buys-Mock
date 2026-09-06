@@ -31,7 +31,7 @@ tasks.register('prepareNovaReferenceUi') {
                 '        addOtaSection();\n        footer();\n    }\n\n    private void showWorkspace()',
                 '        footer();\n    }\n\n    private void showWorkspace()')
 
-        // Use the exact approved brain artwork from the supplied reference, while retaining a live thinking pulse.
+        // Use the approved brain artwork from the supplied reference, while retaining a live thinking pulse.
         source = source.replace(
                 'import android.graphics.Canvas;\n',
                 'import android.graphics.Bitmap;\nimport android.graphics.BitmapFactory;\nimport android.graphics.Canvas;\n')
@@ -47,9 +47,9 @@ tasks.register('prepareNovaReferenceUi') {
 
             Bitmap reference = BitmapFactory.decodeResource(getResources(), R.drawable.nova_reference_brain);
             if (reference != null) {
-                float insetX = dp(MainActivity.this, 1);
-                float insetY = dp(MainActivity.this, 1);
-                RectF target = new RectF(insetX, insetY, w - insetX, h - insetY);
+                float horizontalInset = dp(MainActivity.this, 1);
+                float verticalInset = dp(MainActivity.this, 1);
+                RectF target = new RectF(horizontalInset, verticalInset, w - horizontalInset, h - verticalInset);
                 paint.setStyle(Paint.Style.FILL);
                 paint.setAlpha(255);
                 paint.clearShadowLayer();
@@ -57,12 +57,12 @@ tasks.register('prepareNovaReferenceUi') {
 
                 if (thinking) {
                     int pulse = blend(accent, pink, phase);
-                    paint.setAlpha(210);
+                    paint.setAlpha(185);
                     paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(dp(MainActivity.this, 3));
+                    paint.setStrokeWidth(dp(MainActivity.this, 2));
                     paint.setColor(pulse);
-                    paint.setShadowLayer(dp(MainActivity.this, 18), 0, 0, pulse);
-                    canvas.drawCircle(cx, cy, Math.min(w, h) * (.39f + .025f * phase), paint);
+                    paint.setShadowLayer(dp(MainActivity.this, 13), 0, 0, pulse);
+                    canvas.drawCircle(cx, cy, Math.min(w, h) * (.39f + .018f * phase), paint);
                     paint.clearShadowLayer();
                 }
                 paint.setAlpha(255);
@@ -96,8 +96,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 14
-        versionName '0.3.10'
+        versionCode 15
+        versionName '0.3.11'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'

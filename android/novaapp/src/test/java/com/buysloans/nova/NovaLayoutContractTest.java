@@ -19,7 +19,9 @@ public final class NovaLayoutContractTest {
         assertTrue(source.contains("setVerticalScrollBarEnabled(true)"));
         assertTrue(source.contains("setScrollbarFadingEnabled(false)"));
         assertTrue(source.contains("row.getChildCount() != 4"));
-        assertTrue(source.contains("new LinearLayout.LayoutParams(0, dp(activity, 116), 1f)"));
+        assertTrue(source.contains("(width - gap * 3) / 4"));
+        assertTrue(source.contains("new LinearLayout.LayoutParams(cardWidth, dp(activity, 104))"));
+        assertTrue(source.contains("resizeConversationViewport"));
         assertTrue(source.contains("findEditTextByHint(decor, \"Message Nova…\")"));
     }
 
