@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-09-06T09:57:00+08:00",
+  "source": "Apple Support Australia iPhone identification + live device_catalog dependency audit",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "rows": [
+    {"id":1052,"current_model_name":"iPhone 12 Pro Max Ng9a3ll/A |","verified_model_name":"iPhone 12 Pro Max","verified_model_number":"A2342","release_year":2020,"dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0}},
+    {"id":1053,"current_model_name":"iPhone 13 Mini Ml923ll","verified_model_name":"iPhone 13 mini","verified_model_number":"A2481","release_year":2021,"dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0}},
+    {"id":1055,"current_model_name":"iPhone 13 Pro Max Mlhe3ch/A","verified_model_name":"iPhone 13 Pro Max","verified_model_number":"A2644","release_year":2021,"dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0}},
+    {"id":1056,"current_model_name":"iPhone 13 Pro Mluf3j/A","verified_model_name":"iPhone 13 Pro","verified_model_number":"A2636","release_year":2021,"dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0}},
+    {"id":1057,"current_model_name":"iPhone 14 Mpvh3ll/A","verified_model_name":"iPhone 14","verified_model_number":"A2649","release_year":2022,"dependency_refs":{"inventory":0,"pricing":0,"pricing_history":0}},
+    {"id":1068,"current_model_name":"iPhone 6S Plus Mkud2x/A","verified_model_name":"iPhone 6s Plus","verified_model_number":"A1687","release_year":2015,"dependency_refs":{"inventory":0,"pricing":1,"pricing_history":0}},
+    {"id":1074,"current_model_name":"iPhone Se Mmyd3j/A / 3rd Gen","verified_model_name":"iPhone SE (3rd generation)","verified_model_number":"A2782","release_year":2022,"dependency_refs":{"inventory":0,"pricing":1,"pricing_history":0}}
+  ],
+  "evidence_url":"https://support.apple.com/en-au/108044",
+  "normalization_rules":[
+    "Canonical model_name must describe the Apple hardware product, not an Apple order/retail part number or reseller title fragment.",
+    "Existing reseller/order strings remain in aliases for search and provenance; do not promote them to model_number.",
+    "Existing A-model identifiers, storage variants, release years and pricing records are not changed by this evidence package."
+  ],
+  "safety_notes":[
+    "No Supabase write is performed by this evidence file.",
+    "Rows 1068 and 1074 have protected pricing references; future name-only normalization must not modify, reassign or overwrite pricing.",
+    "Re-query row identity, dependency references and current names immediately before any future authorized production update.",
+    "Abort on row drift, identity mismatch, model-number mismatch or unexpected dependency changes."
+  ]
+}
