@@ -1,0 +1,51 @@
+{
+  "task": "catalogue_poco_m8_5g_model_evidence",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "candidate": {
+    "device_catalog_id": 889,
+    "brand": "POCO",
+    "catalogue_name": "POCO M8 5G",
+    "market_region": "Australia",
+    "release_year": 2026,
+    "current_model_number": null,
+    "proposed_model_number": "25118PC98G",
+    "storage_options_snapshot": ["256GB UFS 2.2", "512GB UFS 2.2"],
+    "dependency_snapshot": {
+      "inventory_refs": 0,
+      "pricing_refs": 0,
+      "pricing_history_refs": 0
+    },
+    "collision_snapshot": {
+      "active_rows_using_25118PC98G": 0,
+      "active_rows_using_25118PC98I": 0
+    },
+    "evidence": [
+      {
+        "authority": "Xiaomi Australia",
+        "url": "https://www.mi.com/au/product/poco-m8-5g/",
+        "supports": "Australian POCO M8 5G product identity and matching Snapdragon 6 Gen 3, 5520mAh, 45W and 6.77-inch 120Hz product configuration."
+      },
+      {
+        "authority": "Xiaomi UK",
+        "url": "https://www.mi.com/uk/product/poco-m8-5g/specs/",
+        "supports": "Global-market 8GB+256GB / 8GB+512GB UFS 2.2 configuration matching the Australian catalogue row."
+      },
+      {
+        "authority": "NBTC certification reporting",
+        "url": "https://www.gadgets360.com/mobiles/news/poco-m8-5g-nbtc-certification-listing-specifications-9668834",
+        "supports": "Reports Thailand NBTC certification identifying POCO M8 5G as model 25118PC98G and notes corroborating IMDA/EEC listings."
+      }
+    ],
+    "regional_boundary": "25118PC98I is reported for India and must not be assigned to the Australian row. The G-suffix certification identity is the candidate for the global/Australian configuration.",
+    "confidence": "high_for_evidence_only",
+    "production_action": "none"
+  },
+  "safety_notes": [
+    "This file records evidence only and does not mutate device_catalog.",
+    "Any future production normalization must recheck row activity, dependencies, model-number collisions, and Australian/global configuration identity immediately before execution.",
+    "Production catalogue mutation remains a protected Supabase write requiring explicit human authorization."
+  ]
+}
