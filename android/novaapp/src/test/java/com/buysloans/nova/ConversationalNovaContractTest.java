@@ -2,15 +2,16 @@ package com.buysloans.nova;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
     private static String source(String file) throws Exception {
-        return Files.readString(Path.of("novaapp/src/main/java/com/buysloans/nova/" + file));
+        return new String(Files.readAllBytes(Paths.get("novaapp/src/main/java/com/buysloans/nova/" + file)), StandardCharsets.UTF_8);
     }
 
     @Test public void assistantUsesAuthorisedKnowledgeAndLearningSources() throws Exception {
