@@ -37,6 +37,20 @@ class CataloguePageIdentityTest {
             "/assets/iphone-17-pro-max.png",
             catalogueNearbyImageForExactModel(html, "iPhone 17 Pro Max", "A3526"),
         )
+        assertEquals(
+            "/assets/iphone-17-pro.png",
+            catalogueNearbyImageForExactModel(html, "iPhone 17 Pro", "A3523"),
+        )
+    }
+
+    @Test
+    fun adjacentModelImageCannotBleedAcrossSectionBoundary() {
+        val html = """
+            <section><h2>iPhone 17 Pro Max</h2><img src="max.png"><p>A3526</p></section>
+            <section><h2>iPhone 17 Pro</h2><img src="pro.png"><p>A3523</p></section>
+        """.trimIndent()
+        assertEquals("max.png", catalogueNearbyImageForExactModel(html, "iPhone 17 Pro Max", "A3526"))
+        assertEquals("pro.png", catalogueNearbyImageForExactModel(html, "iPhone 17 Pro", "A3523"))
     }
 
     @Test
