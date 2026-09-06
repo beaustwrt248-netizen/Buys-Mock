@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-09-06T10:12:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_duplicate_cleanup_evidence",
+  "canonical_row": {
+    "id": 1184,
+    "model_name": "iPad (8th generation) Wi-Fi + Cellular",
+    "model_number": "A2429",
+    "release_year": 2020,
+    "storage_options": ["32GB", "128GB"],
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "retail_configuration_row": {
+    "id": 1188,
+    "model_name": "iPad (8th generation) Wi-Fi + Cellular 128GB (Japan retail configuration)",
+    "current_model_number": null,
+    "retail_part_number": "MYML2J/A",
+    "verified_model_number": "A2429",
+    "verified_storage": "128GB",
+    "verified_release_year": 2020,
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+    "proposed_action": "deactivate_duplicate_candidate_after_explicit_authorization_and_fresh_recheck"
+  },
+  "evidence": [
+    {
+      "source": "Apple Support Australia — Identify your iPad model",
+      "url": "https://support.apple.com/en-au/108043",
+      "finding": "Apple identifies iPad (8th generation) as 2020 with 32GB/128GB capacities and A2428/A2429/A2430 for Wi-Fi + Cellular variants."
+    },
+    {
+      "source": "Iosys Japan",
+      "url": "https://iosys.co.jp/items/tablet/ios/ipad2020/au/ipad2020_wi-fi%2Bcellular/339265",
+      "finding": "MYML2J/A is listed as iPad (8th generation) Wi-Fi + Cellular 128GB, hardware model A2429."
+    },
+    {
+      "source": "Hard Off Japan",
+      "url": "https://netmall.hardoff.co.jp/product/6441507/",
+      "finding": "MYML2J/A is identified as an iPad 8th generation, 128GB, Wi-Fi + Cellular configuration."
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Both rows currently have zero inventory, pricing and pricing-history references, but that point-in-time state does not authorize production cleanup.",
+    "The Japanese retail part number remains provenance/alias data rather than the canonical hardware model number.",
+    "Re-query active status, identity and dependencies immediately before any future authorized deactivation; abort on drift or conflicting hardware evidence."
+  ]
+}
