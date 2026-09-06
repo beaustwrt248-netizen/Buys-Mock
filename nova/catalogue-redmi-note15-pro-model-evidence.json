@@ -1,0 +1,33 @@
+{
+  "task": "catalogue_redmi_note15_pro_model_number_evidence",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "verified_rows": [
+    {
+      "device_catalog_id": 927,
+      "brand": "Xiaomi",
+      "catalogue_name": "REDMI Note 15 Pro 5G",
+      "market_region": "Australia",
+      "release_year": 2026,
+      "current_model_number": null,
+      "verified_model_number": "25080RABDG",
+      "storage_options_snapshot": ["256GB UFS 2.2"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "collision_snapshot": {"active_rows_using_verified_model_number": 0},
+      "evidence": [
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/product/redmi-note-15-pro-5g/buy/", "supports": "Australian REDMI Note 15 Pro 5G product identity"},
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/event/offer-exclusive-deals/", "supports": "Australian availability of REDMI Note 15 Pro 5G"},
+        {"authority": "Global Certification Forum", "url": "https://www.globalcertificationforum.org/pub_product/13223.html", "supports": "Xiaomi Communications model 25080RABDG marketed as REDMI Note 15 Pro 5G"}
+      ],
+      "confidence": "high",
+      "production_action": "candidate_model_number_normalization_only_after_explicit_authorization_and_fresh_recheck"
+    }
+  ],
+  "safety_notes": [
+    "Evidence only; no production catalogue write is authorized.",
+    "Before any future write, recheck active status, dependencies, model-number collision state and Australian product identity.",
+    "Abort rather than guess if Australia-specific evidence demonstrates a different hardware code."
+  ]
+}
