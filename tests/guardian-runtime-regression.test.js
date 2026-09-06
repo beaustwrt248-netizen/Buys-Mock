@@ -23,6 +23,13 @@ test('repository-owned srcdoc base binds recent activity to an explicit DOM targ
   assert.doesNotMatch(source,/(?<![A-Za-z0-9_$])recent\.(?:innerHTML|insertAdjacentHTML)/);
 });
 
+test('srcdoc bootstrap skips the optional recent-activity write when its route target is absent',()=>{
+  const shell=read('index.html');
+  assert.match(shell,/const recentEl=document\\\.getElementById\\\('recent'\\\);recentEl\\\.innerHTML=/);
+  assert.match(shell,/const recentEl=document\.getElementById\('recent'\);if\(!recentEl\)return;recentEl\.innerHTML=/);
+  assert.match(shell,/html=html\.replace\(/);
+});
+
 test('about:srcdoc repair discovery prioritises the generating sources and keeps protection gates',()=>{
   const worker=read('supabase/functions/guardian-repair-worker/index.ts');
   assert.match(worker,/isSrcdocIncident\(input\)\?\["web-base\.html","web-admin-mode\.js","index\.html","tests\/web-admin-srcdoc-regression\.test\.js","tests\/guardian-runtime-regression\.test\.js"/);
