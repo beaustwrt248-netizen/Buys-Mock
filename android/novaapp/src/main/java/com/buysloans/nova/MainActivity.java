@@ -126,6 +126,7 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         root.addView(spacer, new LinearLayout.LayoutParams(1, dp(this, 8)));
 
         setContentView(scroll);
+        updateManager.checkForUpdates();
     }
 
     @Override
