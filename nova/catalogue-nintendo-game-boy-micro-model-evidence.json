@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-09-06T09:24:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 1367,
+      "brand": "Nintendo",
+      "model_name": "Game Boy Micro",
+      "verified_model_number": "OXY-001",
+      "evidence": [
+        "Nintendo Japan's official Game Boy Micro hardware page lists the console unit itself as OXY-001 and the dedicated AC adapter separately as OXY-002(JPN), preventing a console/accessory identifier mix-up."
+      ],
+      "evidence_url": "https://www.nintendo.co.jp/n08/hardware/micro/index.html",
+      "proposed_action": "review_for_model_number_update"
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this file.",
+    "Re-query device_catalog id 1367 immediately before any future authorized production update.",
+    "Abort on row drift, an existing conflicting model_number, or identity mismatch.",
+    "Do not substitute OXY-002 or other OXY accessory identifiers for the console hardware identifier."
+  ]
+}
