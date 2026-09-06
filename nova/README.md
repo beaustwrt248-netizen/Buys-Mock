@@ -7,9 +7,9 @@ This directory is the isolated Nova application surface. It does not inherit Mor
 - Nova web and Nova Android use the same Morley Admin email/password identities.
 - Sign-in is verified through Supabase Auth with Cloudflare Turnstile.
 - Only enabled `admin` or `manager` profiles may enter Nova.
-- Credentials are never hard-coded or stored by the Nova web page.
+- Passwords and privileged service credentials are never hard-coded or stored by the Nova web page.
 - Web access tokens are kept in session storage and revalidated against the authenticated user and profile before the control centre unlocks.
-- Nova's browser network reads are held until authentication succeeds.
+- Nova's own same-origin and GitHub data reads are held until authentication succeeds; Turnstile and authentication-provider infrastructure are not blocked by that gate.
 - Sign-out clears the Nova browser session.
 - The Android app retains its existing equivalent Supabase + Turnstile + role check.
 
