@@ -47,9 +47,9 @@ internal fun cataloguePageTitleMatchesDevice(html: String, model: String, modelN
 
 internal fun catalogueNearbyImageForExactModel(html: String, model: String, modelNumber: String?): String? {
     val number = modelNumber?.trim()?.takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
-    val modelIdentity = normalizeCatalogueIdentity(model)
-    if (modelIdentity.length < 4) return null
+    val modelText = model.trim().takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
     val numberRegex = Regex(Regex.escape(number), RegexOption.IGNORE_CASE)
+    val modelRegex = Regex(Regex.escape(modelText), RegexOption.IGNORE_CASE)
     val imageTagRegex = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
     val attributeRegexes = listOf(
         Regex("""\bsrc=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
@@ -57,6 +57,7 @@ internal fun catalogueNearbyImageForExactModel(html: String, model: String, mode
         Regex("""\bdata-original=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
         Regex("""\bsrcset=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
     )
+
     fun usable(raw: String): String? {
         val candidate = raw.split(',').firstOrNull()?.trim()?.substringBefore(' ')?.trim().orEmpty()
         if (candidate.isBlank() || candidate.startsWith("data:", true)) return null
@@ -65,14 +66,19 @@ internal fun catalogueNearbyImageForExactModel(html: String, model: String, mode
         return candidate
     }
 
-    numberRegex.findAll(html).forEach { match ->
-        val start = (match.range.first - 5_000).coerceAtLeast(0)
-        val end = (match.range.last + 5_001).coerceAtMost(html.length)
-        val window = html.substring(start, end)
-        if (!normalizeCatalogueIdentity(window).contains(modelIdentity)) return@forEach
-        val localNumberIndex = match.range.first - start
-        val candidate = imageTagRegex.findAll(window)
-            .sortedBy { image -> kotlin.math.abs(image.range.first - localNumberIndex) }
+    val modelMatches = modelRegex.findAll(html).toList()
+    numberRegex.findAll(html).forEach { numberMatch ->
+        val sectionModel = modelMatches.lastOrNull { modelMatch ->
+            modelMatch.range.first < numberMatch.range.first &&
+                numberMatch.range.first - modelMatch.range.last <= 5_000
+        } ?: return@forEach
+
+        val segmentStart = sectionModel.range.first
+        val segmentEnd = numberMatch.range.last + 1
+        val segment = html.substring(segmentStart, segmentEnd)
+        val candidate = imageTagRegex.findAll(segment)
+            .toList()
+            .asReversed()
             .firstNotNullOfOrNull { image ->
                 attributeRegexes.firstNotNullOfOrNull { regex ->
                     regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
