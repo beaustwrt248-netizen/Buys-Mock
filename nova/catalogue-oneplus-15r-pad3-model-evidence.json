@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-09-06T10:34:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "records": [
+    {
+      "device_catalog_id": 976,
+      "model_name": "OnePlus 15R",
+      "verified_model_number": "CPH2769",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": [
+        "https://www.oneplus.com/uk/pstisoc",
+        "https://www.oneplus.com/content/dam/oneplus/2025/pstisoc/OnePlus_15R-CPH2769-_Soc.pdf"
+      ],
+      "authority": "OnePlus UK PSTI Statement of Compliance"
+    },
+    {
+      "device_catalog_id": 950,
+      "model_name": "OnePlus Pad 3",
+      "verified_model_number": "OPD2415",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence_urls": [
+        "https://www.oneplus.com/uk/pstisoc",
+        "https://www.oneplus.com/content/dam/oneplus/2024/eu/store/safety_guide/OnePlus_Pad_3_Safety_Guide_V1.1_20250409.pdf"
+      ],
+      "authority": "OnePlus PSTI index and OnePlus Pad 3 safety guide / EU declaration"
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "OnePlus directly maps OnePlus 15R to CPH2769 and OnePlus Pad 3 to OPD2415.",
+    "Any future production model-number update requires explicit human authorization plus an immediate active-status, dependency, collision, and regional-identity recheck.",
+    "Abort on row drift, identity mismatch, regional ambiguity, or model-number collision."
+  ]
+}
