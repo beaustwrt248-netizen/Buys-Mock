@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-09-06T10:57:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_collision_evidence",
+  "manufacturer_source": {
+    "name": "ASUS Australia official support",
+    "url": "https://www.asus.com/au/support/faq/1014441/",
+    "finding": "ASUS Australia's model correspondence table lists Zenfone 12 Ultra with model no. AI2501H and model name AI2501, while ROG Phone 9 and ROG Phone 9 Pro use model no. AI2501 and model name AI2501."
+  },
+  "records": [
+    {
+      "device_catalog_id": 854,
+      "model_name": "ROG Phone 9",
+      "current_model_number": "AI2501",
+      "verified_model_number": "AI2501",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "assessment": "correct_shared_model_number"
+    },
+    {
+      "device_catalog_id": 860,
+      "model_name": "ROG Phone 9 Pro",
+      "current_model_number": "AI2501",
+      "verified_model_number": "AI2501",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "assessment": "correct_shared_model_number"
+    },
+    {
+      "device_catalog_id": 1413,
+      "model_name": "Zenfone 12 Ultra",
+      "current_model_number": "AI2501",
+      "verified_model_number": "AI2501H",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "assessment": "model_number_correction_candidate"
+    }
+  ],
+  "collision_check": {
+    "verified_model_number": "AI2501H",
+    "existing_active_catalogue_rows": 0
+  },
+  "safety_notes": [
+    "ROG Phone 9 and ROG Phone 9 Pro legitimately share model number AI2501 and must not be deduplicated solely on that value.",
+    "Zenfone 12 Ultra uses ASUS model name AI2501 but ASUS model no. AI2501H; the catalogue model_number field should not silently conflate those concepts.",
+    "No live catalogue row is changed by this evidence package.",
+    "Any future model-number correction requires explicit human authorization plus an immediate active-status, dependency, collision, and identity recheck.",
+    "Abort if the catalogue's model_number semantic is shown to intentionally store ASUS model name rather than ASUS model no."
+  ]
+}
