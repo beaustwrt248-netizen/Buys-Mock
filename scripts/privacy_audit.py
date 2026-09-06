@@ -92,9 +92,10 @@ main_manifest = require(
     "android/app/src/main/AndroidManifest.xml",
     'android:allowBackup="false"',
     'android:usesCleartextTraffic="false"',
-    'android:name=".EmbeddedAdminActivity" android:exported="false"',
     'android:name=".SupportTicketActivity"',
 )
+if 'android:name=".EmbeddedAdminActivity"' in main_manifest:
+    failures.append("AndroidManifest.xml: main Morley app must not embed Admin Mode; use the dedicated Morley Admin app")
 support_activity = manifest_element(main_manifest, "activity", ".SupportTicketActivity")
 if not support_activity:
     failures.append("AndroidManifest.xml: could not isolate SupportTicketActivity")
@@ -136,4 +137,4 @@ if failures:
         print(f"- {failure}")
     sys.exit(1)
 
-print("PRIVACY AUDIT PASSED: web diagnostics exclude URL query/fragment and authentication material; Android device/runtime diagnostics and diagnostic top-level metadata are explicit opt-in; Admin crash telemetry stays metadata-only and bounded; sensitive Android surfaces remain non-exported; cleartext backend endpoints are blocked.")
+print("PRIVACY AUDIT PASSED: web diagnostics exclude URL query/fragment and authentication material; Android device/runtime diagnostics and diagnostic top-level metadata are explicit opt-in; the main Morley app does not embed Admin Mode; dedicated Admin crash telemetry stays metadata-only and bounded; sensitive Android surfaces remain non-exported; cleartext backend endpoints are blocked.")
