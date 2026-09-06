@@ -86,9 +86,9 @@ async function candidateHtml(){
       html=html.replace('<head>','<head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">');
     }
     const phoneProbe='<script>(function(){var s=Math.min(Number(screen.width)||9999,Number(screen.height)||9999),v=window.visualViewport,m=Math.min(Number(v&&v.width)||9999,Number(v&&v.height)||9999);if(s<=600||m<=600)document.documentElement.classList.add("morley-physical-phone")})();<\/script>';
-    const styleTags=styles.map(src=>`<link rel="stylesheet" href="${src}">`).join('');
+    const styleTags=styles.map(src=>'<link rel="stylesheet" href='+JSON.stringify(src)+'>').join('');
     html=html.replace('</head>',phoneProbe+styleTags+'</head>');
-    html=html.replace('</body>',scripts.map(src=>`<script defer src="${src}"><\/script>`).join(''));
+    html=html.replace('</body>',scripts.map(src=>'<script defer src='+JSON.stringify(src)+'><\/script>').join(''));
     frame.addEventListener('load',()=>loading.remove(),{once:true});
     frame.srcdoc=html;
   }catch(error){
