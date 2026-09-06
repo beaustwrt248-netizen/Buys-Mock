@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-09-06T11:03:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_variant_ambiguity_evidence",
+  "record": {
+    "device_catalog_id": 954,
+    "brand": "Huawei",
+    "model_name": "HUAWEI WATCH FIT 4",
+    "current_model_number": null,
+    "market_region": "Australia",
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "manufacturer_sources": [
+    {
+      "name": "HUAWEI Australia product page",
+      "url": "https://consumer.huawei.com/au/wearables/watch-fit4/",
+      "finding": "HUAWEI Australia confirms the WATCH FIT 4 product and Australian colour/configuration offering but does not expose a single hardware model code on the indexed product page."
+    },
+    {
+      "name": "HUAWEI official user guide",
+      "url": "https://consumer.huawei.com/cn/support/content/zh-cn16049488/",
+      "finding": "HUAWEI's official WATCH FIT 4 / FIT 4 Pro user guide applies to SYA-B09, SYA-B19 and SYA-B29, so the generic WATCH FIT 4 product family contains more than one hardware code."
+    }
+  ],
+  "candidate_model_numbers": ["SYA-B09", "SYA-B19"],
+  "assessment": "variant_unresolved_do_not_guess",
+  "safety_notes": [
+    "The generic Australian catalogue row does not contain evidence selecting SYA-B09 versus SYA-B19.",
+    "Do not populate a model number solely from a global family mapping when multiple manufacturer hardware codes exist.",
+    "No active catalogue row currently uses SYA-B09 or SYA-B19, but absence of collision is not identity proof.",
+    "No live catalogue row is changed by this evidence package.",
+    "A future model-number update requires exact Australian configuration evidence plus explicit human authorization and a fresh dependency/collision recheck."
+  ]
+}
