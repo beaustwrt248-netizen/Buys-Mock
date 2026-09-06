@@ -16,6 +16,14 @@ class AllDeviceCatalogueVisualContractTest {
     }
 
     @Test
+    fun nonPhoneCategoriesKeepCategoryAwareFallbacks() {
+        assertTrue(source.contains("PricingVisual.LAPTOP"))
+        assertTrue(source.contains("PricingVisual.DESKTOP"))
+        assertTrue(source.contains("PricingVisual.CONSOLE"))
+        assertTrue(source.contains("\"tablet\", \"wearable\" -> PricingVisual.PHONE"))
+    }
+
+    @Test
     fun allDeviceCatalogueDoesNotFallBackToBrandInitials() {
         assertFalse(source.contains("device.brand.take(2).uppercase()"))
     }
