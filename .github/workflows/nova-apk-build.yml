@@ -1,0 +1,60 @@
+name: Nova APK Build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/novaapp/**'
+      - 'android/settings.gradle'
+      - '.github/workflows/nova-apk-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-nova-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '9.3.1'
+      - name: Test and lint Nova APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :novaapp:testDebugUnitTest :novaapp:lintDebug --stacktrace --console=plain
+      - name: Build Nova debug APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :novaapp:assembleDebug --stacktrace --console=plain
+      - name: Stage Nova APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android/novaapp/build/outputs/apk/debug/novaapp-debug.apk dist/Nova-AI-0.1.0-debug.apk
+          sha256sum dist/Nova-AI-0.1.0-debug.apk > dist/Nova-AI-0.1.0-debug.apk.sha256
+          sha256sum --check dist/Nova-AI-0.1.0-debug.apk.sha256
+      - name: Upload Nova APK artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nova-ai-debug-apk
+          path: |
+            dist/Nova-AI-0.1.0-debug.apk
+            dist/Nova-AI-0.1.0-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
