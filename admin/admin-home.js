@@ -1,3 +1,4 @@
+// Neutral Morley Admin home. Nova runtime lives only in the standalone Nova app.
 (()=>{'use strict';
 const q=(s,r=document)=>r.querySelector(s);
 function appReady(){const app=q('#appView');return !!app&&!app.classList.contains('hidden')}
