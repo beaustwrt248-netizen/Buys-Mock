@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -74,7 +75,7 @@ public final class NovaApplication extends Application {
     private void applyApprovedChatLayout(Activity activity) {
         View decor = activity.getWindow().getDecorView();
         EditText composerInput = findEditTextByHint(decor, "Message Nova…");
-        if (composerInput == null) return; // Login / Intelligence / Updates / Account.
+        if (composerInput == null) return;
 
         ViewParentChain chain = composerChain(composerInput);
         if (chain == null) return;
@@ -91,7 +92,6 @@ public final class NovaApplication extends Application {
 
         ScrollView existing = null;
         LinearLayout conversation = null;
-        int index = 0;
         View first = chatCard.getChildAt(0);
         if (first instanceof ScrollView) {
             existing = (ScrollView) first;
@@ -103,13 +103,14 @@ public final class NovaApplication extends Application {
         }
         if (conversation == null) return;
 
+        final ScrollView outer = findAncestorScrollView(chatCard);
         int screenHeightDp = Math.round(activity.getResources().getDisplayMetrics().heightPixels
                 / activity.getResources().getDisplayMetrics().density);
         int conversationHeightDp = Math.max(300, Math.min(430, Math.round(screenHeightDp * .38f)));
 
         ScrollView chatScroll = existing;
         if (chatScroll == null) {
-            chatCard.removeViewAt(index);
+            chatCard.removeViewAt(0);
             chatScroll = new ScrollView(activity);
             chatScroll.setFillViewport(false);
             chatScroll.setClipToPadding(false);
@@ -117,11 +118,15 @@ public final class NovaApplication extends Application {
             chatScroll.addView(conversation, new ScrollView.LayoutParams(
                     ScrollView.LayoutParams.MATCH_PARENT,
                     ScrollView.LayoutParams.WRAP_CONTENT));
-            chatCard.addView(chatScroll, index, new LinearLayout.LayoutParams(
+            chatCard.addView(chatScroll, 0, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, dp(activity, conversationHeightDp)));
             final ScrollView finalScroll = chatScroll;
             conversation.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-                if (b != ob) finalScroll.post(() -> finalScroll.fullScroll(View.FOCUS_DOWN));
+                if (b == ob) return;
+                finalScroll.post(() -> finalScroll.fullScroll(View.FOCUS_DOWN));
+                if (outer != null && outer != finalScroll) {
+                    outer.postDelayed(() -> outer.scrollTo(0, 0), 40L);
+                }
             });
         } else {
             ViewGroup.LayoutParams raw = chatScroll.getLayoutParams();
@@ -137,7 +142,6 @@ public final class NovaApplication extends Application {
         chatScroll.setNestedScrollingEnabled(true);
         chatScroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
 
-        ScrollView outer = findAncestorScrollView(chatCard);
         if (outer != null && outer != chatScroll) {
             outer.setVerticalScrollBarEnabled(false);
             outer.setScrollbarFadingEnabled(true);
@@ -155,9 +159,9 @@ public final class NovaApplication extends Application {
             strip.setFillViewport(true);
             strip.setHorizontalScrollBarEnabled(false);
             strip.setOverScrollMode(View.OVER_SCROLL_NEVER);
-            row.setLayoutParams(new HorizontalScrollView.LayoutParams(
-                    HorizontalScrollView.LayoutParams.MATCH_PARENT,
-                    HorizontalScrollView.LayoutParams.WRAP_CONTENT));
+            row.setLayoutParams(new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT));
             row.setPadding(0, dp(activity, 8), 0, dp(activity, 4));
 
             for (int i = 0; i < row.getChildCount(); i++) {
