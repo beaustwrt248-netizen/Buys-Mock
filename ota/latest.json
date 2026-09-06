@@ -1,7 +1,7 @@
 {
-  "versionCode": 115,
-  "versionName": "2.15.71",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.71/B-and-L-Morley-2.15.71.apk",
-  "sha256": "9899f84a2a67a8f56f5578dd2655dd35c9d7bde626deba08e2c1288b4d678296",
-  "notes": "Prepare Morley 2.15.71 launcher fix release"
+  "versionCode": 116,
+  "versionName": "2.15.72",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.72/B-and-L-Morley-2.15.72.apk",
+  "sha256": "da709525a565e28f4ad727590082af304ea72a88d51a56cded0653b6f9e2968b",
+  "notes": "Fix live catalogue search and scrolling at scale"
 }
