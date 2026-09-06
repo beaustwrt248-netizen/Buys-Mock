@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-09-06T08:11:53+08:00",
+  "classification": "read_only_catalogue_evidence",
+  "risk": "low",
+  "candidate": {
+    "device_catalog_id": 1152,
+    "brand": "Samsung",
+    "category": "wearable",
+    "model_name": "Ultra 47mm Lte Gps",
+    "model_number": "SM-1705F",
+    "source": "Cash Converters Australia",
+    "inventory_refs": 0,
+    "pricing_refs": 1,
+    "pricing_history_refs": 0
+  },
+  "canonical_evidence": {
+    "device_catalog_id": 279,
+    "model_name": "Galaxy Watch Ultra LTE 47mm",
+    "model_number": "SM-L705F",
+    "storage_options": ["32GB"],
+    "source": "Samsung",
+    "official_reference": "https://www.samsung.com/au/support/model/SM-L705FDAAXSA/",
+    "inventory_refs": 0,
+    "pricing_refs": 1,
+    "pricing_history_refs": 0
+  },
+  "finding": "Samsung Australia identifies the Galaxy Watch Ultra LTE 47mm as model SM-L705F. The Cash Converters row uses SM-1705F, which appears to substitute the digit 1 for the letter L and is a strong normalization candidate, but this evidence does not authorize any production mutation.",
+  "protected_boundary": "Both the candidate and canonical rows have active pricing references. Any production remap, deactivation, deletion, pricing reassignment or other data mutation remains explicitly unauthorized and requires a fresh dependency check plus human approval where applicable.",
+  "execution_authorized": false
+}
