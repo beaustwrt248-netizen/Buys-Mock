@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-09-06T09:55:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_catalogue_name_cleanup_evidence",
+  "candidate_row": {
+    "id": 1206,
+    "brand": "Apple",
+    "current_model_name": "iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty",
+    "current_model_number": null,
+    "storage_options": ["32GB"],
+    "market_region": "AU",
+    "release_year": 2014,
+    "aliases": [
+      "Apple iPad Air 2 Doesnt Turn On At All Sold As Is No Warranty Mnv62x/A 32GB White",
+      "MNV62X/A"
+    ],
+    "dependency_refs": {
+      "inventory": 0,
+      "pricing": 1,
+      "pricing_history": 0
+    },
+    "classification": "reseller_condition_text_embedded_in_model_name",
+    "proposed_action": "review_for_name_normalization_only_after_exact_hardware_variant_is_confirmed"
+  },
+  "first_party_identity": {
+    "manufacturer": "Apple",
+    "support_region": "Australia",
+    "official_model_name": "iPad Air 2",
+    "release_period": "Late 2014",
+    "capacity_options": ["16GB", "32GB", "64GB", "128GB"],
+    "hardware_variants": [
+      {"model_number": "A1566", "variant": "Wi-Fi"},
+      {"model_number": "A1567", "variant": "Wi-Fi + Cellular"}
+    ],
+    "evidence_url": "https://support.apple.com/en-au/108043"
+  },
+  "related_rows": [
+    {
+      "id": 1203,
+      "model_name": "iPad Air 2 Wi-Fi",
+      "model_number": "A1566",
+      "storage_options": ["16GB", "32GB", "64GB", "128GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0},
+      "note": "Verified sibling identity; do not merge pricing references automatically."
+    },
+    {
+      "id": 1204,
+      "model_name": "iPad Air 2",
+      "model_number": null,
+      "storage_options": ["16GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Do not infer A1566 versus A1567 from storage, colour, reseller condition wording, or retail part number alone.",
+    "The existing pricing reference on row 1206 is protected and must not be moved, rewritten, or deleted without separate approval.",
+    "Re-query row identity and all dependencies immediately before any future authorized production cleanup.",
+    "Abort on hardware-variant ambiguity, dependency drift, pricing conflict, or identity mismatch."
+  ]
+}
