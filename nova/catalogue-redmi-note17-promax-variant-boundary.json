@@ -1,0 +1,34 @@
+{
+  "task": "catalogue_redmi_note17_promax_regional_model_boundary",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "explicitly_unresolved": [
+    {
+      "device_catalog_id": 892,
+      "brand": "Xiaomi",
+      "catalogue_name": "REDMI Note 17 Pro Max 5G",
+      "market_region": "Australia",
+      "release_year": 2026,
+      "current_model_number": null,
+      "storage_options_snapshot": ["256GB UFS 4.1", "512GB UFS 4.1"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "candidate_model_numbers": ["2609FRA74G"],
+      "collision_snapshot": {"active_rows_using_candidate_model_number": 0},
+      "evidence": [
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/product/redmi-note-17-pro-max-5g/specs/", "supports": "Australian product identity, 8GB+256GB / 8GB+512GB UFS 4.1 configuration and 9210mAh battery; page does not expose a hardware model code"},
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/launch/redmi-note-17-series/", "supports": "Australian launch identity and 256GB/512GB product variants"},
+        {"authority": "Xiaomi Taiwan", "url": "https://www.mi.com/tw/product/redmi-note-17-pro-max-5g/specs/", "supports": "Taiwan first-party specs explicitly state product model 2609FRA74G"},
+        {"authority": "Xiaomi Global", "url": "https://www.mi.com/global/product/redmi-note-17-pro-max-5g/", "supports": "Global product page shows a materially different 10000mAh battery specification, reinforcing that regional configuration cannot be assumed from marketing name alone"}
+      ],
+      "reason": "2609FRA74G is a credible regional/global candidate, but Xiaomi Australia's page does not state a model code and the Australian hardware specification differs materially from Xiaomi Global. Assigning the candidate to the AU row without Australia-specific model-code evidence would introduce false precision.",
+      "required_to_resolve": "Australia-specific package label, local regulatory/carrier certification, Xiaomi AU support document, or other manufacturer-authoritative source explicitly mapping the Australian configuration to its hardware model code."
+    }
+  ],
+  "safety_notes": [
+    "Do not populate row 892 with 2609FRA74G from Taiwan/global inference alone.",
+    "Collision absence is not identity evidence.",
+    "Any future production update requires exact Australian configuration evidence plus a fresh active/dependency/collision recheck and explicit human authorization."
+  ]
+}
