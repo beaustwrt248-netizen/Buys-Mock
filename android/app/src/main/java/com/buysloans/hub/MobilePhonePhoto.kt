@@ -10,17 +10,18 @@ import androidx.compose.ui.unit.dp
 fun MobilePhonePhoto(
     brand: String,
     model: String? = null,
+    modelNumber: String? = null,
     imageReferenceUrl: String? = null,
     modifier: Modifier = Modifier,
     categoryRepresentative: Boolean = false,
     allowLiveReference: Boolean = true,
 ) {
     val liveReference = if (allowLiveReference) {
-        model?.let { LiveDevicePricing.device("mobile_phone", brand, it)?.imageReferenceUrl }
+        model?.let { LiveDevicePricing.device("mobile_phone", brand, it, modelNumber)?.imageReferenceUrl }
     } else {
         null
     }
-    val referenceUrl = remember(brand, model, imageReferenceUrl, liveReference, categoryRepresentative, allowLiveReference) {
+    val referenceUrl = remember(brand, model, modelNumber, imageReferenceUrl, liveReference, categoryRepresentative, allowLiveReference) {
         imageReferenceUrl?.trim()?.takeIf { it.isNotBlank() }
             ?: liveReference?.trim()?.takeIf { it.isNotBlank() }
             ?: when {
@@ -33,6 +34,7 @@ fun MobilePhonePhoto(
     DeviceCataloguePhoto(
         brand = brand,
         model = model ?: "phone",
+        modelNumber = modelNumber,
         imageReferenceUrl = referenceUrl,
         modifier = modifier,
     ) {
