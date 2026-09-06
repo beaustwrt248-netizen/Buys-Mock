@@ -1,17 +1,9 @@
 {
-  "checked_at": "2026-09-06T09:23:00+08:00",
+  "checked_at": "2026-09-06T09:39:00+08:00",
   "execution_authorized": false,
   "requires_explicit_human_authorization": true,
   "pre_execution_recheck_required": true,
   "rows": [
-    {
-      "id": 954,
-      "model_name": "HUAWEI WATCH FIT 4",
-      "verified_model_number": "SYA-B09",
-      "official_evidence": "HUAWEI WATCH FIT 4 official support model mapping",
-      "evidence_url": "https://consumer.huawei.com/jp/support/content/ja-jp15938700/",
-      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
-    },
     {
       "id": 955,
       "model_name": "HUAWEI WATCH GT 6 41mm",
@@ -29,9 +21,23 @@
       "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
     }
   ],
+  "explicitly_unresolved": [
+    {
+      "id": 954,
+      "model_name": "HUAWEI WATCH FIT 4",
+      "market_region": "Australia",
+      "reason": "Huawei first-party support material exposes WATCH FIT 4 variants SYA-B09 and SYA-B19, while Huawei Australia's public product page does not identify which hardware code applies to this Australian catalogue row. Do not choose a regional variant without Australia-specific package/device evidence.",
+      "evidence_urls": [
+        "https://consumer.huawei.com/jp/support/content/ja-jp15938700/",
+        "https://consumer.huawei.com/cn/support/content/zh-cn16089168/",
+        "https://consumer.huawei.com/ph/support/content/en-us16047682/",
+        "https://consumer.huawei.com/au/wearables/watch-fit4/"
+      ]
+    }
+  ],
   "safety_notes": [
     "No Supabase write is performed by this evidence file.",
-    "No active catalogue row used any of SYA-B09, KSU-B19 or ATM-B19 at the conflict-check point.",
+    "This corrective evidence supersedes the prior single-variant SYA-B09 assertion merged in PR #875; no production model-number write resulted from that evidence-only PR.",
     "Re-query candidate rows, model-number conflicts and dependencies immediately before any future authorized production update.",
     "Abort on row drift, identifier collision, identity mismatch or regional ambiguity."
   ]
