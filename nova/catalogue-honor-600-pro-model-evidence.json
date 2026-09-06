@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "evidence_type": "catalogue_model_number",
+  "execution_authorized": false,
+  "captured_at": "2026-09-06",
+  "catalogue_row": {
+    "id": 753,
+    "brand": "HONOR",
+    "model_name": "HONOR 600 Pro 5G",
+    "model_number": null,
+    "release_year": 2026,
+    "category": "mobile_phone",
+    "market_region": "AU",
+    "storage_options": ["512GB"],
+    "active": true
+  },
+  "candidate": {
+    "model_number": "VKP-NX9",
+    "confidence": "high",
+    "basis": "Multiple independent Australian retail listings identify the 512GB HONOR 600 Pro as VKP-NX9, an Australian review explicitly identifies the Australian model as VKP-NX9, and reporting on Global Certification Forum certification identifies HONOR 600 Pro as VKP-NX9."
+  },
+  "sources": [
+    {
+      "type": "australian_review",
+      "url": "https://im.com.au/phones/honor-600-pro-an-excellent-mid-range-with-one-caveat/",
+      "claim": "Australian review identifies HONOR 600 Pro 12/512GB as model VKP-NX9 and distinguishes it from non-Australian HONOR 600 variants."
+    },
+    {
+      "type": "australian_retail",
+      "url": "https://www.bigw.com.au/product/honor-600-pro-5g-dual-sim-esim-vkp-nx9-512gb-12gb-ram-black/p/9904473700",
+      "claim": "BIG W Australian marketplace listing identifies the 512GB HONOR 600 Pro global model as VKP-NX9."
+    },
+    {
+      "type": "australian_retail",
+      "url": "https://mymobile.com.au/products/honor-600-pro-5g-12gb-global",
+      "claim": "Australian retailer MyMobile identifies the HONOR 600 Pro 12GB/512GB global version as VKP-NX9 and lists Australian network compatibility."
+    },
+    {
+      "type": "certification_reporting",
+      "url": "https://www.mobilissimo.ro/stiri-telefoane/honor-600-si-600-pro-certificate-gcf-cand-sosesc",
+      "claim": "Reports Global Certification Forum certification listing HONOR 600 Pro as VKP-NX9."
+    }
+  ],
+  "fresh_dependency_snapshot": {
+    "inventory_refs": 0,
+    "pricing_refs": 0,
+    "pricing_history_refs": 0,
+    "active_model_number_collisions": 0
+  },
+  "safety": {
+    "production_write_performed": false,
+    "pricing_changed": false,
+    "requires_recheck_before_any_future_write": true,
+    "abort_if_distinct_australian_hardware_variant_is_demonstrated": true,
+    "note": "Evidence only. This file does not authorize or perform a production catalogue mutation."
+  }
+}
