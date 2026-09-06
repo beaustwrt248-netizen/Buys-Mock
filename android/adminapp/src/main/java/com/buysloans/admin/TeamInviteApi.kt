@@ -22,7 +22,6 @@ internal data class TeamInvite(
     val isExpired: Boolean get() = runCatching { Instant.parse(expiresAt).isBefore(Instant.now()) }.getOrDefault(false)
 }
 
-internal data class TeamInviteSecret(val invite: TeamInvite, val code: String)
 internal data class TemporaryUserSecret(
     val email: String,
     val displayName: String,
@@ -56,7 +55,7 @@ internal object TeamInviteApi {
         (0 until data.length()).mapNotNull { index -> data.optJSONObject(index)?.let(::parse) }
     }
 
-    suspend fun create(session: AdminSession, displayName: String, email: String, role: String): TeamInviteSecret =
+    suspend fun create(session: AdminSession, displayName: String, email: String, role: String): TeamInvite =
         withContext(Dispatchers.IO) {
             TeamInvitePolicy.validate(session, displayName, email, role)
             val payload = JSONObject()
@@ -67,7 +66,7 @@ internal object TeamInviteApi {
                 .toString()
             val response = request("/functions/v1/send-morley-email", "POST", session.accessToken, payload)
             if (response.first !in 200..299) error(message(response.second, "Team invite could not be created or emailed."))
-            emailedInviteSecret(response.second, "Invite response was incomplete.")
+            emailedInvite(response.second, "Invite delivery was not confirmed.")
         }
 
     suspend fun createTemporaryUser(
@@ -112,7 +111,7 @@ internal object TeamInviteApi {
         }.concatToString()
     }
 
-    suspend fun reissue(session: AdminSession, invite: TeamInvite): TeamInviteSecret = withContext(Dispatchers.IO) {
+    suspend fun reissue(session: AdminSession, invite: TeamInvite): TeamInvite = withContext(Dispatchers.IO) {
         require(TeamInvitePolicy.canManage(session)) { "Team invites require an Admin or Manager session." }
         require(!invite.isUsed) { "Used invites cannot be reissued." }
         require(invite.role in TeamInvitePolicy.allowedRoles(session)) { "You are not allowed to reissue this role." }
@@ -122,7 +121,7 @@ internal object TeamInviteApi {
             .toString()
         val response = request("/functions/v1/send-morley-email", "POST", session.accessToken, payload)
         if (response.first !in 200..299) error(message(response.second, "Invite could not be reissued or emailed."))
-        emailedInviteSecret(response.second, "Invite is no longer active.")
+        emailedInvite(response.second, "Invite delivery was not confirmed.")
     }
 
     suspend fun revoke(session: AdminSession, invite: TeamInvite) = withContext(Dispatchers.IO) {
@@ -134,13 +133,12 @@ internal object TeamInviteApi {
         if (response.first !in 200..299) error(message(response.second, "Invite could not be revoked."))
     }
 
-    private fun emailedInviteSecret(body: String, fallback: String): TeamInviteSecret {
+    private fun emailedInvite(body: String, fallback: String): TeamInvite {
         val json = runCatching { JSONObject(body) }.getOrNull() ?: error(fallback)
         require(json.optBoolean("ok")) { message(body, fallback) }
         val invite = json.optJSONObject("invite")?.let(::parse) ?: error(fallback)
-        val code = json.optString("invite_code").trim()
-        require(code.isNotBlank()) { "Invite was emailed, but the one-time backup code was not returned." }
-        return TeamInviteSecret(invite, code)
+        require(json.optString("delivery") == "email") { "Invite email delivery was not confirmed." }
+        return invite
     }
 
     private fun parse(json: JSONObject) = TeamInvite(

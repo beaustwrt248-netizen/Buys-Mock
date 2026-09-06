@@ -124,7 +124,7 @@ Deno.serve(async (req: Request) => {
         const mail = inviteMail(displayName, requestedRole, inviteCode, expiresAt);
         const sent = await sendEmail([email], mail.subject, mail.html, mail.text, "invite");
         await writeAudit(caller.user.id, "email_invite_sent", "app_invite", invite.id, { email, role: requestedRole, resend_id: sent.id });
-        return reply({ ok: true, action, invite, invite_code: inviteCode, expires_at: expiresAt });
+        return reply({ ok: true, action, invite, expires_at: expiresAt, delivery: "email" });
       } catch (error) {
         await admin.from("app_invites").delete().eq("id", invite.id).eq("created_by", caller.user.id);
         throw error;
@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
       const mail = inviteMail(invite.display_name, invite.role, inviteCode, expiresAt);
       const sent = await sendEmail([invite.email], mail.subject, mail.html, mail.text, "invite_reissued");
       await writeAudit(caller.user.id, "email_invite_reissued", "app_invite", invite.id, { email: invite.email, role: invite.role, resend_id: sent.id });
-      return reply({ ok: true, action, invite: updated, invite_code: inviteCode, expires_at: expiresAt });
+      return reply({ ok: true, action, invite: updated, expires_at: expiresAt, delivery: "email" });
     }
 
     if (action === "support_ticket_created") {
