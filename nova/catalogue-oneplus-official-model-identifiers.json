@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-09-06T10:20:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_official_model_identifier_evidence",
+  "manufacturer_authority": {
+    "source": "OnePlus PSTI Statements of Compliance",
+    "url": "https://www.oneplus.com/uk/pstisoc",
+    "note": "OnePlus publishes product-to-model identifiers directly in its compliance index."
+  },
+  "rows": [
+    {
+      "id": 865,
+      "model_name": "OnePlus 15",
+      "current_model_number": null,
+      "verified_official_model_number": "CPH2747",
+      "release_year": 2025,
+      "storage_options": ["256GB UFS 4.1", "512GB UFS 4.1"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "australian_context": "OnePlus Australia markets OnePlus 15; an Australian OnePlus-authorised retailer identifies its Global Version as CPH2747.",
+      "regional_caution": "Treat CPH2747 as the verified global/EU model identifier. Reconfirm the exact Australian regulatory variant immediately before any production write."
+    },
+    {
+      "id": 900,
+      "model_name": "OnePlus Nord 5",
+      "current_model_number": null,
+      "verified_official_model_number": "CPH2709",
+      "release_year": 2025,
+      "storage_options": ["256GB UFS 3.1", "512GB UFS 3.1"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "australian_context": "OnePlus Australia publishes the Nord 5 product/specification page. OnePlus official firmware communications identify CPH2709 as the EU/GLO Nord 5 model.",
+      "regional_caution": "Reconfirm that the Australian unit uses the EU/GLO CPH2709 variant before any production write."
+    },
+    {
+      "id": 928,
+      "model_name": "OnePlus Nord CE5",
+      "current_model_number": null,
+      "verified_official_model_number": "CPH2719",
+      "release_year": 2025,
+      "storage_options": ["128GB UFS 3.1", "256GB UFS 3.1"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "australian_context": "OnePlus Australia markets Nord CE5; Australian retail listings identify the global-version device as CPH2719.",
+      "regional_caution": "OnePlus compliance evidence verifies CPH2719 for Nord CE5; recheck the live Australian row before production update."
+    },
+    {
+      "id": 957,
+      "model_name": "OnePlus Watch 3 46mm",
+      "current_model_number": null,
+      "verified_official_model_number": "OPWWE251",
+      "release_year": 2025,
+      "storage_options": ["32GB"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "australian_context": "The catalogue row is a global OnePlus Watch 3 46mm product entry; OnePlus compliance evidence identifies OnePlus Watch 3 as OPWWE251.",
+      "regional_caution": "Reconfirm country/region sales variant before any production model-number write."
+    }
+  ],
+  "supporting_sources": [
+    {
+      "source": "OnePlus Australia — OnePlus Nord 5 Specs",
+      "url": "https://www.oneplus.com/au/nord-5/specs"
+    },
+    {
+      "source": "OnePlus Australia — OnePlus Nord CE5",
+      "url": "https://www.oneplus.com/au/nord-ce5"
+    },
+    {
+      "source": "OnePlus official community — Nord 5 firmware",
+      "url": "https://community.oneplus.com/thread/2194585988045471752",
+      "finding": "Official rollout text identifies Nord 5 IN as CPH2707 and EU/GLO as CPH2709."
+    },
+    {
+      "source": "OnePlus authorised store Australia — OnePlus 15",
+      "url": "https://oneplusmobile.com.au/product/oneplus-15-5g/",
+      "finding": "Australian authorised retailer lists OnePlus 15 Global Version as CPH2747."
+    },
+    {
+      "source": "BIG W Australia — Nord CE5",
+      "url": "https://www.bigw.com.au/product/one-plus-oneplus-nord-ce5-5g-dual-sim-256gb-8gb-ram-cph2719-black-infinity/p/9903825346",
+      "finding": "Australian retail listing identifies global Nord CE5 as CPH2719."
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "All four rows had zero inventory, pricing and pricing-history references at the evidence snapshot, but that point-in-time state does not authorize a production write.",
+    "Official product/model mapping and Australian sales-region mapping are distinct checks; do not infer a country-specific variant without evidence.",
+    "Any future model-number normalization requires explicit human authorization and an immediate live dependency, active-status and regional-identity recheck."
+  ]
+}
