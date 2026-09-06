@@ -1,0 +1,41 @@
+name: Main Morley Admin Mode Removal Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'web-admin-mode.js'
+      - 'admin/**'
+      - 'android/app/**'
+      - 'android/adminapp/**'
+      - 'tests/main-admin-mode-removal.test.js'
+      - 'scripts/main_admin_mode_removal_contract.py'
+      - '.github/workflows/main-admin-mode-removal-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'web-admin-mode.js'
+      - 'admin/**'
+      - 'android/app/**'
+      - 'android/adminapp/**'
+      - 'tests/main-admin-mode-removal.test.js'
+      - 'scripts/main_admin_mode_removal_contract.py'
+      - '.github/workflows/main-admin-mode-removal-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  separation-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify main Morley has no embedded admin mode
+        run: |
+          python3 scripts/main_admin_mode_removal_contract.py
+          node --test tests/main-admin-mode-removal.test.js

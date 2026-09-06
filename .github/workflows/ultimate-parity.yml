@@ -45,7 +45,6 @@ jobs:
         run: |
           set -euo pipefail
           node --check ultimate-parity.js
-          node --check web-admin-mode.js
           node --check admin/guardian-health.js
 
       - name: Prepare Firebase config for unit-test graph
