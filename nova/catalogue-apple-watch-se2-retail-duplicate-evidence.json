@@ -1,0 +1,49 @@
+{
+  "checked_at": "2026-09-06T09:55:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_duplicate_cleanup_evidence",
+  "canonical_row": {
+    "id": 314,
+    "current_model_name": "Apple Watch SE 2 GPS + Cellular 44mm",
+    "model_number": "A2724",
+    "release_year": 2022,
+    "storage_options": ["32GB"],
+    "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0}
+  },
+  "retail_configuration_row": {
+    "id": 1143,
+    "current_model_name": "Apple Watch SE (2nd generation) GPS + Cellular 44mm (MNQ23ZP/A retail configuration)",
+    "current_model_number": null,
+    "retail_part_number": "MNQ23ZP/A",
+    "verified_identity": "Apple Watch SE 2 GPS + Cellular 44mm",
+    "verified_asia_pacific_model_number": "A2724",
+    "verified_release_year": 2022,
+    "verified_storage": "32GB",
+    "dependency_refs": {"inventory": 0, "pricing": 1, "pricing_history": 0},
+    "proposed_action": "retain_as_separate_pricing_linked_retail_configuration_until_explicit_protected_pricing_review"
+  },
+  "evidence": [
+    {
+      "source": "Apple Support Australia — Identify your Apple Watch",
+      "url": "https://support.apple.com/en-au/108056",
+      "finding": "Apple identifies SE 2 GPS + Cellular 44mm as A2724 for Europe and Asia-Pacific, A2727 for North America, and A2856 for China mainland."
+    },
+    {
+      "source": "Apple Support Australia — Apple Watch SE (2nd generation) Tech Specs",
+      "url": "https://support.apple.com/en-au/111853",
+      "finding": "Apple states the SE (2nd generation) was introduced in 2022 and has 32GB capacity."
+    },
+    {
+      "source": "Retail configuration evidence",
+      "url": "https://www.machines.com.my/products/2022-apple-watch-se-2nd-generation-mnq23zp-a",
+      "finding": "MNQ23ZP/A is listed as Apple Watch SE (2nd generation), 44mm, GPS + Cellular, Silver aluminium with White Sport Band."
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Both catalogue rows currently have active pricing references, so neither row may be deactivated or merged without a separate protected-pricing review.",
+    "The retail part number must remain provenance/alias data rather than replacing Apple's A-series hardware model number.",
+    "Abort any future cleanup on dependency drift, identity mismatch, inventory references, pricing conflict, or region evidence conflict."
+  ]
+}
