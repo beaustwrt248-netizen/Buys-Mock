@@ -1,0 +1,46 @@
+{
+  "checked_at": "2026-09-06T11:00:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "manufacturer_sources": [
+    {
+      "name": "HUAWEI global support",
+      "url": "https://consumer.huawei.com/en/support/wearables/watch-gt6/",
+      "finding": "HUAWEI lists WATCH GT 6 46mm variants as ATM-B19 and WATCH GT 6 41mm variants as KSU-B19."
+    },
+    {
+      "name": "HUAWEI Australia product page",
+      "url": "https://consumer.huawei.com/au/wearables/watch-gt6/",
+      "finding": "HUAWEI Australia markets distinct WATCH GT 6 41mm and 46mm products matching the catalogue identities."
+    }
+  ],
+  "records": [
+    {
+      "device_catalog_id": 955,
+      "model_name": "HUAWEI WATCH GT 6 41mm",
+      "current_model_number": null,
+      "verified_model_number": "KSU-B19",
+      "market_region": "Australia",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    },
+    {
+      "device_catalog_id": 956,
+      "model_name": "HUAWEI WATCH GT 6 46mm",
+      "current_model_number": null,
+      "verified_model_number": "ATM-B19",
+      "market_region": "Australia",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+    }
+  ],
+  "collision_check": {
+    "KSU-B19_active_rows": 0,
+    "ATM-B19_active_rows": 0
+  },
+  "safety_notes": [
+    "The 41mm and 46mm models have different manufacturer model numbers and must remain distinct catalogue records.",
+    "No live catalogue row is changed by this evidence package.",
+    "Any future production model-number update requires explicit human authorization plus an immediate active-status, dependency, collision, and regional-identity recheck.",
+    "Abort on row drift, identity mismatch, or model-number collision."
+  ]
+}
