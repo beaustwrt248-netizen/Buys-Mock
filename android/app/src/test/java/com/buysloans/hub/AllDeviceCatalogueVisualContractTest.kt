@@ -16,6 +16,13 @@ class AllDeviceCatalogueVisualContractTest {
     }
 
     @Test
+    fun allDeviceCatalogueOnlyTrustsDirectLiveImageAssets() {
+        assertTrue(source.contains("DeviceImageResolver.directImageUrl(device.imageReferenceUrl)"))
+        assertTrue(source.contains("allowLiveReference = false"))
+        assertFalse(source.contains("imageReferenceUrl = device.imageReferenceUrl"))
+    }
+
+    @Test
     fun nonPhoneCategoriesKeepCategoryAwareFallbacks() {
         assertTrue(source.contains("PricingVisual.LAPTOP"))
         assertTrue(source.contains("PricingVisual.DESKTOP"))
