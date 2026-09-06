@@ -10,7 +10,8 @@ test('Ask Nova routes natural project questions to current read-only evidence',(
   for(const intent of ['priority','release','support','catalogue','guardian','knowledge','activity','help'])assert.match(source,new RegExp(`return'${intent}'`));
   assert.match(source,/api\('\/actions\/runs\?branch=main&per_page=50'\)/);
   assert.match(source,/api\('\/pulls\?state=open&per_page=50'\)/);
-  assert.match(source,/local\('catalogue-health\.json'\)/);
+  assert.match(source,/window\.NovaCatalogueLive\.load\(\)/);
+  assert.match(source,/loadEvidence\(intent==='catalogue'\)/);
   assert.match(source,/local\('support-health\.json'\)/);
   assert.match(source,/local\('memory-health\.json'\)/);
 });
