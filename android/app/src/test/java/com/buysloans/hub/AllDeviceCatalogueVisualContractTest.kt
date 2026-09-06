@@ -22,7 +22,15 @@ class AllDeviceCatalogueVisualContractTest {
         assertTrue(source.contains("modelNumber = device.modelNumber"))
         assertTrue(source.contains("allowLiveReference = false"))
         assertTrue(loader.contains("cataloguePageTitleMatchesDevice"))
+        assertTrue(loader.contains("catalogueNearbyImageForExactModel"))
         assertTrue(loader.contains("resolveVerifiedProductImage"))
+    }
+
+    @Test
+    fun sharedSourcePagesCannotReuseAnotherModelsCachedImage() {
+        assertTrue(loader.contains("normalizeCatalogueIdentity(model)"))
+        assertTrue(loader.contains("normalizeCatalogueIdentity(modelNumber.orEmpty())"))
+        assertTrue(loader.contains("listOf(referenceUrl"))
     }
 
     @Test
