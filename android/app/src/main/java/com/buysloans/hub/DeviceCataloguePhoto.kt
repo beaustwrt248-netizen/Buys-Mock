@@ -64,13 +64,39 @@ internal fun catalogueNearbyImageForExactModel(html: String, model: String, mode
         if (listOf("favicon", "logo", "icon", "avatar", "spinner").any(lower::contains)) return null
         return candidate
     }
+    fun enclosingSemanticRegion(match: MatchResult): Pair<String, Int>? {
+        val beforeEnd = (match.range.first + 1).coerceAtMost(html.length)
+        val before = html.substring(0, beforeEnd)
+        for (tag in listOf("section", "article", "li")) {
+            val opening = Regex("""<$tag\b[^>]*>""", RegexOption.IGNORE_CASE)
+                .findAll(before)
+                .lastOrNull() ?: continue
+            val closing = Regex("""</$tag\s*>""", RegexOption.IGNORE_CASE)
+                .find(html, match.range.last + 1) ?: continue
+            val start = opening.range.first
+            val endExclusive = closing.range.last + 1
+            if (endExclusive <= start || endExclusive - start > 12_000) continue
+            val region = html.substring(start, endExclusive)
+            if (!normalizeCatalogueIdentity(region).contains(modelIdentity)) continue
+            return region to (match.range.first - start)
+        }
+        return null
+    }
 
     numberRegex.findAll(html).forEach { match ->
-        val start = (match.range.first - 5_000).coerceAtLeast(0)
-        val end = (match.range.last + 5_001).coerceAtMost(html.length)
-        val window = html.substring(start, end)
-        if (!normalizeCatalogueIdentity(window).contains(modelIdentity)) return@forEach
-        val localNumberIndex = match.range.first - start
+        val semantic = enclosingSemanticRegion(match)
+        val window: String
+        val localNumberIndex: Int
+        if (semantic != null) {
+            window = semantic.first
+            localNumberIndex = semantic.second
+        } else {
+            val start = (match.range.first - 5_000).coerceAtLeast(0)
+            val end = (match.range.last + 5_001).coerceAtMost(html.length)
+            window = html.substring(start, end)
+            if (!normalizeCatalogueIdentity(window).contains(modelIdentity)) return@forEach
+            localNumberIndex = match.range.first - start
+        }
         val candidate = imageTagRegex.findAll(window)
             .sortedBy { image -> kotlin.math.abs(image.range.first - localNumberIndex) }
             .firstNotNullOfOrNull { image ->
