@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.junit.Assert.assertFalse;
@@ -11,7 +12,16 @@ import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
     private static String source(String file) throws Exception {
-        return new String(Files.readAllBytes(Paths.get("novaapp/src/main/java/com/buysloans/nova/" + file)), StandardCharsets.UTF_8);
+        String rel = "src/main/java/com/buysloans/nova/" + file;
+        Path[] candidates = new Path[]{
+                Paths.get(rel),
+                Paths.get("novaapp", rel),
+                Paths.get("android", "novaapp", rel)
+        };
+        for (Path path : candidates) {
+            if (Files.exists(path)) return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        }
+        throw new IllegalStateException("Nova source file not found: " + file + " from " + System.getProperty("user.dir"));
     }
 
     @Test public void assistantUsesAuthorisedKnowledgeAndLearningSources() throws Exception {
