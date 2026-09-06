@@ -21,9 +21,10 @@ import java.util.WeakHashMap;
 /**
  * Applies the approved Nova chat composition after MainActivity builds its programmatic view tree.
  *
- * The chat screen intentionally keeps the hero, quick actions, suggestions, composer and bottom
- * navigation stable while only the conversation history scrolls. This also makes the four quick
- * actions fit the viewport instead of becoming a horizontally clipped carousel.
+ * The layout is deliberately responsive: the hero and quick actions must always fit the viewport,
+ * the conversation viewport grows only as much as its content needs (up to a sensible cap), and
+ * the composer/navigation remain compact. Only the conversation history scrolls once it becomes
+ * taller than the available viewport.
  */
 public final class NovaApplication extends Application {
     private final WeakHashMap<Activity, ViewTreeObserver.OnGlobalLayoutListener> watchers = new WeakHashMap<>();
@@ -64,7 +65,7 @@ public final class NovaApplication extends Application {
         ViewTreeObserver.OnGlobalLayoutListener listener = () -> {
             long now = android.os.SystemClock.uptimeMillis();
             Long previous = lastPass.get(activity);
-            if (previous != null && now - previous < 180L) return;
+            if (previous != null && now - previous < 140L) return;
             lastPass.put(activity, now);
             decor.post(() -> applyApprovedChatLayout(activity));
         };
@@ -80,11 +81,22 @@ public final class NovaApplication extends Application {
         ViewParentChain chain = composerChain(composerInput);
         if (chain == null) return;
 
+        fixOuterShell(activity, chain.chatCard);
         fixConversationScroll(activity, chain.chatCard);
         fixQuickActions(activity, decor);
         fixHero(activity, decor);
         fixMessageVisuals(activity, chain.chatCard);
+        fixComposer(activity, composerInput, chain.chatCard);
         fixFooterAndNavigation(activity, decor);
+    }
+
+    private void fixOuterShell(Activity activity, LinearLayout chatCard) {
+        ScrollView outer = findAncestorScrollView(chatCard);
+        if (outer == null) return;
+        outer.setVerticalScrollBarEnabled(false);
+        outer.setScrollbarFadingEnabled(true);
+        outer.setFillViewport(true);
+        outer.setClipToPadding(false);
     }
 
     private void fixConversationScroll(Activity activity, LinearLayout chatCard) {
@@ -103,11 +115,6 @@ public final class NovaApplication extends Application {
         }
         if (conversation == null) return;
 
-        final ScrollView outer = findAncestorScrollView(chatCard);
-        int screenHeightDp = Math.round(activity.getResources().getDisplayMetrics().heightPixels
-                / activity.getResources().getDisplayMetrics().density);
-        int conversationHeightDp = Math.max(300, Math.min(430, Math.round(screenHeightDp * .38f)));
-
         ScrollView chatScroll = existing;
         if (chatScroll == null) {
             chatCard.removeViewAt(0);
@@ -119,32 +126,45 @@ public final class NovaApplication extends Application {
                     ScrollView.LayoutParams.MATCH_PARENT,
                     ScrollView.LayoutParams.WRAP_CONTENT));
             chatCard.addView(chatScroll, 0, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp(activity, conversationHeightDp)));
-            final ScrollView finalScroll = chatScroll;
-            conversation.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-                if (b == ob) return;
-                finalScroll.post(() -> finalScroll.fullScroll(View.FOCUS_DOWN));
-                if (outer != null && outer != finalScroll) {
-                    outer.postDelayed(() -> outer.scrollTo(0, 0), 40L);
-                }
-            });
-        } else {
-            ViewGroup.LayoutParams raw = chatScroll.getLayoutParams();
-            if (raw instanceof LinearLayout.LayoutParams) {
-                raw.height = dp(activity, conversationHeightDp);
-                chatScroll.setLayoutParams(raw);
-            }
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(activity, 190)));
         }
+
+        final ScrollView finalScroll = chatScroll;
+        final LinearLayout finalConversation = conversation;
+        final ScrollView outer = findAncestorScrollView(chatCard);
+
+        Runnable resize = () -> resizeConversationViewport(activity, finalScroll, finalConversation);
+        resize.run();
+        finalConversation.removeOnLayoutChangeListener(null);
+        finalConversation.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (b == ob) return;
+            resizeConversationViewport(activity, finalScroll, finalConversation);
+            finalScroll.post(() -> finalScroll.fullScroll(View.FOCUS_DOWN));
+            if (outer != null && outer != finalScroll) {
+                outer.postDelayed(() -> outer.scrollTo(0, 0), 30L);
+            }
+        });
 
         chatScroll.setVerticalScrollBarEnabled(true);
         chatScroll.setScrollbarFadingEnabled(false);
         chatScroll.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
         chatScroll.setNestedScrollingEnabled(true);
         chatScroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    }
 
-        if (outer != null && outer != chatScroll) {
-            outer.setVerticalScrollBarEnabled(false);
-            outer.setScrollbarFadingEnabled(true);
+    private void resizeConversationViewport(Activity activity, ScrollView chatScroll, LinearLayout conversation) {
+        int screenHeightPx = activity.getResources().getDisplayMetrics().heightPixels;
+        int minPx = dp(activity, 150);
+        int maxPx = Math.min(dp(activity, 330), Math.round(screenHeightPx * .31f));
+        int measured = conversation.getMeasuredHeight();
+        if (measured <= 0) measured = minPx;
+        int desired = Math.max(minPx, Math.min(maxPx, measured + dp(activity, 8)));
+
+        ViewGroup.LayoutParams raw = chatScroll.getLayoutParams();
+        if (raw instanceof LinearLayout.LayoutParams && raw.height != desired) {
+            raw.height = desired;
+            chatScroll.setLayoutParams(raw);
         }
     }
 
@@ -159,24 +179,29 @@ public final class NovaApplication extends Application {
             strip.setFillViewport(true);
             strip.setHorizontalScrollBarEnabled(false);
             strip.setOverScrollMode(View.OVER_SCROLL_NEVER);
-            row.setLayoutParams(new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT));
-            row.setPadding(0, dp(activity, 8), 0, dp(activity, 4));
+            row.setPadding(0, dp(activity, 5), 0, dp(activity, 2));
 
-            for (int i = 0; i < row.getChildCount(); i++) {
-                View child = row.getChildAt(i);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(activity, 116), 1f);
-                if (i > 0) lp.setMarginStart(dp(activity, 3));
-                if (i < row.getChildCount() - 1) lp.setMarginEnd(dp(activity, 3));
-                child.setLayoutParams(lp);
-                if (child instanceof Button) {
-                    Button button = (Button) child;
-                    button.setTextSize(11.5f);
-                    button.setPadding(dp(activity, 5), dp(activity, 7), dp(activity, 5), dp(activity, 7));
+            strip.post(() -> {
+                int width = strip.getWidth();
+                if (width <= 0) return;
+                int gap = dp(activity, 5);
+                int cardWidth = Math.max(dp(activity, 68), (width - gap * 3) / 4);
+                row.setLayoutParams(new FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.WRAP_CONTENT));
+                for (int i = 0; i < row.getChildCount(); i++) {
+                    View child = row.getChildAt(i);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(cardWidth, dp(activity, 104));
+                    if (i > 0) lp.setMarginStart(gap);
+                    child.setLayoutParams(lp);
+                    if (child instanceof Button) {
+                        Button button = (Button) child;
+                        button.setTextSize(10f);
+                        button.setMinWidth(0);
+                        button.setMinHeight(0);
+                        button.setPadding(dp(activity, 4), dp(activity, 5), dp(activity, 4), dp(activity, 5));
+                    }
                 }
-            }
-            strip.scrollTo(0, 0);
+                strip.scrollTo(0, 0);
+            });
         }
     }
 
@@ -188,33 +213,62 @@ public final class NovaApplication extends Application {
         LinearLayout hero = (LinearLayout) brandCol.getParent();
         if (hero.getChildCount() != 3) return;
 
+        hero.setGravity(android.view.Gravity.TOP);
+        hero.setPadding(dp(activity, 1), dp(activity, 1), dp(activity, 1), dp(activity, 2));
+
         brand.setSingleLine(true);
         brand.setMaxLines(1);
-        brand.setTextSize(19f);
-        brand.setLetterSpacing(.16f);
+        brand.setTextSize(18f);
+        brand.setLetterSpacing(.15f);
+
+        List<TextView> brandTexts = new ArrayList<>();
+        collect(brandCol, TextView.class, brandTexts);
+        for (TextView tv : brandTexts) {
+            if (tv != brand) tv.setTextSize(11.5f);
+        }
 
         View brainCol = hero.getChildAt(1);
         View toolsCol = hero.getChildAt(2);
-        brandCol.setLayoutParams(weighted(.98f));
-        brainCol.setLayoutParams(weighted(1.14f));
-        toolsCol.setLayoutParams(weighted(1.02f));
+        brandCol.setLayoutParams(weighted(.92f));
+        brainCol.setLayoutParams(weighted(1.20f));
+        toolsCol.setLayoutParams(weighted(.88f));
 
         View brain = findBySimpleClassName(brainCol, "NovaBrainView");
         if (brain != null) {
-            brain.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 142), dp(activity, 120)));
+            brain.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 124), dp(activity, 86)));
+        }
+
+        List<TextView> brainTexts = new ArrayList<>();
+        collect(brainCol, TextView.class, brainTexts);
+        for (TextView tv : brainTexts) {
+            String value = String.valueOf(tv.getText());
+            if (value.contains("Ready") || value.contains("Thinking")) {
+                tv.setTextSize(11f);
+                tv.setPadding(0, 0, 0, 0);
+            } else if (value.contains("●")) {
+                tv.setTextSize(8.5f);
+                tv.setPadding(0, 0, 0, 0);
+            }
         }
 
         if (toolsCol instanceof LinearLayout) {
             LinearLayout tools = (LinearLayout) toolsCol;
+            tools.setPadding(0, 0, 0, 0);
             if (tools.getChildCount() > 0 && tools.getChildAt(0) instanceof LinearLayout) {
                 LinearLayout toolRow = (LinearLayout) tools.getChildAt(0);
                 for (int i = 0; i < toolRow.getChildCount(); i++) {
                     View tool = toolRow.getChildAt(i);
-                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(activity, 38), dp(activity, 38));
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(activity, 34), dp(activity, 34));
                     if (i > 0) lp.setMarginStart(dp(activity, 3));
                     tool.setLayoutParams(lp);
-                    if (tool instanceof TextView) ((TextView) tool).setTextSize(16f);
+                    if (tool instanceof TextView) ((TextView) tool).setTextSize(14.5f);
                 }
+            }
+            List<TextView> statusTexts = new ArrayList<>();
+            collect(tools, TextView.class, statusTexts);
+            for (TextView tv : statusTexts) {
+                String value = String.valueOf(tv.getText());
+                if (value.contains("Online") || value.startsWith("v")) tv.setTextSize(10.5f);
             }
         }
     }
@@ -238,14 +292,15 @@ public final class NovaApplication extends Application {
                 }
                 if (child instanceof LinearLayout) {
                     LinearLayout bubble = (LinearLayout) child;
+                    bubble.setPadding(dp(activity, 12), dp(activity, 9), dp(activity, 12), dp(activity, 9));
                     for (int k = 0; k < bubble.getChildCount(); k++) {
                         View bubbleChild = bubble.getChildAt(k);
                         if (bubbleChild instanceof TextView) {
                             TextView body = (TextView) bubbleChild;
                             CharSequence value = body.getText();
                             if (value != null && value.length() > 20) {
-                                body.setTextSize(14.5f);
-                                body.setLineSpacing(0, 1.10f);
+                                body.setTextSize(13.5f);
+                                body.setLineSpacing(0, 1.06f);
                             }
                         }
                     }
@@ -254,28 +309,66 @@ public final class NovaApplication extends Application {
         }
     }
 
+    private void fixComposer(Activity activity, EditText composerInput, LinearLayout chatCard) {
+        chatCard.setPadding(dp(activity, 10), dp(activity, 10), dp(activity, 10), dp(activity, 10));
+        if (!(composerInput.getParent() instanceof LinearLayout)) return;
+        LinearLayout composer = (LinearLayout) composerInput.getParent();
+        ViewGroup.LayoutParams raw = composer.getLayoutParams();
+        if (raw instanceof LinearLayout.LayoutParams) {
+            ((LinearLayout.LayoutParams) raw).topMargin = dp(activity, 9);
+            composer.setLayoutParams(raw);
+        }
+        composerInput.setTextSize(14f);
+        composerInput.setPadding(dp(activity, 8), dp(activity, 8), dp(activity, 8), dp(activity, 8));
+        for (int i = 0; i < composer.getChildCount(); i++) {
+            View child = composer.getChildAt(i);
+            if (child == composerInput) continue;
+            ViewGroup.LayoutParams lp = child.getLayoutParams();
+            if (lp instanceof LinearLayout.LayoutParams) {
+                if (i == composer.getChildCount() - 1) {
+                    lp.width = dp(activity, 48);
+                    lp.height = dp(activity, 48);
+                } else {
+                    lp.width = dp(activity, 40);
+                    lp.height = dp(activity, 44);
+                }
+                child.setLayoutParams(lp);
+            }
+        }
+    }
+
     private void fixFooterAndNavigation(Activity activity, View root) {
         TextView footer = findTextPrefix(root, "© 2026 Morley Buys");
         if (footer != null) {
-            footer.setTextSize(10.5f);
+            footer.setTextSize(9.5f);
             footer.setSingleLine(true);
         }
         TextView secure = findTextPrefix(root, "◈  Secure");
         if (secure != null) {
-            secure.setTextSize(10f);
-            secure.setPadding(dp(activity, 6), 0, 0, 0);
+            secure.setTextSize(9.5f);
+            secure.setPadding(dp(activity, 4), 0, 0, 0);
         }
 
         List<Button> buttons = new ArrayList<>();
         collect(root, Button.class, buttons);
+        LinearLayout nav = null;
         for (Button button : buttons) {
             String value = String.valueOf(button.getText());
             if (value.endsWith("\nChat") || value.endsWith("\nIntelligence")
                     || value.endsWith("\nUpdates") || value.endsWith("\nAccount")) {
-                button.setTextSize(11f);
-                button.setMinHeight(dp(activity, 62));
-                button.setPadding(dp(activity, 3), dp(activity, 6), dp(activity, 3), dp(activity, 6));
+                button.setTextSize(10f);
+                button.setMinHeight(0);
+                button.setPadding(dp(activity, 2), dp(activity, 4), dp(activity, 2), dp(activity, 4));
+                ViewGroup.LayoutParams raw = button.getLayoutParams();
+                if (raw instanceof LinearLayout.LayoutParams) {
+                    raw.height = dp(activity, 56);
+                    button.setLayoutParams(raw);
+                }
+                if (button.getParent() instanceof LinearLayout) nav = (LinearLayout) button.getParent();
             }
+        }
+        if (nav != null) {
+            nav.setPadding(dp(activity, 8), dp(activity, 6), dp(activity, 8), dp(activity, 6));
         }
     }
 
