@@ -36,11 +36,19 @@ public class ConversationalNovaContractTest {
     @Test public void conversationPreservesProtectedBoundariesAndIsSessionOnly() throws Exception {
         String activity = source("MainActivity.java");
         String engine = source("NovaAssistantEngine.java");
-        assertTrue(activity.contains("Short follow-ups keep the current topic for this session"));
+        assertTrue(activity.contains("Nova keeps the current topic during this session"));
         assertTrue(engine.contains("protected actions remain human-approved"));
         assertTrue(engine.contains("void resetContext()"));
         assertFalse(activity.contains("SharedPreferences"));
         assertFalse(activity.contains("FileOutputStream"));
+    }
+
+    @Test public void nativeWorkspaceSeparatesPrimaryAreasWithNavigation() throws Exception {
+        String activity = source("MainActivity.java");
+        assertTrue(activity.contains("navButton(\"Chat\",Tab.CHAT)"));
+        assertTrue(activity.contains("navButton(\"Intelligence\",Tab.INTELLIGENCE)"));
+        assertTrue(activity.contains("navButton(\"Updates\",Tab.UPDATES)"));
+        assertTrue(activity.contains("navButton(\"Account\",Tab.ACCOUNT)"));
     }
 
     @Test public void nativeWorkspaceWiresEveryPrimaryControl() throws Exception {
