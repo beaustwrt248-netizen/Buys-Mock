@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-09-06T09:45:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_duplicate_cleanup_evidence",
+  "canonical_row": {
+    "id": 1266,
+    "current_model_name": "Chrome",
+    "proposed_model_name": "IdeaPad Duet Chromebook",
+    "verified_model_number": "CT-X636F",
+    "verified_release_year": 2020,
+    "dependency_refs": {"inventory": 0, "pricing": 2, "pricing_history": 0},
+    "evidence": [
+      "Lenovo Australia support identifies the product as Lenovo IdeaPad Duet Chromebook (CT-X636F).",
+      "Lenovo announced the IdeaPad Duet Chromebook at CES on 6 January 2020 and stated availability from May 2020."
+    ],
+    "evidence_urls": [
+      "https://pcsupport.lenovo.com/au/en/products/chromebook-laptops/lenovo-chromebooks-series/lenovo-ideapad-duet-chromebook",
+      "https://news.lenovo.com/pressroom/press-releases/lenovo-breaks-barriers-with-new-consumer-technology-unveiled-at-ces-2020-2/"
+    ]
+  },
+  "duplicate_row": {
+    "id": 1268,
+    "current_model_name": "Ideapad Duet 2-In-1 Chromebook Ft",
+    "current_model_number": "X636F",
+    "normalized_identity": "IdeaPad Duet Chromebook (CT-X636F)",
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+    "proposed_action": "review_for_deactivation_after_fresh_dependency_recheck"
+  },
+  "proposed_cleanup": [
+    "Preserve row 1266 as the canonical catalogue identity because it carries the exact Lenovo model code and the existing pricing references.",
+    "Normalize row 1266 model_name to IdeaPad Duet Chromebook and release_year to 2020 only after explicit production-write approval.",
+    "Deactivate row 1268 only after a fresh zero-dependency and identity recheck; preserve its Cash Converters listing alias/source as provenance on the canonical record if the production cleanup workflow supports provenance merging.",
+    "Do not move or rewrite the two pricing references without a separate protected-pricing review."
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "Pricing references make row 1266 the safer canonical row; protected pricing remains untouched.",
+    "Abort any future cleanup on dependency drift, identity mismatch, new inventory references, or pricing conflict."
+  ]
+}
