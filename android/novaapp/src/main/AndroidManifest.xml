@@ -9,7 +9,7 @@
         android:roundIcon="@drawable/nova_official_app_icon"
         android:label="Nova AI"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/NovaTheme">
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
