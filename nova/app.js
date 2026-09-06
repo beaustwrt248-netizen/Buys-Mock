@@ -1,4 +1,5 @@
 (()=>{'use strict';
+const REPO='beaustwrt248-netizen/Buys-Mock';
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
 const TURNSTILE_SITE_KEY='0x4AAAAAAEZul-Qo6dqMim2U';
