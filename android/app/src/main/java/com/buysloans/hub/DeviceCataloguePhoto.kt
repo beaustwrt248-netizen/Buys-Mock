@@ -45,6 +45,44 @@ internal fun cataloguePageTitleMatchesDevice(html: String, model: String, modelN
         (numberIdentity.length >= 4 && titleIdentity.contains(numberIdentity))
 }
 
+internal fun catalogueNearbyImageForExactModel(html: String, model: String, modelNumber: String?): String? {
+    val number = modelNumber?.trim()?.takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
+    val modelIdentity = normalizeCatalogueIdentity(model)
+    if (modelIdentity.length < 4) return null
+    val numberRegex = Regex(Regex.escape(number), RegexOption.IGNORE_CASE)
+    val imageTagRegex = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
+    val attributeRegexes = listOf(
+        Regex("""\bsrc=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+        Regex("""\bdata-src=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+        Regex("""\bdata-original=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+        Regex("""\bsrcset=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
+    )
+    fun usable(raw: String): String? {
+        val candidate = raw.split(',').firstOrNull()?.trim()?.substringBefore(' ')?.trim().orEmpty()
+        if (candidate.isBlank() || candidate.startsWith("data:", true)) return null
+        val lower = candidate.lowercase()
+        if (listOf("favicon", "logo", "icon", "avatar", "spinner").any(lower::contains)) return null
+        return candidate
+    }
+
+    numberRegex.findAll(html).forEach { match ->
+        val start = (match.range.first - 5_000).coerceAtLeast(0)
+        val end = (match.range.last + 5_001).coerceAtMost(html.length)
+        val window = html.substring(start, end)
+        if (!normalizeCatalogueIdentity(window).contains(modelIdentity)) return@forEach
+        val localNumberIndex = match.range.first - start
+        val candidate = imageTagRegex.findAll(window)
+            .sortedBy { image -> kotlin.math.abs(image.range.first - localNumberIndex) }
+            .firstNotNullOfOrNull { image ->
+                attributeRegexes.firstNotNullOfOrNull { regex ->
+                    regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
+                }
+            }
+        if (candidate != null) return candidate
+    }
+    return null
+}
+
 private object DeviceCataloguePhotoLoader {
     private const val FAILURE_RETRY_MS = 60_000L
     private val imageCache = ConcurrentHashMap<String, ImageBitmap>()
@@ -172,6 +210,8 @@ private object DeviceCataloguePhotoLoader {
             val contentType = connection.contentType.orEmpty().lowercase()
             if (contentType.startsWith("image/")) return pageUrl
             val html = connection.inputStream.bufferedReader().use { it.readText() }
+            val nearbyExactImage = catalogueNearbyImageForExactModel(html, model, modelNumber)
+            if (nearbyExactImage != null) return URL(URL(pageUrl), decodeHtml(nearbyExactImage)).toString()
             if (!cataloguePageTitleMatchesDevice(html, model, modelNumber)) return null
 
             val raw = productImageFromJsonLd(html, model, modelNumber) ?: listOf(
