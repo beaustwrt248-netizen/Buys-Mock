@@ -5,6 +5,8 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/nova_app_icon"
+        android:roundIcon="@drawable/nova_app_icon"
         android:label="Nova AI"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
