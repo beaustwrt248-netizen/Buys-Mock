@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-09-06T21:20:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_xiaomi_17_model_number_evidence",
+  "catalogue_row": {
+    "device_catalog_id": 866,
+    "brand": "Xiaomi",
+    "model_name": "Xiaomi 17",
+    "current_model_number": null,
+    "release_year": 2026,
+    "market_region": "Australia / Global",
+    "storage_options": ["256GB UFS 4.1", "512GB UFS 4.1"],
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "candidate": {
+    "model_number": "25113PN0EG",
+    "confidence": "high",
+    "assessment": "model_number_correction_candidate",
+    "active_model_number_collisions": 0
+  },
+  "sources": [
+    {
+      "type": "manufacturer_au",
+      "name": "Xiaomi Australia - Xiaomi 17 Specs",
+      "url": "https://www.mi.com/au/product/xiaomi-17/specs/",
+      "finding": "Confirms the Australian Xiaomi 17 product and AU storage configurations 12GB+256GB and 12GB+512GB with UFS 4.1."
+    },
+    {
+      "type": "regulatory_global",
+      "name": "Global Certification Forum record indexed by device.report",
+      "url": "https://device.report/xiaomi/17",
+      "finding": "Lists Xiaomi 17 as model 25113PN0EG under Xiaomi Communications Co., Ltd. with Global Certification Forum certification."
+    },
+    {
+      "type": "australian_network_identity_support",
+      "name": "Optus TAC Checker evidence indexed by FCCID.io",
+      "url": "https://fccid.io/TAC/86035907",
+      "finding": "Optus TAC Checker evidence identifies device name 17 with alias Xiaomi 25113PN0EG; the same record links Xiaomi Communications Co., Ltd. FCC evidence for PN0EG."
+    }
+  ],
+  "safety_notes": [
+    "No production catalogue row is changed by this evidence package.",
+    "No pricing, inventory or pricing-history record is changed.",
+    "The candidate is the global model identifier supported by regulatory evidence and Australian network identity evidence; it is not inferred from Xiaomi naming convention alone.",
+    "Recheck the live row, dependencies, active collisions, and Australian/global identity immediately before any future production write.",
+    "Abort if Xiaomi Australia or Australian regulatory evidence demonstrates a distinct Australian-only hardware variant.",
+    "Any production update requires explicit human authorization."
+  ]
+}
