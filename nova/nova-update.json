@@ -1,8 +1,8 @@
 {
-  "versionCode": 2,
-  "versionName": "0.1.1",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.1.1/Nova-AI-0.1.1.apk",
-  "sha256": "b28df9caa16763d57bd40bbf78cc9dc61f323e6a226c1a96aab9cbb1f7dd396c",
+  "versionCode": 3,
+  "versionName": "0.2.0",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.2.0/Nova-AI-0.2.0.apk",
+  "sha256": "867d3f43a6f94b17948d81a38c7646e15799e957dd557c983dac2587ae29b767",
   "mandatory": false,
-  "notes": "Nova AI 0.1.1 is available."
+  "notes": "Nova AI 0.2.0 adds authorised live Morley intelligence, natural-language operational questions, and standalone Android access."
 }
