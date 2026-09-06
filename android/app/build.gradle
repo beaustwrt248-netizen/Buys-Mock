@@ -48,7 +48,7 @@ tasks.register('verifyDeterministicSourcePipeline') {
         def buildText = file("${projectDir}/build.gradle").getText('UTF-8')
         def retiredTasks = [
             ['improve', 'Exact', 'Matching'].join(''),
-            ['secure', 'Pricing', 'Auth.py'].join(''),
+            ['secure', 'Pricing', 'Auth'].join(''),
         ]
         retiredTasks.each { token ->
             if (buildText.contains(token)) {
