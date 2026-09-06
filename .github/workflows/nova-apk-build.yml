@@ -203,44 +203,28 @@ jobs:
             --title "Nova AI ${NOVA_VERSION_NAME}" \
             --notes "Verified Nova AI Android OTA release. Built from ${GITHUB_SHA}; Nova tests, lint, stable signer verification and SHA-256 integrity verification passed." \
             --latest=false
-      - name: Publish Nova OTA metadata through protected main
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Stage guarded Nova OTA metadata
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
-          git checkout main
-          git pull --ff-only origin main
           python3 - <<'PY'
-          import json, os, re
+          import json, os
           from pathlib import Path
-          gradle=Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
-          code=re.search(r'\bversionCode\s+(\d+)', gradle)
-          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
-          expected_code=int(os.environ['NOVA_VERSION_CODE'])
-          expected_name=os.environ['NOVA_VERSION_NAME']
-          if not code or not name or int(code.group(1)) != expected_code or name.group(1) != expected_name:
-              raise SystemExit('Main advanced to a different Nova version; refusing stale OTA metadata.')
           release_file=os.environ['NOVA_RELEASE_FILE']
           data={
-              'versionCode': expected_code,
-              'versionName': expected_name,
+              'versionCode': int(os.environ['NOVA_VERSION_CODE']),
+              'versionName': os.environ['NOVA_VERSION_NAME'],
               'apkUrl': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['NOVA_RELEASE_TAG']}/{release_file}",
               'sha256': os.environ['NOVA_SHA256'],
               'mandatory': False,
-              'notes': f"Nova AI {expected_name} is available."
+              'notes': f"Nova AI {os.environ['NOVA_VERSION_NAME']} is available."
           }
-          Path('nova').mkdir(exist_ok=True)
-          Path('nova/nova-update.json').write_text(json.dumps(data, indent=2)+"\n", encoding='utf-8')
+          Path('dist/nova-update.json').write_text(json.dumps(data, indent=2)+"\n", encoding='utf-8')
           PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nova/nova-update.json
-          if git diff --cached --quiet; then
-            echo 'Nova OTA metadata already current.'
-            exit 0
-          fi
-          git commit -m "Publish Nova OTA ${NOVA_VERSION_NAME} [skip ci]"
-          gh auth setup-git
-          git push origin HEAD:main
+      - name: Upload guarded Nova OTA metadata artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nova-ota-metadata-${{ env.NOVA_VERSION_SAFE }}
+          path: dist/nova-update.json
+          if-no-files-found: error
+          retention-days: 14
