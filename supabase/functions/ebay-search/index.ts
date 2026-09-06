@@ -5,10 +5,9 @@ const ORIGIN = "https://beaustwrt248-netizen.github.io";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-function cors(req: Request) {
-  const origin = req.headers.get("origin") || ORIGIN;
+function cors(_req: Request) {
   return {
-    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Origin": ORIGIN,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
