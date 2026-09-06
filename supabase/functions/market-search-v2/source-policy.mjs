@@ -1,14 +1,14 @@
 const RETAIL_HOSTS = [
   'jbhifi.com.au','officeworks.com.au','apple.com','bigw.com.au','harveynorman.com.au','thegoodguys.com.au',
-  'kmart.com.au','target.com.au','costco.com.au','cashconverters.com.au','bing.com.au','mobileciti.com.au',
+  'kmart.com.au','target.com.au','costco.com.au','cashconverters.com.au','binglee.com.au','mobileciti.com.au',
   'kogan.com','dicksmith.com.au','umart.com.au','scorptec.com.au','centrecom.com.au','mwave.com.au','pccasegear.com',
   'telstra.com.au','optus.com.au','vodafone.com.au','samsung.com','lenovo.com','dell.com','hp.com','asus.com',
-  'acer.com','microsoft.com','sony.com','oppo.com','vivo.com','realme.com','motorola.com','google.com'
+  'acer.com','microsoft.com','sony.com','oppo.com','vivo.com','realme.com','motorola.com','store.google.com','amazon.com.au'
 ];
 
 const HARD_BLOCK_HOSTS = [
   'reddit.com','old.reddit.com','ozbargain.com.au','staticice.com.au','getprice.com.au','priceme.com.au',
-  'whirlpool.net.au','medium.com','youtube.com','facebook.com'
+  'whirlpool.net.au','medium.com','youtube.com','news.com.au','facebook.com'
 ];
 
 const EDITORIAL_PATH = /\/(?:blog|blogs|news|article|articles|review|reviews|guide|guides|support|community|forum|forums|search|search-results|category|categories|compare|comparison|coupon|coupons|deal|deals)(?:\/|$)/i;
