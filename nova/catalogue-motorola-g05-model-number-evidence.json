@@ -1,0 +1,53 @@
+{
+  "checked_at": "2026-09-06T10:05:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_model_number_evidence",
+  "catalogue_row": {
+    "id": 1083,
+    "current_model_name": "moto g05",
+    "current_model_number": null,
+    "current_release_year": 2025,
+    "current_storage_options": ["64GB"],
+    "current_aliases": ["Motorola G05 Xt259-2 256GB Blue"],
+    "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0}
+  },
+  "verified_first_party_model_family": [
+    "XT2523-3",
+    "XT2523-11"
+  ],
+  "unsupported_catalogue_alias_fragment": "Xt259-2",
+  "australian_exact_model_number_status": "unresolved",
+  "evidence": [
+    {
+      "source": "Motorola Support EMEA — device/model listing",
+      "url": "https://en-emea.support.motorola.com/app/answers/detail/a_id/178271/p/1422,1450,3978,",
+      "finding": "Motorola lists XT2523-3 as moto g05 for 2025."
+    },
+    {
+      "source": "Motorola Support UK — Declarations of Conformity",
+      "url": "https://en-gb.support.motorola.com/app/answers/detail/a_id/167829",
+      "finding": "Motorola lists both XT2523-3 and XT2523-11 as moto g05."
+    },
+    {
+      "source": "Motorola official declaration — XT2523-11",
+      "url": "https://en-us.support.motorola.com/ci/fattach/get/87215877/1752586175/redirect/1/filename/XT2523-11%2Bmoto%2Bg05%2BMC44E%2BRED%2BDoC%2BLOCALIZED%2Borig%2B15Jul2025.pdf",
+      "finding": "The declaration identifies market model name moto g05, XT2523-11."
+    },
+    {
+      "source": "Motorola Support Australia — specifications",
+      "url": "https://en-au.support.motorola.com/app/answers/detail/a_id/187375/~/specifications---moto-g05",
+      "finding": "The Australian support page verifies the moto g05 product/specification context but does not expose an Australian XT suffix in the catalogue evidence available here."
+    }
+  ],
+  "conclusion": [
+    "The imported alias fragment Xt259-2 is not supported by the first-party Motorola model identifiers verified in this evidence set.",
+    "Do not guess an Australian exact model number from another market. Keep model_number unresolved until Australia-specific first-party hardware-code evidence is found.",
+    "Do not infer 256GB from the reseller alias over the current first-party Australian specification without separate storage verification."
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "The row currently has zero inventory, pricing and pricing-history dependencies, but any future cleanup still requires a fresh dependency recheck and explicit production-write authorization.",
+    "Abort any future cleanup if Australia-specific evidence conflicts with the verified model family or if dependency drift appears."
+  ]
+}
