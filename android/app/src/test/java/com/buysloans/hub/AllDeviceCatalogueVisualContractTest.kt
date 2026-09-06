@@ -7,6 +7,7 @@ import java.io.File
 
 class AllDeviceCatalogueVisualContractTest {
     private val source = File("src/main/java/com/buysloans/hub/LiveDeviceCatalogueBrowser.kt").readText()
+    private val loader = File("src/main/java/com/buysloans/hub/DeviceCataloguePhoto.kt").readText()
 
     @Test
     fun allDeviceCatalogueUsesDeviceAwareVisuals() {
@@ -16,10 +17,27 @@ class AllDeviceCatalogueVisualContractTest {
     }
 
     @Test
-    fun allDeviceCatalogueOnlyTrustsDirectLiveImageAssets() {
-        assertTrue(source.contains("DeviceImageResolver.directImageUrl(device.imageReferenceUrl)"))
+    fun allDeviceCataloguePassesExactIdentityIntoImageVerification() {
+        assertTrue(source.contains("imageReferenceUrl = device.imageReferenceUrl"))
+        assertTrue(source.contains("modelNumber = device.modelNumber"))
         assertTrue(source.contains("allowLiveReference = false"))
-        assertFalse(source.contains("imageReferenceUrl = device.imageReferenceUrl"))
+        assertTrue(loader.contains("cataloguePageTitleMatchesDevice"))
+        assertTrue(loader.contains("catalogueNearbyImageForExactModel"))
+        assertTrue(loader.contains("resolveVerifiedProductImage"))
+    }
+
+    @Test
+    fun sharedSourcePagesCannotReuseAnotherModelsCachedImage() {
+        assertTrue(loader.contains("normalizeCatalogueIdentity(model)"))
+        assertTrue(loader.contains("normalizeCatalogueIdentity(modelNumber.orEmpty())"))
+        assertTrue(loader.contains("listOf(referenceUrl"))
+    }
+
+    @Test
+    fun genericPageBodyCannotAuthorizeWrongDeviceArtwork() {
+        assertFalse(loader.contains("if (html.contains(model"))
+        assertTrue(loader.contains("<title[^>]*>"))
+        assertTrue(loader.contains("og:title"))
     }
 
     @Test

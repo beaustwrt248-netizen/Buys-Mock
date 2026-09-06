@@ -88,12 +88,12 @@ private fun categoryLabel(category: String): String = when (normalizeCatalogueCa
 @Composable
 private fun CatalogueDevicePhoto(device: LiveDeviceCatalogueRow) {
     val category = normalizeCatalogueCategory(device.category)
-    val directImage = DeviceImageResolver.directImageUrl(device.imageReferenceUrl)
     if (category == "mobile_phone") {
         MobilePhonePhoto(
             brand = device.brand,
             model = device.model,
-            imageReferenceUrl = directImage,
+            modelNumber = device.modelNumber,
+            imageReferenceUrl = device.imageReferenceUrl,
             modifier = Modifier.padding(6.dp).size(64.dp),
             allowLiveReference = false,
         )
@@ -103,7 +103,8 @@ private fun CatalogueDevicePhoto(device: LiveDeviceCatalogueRow) {
     DeviceCataloguePhoto(
         brand = device.brand,
         model = device.model,
-        imageReferenceUrl = directImage,
+        modelNumber = device.modelNumber,
+        imageReferenceUrl = device.imageReferenceUrl,
         modifier = Modifier.padding(6.dp).size(64.dp),
     ) {
         val visual = when (category) {
@@ -133,7 +134,7 @@ fun LiveDeviceCatalogueBrowser(category: String? = null) {
         }
         item(key = "catalogue-description") {
             Text(
-                if (category == null) "Browse every live catalogue device and its verified image reference."
+                if (category == null) "Browse every live catalogue device with verified model-aware imagery."
                 else "Browse every live ${categoryTitle(category).lowercase()} catalogue record.",
                 color = MorleyTextSecondary,
                 fontSize = 14.sp,
