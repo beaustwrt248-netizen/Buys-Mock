@@ -16,6 +16,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -74,14 +76,17 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
         base("Live Morley intelligence • signed in as " + api.signedInEmail());
         LinearLayout card=new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setPadding(dp(this,18),dp(this,18),dp(this,18),dp(this,18)); card.setBackgroundColor(surface); root.addView(card);
         TextView s=text("●  Nova intelligence online",20,success); card.addView(s);
-        card.addView(text("Read-only live access is active. Guardian approvals, pricing approvals, production releases and protected repairs cannot be executed from this screen.",14,secondary));
+        card.addView(text("Authorised read-only intelligence is active. Guardian approvals, pricing approvals, production releases and protected repairs cannot be executed from Nova.",14,secondary));
         Button overview=button("Live business overview"); overview.setOnClickListener(v->runSummary(IntentRouter.Intent.PERFORMANCE)); margin(overview,18);
         Button guardian=button("Guardian status & approvals"); guardian.setOnClickListener(v->runSummary(IntentRouter.Intent.GUARDIAN)); margin(guardian,8);
         Button support=button("Support queue"); support.setOnClickListener(v->runSummary(IntentRouter.Intent.SUPPORT)); margin(support,8);
         Button inventory=button("Inventory health"); inventory.setOnClickListener(v->runSummary(IntentRouter.Intent.INVENTORY)); margin(inventory,8);
+        Button catalogue=button("Device catalogue health"); catalogue.setOnClickListener(v->runSummary(IntentRouter.Intent.CATALOGUE)); margin(catalogue,8);
+        Button learning=button("Nova learning & accuracy"); learning.setOnClickListener(v->runSummary(IntentRouter.Intent.LEARNING)); margin(learning,8);
+        Button releases=button("Release & feature state"); releases.setOnClickListener(v->runSummary(IntentRouter.Intent.RELEASES)); margin(releases,8);
 
         TextView chatTitle=text("Ask Nova",22,primary); chatTitle.setPadding(0,dp(this,26),0,dp(this,6)); root.addView(chatTitle);
-        TextView help=text("Ask naturally about sales, profit, inventory, Guardian, approvals, support, releases or what Nova can do.",14,secondary); root.addView(help);
+        TextView help=text("Ask naturally about sales, profit, inventory, the device catalogue, learning accuracy, Guardian, approvals, support or releases.",14,secondary); root.addView(help);
         EditText ask=input("Ask Nova…",false); ask.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES|InputType.TYPE_TEXT_FLAG_MULTI_LINE); ask.setSingleLine(false); margin(ask,10);
         Button send=button("Ask Nova"); margin(send,8); send.setOnClickListener(v->{String q=ask.getText().toString().trim();if(!q.isEmpty()){ask.setText("");answer(q);}});
 
@@ -92,9 +97,8 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     private void answer(String question) {
         IntentRouter.Intent intent=IntentRouter.classify(question);
         if(intent==IntentRouter.Intent.GREETING){showAnswer("Hi — I’m Nova AI. I’m connected to the live Morley data your account is authorised to read.");return;}
-        if(intent==IntentRouter.Intent.CAPABILITIES){showAnswer("I can currently summarise live sales and profitability, inventory, valuation accuracy, Guardian incidents and approvals, support workload, and Nova release/OTA status. Protected actions remain behind Morley’s existing approval boundaries.");return;}
-        if(intent==IntentRouter.Intent.RELEASES){showAnswer("Nova Android " + BuildConfig.VERSION_NAME + " is installed. The signed OTA channel is active; use the OTA section below to check for a newer verified release.");return;}
-        if(intent==IntentRouter.Intent.UNKNOWN){showAnswer("I understand general Morley questions by domain right now. Try asking about sales performance, profit, inventory health, Guardian approvals, support tickets, valuations, releases, or my capabilities.");return;}
+        if(intent==IntentRouter.Intent.CAPABILITIES){showAnswer("I can summarise live sales and profitability, inventory, valuation accuracy, catalogue health, Guardian incidents and approvals, support workload, verified learning outcomes, and release/feature state. Protected actions stay behind Morley’s existing human-approval boundaries.");return;}
+        if(intent==IntentRouter.Intent.UNKNOWN){showAnswer("I understand Morley operational questions by domain. Try asking about sales performance, profit, inventory health, catalogue gaps, learning accuracy, Guardian approvals, support tickets, releases, or my capabilities.");return;}
         runSummary(intent);
     }
 
@@ -104,10 +108,51 @@ public final class MainActivity extends Activity implements UpdateManager.Listen
     }
 
     private String summarise(IntentRouter.Intent intent) throws Exception {
-        if(intent==IntentRouter.Intent.INVENTORY){JSONArray rows=api.inventory();int active=0;java.util.Map<String,Integer> states=new java.util.TreeMap<>();for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status","unknown").toLowerCase(Locale.ROOT);states.put(st,states.getOrDefault(st,0)+1);if(!st.equals("sold")&&!st.equals("closed")&&!st.equals("disposed"))active++;}return "Inventory health\n\n"+active+" active/available items across "+rows.length()+" recent records.\n"+states;}
-        if(intent==IntentRouter.Intent.GUARDIAN){JSONArray rows=api.guardian();int open=0,approvals=0,high=0;for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("state").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("ignored")&&!st.equals("closed")){open++;if(x.optBoolean("requires_approval"))approvals++;String risk=x.optString("risk_level").toLowerCase(Locale.ROOT);if(risk.equals("high")||risk.equals("critical"))high++;}}return "Guardian live status\n\n"+open+" open signals • "+approvals+" requiring human approval • "+high+" high/critical.\n\nNova can report these signals but cannot approve or apply protected repairs.";}
-        if(intent==IntentRouter.Intent.SUPPORT){JSONArray rows=api.support();int open=0,urgent=0,unassigned=0;for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("closed")){open++;String p=x.optString("priority").toLowerCase(Locale.ROOT);if(p.equals("high")||p.equals("urgent"))urgent++;if(x.isNull("assigned_to")||x.optString("assigned_to").isBlank())unassigned++;}}return "Support workload\n\n"+open+" active tickets • "+urgent+" high/urgent • "+unassigned+" unassigned.";}
-        JSONArray sales=api.sales(), valuations=api.valuations(), inventory=api.inventory();double total=0;int profitCount=0,wins=0;for(int i=0;i<sales.length();i++){JSONObject x=sales.getJSONObject(i);if(!x.isNull("realised_profit")){double p=x.optDouble("realised_profit",0);total+=p;profitCount++;if(p>0)wins++;}}int active=0;for(int i=0;i<inventory.length();i++){String st=inventory.getJSONObject(i).optString("status").toLowerCase(Locale.ROOT);if(!st.equals("sold")&&!st.equals("closed")&&!st.equals("disposed"))active++;}double accuracyTotal=0;int realised=0;for(int i=0;i<valuations.length();i++){JSONObject x=valuations.getJSONObject(i);if(!x.isNull("expected_profit")&&!x.isNull("actual_profit")){accuracyTotal+=Math.abs(x.optDouble("actual_profit")-x.optDouble("expected_profit"));realised++;}}String accuracy=realised==0?"still building":String.format(Locale.US,"AUD %.2f average absolute profit forecast error",accuracyTotal/realised);return String.format(Locale.US,"Morley live overview\n\n%d recent realised sales • AUD %.2f realised profit • %.0f%% profitable-sale rate\n%d active/available inventory items\nValuation accuracy: %s",sales.length(),total,profitCount==0?0:(100.0*wins/profitCount),active,accuracy);}
+        if(intent==IntentRouter.Intent.INVENTORY){
+            JSONArray rows=api.inventory(); int active=0; Map<String,Integer> states=new TreeMap<>();
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status","unknown").toLowerCase(Locale.ROOT);states.put(st,states.getOrDefault(st,0)+1);if(!st.equals("sold")&&!st.equals("closed")&&!st.equals("disposed"))active++;}
+            return "Inventory health\n\n"+active+" active/available items across "+rows.length()+" recent records.\n"+states;
+        }
+        if(intent==IntentRouter.Intent.GUARDIAN){
+            JSONArray rows=api.guardian();int open=0,approvals=0,high=0;
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("state").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("ignored")&&!st.equals("closed")){open++;if(x.optBoolean("requires_approval"))approvals++;String risk=x.optString("risk_level").toLowerCase(Locale.ROOT);if(risk.equals("high")||risk.equals("critical"))high++;}}
+            return "Guardian live status\n\n"+open+" open signals • "+approvals+" requiring human approval • "+high+" high/critical.\n\nNova reports these signals but cannot approve or apply protected repairs.";
+        }
+        if(intent==IntentRouter.Intent.SUPPORT){
+            JSONArray rows=api.support();int open=0,urgent=0,unassigned=0,overdue=0;long now=System.currentTimeMillis();
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("closed")){open++;String p=x.optString("priority").toLowerCase(Locale.ROOT);if(p.equals("high")||p.equals("urgent"))urgent++;if(x.isNull("assigned_to")||x.optString("assigned_to").isBlank())unassigned++;String due=x.optString("sla_due_at");if(!due.isBlank()){try{if(java.time.Instant.parse(due).toEpochMilli()<now)overdue++;}catch(Exception ignored){}}}}
+            return "Support workload\n\n"+open+" active tickets • "+urgent+" high/urgent • "+unassigned+" unassigned • "+overdue+" SLA overdue.";
+        }
+        if(intent==IntentRouter.Intent.CATALOGUE){
+            JSONArray rows=api.catalogue();int missingModel=0,missingStorage=0,missingRam=0;Map<String,Integer> categories=new TreeMap<>();
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String category=x.optString("category","unknown");categories.put(category,categories.getOrDefault(category,0)+1);if(x.optString("model_number").isBlank())missingModel++;JSONArray storage=x.optJSONArray("storage_options");if(storage==null||storage.length()==0)missingStorage++;JSONArray ram=x.optJSONArray("ram_options");if("mobile_phone".equals(category)&&!"apple".equalsIgnoreCase(x.optString("brand"))&&(ram==null||ram.length()==0))missingRam++;}
+            return "Device catalogue health\n\n"+rows.length()+" active devices.\nMissing model number: "+missingModel+"\nMissing storage options: "+missingStorage+"\nNon-Apple phone RAM gaps: "+missingRam+"\n\nCategories: "+categories;
+        }
+        if(intent==IntentRouter.Intent.LEARNING){
+            JSONArray incidents=api.guardian(), repairs=api.guardianRepairs(), valuations=api.valuations();int verified=0,recurring=0,completed=0,failed=0,realised=0;double error=0;
+            for(int i=0;i<incidents.length();i++){JSONObject x=incidents.getJSONObject(i);String st=x.optString("state").toLowerCase(Locale.ROOT);if(!x.isNull("verified_at")||st.equals("resolved"))verified++;if(x.optInt("occurrence_count",1)>1)recurring++;}
+            for(int i=0;i<repairs.length();i++){JSONObject x=repairs.getJSONObject(i);String st=x.optString("status").toLowerCase(Locale.ROOT);if(st.equals("completed")||st.equals("verified")||st.equals("merged")||st.equals("applied")||!x.isNull("completed_at"))completed++;if(st.equals("failed")||st.equals("rejected")||st.equals("quarantined"))failed++;}
+            for(int i=0;i<valuations.length();i++){JSONObject x=valuations.getJSONObject(i);if(!x.isNull("expected_profit")&&!x.isNull("actual_profit")){error+=Math.abs(x.optDouble("actual_profit")-x.optDouble("expected_profit"));realised++;}}
+            String repairRate=(completed+failed)==0?"insufficient data":Math.round(100.0*completed/(completed+failed))+"%";String forecast=realised==0?"still building":String.format(Locale.US,"AUD %.2f average absolute profit forecast error",error/realised);
+            return "Nova learning & accuracy\n\n"+verified+" verified Guardian outcomes • "+recurring+" recurring incidents\nRepair success: "+repairRate+"\nValuation accuracy: "+forecast+"\n\nLearning may improve context and diagnosis, but it cannot reduce risk classifications or grant Nova authority.";
+        }
+        if(intent==IntentRouter.Intent.RELEASES){
+            JSONArray rows=api.releaseConfig();String current="unknown",minimum="unknown";
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String key=x.optString("key");Object value=x.opt("value");String shown=releaseName(value);if("current_release".equals(key))current=shown;else if("minimum_supported_version".equals(key))minimum=shown;}
+            return "Release state\n\nNova installed: "+BuildConfig.VERSION_NAME+"\nMorley current release: "+current+"\nMorley minimum supported: "+minimum+"\n\nNova’s signed OTA channel is separate and remains checksum/signature guarded.";
+        }
+        JSONArray sales=api.sales(), valuations=api.valuations(), inventory=api.inventory();double total=0;int profitCount=0,wins=0;
+        for(int i=0;i<sales.length();i++){JSONObject x=sales.getJSONObject(i);if(!x.isNull("realised_profit")){double p=x.optDouble("realised_profit",0);total+=p;profitCount++;if(p>0)wins++;}}
+        int active=0;for(int i=0;i<inventory.length();i++){String st=inventory.getJSONObject(i).optString("status").toLowerCase(Locale.ROOT);if(!st.equals("sold")&&!st.equals("closed")&&!st.equals("disposed"))active++;}
+        double accuracyTotal=0;int realised=0;for(int i=0;i<valuations.length();i++){JSONObject x=valuations.getJSONObject(i);if(!x.isNull("expected_profit")&&!x.isNull("actual_profit")){accuracyTotal+=Math.abs(x.optDouble("actual_profit")-x.optDouble("expected_profit"));realised++;}}
+        String accuracy=realised==0?"still building":String.format(Locale.US,"AUD %.2f average absolute profit forecast error",accuracyTotal/realised);
+        return String.format(Locale.US,"Morley live overview\n\n%d recent realised sales • AUD %.2f realised profit • %.0f%% profitable-sale rate\n%d active/available inventory items\nValuation accuracy: %s",sales.length(),total,profitCount==0?0:(100.0*wins/profitCount),active,accuracy);
+    }
+
+    private static String releaseName(Object value) {
+        if(value instanceof JSONObject){JSONObject x=(JSONObject)value;String n=x.optString("versionName");if(!n.isBlank())return n;return x.toString();}
+        String raw=value==null||value==JSONObject.NULL?"":String.valueOf(value);if(raw.startsWith("{")){try{JSONObject x=new JSONObject(raw);String n=x.optString("versionName");if(!n.isBlank())return n;}catch(Exception ignored){}}return raw.isBlank()?"unknown":raw;
+    }
 
     private void showAnswer(String value) { TextView out=text(value,15,primary); out.setPadding(dp(this,14),dp(this,14),dp(this,14),dp(this,14)); out.setBackgroundColor(surface); margin(out,12); }
 
