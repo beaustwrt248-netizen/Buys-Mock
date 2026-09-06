@@ -1,0 +1,80 @@
+{
+  "checked_at": "2026-09-06T10:24:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_official_model_identifier_evidence",
+  "rows": [
+    {
+      "id": 901,
+      "model_name": "OnePlus 13s",
+      "current_model_number": null,
+      "verified_official_model_number": "CPH2723",
+      "release_year": 2025,
+      "storage_options": ["256GB UFS 4.0", "512GB UFS 4.0"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence": [
+        {
+          "source": "OnePlus official Community — OxygenOS rollout for OnePlus 13s",
+          "url": "https://community.oneplus.com/thread/1890750816438583299",
+          "finding": "Official OnePlus rollout identifies OnePlus 13s as CPH2723."
+        },
+        {
+          "source": "OnePlus authorised store Australia — OnePlus 13S",
+          "url": "https://oneplusmobile.com.au/product/oneplus-13s-5g/",
+          "finding": "Australian authorised OnePlus retailer identifies the OnePlus 13S model as CPH2723."
+        }
+      ],
+      "regional_caution": "The product originated as an India-market model; retain country/region provenance and reconfirm the Australian sold variant before any production write."
+    },
+    {
+      "id": 976,
+      "model_name": "OnePlus 15R",
+      "current_model_number": null,
+      "verified_official_model_number": "CPH2769",
+      "release_year": 2025,
+      "storage_options": ["256GB UFS 4.1", "512GB UFS 4.1"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence": [
+        {
+          "source": "OnePlus PSTI Statements of Compliance",
+          "url": "https://www.oneplus.com/uk/pstisoc",
+          "finding": "OnePlus lists OnePlus 15R as CPH2769."
+        },
+        {
+          "source": "OnePlus Australia — OnePlus 15R",
+          "url": "https://www.oneplus.com/au/15r",
+          "finding": "OnePlus Australia publishes the 15R product page, confirming Australian product context."
+        }
+      ],
+      "regional_caution": "Official product/model mapping and Australian sales context are verified separately; reconfirm the exact AU regulatory variant immediately before production write."
+    },
+    {
+      "id": 950,
+      "model_name": "OnePlus Pad 3",
+      "current_model_number": null,
+      "verified_official_model_number": "OPD2415",
+      "release_year": 2025,
+      "storage_options": ["256GB UFS 4.0"],
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "evidence": [
+        {
+          "source": "OnePlus PSTI Statements of Compliance",
+          "url": "https://www.oneplus.com/uk/pstisoc",
+          "finding": "OnePlus lists OnePlus Pad 3 as OPD2415."
+        },
+        {
+          "source": "Bunnings Australia marketplace — OnePlus Pad 3",
+          "url": "https://www.bunnings.com.au/oneplus-pad-3-13-2-inch-12gb-256gb-wifi-tablet-opd2415-blue_p0810446",
+          "finding": "Australian retail listing identifies OnePlus Pad 3 12GB/256GB Wi-Fi as OPD2415."
+        }
+      ],
+      "regional_caution": "Reconfirm active Australian product/variant context immediately before any production model-number normalization."
+    }
+  ],
+  "safety_notes": [
+    "No Supabase write is performed by this evidence file.",
+    "All three rows had zero inventory, pricing and pricing-history references at the evidence snapshot; this does not itself authorize a production write.",
+    "Do not infer country-specific regulatory identity from a global model mapping without region evidence.",
+    "Any future normalization requires explicit human authorization and an immediate active-status, dependency and regional-identity recheck."
+  ]
+}
