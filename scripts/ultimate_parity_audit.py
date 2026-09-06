@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,10 +140,24 @@ for typo in ("Valution", "Consol Pricing", "Macbook", "signout everywhere", "Sel
     if typo in combined:
         errors.append(f"Copy-quality sentinel found: {typo}")
 
+# Nova catalogue evidence is advisory/read-only. Any catalogue evidence package that
+# declares an execution_authorized flag must remain fail-closed until a separate,
+# explicitly approved production mutation is prepared.
+for evidence_path in sorted((ROOT / "nova").glob("catalogue-*.json")):
+    try:
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        errors.append(f"Invalid Nova catalogue evidence JSON {evidence_path.name}: {exc}")
+        continue
+    if "execution_authorized" in evidence and evidence["execution_authorized"] is not False:
+        errors.append(
+            f"Nova catalogue evidence must not authorize production execution: {evidence_path.name}"
+        )
+
 if errors:
     print("ULTIMATE PARITY AUDIT FAILED", file=sys.stderr)
     for e in errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu and Guardian safety contracts are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
