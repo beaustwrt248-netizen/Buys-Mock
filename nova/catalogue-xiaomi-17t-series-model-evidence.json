@@ -1,0 +1,50 @@
+{
+  "task": "catalogue_xiaomi_17t_series_model_number_evidence",
+  "recorded_at": "2026-09-06",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization": true,
+  "pre_execution_recheck_required": true,
+  "verified_rows": [
+    {
+      "device_catalog_id": 893,
+      "brand": "Xiaomi",
+      "catalogue_name": "Xiaomi 17T",
+      "market_region": "Australia",
+      "release_year": 2026,
+      "current_model_number": null,
+      "verified_model_number": "2602DPT53G",
+      "storage_options_snapshot": ["256GB UFS 4.1", "512GB UFS 4.1"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "collision_snapshot": {"active_rows_using_verified_model_number": 0},
+      "evidence": [
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/product/xiaomi-17t/", "supports": "Australian Xiaomi 17T product identity"},
+        {"authority": "Xiaomi Global", "url": "https://www.mi.com/global/product/xiaomi-17t/specs/", "supports": "Xiaomi 17T global hardware and storage identity"},
+        {"authority": "Global Certification Forum", "url": "https://www.globalcertificationforum.org/gcf-certified-products/smartphone-certifications.html?q=Xiaomi", "supports": "Xiaomi Communications model 2602DPT53G marketed as Xiaomi 17T"}
+      ],
+      "confidence": "high"
+    },
+    {
+      "device_catalog_id": 894,
+      "brand": "Xiaomi",
+      "catalogue_name": "Xiaomi 17T Pro",
+      "market_region": "Australia",
+      "release_year": 2026,
+      "current_model_number": null,
+      "verified_model_number": "2602EPTC0G",
+      "storage_options_snapshot": ["256GB UFS 4.1", "512GB UFS 4.1"],
+      "dependency_snapshot": {"inventory_refs": 0, "pricing_refs": 0, "pricing_history_refs": 0},
+      "collision_snapshot": {"active_rows_using_verified_model_number": 0},
+      "evidence": [
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/product/xiaomi-17t-pro/", "supports": "Australian Xiaomi 17T Pro product identity"},
+        {"authority": "Xiaomi Australia", "url": "https://www.mi.com/au/event/xiaomi-17t-series/", "supports": "Australian 17T series launch and storage variants"},
+        {"authority": "Global Certification Forum", "url": "https://www.globalcertificationforum.org/gcf-certified-products/smartphone-certifications.html?q=Xiaomi", "supports": "Xiaomi Communications model 2602EPTC0G marketed as Xiaomi 17T Pro"}
+      ],
+      "confidence": "high"
+    }
+  ],
+  "safety_notes": [
+    "Evidence only; no production catalogue write is authorized.",
+    "Recheck active status, dependencies, collisions, and Australian regional identity immediately before any future normalization.",
+    "Abort rather than infer a non-G regional variant for Australia."
+  ]
+}
