@@ -2,19 +2,6 @@ plugins {
     id 'com.android.application'
 }
 
-def generatedNovaIconResDir = file("$buildDir/generated/novaIcon/res")
-def generatedNovaIconFile = file("$buildDir/generated/novaIcon/res/drawable-nodpi/nova_official_app_icon.png")
-def encodedNovaIconFile = file('src/main/nova_app_icon.b64')
-
-tasks.register('generateNovaAppIcon') {
-    inputs.file(encodedNovaIconFile)
-    outputs.file(generatedNovaIconFile)
-    doLast {
-        generatedNovaIconFile.parentFile.mkdirs()
-        generatedNovaIconFile.bytes = Base64.decoder.decode(encodedNovaIconFile.text.replaceAll('\\s', ''))
-    }
-}
-
 android {
     namespace 'com.buysloans.nova'
     compileSdk 36
@@ -23,8 +10,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 7
-        versionName '0.3.3'
+        versionCode 8
+        versionName '0.3.4'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
@@ -59,22 +46,12 @@ android {
         }
     }
 
-    sourceSets {
-        main {
-            res.srcDir generatedNovaIconResDir
-        }
-    }
-
     buildFeatures { buildConfig true }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-}
-
-tasks.matching { it.name == 'preDebugBuild' || it.name == 'preReleaseBuild' }.configureEach {
-    dependsOn tasks.named('generateNovaAppIcon')
 }
 
 dependencies {

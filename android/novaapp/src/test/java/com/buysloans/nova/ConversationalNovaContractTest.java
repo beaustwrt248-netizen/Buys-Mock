@@ -36,9 +36,30 @@ public class ConversationalNovaContractTest {
     @Test public void conversationPreservesProtectedBoundariesAndIsSessionOnly() throws Exception {
         String activity = source("MainActivity.java");
         String engine = source("NovaAssistantEngine.java");
-        assertTrue(activity.contains("Conversation context stays in this app session only"));
+        assertTrue(activity.contains("Short follow-ups keep the current topic for this session"));
         assertTrue(engine.contains("protected actions remain human-approved"));
+        assertTrue(engine.contains("void resetContext()"));
         assertFalse(activity.contains("SharedPreferences"));
         assertFalse(activity.contains("FileOutputStream"));
+    }
+
+    @Test public void nativeWorkspaceWiresEveryPrimaryControl() throws Exception {
+        String activity = source("MainActivity.java");
+        assertTrue(activity.contains("attention.setOnClickListener(v->runAttention(attention))"));
+        assertTrue(activity.contains("send.setOnClickListener(v->sendQuestion(ask,send))"));
+        assertTrue(activity.contains("clear.setOnClickListener"));
+        assertTrue(activity.contains("releases.setOnClickListener"));
+        assertTrue(activity.contains("logout.setOnClickListener"));
+        assertTrue(activity.contains("updateButton.setOnClickListener"));
+        assertTrue(activity.contains("a.setOnClickListener(v->runSummary(li,a))"));
+        assertTrue(activity.contains("b.setOnClickListener(v->runSummary(ri,b))"));
+    }
+
+    @Test public void loginAndAsyncActionsHaveUsableStateGating() throws Exception {
+        String activity = source("MainActivity.java");
+        assertTrue(activity.contains("captchaReady[0]&&email.getText().toString().trim().contains(\"@\")&&!password.getText().toString().isBlank()"));
+        assertTrue(activity.contains("setWorking(trigger,true"));
+        assertTrue(activity.contains("setWorking(send,true"));
+        assertFalse(activity.contains("status.setText(ex.getMessage())"));
     }
 }

@@ -2,9 +2,13 @@ package com.buysloans.nova;
 
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class IntentRouterTest {
     @Test public void routesCoreMorleyDomains() {
+        assertEquals(IntentRouter.Intent.ATTENTION, IntentRouter.classify("What needs my attention?"));
+        assertEquals(IntentRouter.Intent.ATTENTION, IntentRouter.classify("Anything urgent right now?"));
         assertEquals(IntentRouter.Intent.GUARDIAN, IntentRouter.classify("What needs Guardian approval?"));
         assertEquals(IntentRouter.Intent.SUPPORT, IntentRouter.classify("How is the support queue?"));
         assertEquals(IntentRouter.Intent.INVENTORY, IntentRouter.classify("Show inventory health"));
@@ -14,6 +18,14 @@ public class IntentRouterTest {
         assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("Which records are missing model numbers?"));
         assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("What is Nova learning from outcomes?"));
         assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("How is valuation forecast error?"));
+    }
+
+    @Test public void recognisesShortContextualFollowUps() {
+        assertTrue(IntentRouter.isFollowUp("why?"));
+        assertTrue(IntentRouter.isFollowUp("tell me more"));
+        assertTrue(IntentRouter.isFollowUp("what about that?"));
+        assertTrue(IntentRouter.isFollowUp("and which one is worst?"));
+        assertFalse(IntentRouter.isFollowUp("write me a detailed unrelated report about the moon and its geology"));
     }
 
     @Test public void protectedQuestionRoutesToGuardianRatherThanPretendingToAct() {

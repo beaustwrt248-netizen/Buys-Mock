@@ -18,15 +18,21 @@ final class NovaAssistantEngine {
         IntentRouter.Intent intent = IntentRouter.classify(q);
         if (intent == IntentRouter.Intent.GREETING) return "Hi — I’m Nova AI. I’m connected to Morley’s live authorised data, knowledge and verified learning sources.";
         if (intent == IntentRouter.Intent.CAPABILITIES) return "I can reason across live sales, profit, inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I keep protected approvals, repairs, pricing decisions and releases behind their existing human boundaries.";
-        if (intent == IntentRouter.Intent.UNKNOWN && isFollowUp(q) && lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
+        if (intent == IntentRouter.Intent.UNKNOWN && IntentRouter.isFollowUp(q) && lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
+        if (intent == IntentRouter.Intent.ATTENTION) {
+            lastIntent = intent;
+            return attention();
+        }
         if (intent != IntentRouter.Intent.UNKNOWN) {
             lastIntent = intent;
             return summarise(intent);
         }
         String knowledge = knowledgeAnswer(q);
         if (knowledge != null) return knowledge;
-        return "I couldn’t match that to a live Morley domain or a stored Nova knowledge item. Try asking about sales, profit, inventory, catalogue gaps, Guardian, support, releases, learning, or a specific Morley process.";
+        return "I couldn’t match that to a live Morley domain or a stored Nova knowledge item. Try asking what needs attention, or ask about sales, profit, inventory, catalogue gaps, Guardian, support, releases, learning, or a specific Morley process.";
     }
+
+    void resetContext() { lastIntent = IntentRouter.Intent.UNKNOWN; }
 
     String attention() throws Exception {
         JSONArray incidents = api.guardian(), support = api.support(), catalogue = api.catalogue();
@@ -107,11 +113,6 @@ final class NovaAssistantEngine {
         }
         out.append("\n\nThis answer is grounded in stored Morley/Nova knowledge, not a protected action.");
         return out.toString();
-    }
-
-    private static boolean isFollowUp(String q){
-        String x=q.toLowerCase(Locale.ROOT);
-        return x.length()<80&&(x.startsWith("what about")||x.startsWith("and ")||x.startsWith("how about")||x.startsWith("what else")||x.startsWith("why")||x.startsWith("which"));
     }
 
     private static String releaseName(Object value) {
