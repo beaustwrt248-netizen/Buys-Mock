@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-09-06T11:12:00+08:00",
+  "execution_authorized": false,
+  "requires_explicit_human_authorization_for_production_write": true,
+  "scope": "read_only_shared_family_code_evidence",
+  "records": [
+    {
+      "device_catalog_id": 788,
+      "model_name": "ROG Strix SCAR 18 (2025)",
+      "model_number": "G835",
+      "release_year": 2025,
+      "market_region": "Australia",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "manufacturer_variants": ["G835LW-SA089W", "G835LX-SA100W"],
+      "processor_family": "Intel Core Ultra 9 275HX"
+    },
+    {
+      "device_catalog_id": 886,
+      "model_name": "ROG Strix SCAR 18 (2026)",
+      "model_number": "G835",
+      "release_year": 2026,
+      "market_region": "Australia",
+      "dependency_refs": {"inventory": 0, "pricing": 0, "pricing_history": 0},
+      "manufacturer_variants": ["G835LWG-SA326W", "G835LXG-TQ468W"],
+      "processor_family": "Intel Core Ultra 9 290HX Plus"
+    }
+  ],
+  "manufacturer_sources": [
+    {
+      "name": "ROG Australia 2025 specifications",
+      "url": "https://rog.asus.com/au/laptops/rog-strix/rog-strix-scar-18-2025/spec/",
+      "finding": "ASUS identifies the 2025 ROG Strix SCAR 18 as G835 and lists Australian configurations including G835LW-SA089W and G835LX-SA100W with Core Ultra 9 275HX."
+    },
+    {
+      "name": "ROG Australia 2026 specifications",
+      "url": "https://rog.asus.com/au/laptops/rog-strix/rog-strix-scar-18-2026/spec/",
+      "finding": "ASUS identifies the 2026 ROG Strix SCAR 18 as G835 and lists Australian configurations including G835LWG-SA326W and G835LXG-TQ468W with Core Ultra 9 290HX Plus."
+    }
+  ],
+  "assessment": "distinct_yearly_hardware_sharing_family_code",
+  "safety_notes": [
+    "The shared G835 value is a family/chassis identifier reused across distinct 2025 and 2026 hardware generations.",
+    "Do not deduplicate these rows solely because brand and model_number match.",
+    "Release year and exact manufacturer configuration identifiers are material identity fields for this ASUS family.",
+    "No live catalogue row is changed by this evidence package.",
+    "Any future normalization requires explicit human authorization and a fresh exact-configuration/dependency recheck."
+  ]
+}
