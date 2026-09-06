@@ -79,7 +79,11 @@ final class NovaApiClient {
     JSONArray guardian() throws Exception { return get("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc&limit=250"); }
     JSONArray guardianRepairs() throws Exception { return get("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc&limit=250"); }
     JSONArray support() throws Exception { return get("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,updated_at&order=updated_at.desc&limit=200"); }
-    JSONArray catalogue() throws Exception { return get("/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,active,updated_at&active=eq.true&order=release_year.desc.nullslast&limit=1000"); }
+    JSONArray catalogue() throws Exception {
+        return getAllPages(
+                "/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,active,updated_at&active=eq.true&order=id.asc",
+                1000);
+    }
     JSONArray releaseConfig() throws Exception { return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)"); }
 
     JSONObject knowledgeSearch(String query) throws Exception {
@@ -97,6 +101,19 @@ final class NovaApiClient {
     private JSONArray get(String path) throws Exception {
         if (session == null) throw new SecurityException("Sign in to Nova first.");
         return getWith(session, path);
+    }
+
+    private JSONArray getAllPages(String path, int pageSize) throws Exception {
+        if (session == null) throw new SecurityException("Sign in to Nova first.");
+        JSONArray all = new JSONArray();
+        int offset = 0;
+        while (true) {
+            JSONArray page = getWith(session, path + (path.contains("?") ? "&" : "?")
+                    + "limit=" + pageSize + "&offset=" + offset);
+            for (int i = 0; i < page.length(); i++) all.put(page.get(i));
+            if (page.length() < pageSize) return all;
+            offset += page.length();
+        }
     }
 
     private JSONArray getWith(Session useSession, String path) throws Exception {
@@ -120,8 +137,10 @@ final class NovaApiClient {
         connection.setRequestMethod(method);
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(15000);
+        connection.setUseCaches(false);
         connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY);
         connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Cache-Control", "no-cache, no-store");
         if (bearer != null && !bearer.isBlank()) connection.setRequestProperty("Authorization", "Bearer " + bearer);
         if (body != null) {
             connection.setDoOutput(true);
