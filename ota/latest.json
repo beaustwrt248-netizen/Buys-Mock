@@ -1,7 +1,7 @@
 {
-  "versionCode": 114,
-  "versionName": "2.15.70",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.70/B-and-L-Morley-2.15.70.apk",
-  "sha256": "3e1c89d6f891002b3b758874b6ac262f55f00ebe40ca4b79384afd5fc8b34ad3",
-  "notes": "Fix Nova icon resource blocking Morley release (#942)"
+  "versionCode": 115,
+  "versionName": "2.15.71",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.71/B-and-L-Morley-2.15.71.apk",
+  "sha256": "9899f84a2a67a8f56f5578dd2655dd35c9d7bde626deba08e2c1288b4d678296",
+  "notes": "Prepare Morley 2.15.71 launcher fix release"
 }
