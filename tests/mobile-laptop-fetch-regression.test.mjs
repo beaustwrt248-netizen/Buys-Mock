@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+// Regression contract for the 2026-09-07 buyshub.me mobile laptop failure.
 const edge = fs.readFileSync('supabase/functions/ebay-search/index.ts', 'utf8');
 const repair = fs.readFileSync('laptop-mobile-repair.js', 'utf8');
 const index = fs.readFileSync('index.html', 'utf8');
