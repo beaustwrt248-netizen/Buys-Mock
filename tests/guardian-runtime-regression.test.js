@@ -76,4 +76,6 @@ test('Nova approved dashboard derives live status from real evidence instead of 
   assert.doesNotMatch(source,/style=\"width:(?:78|63|86|58|91|96)%\"/);
   assert.doesNotMatch(source,/<em>ONLINE<\/em>/);
   assert.doesNotMatch(source,/<em>ACTIVE<\/em>/);
+  assert.doesNotMatch(source,/\['metricPrs','metricAttention'/);
+  assert.doesNotMatch(source,/attention=number\('metricAttention'\)/);
 });
