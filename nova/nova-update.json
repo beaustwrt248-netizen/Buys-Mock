@@ -1,8 +1,8 @@
 {
-  "versionCode": 24,
-  "versionName": "0.3.20",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.20/Nova-AI-0.3.20.apk",
-  "sha256": "023c516f3d58a8d82ca95dc1b3476876021e83996aa1b94d42a7165bcaa48295",
+  "versionCode": 25,
+  "versionName": "0.3.21",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.21/Nova-AI-0.3.21.apk",
+  "sha256": "52b4c23a82fa49e66b3301d5b57c0d6c8766ba7361e26a5779943323ee413593",
   "mandatory": false,
-  "notes": "Nova AI 0.3.20 brings the native Android Control Center into visual parity with the approved purple/black Nova design while preserving authenticated live actions, Guardian protection and human approval boundaries."
+  "notes": "Nova AI 0.3.21 removes fabricated live progress and service-health claims from the native Control Center, replacing them with evidence-backed checks and locally verifiable availability while preserving Guardian protection and human approval boundaries."
 }
