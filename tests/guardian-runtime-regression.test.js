@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const cp=require('node:child_process');
 
 const read=path=>fs.readFileSync(path,'utf8');
 const staleCommit=['013aa357','7f8c714297eda86bfd2c1d49b3667eb1'].join('');
@@ -50,4 +51,9 @@ test('Guardian canonicalises volatile runtime fingerprints and suppresses same-b
   assert.match(migration,/Superseded by the canonical Guardian incident/);
   assert.match(migration,/grant execute on function public\.guardian_report_diagnostic[^;]+to authenticated;/s);
   assert.match(migration,/if auth\.uid\(\) is null then raise exception 'Authentication required'; end if;/);
+});
+
+test('real browser smoke renders Nova and Admin static shells without root overflow', {timeout:60000},()=>{
+  const result=cp.spawnSync(process.execPath,['tests/browser-responsive-smoke.js'],{cwd:process.cwd(),encoding:'utf8',timeout:55000,env:process.env});
+  assert.equal(result.status,0,`Browser responsive smoke failed\nSTDOUT:\n${result.stdout||''}\nSTDERR:\n${result.stderr||''}`);
 });
