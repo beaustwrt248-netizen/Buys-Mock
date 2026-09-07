@@ -2,6 +2,7 @@ package com.buysloans.nova;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.hardware.biometrics.BiometricManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -21,13 +22,16 @@ final class NovaCredentialStore {
     private static final String IV = "refresh_iv";
     private static final String EMAIL = "email";
 
+    private final Context context;
     private final SharedPreferences prefs;
 
     NovaCredentialStore(Context context) {
-        prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.context = context.getApplicationContext();
+        prefs = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     boolean hasRememberedSession() {
+        if (!biometricsAvailable()) return false;
         return prefs.contains(TOKEN) && prefs.contains(IV);
     }
 
@@ -36,6 +40,10 @@ final class NovaCredentialStore {
     }
 
     void save(NovaApiClient.Session session) throws Exception {
+        if (!biometricsAvailable()) {
+            clear();
+            throw new SecurityException("Remembered Nova sessions require enrolled device biometrics.");
+        }
         if (session == null || session.refreshToken == null || session.refreshToken.isBlank()) {
             throw new IllegalArgumentException("Nova session does not contain a refresh token.");
         }
@@ -50,6 +58,10 @@ final class NovaCredentialStore {
     }
 
     String refreshToken() throws Exception {
+        if (!biometricsAvailable()) {
+            clear();
+            throw new SecurityException("Biometric unlock is required for a remembered Nova session.");
+        }
         String encrypted = prefs.getString(TOKEN, "");
         String iv = prefs.getString(IV, "");
         if (encrypted.isBlank() || iv.isBlank()) return "";
@@ -62,6 +74,15 @@ final class NovaCredentialStore {
 
     void clear() {
         prefs.edit().clear().apply();
+    }
+
+    private boolean biometricsAvailable() {
+        try {
+            BiometricManager manager = context.getSystemService(BiometricManager.class);
+            return manager != null && manager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     private SecretKey key() throws Exception {

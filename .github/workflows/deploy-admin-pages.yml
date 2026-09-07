@@ -243,7 +243,7 @@ jobs:
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/admin-styles.css"
           fetch_until_contains "$BASE/nova/" "$RUNNER_TEMP/nova-index.html" 'Nova AI Control Centre'
           fetch_until_contains "$BASE/nova/app.js" "$RUNNER_TEMP/nova-app.js" "const SESSION_KEY='nova.morley.session.v1'"
-          fetch_until_contains "$BASE/nova/app.js" "$RUNNER_TEMP/nova-app.js" "script.src='app-core.js?v=3'"
+          fetch_until_contains "$BASE/nova/app.js" "$RUNNER_TEMP/nova-app.js" "script.src='app-core.js?v=4'"
           fetch_until_contains "$BASE/nova/app-core.js" "$RUNNER_TEMP/nova-app-core.js" "const REPO='beaustwrt248-netizen/Buys-Mock'"
           node --check "$RUNNER_TEMP/nova-app.js"
           node --check "$RUNNER_TEMP/nova-app-core.js"
