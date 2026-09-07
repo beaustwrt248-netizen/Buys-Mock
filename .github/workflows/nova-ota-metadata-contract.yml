@@ -1,0 +1,86 @@
+name: Nova OTA Metadata Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'nova/nova-update.json'
+      - '.github/workflows/nova-ota-metadata-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'nova/nova-update.json'
+      - '.github/workflows/nova-ota-metadata-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-nova-ota-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Validate source and OTA identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          gradle = Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
+          metadata = json.loads(Path('nova/nova-update.json').read_text(encoding='utf-8'))
+          code = re.search(r'\bversionCode\s+(\d+)', gradle)
+          name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+          if not code or not name:
+              raise SystemExit('Invalid Nova source release identity')
+
+          source_code = int(code.group(1))
+          source_name = name.group(1).strip()
+          published_code = int(metadata.get('versionCode', -1))
+          published_name = str(metadata.get('versionName', '')).strip()
+          digest = str(metadata.get('sha256', '')).strip().lower()
+          apk_url = str(metadata.get('apkUrl', '')).strip()
+
+          if source_code != published_code or source_name != published_name:
+              raise SystemExit(
+                  f'OTA promotion must match Nova source exactly: source {source_name}/{source_code}, '
+                  f'manifest {published_name}/{published_code}'
+              )
+          if not re.fullmatch(r'[0-9a-f]{64}', digest):
+              raise SystemExit('Nova OTA sha256 must be exactly 64 lowercase hexadecimal characters')
+          if not isinstance(metadata.get('mandatory'), bool):
+              raise SystemExit('Nova OTA mandatory must be a boolean')
+
+          release_file = f'Nova-AI-{source_name}.apk'
+          release_tag = f'nova-v{source_name}'
+          expected_url = (
+              f'https://github.com/{os.environ["GITHUB_REPOSITORY"]}/releases/download/'
+              f'{release_tag}/{release_file}'
+          )
+          if apk_url != expected_url:
+              raise SystemExit(f'Nova OTA apkUrl must exactly match verified release URL {expected_url}')
+
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
+              fh.write(f'NOVA_RELEASE_TAG={release_tag}\n')
+              fh.write(f'NOVA_RELEASE_FILE={release_file}\n')
+              fh.write(f'NOVA_EXPECTED_SHA256={digest}\n')
+          PY
+      - name: Verify published GitHub release asset digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${NOVA_RELEASE_TAG}")"
+          ASSET_DIGEST="$(printf '%s' "$RELEASE_JSON" | jq -r --arg name "$NOVA_RELEASE_FILE" '.assets[] | select(.name == $name) | .digest' | head -n 1)"
+          ASSET_SIZE="$(printf '%s' "$RELEASE_JSON" | jq -r --arg name "$NOVA_RELEASE_FILE" '.assets[] | select(.name == $name) | .size' | head -n 1)"
+          test "$ASSET_DIGEST" = "sha256:${NOVA_EXPECTED_SHA256}"
+          test "$ASSET_SIZE" -gt 0
+          echo "Nova OTA metadata matches the published release asset and SHA-256."
