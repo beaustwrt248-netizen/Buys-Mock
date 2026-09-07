@@ -23,7 +23,7 @@ const DOMAINS=[
   ['parity','Web ↔ APK'],['support','Support'],['performance','Performance'],['nova','Nova supervision'],['backup','Backups']
 ];
 function text(x){return [x?.source,x?.classification,x?.diagnosis_summary,x?.proposed_action,x?.reproduction_summary,x?.resolution_summary,x?.last_error_code].filter(Boolean).join(' ')}
-function isClosed(s){return ['resolved','ignored'].includes(String(s||'').toLowerCase())}
+function isClosed(s){return ['resolved','ignored','cancelled'].includes(String(s||'').toLowerCase())}
 function severity(r){return ({critical:4,high:3,medium:2,low:1}[String(r||'').toLowerCase()]||0)}
 function signature(i){return `${String(i?.classification||i?.source||'unknown').toLowerCase()}|${String(i?.last_error_code||i?.diagnosis_summary||'').toLowerCase().replace(/\b[0-9a-f]{8,}\b/g,'#').replace(/\d+/g,'#').slice(0,180)}`}
 function groupIncidents(rows){const map=new Map();for(const i of rows||[]){const key=signature(i);const g=map.get(key)||{signature:key,count:0,occurrences:0,incidents:[],maxRisk:'unknown',latest:null};g.count++;g.occurrences+=Number(i.occurrence_count||1);g.incidents.push(i);if(severity(i.risk_level)>severity(g.maxRisk))g.maxRisk=i.risk_level;if(!g.latest||new Date(i.updated_at||i.created_at)>new Date(g.latest.updated_at||g.latest.created_at))g.latest=i;map.set(key,g)}return [...map.values()].sort((a,b)=>severity(b.maxRisk)-severity(a.maxRisk)||b.occurrences-a.occurrences)}
