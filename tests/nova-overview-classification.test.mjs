@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const source = fs.readFileSync('nova/app.js', 'utf8');
+const source = fs.readFileSync('nova/app-core.js', 'utf8');
 
 assert.match(source, /function riskFor\(pr\)[\s\S]*?high\[- \]risk/, 'overview risk classifier must recognise explicit high-risk wording');
 assert.match(source, /risk\\s\*\[:=-\][\s\S]*?high/, 'overview risk classifier must recognise Risk: High declarations');
