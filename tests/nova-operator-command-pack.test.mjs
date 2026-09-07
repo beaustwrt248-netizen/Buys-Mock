@@ -77,10 +77,13 @@ test('operator commands stay safe and chainable metadata is explicit',()=>{
   }
 });
 
-test('discovery loads operator commands before command chains',()=>{
+test('discovery loads operator commands before command chains and refreshes live counts',()=>{
   const discovery=fs.readFileSync('nova/command-discovery.js','utf8');
   assert.match(discovery,/operator-command-pack\.js\?v=1/);
   assert.match(discovery,/data-nova-operator-commands/);
+  assert.match(discovery,/data-nova-command-stats/);
+  assert.match(discovery,/nova:operator-commands-ready/);
+  assert.match(discovery,/window\.NovaCommands\.stats/);
   const operatorAt=discovery.indexOf('loadOperatorCommands();');
   const chainLoader=discovery.indexOf("script.src='command-chains.js?v=1'");
   assert.ok(operatorAt>=0&&chainLoader>=0);
