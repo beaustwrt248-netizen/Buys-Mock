@@ -42,9 +42,18 @@ public final class NovaResilienceContractTest {
     }
 
     @Test
-    public void resilienceReleaseIdentityAdvancesExactlyOneVersion() throws Exception {
+    public void optionalStartupHelpersCannotCrashMainActivity() throws Exception {
+        String initializer = read("src/main/java/com/buysloans/nova/NovaOperatorInitializer.java");
+        assertTrue(initializer.contains("Operator extras must never prevent Nova itself from launching."));
+        assertTrue(initializer.contains("Lifecycle helpers fail open so MainActivity can still render."));
+        assertTrue(initializer.contains("A stale or malformed pending installer must never crash startup."));
+        assertTrue(initializer.contains("activity.isFinishing() || activity.isDestroyed()"));
+    }
+
+    @Test
+    public void startupCrashHotfixAdvancesExactlyOneVersion() throws Exception {
         String gradle = read("build.gradle");
-        assertTrue(gradle.contains("versionCode 22"));
-        assertTrue(gradle.contains("versionName '0.3.18'"));
+        assertTrue(gradle.contains("versionCode 23"));
+        assertTrue(gradle.contains("versionName '0.3.19'"));
     }
 }
