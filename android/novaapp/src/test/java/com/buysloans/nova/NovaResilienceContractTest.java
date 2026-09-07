@@ -1,13 +1,17 @@
 package com.buysloans.nova;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.json.JSONObject;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class NovaResilienceContractTest {
     private static String read(String path) throws Exception {
@@ -51,9 +55,23 @@ public final class NovaResilienceContractTest {
     }
 
     @Test
-    public void startupCrashHotfixAdvancesExactlyOneVersion() throws Exception {
+    public void releaseIdentityAdvancesExactlyOneVersionBeyondPublishedOta() throws Exception {
         String gradle = read("build.gradle");
-        assertTrue(gradle.contains("versionCode 23"));
-        assertTrue(gradle.contains("versionName '0.3.19'"));
+        JSONObject published = new JSONObject(read("../../nova/nova-update.json"));
+
+        Matcher code = Pattern.compile("\\bversionCode\\s+(\\d+)").matcher(gradle);
+        Matcher name = Pattern.compile("\\bversionName\\s+['\"]([^'\"]+)['\"]").matcher(gradle);
+        assertTrue("Nova build.gradle must declare versionCode", code.find());
+        assertTrue("Nova build.gradle must declare versionName", name.find());
+
+        int currentCode = Integer.parseInt(code.group(1));
+        String currentName = name.group(1).trim();
+        int publishedCode = published.getInt("versionCode");
+        String publishedName = published.getString("versionName").trim();
+
+        assertEquals("Nova release must advance exactly one versionCode beyond published OTA",
+                publishedCode + 1, currentCode);
+        assertFalse("Nova release versionName must differ from the already-published OTA",
+                currentName.equals(publishedName));
     }
 }

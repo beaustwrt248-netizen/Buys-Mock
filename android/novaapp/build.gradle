@@ -268,8 +268,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 23
-        versionName '0.3.19'
+        versionCode 24
+        versionName '0.3.20'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
