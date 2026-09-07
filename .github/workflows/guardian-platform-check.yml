@@ -1,0 +1,33 @@
+name: Guardian Platform Check
+
+on:
+  pull_request:
+    paths:
+      - 'admin/guardian-*.js'
+      - 'tests/guardian-platform.test.cjs'
+      - '.github/workflows/guardian-platform-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guardian-platform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check admin/guardian-platform.js
+          node --check admin/guardian-live.js
+      - name: Guardian policy regression tests
+        run: node tests/guardian-platform.test.cjs
+      - name: Protected boundary assertions
+        run: |
+          grep -q "Protected boundary detected" admin/guardian-platform.js
+          grep -q "missing telemetry must not be reported healthy" tests/guardian-platform.test.cjs
+          grep -q "final merge remains human-controlled" admin/guardian-repairs.js
