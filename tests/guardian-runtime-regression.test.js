@@ -68,6 +68,10 @@ test('Nova approved dashboard derives live status from real evidence instead of 
   assert.match(source,/guardianState/);
   assert.match(source,/releaseOverall/);
   assert.match(source,/connectionLabel/);
+  assert.match(source,/\['Open Nova PRs','Needs Attention','Main','Command Intelligence'\]/);
+  assert.match(source,/metrics\[3\].*textContent=commandCount/);
+  assert.doesNotMatch(source,/metrics\[[012]\].*textContent=/);
+  assert.doesNotMatch(source,/liveTasks=openPrs\+running/);
   assert.doesNotMatch(source,/Australian retailer scanning/);
   assert.doesNotMatch(source,/style=\"width:(?:78|63|86|58|91|96)%\"/);
   assert.doesNotMatch(source,/<em>ONLINE<\/em>/);
