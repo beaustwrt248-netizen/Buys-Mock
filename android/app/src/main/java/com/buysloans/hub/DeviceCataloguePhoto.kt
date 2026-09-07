@@ -26,6 +26,13 @@ import java.util.concurrent.ConcurrentHashMap
 internal fun normalizeCatalogueIdentity(value: String): String =
     value.lowercase().replace(Regex("[^a-z0-9]+"), "")
 
+internal fun catalogueModelNumberCandidates(modelNumber: String?): List<String> =
+    modelNumber.orEmpty()
+        .split(Regex("\\s*(?:/|;|\\|)\\s*|[\\r\\n]+"))
+        .map(String::trim)
+        .filter { normalizeCatalogueIdentity(it).length >= 4 }
+        .distinctBy(::normalizeCatalogueIdentity)
+
 internal fun cataloguePageTitleMatchesDevice(html: String, model: String, modelNumber: String?): Boolean {
     val titles = buildList {
         Regex("""<title[^>]*>(.*?)</title>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
@@ -40,15 +47,15 @@ internal fun cataloguePageTitleMatchesDevice(html: String, model: String, modelN
     if (titles.isEmpty()) return false
     val titleIdentity = normalizeCatalogueIdentity(titles.joinToString(" "))
     val modelIdentity = normalizeCatalogueIdentity(model)
-    val numberIdentity = modelNumber?.let(::normalizeCatalogueIdentity).orEmpty()
+    val numberIdentities = catalogueModelNumberCandidates(modelNumber).map(::normalizeCatalogueIdentity)
     return (modelIdentity.length >= 4 && titleIdentity.contains(modelIdentity)) ||
-        (numberIdentity.length >= 4 && titleIdentity.contains(numberIdentity))
+        numberIdentities.any(titleIdentity::contains)
 }
 
 internal fun catalogueNearbyImageForExactModel(html: String, model: String, modelNumber: String?): String? {
-    val number = modelNumber?.trim()?.takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
+    val numbers = catalogueModelNumberCandidates(modelNumber)
+    if (numbers.isEmpty()) return null
     val modelText = model.trim().takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
-    val numberRegex = Regex(Regex.escape(number), RegexOption.IGNORE_CASE)
     val modelRegex = Regex(Regex.escape(modelText), RegexOption.IGNORE_CASE)
     val imageTagRegex = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
     val attributeRegexes = listOf(
@@ -62,29 +69,39 @@ internal fun catalogueNearbyImageForExactModel(html: String, model: String, mode
         val candidate = raw.split(',').firstOrNull()?.trim()?.substringBefore(' ')?.trim().orEmpty()
         if (candidate.isBlank() || candidate.startsWith("data:", true)) return null
         val lower = candidate.lowercase()
-        if (listOf("favicon", "logo", "icon", "avatar", "spinner").any(lower::contains)) return null
+        if (listOf("favicon", "logo", "icon", "avatar", "spinner", "placeholder", "loading").any(lower::contains)) return null
         return candidate
     }
 
-    val modelMatches = modelRegex.findAll(html).toList()
-    numberRegex.findAll(html).forEach { numberMatch ->
-        val sectionModel = modelMatches.lastOrNull { modelMatch ->
-            modelMatch.range.first < numberMatch.range.first &&
-                numberMatch.range.first - modelMatch.range.last <= 5_000
-        } ?: return@forEach
+    fun insideImageTag(offset: Int): Boolean {
+        val opening = html.lastIndexOf("<img", offset, ignoreCase = true)
+        if (opening < 0) return false
+        val closing = html.indexOf('>', opening)
+        return closing >= offset
+    }
 
-        val segmentStart = sectionModel.range.first
-        val segmentEnd = numberMatch.range.last + 1
-        val segment = html.substring(segmentStart, segmentEnd)
-        val candidate = imageTagRegex.findAll(segment)
-            .toList()
-            .asReversed()
-            .firstNotNullOfOrNull { image ->
-                attributeRegexes.firstNotNullOfOrNull { regex ->
-                    regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
+    val modelMatches = modelRegex.findAll(html).filterNot { insideImageTag(it.range.first) }.toList()
+    numbers.forEach { number ->
+        val numberRegex = Regex(Regex.escape(number), RegexOption.IGNORE_CASE)
+        numberRegex.findAll(html).forEach { numberMatch ->
+            val sectionModel = modelMatches.lastOrNull { modelMatch ->
+                modelMatch.range.first < numberMatch.range.first &&
+                    numberMatch.range.first - modelMatch.range.last <= 5_000
+            } ?: return@forEach
+
+            val segmentStart = sectionModel.range.first
+            val segmentEnd = numberMatch.range.last + 1
+            val segment = html.substring(segmentStart, segmentEnd)
+            val candidate = imageTagRegex.findAll(segment)
+                .toList()
+                .asReversed()
+                .firstNotNullOfOrNull { image ->
+                    attributeRegexes.firstNotNullOfOrNull { regex ->
+                        regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
+                    }
                 }
-            }
-        if (candidate != null) return candidate
+            if (candidate != null) return candidate
+        }
     }
     return null
 }
@@ -155,7 +172,7 @@ private object DeviceCataloguePhotoLoader {
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
         ).findAll(html)
         val modelIdentity = normalizeCatalogueIdentity(model)
-        val numberIdentity = normalizeCatalogueIdentity(modelNumber.orEmpty())
+        val numberIdentities = catalogueModelNumberCandidates(modelNumber).map(::normalizeCatalogueIdentity)
 
         fun identityMatches(value: JSONObject): Boolean {
             val identity = normalizeCatalogueIdentity(
@@ -163,7 +180,7 @@ private object DeviceCataloguePhotoLoader {
                     .joinToString(" "),
             )
             return (modelIdentity.length >= 4 && identity.contains(modelIdentity)) ||
-                (numberIdentity.length >= 4 && identity.contains(numberIdentity))
+                numberIdentities.any(identity::contains)
         }
 
         fun imageOf(value: JSONObject): String? = when (val image = value.opt("image")) {
