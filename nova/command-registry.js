@@ -1,14 +1,13 @@
 (()=>{'use strict';
 const RISK=Object.freeze({SAFE:'safe',WRITE:'write',SENSITIVE:'sensitive',DESTRUCTIVE:'destructive'});
 const PERMISSION=Object.freeze({ADMIN:'admin'});
-const SECTION_ALIASES={overview:['overview','home','dashboard','main'],attention:['attention','needs attention','alerts','blockers'],development:['development','engineering','dev','pull requests','prs'],guardian:['guardian','guardian status','repairs'],catalogue:['catalogue','catalog','devices','device catalogue'],support:['support','tickets','support tickets'],knowledge:['knowledge','memory','learning'],monitoring:['monitoring','checks','workflows','ci'],releases:['releases','release','deployments','deployment'],recommendations:['recommendations','recommendation','next steps','priorities'],activity:['activity','history','audit','recent activity']};
+const SECTION_ALIASES={overview:['overview','home','dashboard','main'],attention:['attention','needs attention','alerts','blockers'],development:['development','engineering','dev','pull requests','prs'],guardian:['guardian','repairs'],catalogue:['catalogue','catalog','devices','device catalogue'],support:['support','tickets','support tickets'],knowledge:['knowledge','memory','learning'],monitoring:['monitoring','checks','workflows','ci'],releases:['releases','release','deployments','deployment'],recommendations:['recommendations','recommendation','next steps','priorities'],activity:['activity','history','audit','recent activity']};
 const OPEN_VERBS=['open','show','view','go to','take me to','display','switch to','navigate to'];
 const STATUS_VERBS=['show','check','read','summarise','summarize','give me','tell me','report','inspect','review'];
 const REFRESH_VERBS=['refresh','reload','update','sync','recheck','check again','load latest','get latest'];
 const POLITE_PREFIXES=['','nova ','nova please ','please ','can you ','could you ','would you ','i want you to ','i need you to ','please nova ','hey nova '];
 const POLITE_SUFFIXES=['',' please',' now',' for me',' please nova'];
 const normalize=value=>String(value??'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9#._ -]+/g,' ').replace(/\s+/g,' ').trim();
-const escapeRegExp=value=>String(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const text=id=>document.getElementById(id)?.textContent?.trim()||'—';
 function sectionButton(section){return document.querySelector(`[data-section="${CSS.escape(section)}"]`)}
 function openSection(section){const button=sectionButton(section);if(!button)throw new Error(`Nova section ${section} is unavailable.`);button.click();return{message:`Opened ${section.replaceAll('_',' ')}.`}}
@@ -36,7 +35,7 @@ commands.push(command('nova.help','nova','Show Nova command help',['help','comma
 commands.push(command('nova.command.stats','nova','Show command registry statistics',['command stats','command count','how many commands','how many commands do you know','registry stats','nova command stats'],()=>({message:statsText()}),{tags:['help','registry']}));
 commands.push(command('security.boundaries.explain','security','Explain Nova protected authority boundaries',['show safety boundaries','show protected boundaries','what can nova not do','what needs approval','explain guardian approvals','explain nova permissions','security boundaries'],()=>({message:'Nova may perform authorised reads and reversible preparation. Pricing approvals/writes, Guardian decisions/repairs, deployments/releases/OTA, role/user changes, destructive deletes and protected catalogue application remain human-gated or prohibited by the current authority boundary.'}),{tags:['security','guardian']}));
 const PROTECTED=[
- command('release.deploy.production','release','Deploy production', ['deploy production','deploy website','release production','push to production'],null,{risk:RISK.DESTRUCTIVE,guardian:true,tags:['protected','release']}),
+ command('release.deploy.production','release','Deploy production',['deploy production','deploy website','release production','push to production'],null,{risk:RISK.DESTRUCTIVE,guardian:true,tags:['protected','release']}),
  command('guardian.repair.execute','guardian','Execute a Guardian repair',['execute guardian repair','run guardian repair','apply guardian repair','approve guardian repair'],null,{risk:RISK.SENSITIVE,guardian:true,tags:['protected','guardian']}),
  command('pricing.approval.apply','pricing','Apply or approve protected pricing',['approve pricing','apply pricing','change protected pricing','set approved pricing'],null,{risk:RISK.SENSITIVE,guardian:true,tags:['protected','pricing']}),
  command('users.role.change','users','Change a user role',['change user role','make user admin','remove admin role','change permissions'],null,{risk:RISK.SENSITIVE,guardian:true,tags:['protected','users']}),
