@@ -33,5 +33,24 @@ test('maps trusted retail results into legacy google contract', () => {
   assert.equal(out.success, true);
   assert.equal(out.google.items.length, 1);
   assert.equal(out.google.items[0].source, 'jbhifi.com.au');
+  assert.equal(out.google.pricing.typicalNew, 1599);
+  assert.equal(out.google.pricing.competitiveLow, 1599);
   assert.equal(out.sourcePolicy.rejectsReddit, true);
+});
+
+test('computes non-zero used pricing from retained marketplace evidence', () => {
+  const out = toLegacyMarketResponse({
+    success: true,
+    query: '83F500KAAU',
+    ebay: { items: [
+      { title: 'Lenovo 83F500KAAU', price: 800, deliveredPrice: 820, url: 'https://www.ebay.com.au/itm/1' },
+      { title: 'Lenovo 83F500KAAU', price: 900, deliveredPrice: 920, url: 'https://www.ebay.com.au/itm/2' },
+    ] },
+    gumtree: { items: [{ title: 'Lenovo 83F500KAAU', price: 850, url: 'https://www.gumtree.com.au/s-ad/1' }] },
+    facebook: { items: [] },
+    webRetail: { items: [] },
+  }, '83F500KAAU');
+  assert.equal(out.ebay.pricing.typicalUsed, 850);
+  assert.equal(out.ebay.pricing.lowest, 820);
+  assert.equal(out.ebay.pricing.highest, 920);
 });
