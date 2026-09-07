@@ -4,8 +4,8 @@ import fs from 'node:fs';
 const migration=fs.readFileSync('supabase/migrations/20260905021000_admin_lifecycle_operations.sql','utf8');
 const ui=fs.readFileSync('admin/admin-lifecycle-management.js','utf8');
 const css=fs.readFileSync('admin/admin-lifecycle.css','utf8');
-const home=fs.readFileSync('admin/nova-admin-home.js','utf8');
-const nova=fs.readFileSync('admin/nova-lifecycle-ui.js','utf8');
+const home=fs.readFileSync('admin/admin-home.js','utf8');
+const nova=fs.readFileSync('nova/app-core.js','utf8');
 const learning=fs.readFileSync('supabase/functions/nova-learning/index.ts','utf8');
 
 for (const fn of ['admin_inventory_create','admin_inventory_set_status','admin_inventory_record_sale']) {

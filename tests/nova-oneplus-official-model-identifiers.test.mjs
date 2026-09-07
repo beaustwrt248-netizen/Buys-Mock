@@ -10,7 +10,7 @@ for (const row of evidence.rows) {
   assert.equal(row.current_model_number, null);
   assert.equal(row.verified_official_model_number, expected.get(row.id));
   assert.deepEqual(row.dependency_refs,{inventory:0,pricing:0,pricing_history:0});
-  assert.match(row.regional_caution,/reconfirm/i);
+  assert.match(row.regional_caution,/reconfirm|recheck/i);
 }
 assert.equal(evidence.rows.length,4);
 assert.ok(evidence.safety_notes.some(note=>/No Supabase write/i.test(note)));

@@ -20,7 +20,7 @@ for (const label of ['VALUATIONS', 'WATCHLIST', 'OPPORTUNITIES', 'POTENTIAL GROS
 assert.match(webHome, /NFC Scanner · Android only/, 'Web must identify NFC as Android-only rather than emulate it');
 assert.match(baseline, /web-android-home-parity\.css\?v=2/);
 assert.match(baseline, /web-android-home-parity\.js\?v=2/);
-assert.match(index, /mobile-layout-fix\.js\?v=4/, 'Mobile nav parity runtime must be cache-busted');
+assert.match(index, /mobile-layout-fix\.js\?v=202609042/, 'Mobile nav parity runtime must be cache-busted');
 assert.match(index, /quick-deal-grade\.js\?v=3/, 'Quick Deal parity runtime must be cache-busted');
 assert.match(index, /morley-ui-baseline\.js\?v=2/, 'Baseline parity runtime must be cache-busted');
 assert.doesNotMatch(baseline, /web-apk-home-parity/, 'Dead APK parity asset loader must stay removed');

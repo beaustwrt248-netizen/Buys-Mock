@@ -28,7 +28,7 @@ assert(
   'retry attempts must be able to bypass a stale custom-domain/CDN edge object'
 );
 assert(
-  index.includes("BASE_MARKER='Buys and Loans Hub'") && index.includes('h.includes(BASE_MARKER)'),
+  index.includes("BASE_MARKER='Buys and Loans Hub'") && index.includes('html.includes(BASE_MARKER)'),
   'workspace bootstrap must reject a successful HTTP response that is not the expected base document'
 );
 assert(
@@ -64,7 +64,7 @@ for (const contract of [
   ['$BASE/secure-pricing.js', 'localStorage.getItem(STORE)'],
   ['$BASE/product-parity-v3.js', 'Computer Pricing'],
   ['$BASE/ultimate-parity.js', 'Help & FAQ'],
-  ['$BASE/mobile-layout-fix.js', 'home|laptop|general|settings'],
+  ['$BASE/mobile-layout-fix.js', 'parityV5OwnsMobile'],
   ['$BASE/mobile-parity-v3.css', '@media(max-width:760px)'],
   ['$BASE/morley-light-web.css', 'color-scheme:light'],
   ['$BASE/desktop-oem.js', "localStorage.getItem('morley_web_auth')"],

@@ -2,27 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const html=fs.readFileSync('admin/index.html','utf8');
-const js=fs.readFileSync('admin/nova-admin-home.js','utf8');
-const css=fs.readFileSync('admin/nova-admin-home.css','utf8');
+const admin=fs.readFileSync('admin/index.html','utf8');
+const html=fs.readFileSync('nova/index.html','utf8');
+const js=fs.readFileSync('nova/app.js','utf8');
+const css=fs.readFileSync('nova/styles.css','utf8');
 
-test('Admin home loads Nova-first dashboard layer',()=>{
-  assert.match(html,/nova-admin-home\.js/);
-  assert.match(js,/Your AI Command Partner/);
-  assert.match(js,/Chat with Nova/);
-  assert.match(js,/href='morley-ai\.html'/);
-  assert.match(js,/admin-nova-direct/);
+test('Nova is a standalone protected control centre, not an Admin DOM enhancer',()=>{
+  assert.match(html,/Standalone intelligence & development control centre/);
+  assert.match(html,/app\.js\?v=2/);
+  assert.doesNotMatch(admin,/nova-admin-home|morley-ai\.html/);
+  assert.equal(fs.existsSync('admin/nova-admin-home.js'),false);
 });
 
-test('Nova-first home preserves protected control ownership',()=>{
+test('standalone Nova preserves protected control ownership',()=>{
   assert.doesNotMatch(js,/service_role|SUPABASE_SERVICE_ROLE_KEY|\.update\(|\.delete\(|\.insert\(/i);
-  assert.match(js,/tab:'pricing'/);
-  assert.match(js,/clickTab\('controls'\)/);
+  assert.match(html,/Pricing approvals[\s\S]*Remain protected/);
+  assert.match(html,/Release authority[\s\S]*Human gated/);
 });
 
-test('mobile dashboard keeps the requested six primary destinations',()=>{
-  assert.match(css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important/);
-  assert.match(css,/\[data-tab="release"\]\{display:none!important\}/);
-  assert.match(css,/\.admin-nova-direct\{display:flex!important/);
-  assert.match(css,/\.nova-quick-grid/);
+test('standalone Nova navigation remains usable on desktop and mobile',()=>{
+  assert.match(html,/aria-label="Nova sections"/);
+  assert.match(css,/@media\(max-width:560px\)/);
+  assert.match(css,/\.nav\{[^}]*overflow:auto/);
 });

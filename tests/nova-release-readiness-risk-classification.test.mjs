@@ -7,7 +7,7 @@ assert.match(source, /function isHighRiskNovaPr\(pr\)/, 'release readiness must 
 assert.match(source, /if\(!ref\.startsWith\('nova\/'\)\)return false/, 'only Nova branches belong in Nova governance readiness');
 assert.match(source, /\\bhigh\[- \]risk\\b/, 'explicit high-risk wording must be recognised');
 assert.match(source, /\\brisk\\s\*\[:=-\]/, 'explicit Risk: High declarations must be recognised');
-assert.match(source, /#{1,6}\\s\*risk/, 'markdown Risk headings followed by High must be recognised');
+assert.match(source, /#\{1,6\}\\s\*risk/, 'markdown Risk headings followed by High must be recognised');
 assert.match(source, /\.filter\(isHighRiskNovaPr\)/, 'open PR readiness must use the explicit risk classifier');
 
 assert.doesNotMatch(

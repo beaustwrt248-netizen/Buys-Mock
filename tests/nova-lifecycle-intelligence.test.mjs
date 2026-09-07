@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const migration=fs.readFileSync('supabase/migrations/20260905012000_inventory_sales_lifecycle.sql','utf8');
-const lifecycle=fs.readFileSync('admin/nova-lifecycle-ui.js','utf8');
-const bootstrap=fs.readFileSync('admin/nova-auth-bootstrap.js','utf8');
+const core=fs.readFileSync('nova/app-core.js','utf8');
 const learning=fs.readFileSync('supabase/functions/nova-learning/index.ts','utf8');
 
 assert.match(migration,/create table if not exists public\.inventory_items/i);
@@ -14,13 +13,10 @@ assert.match(migration,/private\.is_admin_or_manager\(\)/i);
 assert.match(migration,/realised_profit numeric generated always/i);
 assert.doesNotMatch(migration,/grant all/i);
 
-assert.match(lifecycle,/id:'inventory\.summary'/);
-assert.match(lifecycle,/id:'sales\.summary'/);
-assert.match(lifecycle,/id:'lifecycle\.summary'/);
-assert.match(lifecycle,/risk:ai\.RISK\.READ/g);
-assert.doesNotMatch(lifecycle,/\.insert\(|\.update\(|\.delete\(/);
-assert.match(bootstrap,/nova-lifecycle-ui\.js\?v=1/);
-assert.match(bootstrap,/nova-knowledge-ui\.js\?v=1/);
+assert.match(core,/loadMemory\(\)/);
+assert.match(core,/learning_experiences/);
+assert.match(core,/non-authoritative learned experiences/);
+assert.doesNotMatch(core,/admin_inventory_create|admin_inventory_set_status|admin_inventory_record_sale/);
 
 assert.match(learning,/from\('inventory_items'\)/);
 assert.match(learning,/from\('sales_records'\)/);
