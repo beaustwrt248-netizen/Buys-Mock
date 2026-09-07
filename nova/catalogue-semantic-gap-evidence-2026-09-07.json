@@ -1,0 +1,86 @@
+{
+  "checked_at": "2026-09-07",
+  "policy": {
+    "manufacturer_first": true,
+    "marketing_year_is_not_release_year": true,
+    "no_inferred_variant_values": true,
+    "automatic_catalogue_apply": false
+  },
+  "verified_cases": [
+    {
+      "device_catalog_id": 1371,
+      "device": "GPD WIN 4 (2025)",
+      "field": "release_year",
+      "current_value": 2024,
+      "result": "verified_current_value",
+      "confidence": 1.0,
+      "evidence": "GPD official tech specs identify the product as WIN 4 (2025) but explicitly state Launch Date 12 / 2024.",
+      "source": "https://www.gpd.hk/gpdwin42025techspecs",
+      "recommended_action": "Do not change release_year. Treat the 2025 text as a model/revision label, not launch-year evidence."
+    },
+    {
+      "device_catalog_id": 1373,
+      "device": "GPD WIN Max 2 (2025)",
+      "field": "release_year",
+      "current_value": 2024,
+      "result": "verified_current_value",
+      "confidence": 1.0,
+      "evidence": "GPD official tech specs identify the product as WIN Max 2 (2025) and explicitly state Launch Date 12 / 2024.",
+      "source": "https://www.gpd.hk/gpdwinmax22025techspecs",
+      "recommended_action": "Do not change release_year. Preserve exact manufacturer launch-date evidence over the marketing-year label."
+    },
+    {
+      "device_catalog_id": 1492,
+      "device": "moto g47",
+      "model_number": "XT2625-2",
+      "field": "storage_options",
+      "current_value": [],
+      "result": "discrepancy",
+      "confidence": 1.0,
+      "observed_value": ["128GB UFS 2.2"],
+      "additional_evidence": "Motorola also documents optional microSD expansion up to 1TB; expansion should not be represented as an internal storage variant.",
+      "source": "https://en-us.support.motorola.com/app/answers/detail/a_id/192548",
+      "secondary_source": "https://help.motorola.com/hc/3747/16/pdf/help-moto-g47-16-global-en-us.pdf",
+      "recommended_action": "Queue an evidence-backed storage finding for human review; do not auto-apply."
+    },
+    {
+      "device_catalog_id": 1593,
+      "device": "ASUS ExpertBook B3 G1 14-inch",
+      "model_number": "B3406CCA",
+      "field": "image_reference_url",
+      "current_value": null,
+      "result": "confirmed_image_gap",
+      "confidence": 1.0,
+      "evidence": "ASUS official support identifies B3406CCA as the 14-inch ExpertBook B3 G1 and exposes official product imagery, but the catalogue image_reference_url is empty.",
+      "source": "https://www.asus.com/laptops/for-work/expertbook/asus-expertbook-b3-g1-14-intel/helpdesk_download?model2Name=B3406CCA",
+      "recommended_action": "Queue image sourcing/review; use an official ASUS-hosted image asset only."
+    },
+    {
+      "device_catalog_id": 1594,
+      "device": "ASUS ExpertBook B3 G1 16-inch",
+      "model_number": "B3606CCA",
+      "field": "image_reference_url",
+      "current_value": null,
+      "result": "confirmed_image_gap",
+      "confidence": 1.0,
+      "evidence": "ASUS official product/support pages identify B3606CCA as the 16-inch ExpertBook B3 G1 and expose official product imagery, but the catalogue image_reference_url is empty.",
+      "source": "https://www.asus.com/laptops/for-work/expertbook/asus-expertbook-b3-g1-16-intel/techspec/",
+      "recommended_action": "Queue image sourcing/review; use an official ASUS-hosted image asset only."
+    }
+  ],
+  "unresolved_cases": [
+    {
+      "device_catalog_id": 1553,
+      "device": "motorola razr 70 plus",
+      "model_number": "XT2659-3",
+      "field": "storage_options",
+      "reason": "Official Motorola material confirms internal storage is used and expandable storage is unsupported, but the checked manufacturer pages did not expose a reliable exact internal capacity for this market/model variant. Do not infer capacity from retailer listings."
+    },
+    {
+      "device_catalog_id": 1538,
+      "device": "nubia Neo 5",
+      "field": "storage_options",
+      "reason": "Official ZTE/nubia launch material confirms the model and rollout but did not provide an exact base-model storage capacity in the checked evidence. Do not inherit Neo 5 GT or Neo 5 Max capacities."
+    }
+  ]
+}
