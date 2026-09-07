@@ -14,3 +14,6 @@ function run(){if(!appReady())return;loadCss();loadLifecycle();enhanceTopbar();e
 function boot(){let scheduled=false;const schedule=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;run()})};let passes=0;const timer=setInterval(()=>{schedule();if(++passes>=20)clearInterval(timer)},500);new MutationObserver(schedule).observe(q('#appView')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});schedule()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
+// Approved Admin Control visual layer. Loaded last so the website and Admin APK share the same shell.
+(()=>{const load=()=>{if(!document.querySelector('#adminControlCentreVisualCss')){const l=document.createElement('link');l.id='adminControlCentreVisualCss';l.rel='stylesheet';l.href='control-centre-visual.css?v=1';document.head.appendChild(l)}if(!document.querySelector('#adminControlCentreVisualJs')){const s=document.createElement('script');s.id='adminControlCentreVisualJs';s.src='control-centre-visual.js?v=1';s.async=false;document.body.appendChild(s)}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
