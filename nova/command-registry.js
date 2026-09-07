@@ -47,7 +47,7 @@ const exact=new Map();const collisions=[];
 for(const cmd of commands){for(const alias of cmd.aliases){for(const phrase of expand(alias)){const existing=exact.get(phrase);if(existing&&existing.id!==cmd.id){collisions.push({phrase,commands:[existing.id,cmd.id]});continue}exact.set(phrase,cmd)}}}
 function resolve(input){const raw=normalize(input);if(!raw)return null;const exactMatch=exact.get(raw);if(exactMatch)return{command:exactMatch,args:{},confidence:1,matched:raw};
  const stripped=raw.replace(/^(?:hey )?nova(?: please)?\s+/,'').replace(/\s+(?:please|for me|now)$/,'').trim();const match=exact.get(stripped);if(match)return{command:match,args:{},confidence:.98,matched:stripped};
- if(/\b(?:dont|do not|never|stop|avoid)\b/.test(stripped))return null;
+ if(/\b(?:not|dont|cant|cannot|wont|never|stop|avoid)\b/.test(stripped))return null;
  let best=null;for(const [phrase,cmd] of exact){if(phrase.length<6)continue;if(stripped===phrase||stripped.startsWith(phrase+' ')||stripped.endsWith(' '+phrase)){const score=phrase.length/Math.max(stripped.length,1);if(!best||score>best.score)best={command:cmd,args:{remainder:stripped.replace(phrase,'').trim()},confidence:Math.min(.95,.72+score*.2),matched:phrase,score}}}return best;
 }
 function guard(resolved){const cmd=resolved?.command;if(!cmd)return{allowed:false,reason:'unknown'};if(cmd.requiresGuardian||cmd.risk!==RISK.SAFE||typeof cmd.handler!=='function')return{allowed:false,reason:'protected',message:`${cmd.description} is recognised, but Nova will not execute it from the command console. This action is ${cmd.risk} risk and remains behind the existing human/Guardian approval boundary.`};return{allowed:true};}
