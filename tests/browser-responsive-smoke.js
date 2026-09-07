@@ -33,17 +33,53 @@ class Cdp{
   async close(){if(!this.ws)return;for(const [id,p] of this.pending){clearTimeout(p.timer);p.reject(new Error(`CDP session closed before response ${id}`))}this.pending.clear();if(this.ws.readyState===WebSocket.CLOSED)return;await Promise.race([new Promise(resolve=>{this.ws.addEventListener('close',resolve,{once:true});try{this.ws.close()}catch{resolve()}}),sleep(500)])}
 }
 
-async function newTarget(port){const target=await json(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});const cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();await cdp.call('Page.enable');await cdp.call('Runtime.enable');return cdp}
+async function newTarget(port){
+  const target=await json(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});
+  const cdp=new Cdp(target.webSocketDebuggerUrl);
+  await cdp.open();
+  await cdp.call('Page.enable');
+  await cdp.call('Runtime.enable');
+  await cdp.call('Network.enable');
+  await cdp.call('Network.setBlockedURLs',{urls:['*.js','*.mjs']});
+  return cdp;
+}
 async function inspect(cdp,file,width,label,expectedText){
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:HEIGHT,deviceScaleFactor:1,mobile:width<=430,screenWidth:width,screenHeight:HEIGHT});
-  const url=pathToFileURL(path.join(ROOT,file)).href;await cdp.call('Page.navigate',{url});await cdp.waitEvent('Page.loadEventFired',3000).catch(()=>{});await sleep(350);
-  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,innerWidth:window.innerWidth,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1600),bodyVisibility:getComputedStyle(b).visibility,bodyDisplay:getComputedStyle(b).display}})()`});
-  const v=result.result.value,semantic=`${v.title||''} ${v.bodyText||''}`.toLowerCase();assert.equal(v.innerWidth,width,`${label} emulated viewport should apply at ${width}px`);assert.ok(v.clientWidth>0&&v.clientWidth<=v.innerWidth,`${label} layout viewport should fit the emulated viewport at ${width}px`);assert.notEqual(v.bodyDisplay,'none',`${label} body must be displayed at ${width}px`);assert.notEqual(v.bodyVisibility,'hidden',`${label} body must be visible at ${width}px`);assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);assert.ok(semantic.includes(String(expectedText).toLowerCase()),`${label} should expose expected product text at ${width}px`);assert.ok(v.bodyWidth<=v.clientWidth+2,`${label} body exceeds layout viewport at ${width}px: ${v.bodyWidth}px > ${v.clientWidth}px`);assert.ok(v.scrollWidth<=v.clientWidth+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px > ${v.clientWidth}px`);const shot=await cdp.call('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});assert.ok((shot.data||'').length>2500,`${label} screenshot should be non-empty at ${width}px`);
+  const url=pathToFileURL(path.join(ROOT,file)).href;
+  await cdp.call('Page.navigate',{url});
+  await cdp.waitEvent('Page.loadEventFired',3000).catch(()=>{});
+  await sleep(200);
+  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{document.documentElement.classList.add('nova-auth-unlocked');const de=document.documentElement,b=document.body;return {title:document.title,innerWidth:window.innerWidth,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1600),bodyVisibility:getComputedStyle(b).visibility,bodyDisplay:getComputedStyle(b).display}})()`});
+  const v=result.result.value,semantic=`${v.title||''} ${v.bodyText||''}`.toLowerCase();
+  assert.equal(v.innerWidth,width,`${label} emulated viewport should apply at ${width}px`);
+  assert.ok(v.clientWidth>0&&v.clientWidth<=v.innerWidth,`${label} layout viewport should fit the emulated viewport at ${width}px`);
+  assert.notEqual(v.bodyDisplay,'none',`${label} body must be displayed at ${width}px`);
+  assert.notEqual(v.bodyVisibility,'hidden',`${label} body must be visible at ${width}px`);
+  assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);
+  assert.ok(semantic.includes(String(expectedText).toLowerCase()),`${label} should expose expected product text at ${width}px`);
+  assert.ok(v.bodyWidth<=v.clientWidth+2,`${label} body exceeds layout viewport at ${width}px: ${v.bodyWidth}px > ${v.clientWidth}px`);
+  assert.ok(v.scrollWidth<=v.clientWidth+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px > ${v.clientWidth}px`);
+  const shot=await cdp.call('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
+  assert.ok((shot.data||'').length>2500,`${label} screenshot should be non-empty at ${width}px`);
 }
 async function stopChrome(proc){if(!proc||proc.exitCode!==null)return;proc.kill('SIGTERM');await Promise.race([new Promise(resolve=>proc.once('exit',resolve)),sleep(1200)]);if(proc.exitCode===null){proc.kill('SIGKILL');await Promise.race([new Promise(resolve=>proc.once('exit',resolve)),sleep(800)])}}
 async function run(){
-  if(typeof WebSocket!=='function')throw new Error('Node WebSocket support is required for real browser smoke tests');const chrome=chromeBinary();if(!chrome){if(process.env.GITHUB_ACTIONS==='true')throw new Error('Google Chrome is required on the GitHub Actions runner');console.log('SKIP browser responsive smoke: Chrome is not installed locally');return}
-  const port=await freePort(),profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-browser-smoke-'));const proc=cp.spawn(chrome,[`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--allow-file-access-from-files','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
-  try{await waitForVersion(port);for(const [file,label,expectedText] of [['nova/index.html','Nova static shell','Nova'],['admin/index.html','Admin sign-in shell','Admin']]){const cdp=await newTarget(port);try{for(const width of WIDTHS)await inspect(cdp,file,width,label,expectedText)}finally{await cdp.close()}}console.log(`Browser responsive smoke passed at ${WIDTHS.join(', ')}px for Nova and Admin static shells`)}catch(e){throw new Error(`${e.message}\nChrome stderr: ${stderr.slice(-2000)}`)}finally{await stopChrome(proc);try{fs.rmSync(profile,{recursive:true,force:true})}catch{}}
+  if(typeof WebSocket!=='function')throw new Error('Node WebSocket support is required for real browser smoke tests');
+  const chrome=chromeBinary();
+  if(!chrome){if(process.env.GITHUB_ACTIONS==='true')throw new Error('Google Chrome is required on the GitHub Actions runner');console.log('SKIP browser responsive smoke: Chrome is not installed locally');return}
+  const port=await freePort(),profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-browser-smoke-'));
+  const proc=cp.spawn(chrome,[`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--allow-file-access-from-files','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
+  let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
+  try{
+    await waitForVersion(port);
+    for(const [file,label,expectedText] of [['nova/index.html','Nova static shell','Nova'],['admin/index.html','Admin sign-in shell','Admin']]){
+      const cdp=await newTarget(port);
+      try{for(const width of WIDTHS)await inspect(cdp,file,width,label,expectedText)}finally{await cdp.close()}
+    }
+    console.log(`Browser responsive smoke passed at ${WIDTHS.join(', ')}px for Nova and Admin static shells`);
+  }catch(e){throw new Error(`${e.message}\nChrome stderr: ${stderr.slice(-2000)}`)}finally{
+    await stopChrome(proc);
+    try{fs.rmSync(profile,{recursive:true,force:true})}catch{}
+  }
 }
 run().catch(e=>{console.error(e.stack||e);process.exitCode=1});
