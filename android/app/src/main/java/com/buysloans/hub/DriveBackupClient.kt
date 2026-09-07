@@ -102,7 +102,11 @@ object DriveBackupClient {
         }
     }
 
-    private fun localTimestamp(value: String): String {
+    internal fun localTimestamp(
+        value: String,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        locale: Locale = Locale.getDefault()
+    ): String {
         if (value.isBlank()) return value
         val normalized = if (value.length > 10 && value[10] == ' ') {
             value.substring(0, 10) + "T" + value.substring(11)
@@ -110,9 +114,9 @@ object DriveBackupClient {
         return runCatching {
             val formatter = DateTimeFormatter
                 .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-                .withLocale(Locale.getDefault())
+                .withLocale(locale)
             OffsetDateTime.parse(normalized)
-                .atZoneSameInstant(ZoneId.systemDefault())
+                .atZoneSameInstant(zoneId)
                 .format(formatter)
         }.getOrElse { value }
     }
