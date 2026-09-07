@@ -39,6 +39,19 @@ function incident(overrides={}){return {id:'i1',source:'runtime_crash',classific
 }
 
 {
+  const cancelled=incident({id:'cancelled',state:'cancelled',risk_level:'critical',diagnosis_summary:'runtime crash',updated_at:'2020-01-01T00:00:00Z'});
+  const snapshot=g.buildSnapshot({settings:{enabled:true,operating_mode:'assist'},incidents:[cancelled],repairs:[],activity:[]});
+  assert.equal(snapshot.openCount,0,'cancelled incidents are terminal');
+  assert.equal(snapshot.criticalCount,0,'cancelled critical incidents must not remain critical-open');
+  assert.equal(snapshot.approvalCount,0,'cancelled incidents must not remain approval-bound');
+  assert.equal(snapshot.stale.length,0,'cancelled incidents must not be reported stale');
+  const runtime=snapshot.domains.find(x=>x.key==='runtime');
+  assert.equal(runtime.open,0);
+  assert.equal(runtime.critical,0);
+  assert.equal(runtime.status,'healthy');
+}
+
+{
   const nova=g.buildSnapshot({incidents:[],repairs:[],activity:[{actor:'nova',summary:'Nova proposed catalogue edit',created_at:new Date().toISOString()}]});
   assert.equal(nova.novaEventCount,1);
 }
