@@ -1,8 +1,8 @@
 {
-  "versionCode": 22,
-  "versionName": "0.3.18",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.18/Nova-AI-0.3.18.apk",
-  "sha256": "7d826dda7cf3cc65a010bf4729470738d68cb439132252e152a510d81536016c",
+  "versionCode": 23,
+  "versionName": "0.3.19",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.19/Nova-AI-0.3.19.apk",
+  "sha256": "b42dc82aea0ec81e3ef523237aad89a681b3c864a2a69c2666124f56bb38c823",
   "mandatory": false,
-  "notes": "Nova AI 0.3.18 improves Android rotation, keyboard resizing, reconnect handling and verified update recovery."
+  "notes": "Nova AI 0.3.19 hotfixes an Android startup crash by making optional operator and pending-installer resume helpers fail open instead of terminating MainActivity."
 }
