@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const source = fs.readFileSync('nova/app.js', 'utf8');
+const source = fs.readFileSync('nova/app-core.js', 'utf8');
 
 assert.match(source, /function riskFor\(pr\)/, 'Nova core must expose one risk classifier');
 assert.match(source, /if\(!ref\.startsWith\('nova\/'\)\)return'normal'/, 'non-Nova branches must not become Nova human gates');
