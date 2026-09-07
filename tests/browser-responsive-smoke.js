@@ -37,18 +37,19 @@ async function newTarget(port){
   const cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();await cdp.call('Page.enable');await cdp.call('Runtime.enable');return cdp;
 }
 
-async function inspect(cdp,file,width,label){
+async function inspect(cdp,file,width,label,expectedText){
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:HEIGHT,deviceScaleFactor:1,mobile:width<=430,screenWidth:width,screenHeight:HEIGHT});
   await cdp.call('Emulation.setScriptExecutionDisabled',{value:true});
   const url=pathToFileURL(path.join(ROOT,file)).href;
   await cdp.call('Page.navigate',{url});
   await cdp.waitEvent('Page.loadEventFired',5000).catch(()=>{});
   await sleep(150);
-  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;const visible=[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>1&&r.height>1&&s.display!=='none'&&s.visibility!=='hidden'});return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,visibleCount:visible.length,bodyText:(b?.innerText||'').trim().slice(0,500)}})()`});
+  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1200)}})()`});
   const v=result.result.value;
+  const semantic=`${v.title||''} ${v.bodyText||''}`.toLowerCase();
   assert.equal(v.clientWidth,width,`${label} viewport should apply at ${width}px`);
-  assert.ok(v.visibleCount>8,`${label} should render substantive visible content at ${width}px`);
   assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);
+  assert.ok(semantic.includes(String(expectedText).toLowerCase()),`${label} should expose expected product text at ${width}px`);
   assert.ok(v.bodyWidth<=width+2,`${label} body exceeds viewport at ${width}px: ${v.bodyWidth}px`);
   assert.ok(v.scrollWidth<=width+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px`);
   const shot=await cdp.call('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
@@ -65,9 +66,9 @@ async function run(){
   let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
   try{
     await waitForVersion(port);
-    for(const [file,label] of [['nova/index.html','Nova static shell'],['admin/index.html','Admin sign-in shell']]){
+    for(const [file,label,expectedText] of [['nova/index.html','Nova static shell','Nova'],['admin/index.html','Admin sign-in shell','Admin']]){
       const cdp=await newTarget(port);
-      try{for(const width of WIDTHS)await inspect(cdp,file,width,label)}finally{cdp.close()}
+      try{for(const width of WIDTHS)await inspect(cdp,file,width,label,expectedText)}finally{cdp.close()}
     }
     console.log(`Browser responsive smoke passed at ${WIDTHS.join(', ')}px for Nova and Admin static shells`);
   }catch(e){throw new Error(`${e.message}\nChrome stderr: ${stderr.slice(-2000)}`)}finally{
