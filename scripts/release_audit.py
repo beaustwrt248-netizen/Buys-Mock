@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import re
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,8 +33,21 @@ required = [
     ".github/workflows/build-apk.yml", ".github/workflows/deploy-admin-pages.yml",
     ".github/workflows/quality-gate.yml", ".github/workflows/web-smoke.yml",
     "morley_buys_login_bg_app.zip",
+    "scripts/catalogue_integrity_gate.py", "scripts/test_catalogue_integrity_gate.py",
 ]
 for f in required: require(f)
+
+catalogue_tests = subprocess.run(
+    [sys.executable, str(ROOT / "scripts/test_catalogue_integrity_gate.py")],
+    cwd=ROOT,
+    capture_output=True,
+    text=True,
+)
+if catalogue_tests.returncode:
+    details = (catalogue_tests.stdout + catalogue_tests.stderr).strip()
+    errors.append(f"Catalogue integrity regression tests failed: {details}")
+else:
+    notes.append("Catalogue integrity regression tests passed")
 
 video = ROOT / "web-assets/morley_buys_login_bg_app.mp4"
 if video.exists() and video.stat().st_size < 1_000_000:
