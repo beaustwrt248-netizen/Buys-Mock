@@ -20,6 +20,8 @@ assert.match(productParity, /data-page="categories"/);
 assert.match(productParity, /data-page="settings"/);
 assert.doesNotMatch(productParity, /t==='laptop'[\s\S]*data\.target='computer'/);
 assert.doesNotMatch(productParity, /t==='desktop'[\s\S]*data\.target='console'/);
+assert.match(productParity, /aria-label','Computer Pricing — Laptop, MacBook, Desktop or Gaming PC'/);
+assert.match(productParity, /aria-label','Console Pricing — PlayStation, Xbox and Nintendo'/);
 
 // Shared desktop layers must explicitly yield navigation ownership to the
 // physical-phone/v5 mobile renderer instead of competing with it.
