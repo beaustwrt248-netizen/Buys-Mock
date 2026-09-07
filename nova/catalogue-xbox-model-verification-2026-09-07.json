@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-07T08:10:00Z",
+  "scope": "read-only evidence proposal; no production catalogue write",
+  "rules": [
+    "Use exact hardware revision identity; do not assign a later revision model number to a generation-level record.",
+    "Prefer Microsoft documentation where available; use Australian secondary evidence only as corroboration."
+  ],
+  "findings": [
+    {
+      "device_catalog_id": 1361,
+      "current": {"brand": "Microsoft", "model_name": "Xbox One (Original)", "model_number": null, "release_year": 2013},
+      "proposed": {"model_number": "1540"},
+      "confidence": 0.99,
+      "decision": "propose",
+      "evidence": [
+        {"source": "Microsoft Xbox One Eco Profile", "url": "https://download.microsoft.com/download/4/8/D/48D50344-33CD-4D9A-BA11-0C7DCA1A3948/XBoxOne_Eco_profile.pdf", "fact": "Microsoft identifies Xbox One as model 1540."},
+        {"source": "iFixit Xbox One teardown label", "url": "https://documents.cdn.ifixit.com/pdf/ifixit/guide_19718_en.pdf", "fact": "Physical rear label shows Xbox One console model 1540."}
+      ]
+    },
+    {
+      "device_catalog_id": 1364,
+      "current": {"brand": "Microsoft", "model_name": "Xbox 360", "model_number": null, "release_year": 2005, "storage_options": ["20GB HDD", "64MB Memory Unit"]},
+      "proposed": {},
+      "confidence": 0.99,
+      "decision": "do_not_fill_from_1439",
+      "reason": "Model 1439 is Xbox 360 S, introduced later than the generic 2005 launch record. The existing catalogue record is generation-level and should be split/identified by exact chassis revision before a model number is assigned.",
+      "evidence": [
+        {"source": "Cash Converters Australia", "url": "https://www.cashconverters.com.au/shop/gaming/consoles-equipment/gaming-consoles/microsoft-game-console/000300285808", "fact": "Australian listing identifies model 1439 specifically as Xbox 360 S."},
+        {"source": "Console model historical reference", "url": "https://www.videogameconsolelibrary.com/model-decoder/", "fact": "Launch Xbox 360 used multiple board/chassis revisions; 1439 is not a safe generation-wide identifier."}
+      ]
+    }
+  ]
+}
