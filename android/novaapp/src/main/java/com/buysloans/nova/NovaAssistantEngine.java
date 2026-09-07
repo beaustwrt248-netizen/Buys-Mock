@@ -150,6 +150,10 @@ final class NovaAssistantEngine {
                     + excerpt
                     + "\n\nI’ll keep that as the active context. Ask for the part you want expanded, compared or explained and I’ll continue from it rather than starting over.";
         }
+        if (x.equals("show me more") || x.equals("tell me more") || x.equals("more")
+                || x.equals("continue") || x.equals("keep going") || x.equals("go on")) {
+            return capabilityContinuation();
+        }
         return null;
     }
 
