@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('nova/command-chains.js','utf8');
 
-function boot(){
+function boot(seedHistory=null){
   const safe=id=>({id,risk:'safe',requiresGuardian:false,handler(){}});
   const protectedCommand={id:'release.production.deploy',risk:'destructive',requiresGuardian:true,handler:null};
   const lookup={
@@ -20,12 +20,14 @@ function boot(){
     stats:()=>({}),registry:Object.values(lookup),risk:{SAFE:'safe'}
   };
   const store=new Map();
+  if(seedHistory)store.set('nova.command.history.v1',JSON.stringify(seedHistory));
   const sessionStorage={getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,v)};
   class Event{constructor(type){this.type=type}}
   class CustomEvent extends Event{constructor(type,init={}){super(type);this.detail=init.detail}}
-  const window={NovaCommands:base,dispatchEvent(){}};
-  vm.runInNewContext(source,{window,sessionStorage,Event,CustomEvent,console},{filename:'nova/command-chains.js'});
-  return{commands:window.NovaCommands,calls};
+  const window={NovaCommands:base,dispatchEvent(){},addEventListener(){}};
+  const document={readyState:'complete',getElementById:()=>null,addEventListener(){}};
+  vm.runInNewContext(source,{window,document,sessionStorage,Event,CustomEvent,console},{filename:'nova/command-chains.js'});
+  return{commands:window.NovaCommands,calls,store};
 }
 
 test('runs multiple safe read-only commands in order',async()=>{
@@ -65,9 +67,31 @@ test('records bounded session history without storing auth data',async()=>{
   assert.match(commands.historyText(),/show support status/);
 });
 
+test('redacts secrets, bearer tokens and JWTs before command history storage',async()=>{
+  const {commands,store}=boot();
+  assert.equal(commands.sanitizeHistoryInput('password=hunter2'),'password = [REDACTED]');
+  assert.equal(commands.sanitizeHistoryInput('Authorization: Bearer abcdefghijklmnop'),'Authorization : [REDACTED]');
+  assert.doesNotMatch(commands.sanitizeHistoryInput('token: eyJabcdefghijk.abcdefghijk.abcdefghijk'),/eyJabcdefghijk/);
+  await commands.execute('unknown token=supersecret');
+  assert.doesNotMatch(store.get('nova.command.history.v1'),/supersecret/);
+});
+
+test('sanitises previously stored session history on load',()=>{
+  const {commands,store}=boot([{input:'api_key=old-secret',ok:false,type:'unknown',commands:[]}]);
+  assert.equal(commands.getHistory()[0].input,'api_key = [REDACTED]');
+  assert.doesNotMatch(store.get('nova.command.history.v1'),/old-secret/);
+});
+
 test('negated text is never split into a chain',()=>{
   const {commands}=boot();
   assert.equal(commands.planChain('do not deploy production then show support status'),null);
+});
+
+test('command history UI is session-only and exposes clear controls',()=>{
+  assert.match(source,/Session-only · sensitive values are redacted before storage/);
+  assert.match(source,/data-clear-history/);
+  assert.match(source,/nova-command-history-list/);
+  assert.match(source,/clearHistory/);
 });
 
 test('command discovery keeps current open-browser event and loads chains',()=>{
