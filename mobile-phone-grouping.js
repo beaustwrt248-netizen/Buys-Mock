@@ -6,7 +6,7 @@ const storageFromCard=card=>{const p=$('p',card);if(!p)return'Unknown';const par
 const brandFromCard=card=>{const p=$('p',card);if(!p)return'';return norm(p.textContent).split('•').map(x=>norm(x))[0]||''};
 const modelFromCard=card=>norm($('h3',card)?.textContent);
 const priceNode=card=>$('.morley-chip',card);
-function bestImage(cards){for(const card of cards){const img=$('img[data-morley-device-image],.morley-device-media img',card);if(img)return img}return null}
+function activateMedia(media){const img=$('img',media);if(!img)return;if(!img.getAttribute('src')&&img.dataset.src){img.loading='lazy';img.decoding='async';img.src=img.dataset.src}}
 function groupGrid(){
  const grid=$('#morleyPhoneGrid');if(!grid||grid.dataset.groupingBusy==='1')return;
  const cards=$$('.morley-search-result',grid).filter(c=>!c.closest('.morley-group-source-bin'));
@@ -22,7 +22,7 @@ function groupGrid(){
    for(const card of cardsForModel){const storage=storageFromCard(card),sk=key(storage);if(!storageMap.has(sk))storageMap.set(sk,{storage,cards:[]});storageMap.get(sk).cards.push(card)}
    const variants=[...storageMap.values()];
    const wrap=document.createElement('div');wrap.className='morley-phone-model-group';wrap.dataset.modelKey=`${key(brand)}|${key(model)}`;
-   const media=$('.morley-device-media',first)?.cloneNode(true)||document.createElement('div');if(!media.classList.contains('morley-device-media'))media.className='morley-device-media is-placeholder';
+   const media=$('.morley-device-media',first)?.cloneNode(true)||document.createElement('div');if(!media.classList.contains('morley-device-media'))media.className='morley-device-media is-placeholder';activateMedia(media);
    const sourceBin=document.createElement('div');sourceBin.className='morley-group-source-bin';cardsForModel.forEach(c=>sourceBin.appendChild(c));
    const copy=document.createElement('div');copy.className='morley-result-copy';
    const heading=document.createElement('h3');heading.textContent=model;
@@ -33,7 +33,7 @@ function groupGrid(){
    const open=document.createElement('button');open.type='button';open.className='morley-group-open';open.textContent='Open Buy Flow';
    const fav=document.createElement('button');fav.type='button';fav.className='morley-group-favourite';fav.setAttribute('aria-label','Favourite selected storage');
    let selected=0;
-   const sync=()=>{const entry=variants[selected]||variants[0],source=entry?.cards?.[0];$$('.morley-storage-chip',storages).forEach((b,i)=>b.classList.toggle('active',i===selected));const pn=source&&priceNode(source);price.textContent=pn?.textContent?.trim()||'Price to be added';price.classList.toggle('is-priced',!!pn?.classList.contains('morley-authorised'));fav.textContent=$('.morley-favourite',source)?.textContent?.trim()||'☆';const chosenMedia=$('.morley-device-media',source);if(chosenMedia&&chosenMedia.innerHTML!==media.innerHTML){media.className=chosenMedia.className;media.innerHTML=chosenMedia.innerHTML}}
+   const sync=()=>{const entry=variants[selected]||variants[0],source=entry?.cards?.[0];$$('.morley-storage-chip',storages).forEach((b,i)=>b.classList.toggle('active',i===selected));const pn=source&&priceNode(source);price.textContent=pn?.textContent?.trim()||'Price to be added';price.classList.toggle('is-priced',!!pn?.classList.contains('morley-authorised'));fav.textContent=$('.morley-favourite',source)?.textContent?.trim()||'☆';const chosenMedia=$('.morley-device-media',source);if(chosenMedia&&chosenMedia.innerHTML!==media.innerHTML){media.className=chosenMedia.className;media.innerHTML=chosenMedia.innerHTML}activateMedia(media)}
    variants.forEach((entry,i)=>{const b=document.createElement('button');b.type='button';b.className='morley-storage-chip';b.textContent=entry.storage;b.dataset.duplicateCount=String(entry.cards.length);b.title=entry.cards.length>1?`${entry.cards.length} duplicate catalogue rows consolidated`:entry.storage;b.addEventListener('click',()=>{selected=i;sync()});storages.appendChild(b)});
    open.addEventListener('click',()=>{const source=variants[selected]?.cards?.[0];$('.morley-open-buy',source)?.click()});
    fav.addEventListener('click',()=>{const source=variants[selected]?.cards?.[0];$('.morley-favourite',source)?.click();setTimeout(sync,0)});
