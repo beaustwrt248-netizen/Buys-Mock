@@ -73,6 +73,20 @@ public final class NovaControlCenterActivity extends Activity {
         visionLp.topMargin = dp(10);
         root.addView(vision, visionLp);
 
+        Button alerts = button(NovaAndroidOperator.notificationPermissionGranted(this)
+                ? "Proactive alerts enabled"
+                : "Enable proactive alerts", false);
+        alerts.setOnClickListener(v -> {
+            NovaAndroidOperator.scheduleBackgroundAlerts(this);
+            NovaAndroidOperator.requestNotificationPermission(this);
+            alerts.setText(NovaAndroidOperator.notificationPermissionGranted(this)
+                    ? "Proactive alerts enabled"
+                    : "Allow notifications to enable alerts");
+        });
+        LinearLayout.LayoutParams alertsLp = full();
+        alertsLp.topMargin = dp(8);
+        root.addView(alerts, alertsLp);
+
         Button back = button("Back to Nova", false);
         back.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams backLp = full();
