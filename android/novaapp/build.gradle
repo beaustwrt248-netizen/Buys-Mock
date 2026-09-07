@@ -66,6 +66,75 @@ tasks.register('prepareNovaReferenceUi') {
                 '        addOtaSection();\n        footer();\n    }\n\n    private void showWorkspace()',
                 '        footer();\n    }\n\n    private void showWorkspace()')
 
+        // Nova Android now uses three primary tabs. Updates live inside Account, matching the web product.
+        source = source.replace(
+                '    private enum Tab { CHAT, INTELLIGENCE, UPDATES, ACCOUNT }',
+                '    private enum Tab { CHAT, INTELLIGENCE, ACCOUNT }')
+        source = source.replace(
+                '    private ScrollView scroll;\n',
+                '    private ScrollView scroll, conversationScroll;\n')
+        source = source.replace(
+                '        if ("Updates".equals(label)) return (pendingUpdate == null ? "⇩" : "●") + "\\nUpdates";\n',
+                '')
+        source = source.replace(
+                '            nav.addView(navButton("Updates",Tab.UPDATES), each);\n',
+                '')
+        source = source.replace(
+                '''        base(activeTab == Tab.CHAT ? "Conversation"
+                : activeTab == Tab.INTELLIGENCE ? "Live Morley intelligence"
+                : activeTab == Tab.UPDATES ? "Secure signed releases"
+                : "Account & authority", true);
+
+        if (activeTab == Tab.CHAT) showChatTab();
+        else if (activeTab == Tab.INTELLIGENCE) showIntelligenceTab();
+        else if (activeTab == Tab.UPDATES) showUpdatesTab();
+        else showAccountTab();''',
+                '''        base(activeTab == Tab.CHAT ? "Conversation"
+                : activeTab == Tab.INTELLIGENCE ? "Live Morley intelligence"
+                : "Account & authority", true);
+
+        if (activeTab == Tab.CHAT) showChatTab();
+        else if (activeTab == Tab.INTELLIGENCE) showIntelligenceTab();
+        else showAccountTab();''')
+        source = source.replace(
+                '        add(logout, 18);\n        footer();\n    }\n\n    private void sendQuestion',
+                '        add(logout, 18);\n        addOtaSection();\n        footer();\n    }\n\n    private void sendQuestion')
+
+        // Keep message history in its own viewport so suggestions and the composer remain stable.
+        source = source.replace(
+                '            captchaChallenge = null;\n        }\n\n        shell = new LinearLayout(this);',
+                '            captchaChallenge = null;\n        }\n        conversationScroll = null;\n\n        shell = new LinearLayout(this);')
+        source = source.replace(
+                '''        conversation = new LinearLayout(this);
+        conversation.setOrientation(LinearLayout.VERTICAL);
+        chatCard.addView(conversation);''',
+                '''        conversation = new LinearLayout(this);
+        conversation.setOrientation(LinearLayout.VERTICAL);
+        conversation.setPadding(0, 0, dp(this, 2), dp(this, 8));
+        conversationScroll = new ScrollView(this);
+        conversationScroll.setFillViewport(true);
+        conversationScroll.setClipToPadding(false);
+        conversationScroll.setVerticalScrollBarEnabled(true);
+        conversationScroll.addView(conversation, new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT));
+        chatCard.addView(conversationScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(this, 320)));''')
+        source = source.replace(
+                '            if (scroll != null) scroll.smoothScrollTo(0, 0);\n',
+                '            if (conversationScroll != null) conversationScroll.smoothScrollTo(0, 0);\n            else if (scroll != null) scroll.smoothScrollTo(0, 0);\n')
+        source = source.replace(
+                '        if (scroll != null) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));\n',
+                '        if (conversationScroll != null) conversationScroll.post(() -> conversationScroll.fullScroll(View.FOCUS_DOWN));\n')
+
+        if (source.contains('Tab.UPDATES')
+                || source.contains('navButton("Updates",Tab.UPDATES)')
+                || source.contains('chatCard.addView(conversation);')
+                || !source.contains('conversationScroll.fullScroll(View.FOCUS_DOWN)')
+                || !source.contains('addOtaSection();\n        footer();\n    }\n\n    private void sendQuestion')) {
+            throw new GradleException('Nova navigation/chat layout transformation was not applied completely.')
+        }
+
         def brainPattern = ~/(?s)        @Override\n        protected void onDraw\(Canvas canvas\) \{.*?\n        \}\n\n        private int blend/
         def brainMatcher = brainPattern.matcher(source)
         if (!brainMatcher.find()) {
@@ -199,8 +268,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 19
-        versionName '0.3.15'
+        versionCode 20
+        versionName '0.3.16'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'

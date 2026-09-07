@@ -12,48 +12,154 @@ final class NovaAssistantEngine {
     private final NovaApiClient api;
     private IntentRouter.Intent lastIntent = IntentRouter.Intent.UNKNOWN;
     private String lastKnowledgeQuery = "";
+    private String lastQuestion = "";
+    private String lastAnswer = "";
 
     NovaAssistantEngine(NovaApiClient api) { this.api = api; }
 
     String answer(String question) throws Exception {
         String q = question == null ? "" : question.trim();
+        if (q.isBlank()) return remember(q, IntentRouter.Intent.UNKNOWN, "I’m here — ask me anything.");
+
         IntentRouter.Intent intent = IntentRouter.classify(q);
-        if (intent == IntentRouter.Intent.GREETING) return greeting();
-        if (intent == IntentRouter.Intent.SMALL_TALK) return smallTalk(q);
-        if (intent == IntentRouter.Intent.CAPABILITIES) return "I can chat normally, give you a daily Morley brief, surface what needs attention, summarise sales and profit, inspect inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I can also keep short follow-ups tied to the current topic. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.";
+        if (intent == IntentRouter.Intent.UNKNOWN && isContextualFollowUp(q)) {
+            String followUp = contextualFollowUp(q);
+            if (followUp != null) return remember(q, lastIntent, followUp);
+        }
+
+        if (intent == IntentRouter.Intent.GREETING) return remember(q, intent, greeting());
+        if (intent == IntentRouter.Intent.SMALL_TALK) return remember(q, intent, smallTalk(q));
+        if (intent == IntentRouter.Intent.CAPABILITIES) {
+            return remember(q, intent,
+                    "I can chat normally, give you a daily Morley brief, surface what needs attention, summarise sales and profit, inspect inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I can keep follow-ups tied to the current topic too. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.");
+        }
         if (intent == IntentRouter.Intent.UNKNOWN && IntentRouter.isFollowUp(q)) {
             if (lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
             else if (!lastKnowledgeQuery.isBlank()) {
                 String knowledge = knowledgeAnswer(lastKnowledgeQuery + " " + q);
-                if (knowledge != null) return knowledge;
+                if (knowledge != null) return remember(q, IntentRouter.Intent.UNKNOWN, knowledge);
             }
         }
         if (intent == IntentRouter.Intent.DAILY_BRIEF) {
             lastIntent = intent;
-            return dailyBrief();
+            return remember(q, intent, dailyBrief());
         }
         if (intent == IntentRouter.Intent.KNOWLEDGE) {
             lastIntent = intent;
-            return knowledgeOverview();
+            return remember(q, intent, knowledgeOverview());
         }
         if (intent == IntentRouter.Intent.ATTENTION) {
             lastIntent = intent;
-            return attention();
+            return remember(q, intent, attention());
         }
         if (intent != IntentRouter.Intent.UNKNOWN) {
             lastIntent = intent;
-            return summarise(intent);
+            return remember(q, intent, summarise(intent));
         }
         String knowledge = knowledgeAnswer(q);
         if (knowledge != null) {
             lastKnowledgeQuery = q;
             lastIntent = IntentRouter.Intent.UNKNOWN;
-            return knowledge;
+            return remember(q, IntentRouter.Intent.UNKNOWN, knowledge);
         }
-        return conversationalFallback(q);
+        return remember(q, IntentRouter.Intent.UNKNOWN, conversationalFallback(q));
     }
 
-    void resetContext() { lastIntent = IntentRouter.Intent.UNKNOWN; lastKnowledgeQuery = ""; }
+    void resetContext() {
+        lastIntent = IntentRouter.Intent.UNKNOWN;
+        lastKnowledgeQuery = "";
+        lastQuestion = "";
+        lastAnswer = "";
+    }
+
+    private String remember(String question, IntentRouter.Intent intent, String answer) {
+        if (question != null && !question.isBlank()) lastQuestion = question.trim();
+        if (answer != null && !answer.isBlank()) lastAnswer = answer.trim();
+        if (intent != null
+                && intent != IntentRouter.Intent.UNKNOWN
+                && intent != IntentRouter.Intent.GREETING
+                && intent != IntentRouter.Intent.SMALL_TALK) {
+            lastIntent = intent;
+        }
+        return answer;
+    }
+
+    private static boolean isContextualFollowUp(String q) {
+        String x = IntentRouter.normalise(q);
+        return IntentRouter.isFollowUp(q)
+                || x.equals("show me more")
+                || x.equals("tell me more")
+                || x.equals("more")
+                || x.equals("continue")
+                || x.equals("keep going")
+                || x.equals("go on")
+                || x.equals("explain")
+                || x.equals("explain more")
+                || x.equals("why")
+                || x.equals("how")
+                || x.equals("what about that")
+                || x.equals("what about it")
+                || x.equals("and that")
+                || x.startsWith("why ")
+                || x.startsWith("how ")
+                || x.startsWith("what about ")
+                || x.startsWith("tell me more about ")
+                || x.startsWith("show me more about ");
+    }
+
+    private String contextualFollowUp(String q) throws Exception {
+        String x = IntentRouter.normalise(q);
+
+        if (lastIntent == IntentRouter.Intent.DAILY_BRIEF) {
+            return "Here’s the current detail behind that brief:\n\n" + dailyBrief();
+        }
+        if (lastIntent == IntentRouter.Intent.ATTENTION) {
+            return "I refreshed the live attention scan so we can keep following the same thread:\n\n" + attention();
+        }
+        if (lastIntent == IntentRouter.Intent.KNOWLEDGE && !lastKnowledgeQuery.isBlank()) {
+            String knowledge = knowledgeAnswer(lastKnowledgeQuery + " " + q);
+            if (knowledge != null) return knowledge;
+        }
+        if (lastIntent != IntentRouter.Intent.UNKNOWN
+                && lastIntent != IntentRouter.Intent.GREETING
+                && lastIntent != IntentRouter.Intent.SMALL_TALK
+                && lastIntent != IntentRouter.Intent.CAPABILITIES) {
+            String refreshed = summarise(lastIntent);
+            if (x.startsWith("why") || x.startsWith("how") || x.startsWith("explain")) {
+                return "Staying with the same topic, here’s the live evidence I can safely expose:\n\n" + refreshed;
+            }
+            return "Continuing from that same topic:\n\n" + refreshed;
+        }
+        if (!lastKnowledgeQuery.isBlank()) {
+            String knowledge = knowledgeAnswer(lastKnowledgeQuery + " " + q);
+            if (knowledge != null) return knowledge;
+        }
+        if (!lastQuestion.isBlank() && (x.contains(" it") || x.contains(" that") || x.contains(" this")
+                || x.startsWith("it ") || x.startsWith("that ") || x.startsWith("this "))) {
+            String knowledge = knowledgeAnswer(lastQuestion + " " + q);
+            if (knowledge != null) return knowledge;
+        }
+        if (!lastAnswer.isBlank()) {
+            if (lastAnswer.contains("How can I help")
+                    || lastAnswer.contains("I can chat normally")
+                    || lastAnswer.contains("standalone Morley intelligence companion")) {
+                return capabilityContinuation();
+            }
+            String excerpt = lastAnswer.length() > 420 ? lastAnswer.substring(0, 420) + "…" : lastAnswer;
+            return "I’m following what you mean. You’re referring to my previous answer:\n\n"
+                    + excerpt
+                    + "\n\nI’ll keep that as the active context. Ask for the part you want expanded, compared or explained and I’ll continue from it rather than starting over.";
+        }
+        if (x.equals("show me more") || x.equals("tell me more") || x.equals("more")
+                || x.equals("continue") || x.equals("keep going") || x.equals("go on")) {
+            return capabilityContinuation();
+        }
+        return null;
+    }
+
+    private String capabilityContinuation() {
+        return "Absolutely. I can go further than the quick actions on this screen. I can work through live Morley catalogue health, Guardian signals, support workload, inventory, sales/profit, release state, stored Nova knowledge and verified learning; keep follow-up questions attached to whichever of those we’re discussing; and explain what I found without silently crossing protected approval boundaries.\n\nFor example, you can say ‘show me the catalogue gaps’, then ‘show me more’, ‘why is that a problem?’, or ‘what about the Motorola ones?’ and I’ll keep the same thread instead of treating each message as a brand-new request.";
+    }
 
     private String greeting() {
         int hour = LocalTime.now().getHour();
@@ -88,6 +194,9 @@ final class NovaAssistantEngine {
             return "Got it. Tell me a bit more and I’ll stay with the thread instead of forcing it into a Morley data category.";
         if (x.startsWith("help me decide") || x.startsWith("help me choose") || x.startsWith("compare "))
             return "I can help with that. Give me the options or trade-offs you’re weighing and I’ll help you compare them clearly.";
+        if (!lastAnswer.isBlank()) {
+            return "I’m keeping the previous answer in context. Tell me which part you want me to expand or what you want to do with it, and I’ll continue from there.";
+        }
         return "I can chat about that normally, but I don’t yet have enough context to give you a useful answer. Tell me a little more about what you mean and I’ll follow the conversation from there.";
     }
 
@@ -111,14 +220,14 @@ final class NovaAssistantEngine {
         long now=System.currentTimeMillis();
         for(int i=0;i<incidents.length();i++){
             JSONObject x=incidents.getJSONObject(i); String st=x.optString("state").toLowerCase(Locale.ROOT);
-            if(!st.equals("resolved")&&!st.equals("ignored")&&!st.equals("closed")){
+            if(isGuardianCurrent(st)){
                 if(x.optBoolean("requires_approval")) approvals++;
                 String r=x.optString("risk_level").toLowerCase(Locale.ROOT); if(r.equals("high")||r.equals("critical")) high++;
             }
         }
         for(int i=0;i<support.length();i++){
             JSONObject x=support.getJSONObject(i); String st=x.optString("status").toLowerCase(Locale.ROOT);
-            if(!st.equals("resolved")&&!st.equals("closed")){
+            if(!isSupportTerminal(st)){
                 String p=x.optString("priority").toLowerCase(Locale.ROOT); if(p.equals("high")||p.equals("urgent")) urgent++;
                 String due=x.optString("sla_due_at"); if(!due.isBlank())try{if(java.time.Instant.parse(due).toEpochMilli()<now)overdue++;}catch(Exception ignored){}
             }
@@ -131,6 +240,15 @@ final class NovaAssistantEngine {
         return "What needs attention\n\nGuardian: "+approvals+" awaiting approval, "+high+" high/critical open.\nSupport: "+urgent+" high/urgent, "+overdue+" SLA overdue.\nCatalogue: "+missingModel+" missing model numbers, "+missingStorage+" missing storage options.\n\nNova can identify and explain these items, but protected actions remain human-approved.";
     }
 
+    private static boolean isGuardianCurrent(String state) {
+        return !(state.equals("resolved") || state.equals("ignored") || state.equals("cancelled")
+                || state.equals("closed") || state.equals("dismissed"));
+    }
+
+    private static boolean isSupportTerminal(String state) {
+        return state.equals("resolved") || state.equals("closed") || state.equals("cancelled") || state.equals("dismissed");
+    }
+
     private String summarise(IntentRouter.Intent intent) throws Exception {
         if(intent==IntentRouter.Intent.INVENTORY){
             JSONArray rows=api.inventory(); int active=0; Map<String,Integer> states=new TreeMap<>();
@@ -139,12 +257,12 @@ final class NovaAssistantEngine {
         }
         if(intent==IntentRouter.Intent.GUARDIAN){
             JSONArray rows=api.guardian();int open=0,approvals=0,high=0;
-            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("state").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("ignored")&&!st.equals("closed")){open++;if(x.optBoolean("requires_approval"))approvals++;String risk=x.optString("risk_level").toLowerCase(Locale.ROOT);if(risk.equals("high")||risk.equals("critical"))high++;}}
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("state").toLowerCase(Locale.ROOT);if(isGuardianCurrent(st)){open++;if(x.optBoolean("requires_approval"))approvals++;String risk=x.optString("risk_level").toLowerCase(Locale.ROOT);if(risk.equals("high")||risk.equals("critical"))high++;}}
             return "Guardian live status\n\n"+open+" open signals • "+approvals+" requiring human approval • "+high+" high/critical.\n\nI can explain these signals but cannot approve or apply protected repairs.";
         }
         if(intent==IntentRouter.Intent.SUPPORT){
             JSONArray rows=api.support();int open=0,urgent=0,unassigned=0,overdue=0;long now=System.currentTimeMillis();
-            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status").toLowerCase(Locale.ROOT);if(!st.equals("resolved")&&!st.equals("closed")){open++;String p=x.optString("priority").toLowerCase(Locale.ROOT);if(p.equals("high")||p.equals("urgent"))urgent++;if(x.isNull("assigned_to")||x.optString("assigned_to").isBlank())unassigned++;String due=x.optString("sla_due_at");if(!due.isBlank()){try{if(java.time.Instant.parse(due).toEpochMilli()<now)overdue++;}catch(Exception ignored){}}}}
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String st=x.optString("status").toLowerCase(Locale.ROOT);if(!isSupportTerminal(st)){open++;String p=x.optString("priority").toLowerCase(Locale.ROOT);if(p.equals("high")||p.equals("urgent"))urgent++;if(x.isNull("assigned_to")||x.optString("assigned_to").isBlank())unassigned++;String due=x.optString("sla_due_at");if(!due.isBlank()){try{if(java.time.Instant.parse(due).toEpochMilli()<now)overdue++;}catch(Exception ignored){}}}}
             return "Support workload\n\n"+open+" active tickets • "+urgent+" high/urgent • "+unassigned+" unassigned • "+overdue+" SLA overdue.";
         }
         if(intent==IntentRouter.Intent.CATALOGUE){
