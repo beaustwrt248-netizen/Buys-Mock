@@ -11,11 +11,12 @@ final class IntentRouter {
         String x = normalise(text);
         if (x.isEmpty()) return Intent.UNKNOWN;
         if (x.matches("(hi|hey|hello|hiya|yo|howdy|good morning|good afternoon|good evening)( nova)?")) return Intent.GREETING;
+        if (x.equals("what do you think")) return Intent.SMALL_TALK;
         if (containsAny(x,
                 "how are you", "how are things", "how s it going", "how is it going", "you good", "are you okay",
                 "how was your day", "how has your day been", "thanks", "thank you", "cheers", "nice", "awesome", "great", "good job", "well done",
                 "who are you", "what are you", "what s your name", "what is your name", "tell me about yourself",
-                "what are you doing", "what do you think", "are you there", "good night", "bye", "goodbye", "see you",
+                "what are you doing", "are you there", "good night", "bye", "goodbye", "see you",
                 "tell me a joke", "joke", "i m tired", "im tired", "i am tired", "i m bored", "im bored", "i am bored")) return Intent.SMALL_TALK;
         if (containsAny(x, "what can you do", "capabilities", "help me use nova", "how can you help", "show me what you can do", "what features do you have")) return Intent.CAPABILITIES;
         if (containsAny(x,
