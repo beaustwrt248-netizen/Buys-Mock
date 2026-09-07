@@ -29,10 +29,10 @@ final class IntentRouter {
                 "what should i look at", "what should i check", "highest priority", "urgent items", "anything urgent",
                 "anything wrong", "what s wrong", "what is wrong", "any problems", "any blockers", "risks right now", "what should i fix first")) return Intent.ATTENTION;
         if (containsAny(x, "guardian", "approval", "protected repair", "incident", "risk signal", "repair queue")) return Intent.GUARDIAN;
-        if (containsAny(x, "support", "ticket", "sla", "customer issue", "helpdesk", "unassigned ticket")) return Intent.SUPPORT;
-        if (containsAny(x, "inventory", "stock", "in stock", "available items", "stock health", "inventory health")) return Intent.INVENTORY;
+        if (containsAny(x, "support", "ticket", "sla", "customer issue", "helpdesk", "unassigned ticket", "support queue", "ticket count")) return Intent.SUPPORT;
+        if (containsAny(x, "inventory", "stock", "in stock", "available items", "stock health", "inventory health", "stock count")) return Intent.INVENTORY;
         if (containsAny(x,
-                "catalogue", "catalog", "device list", "model number", "storage options", "release year", "catalogue gap",
+                "catalogue", "catalog", "device list", "device count", "number of devices", "how many devices", "model number", "storage options", "release year", "catalogue gap",
                 "missing device info", "missing specs", "duplicate device", "bad model number")) return Intent.CATALOGUE;
         if (containsAny(x, "learn", "learning", "outcome", "pattern", "accuracy", "forecast error", "improve", "what did you learn", "learning health")) return Intent.LEARNING;
         if (containsAny(x, "release", "deployment", "version", "apk", "ota", "what changed", "what s new", "latest build", "latest update")) return Intent.RELEASES;
@@ -45,11 +45,20 @@ final class IntentRouter {
     static boolean isFollowUp(String text) {
         String x = normalise(text);
         if (x.isEmpty() || x.length() >= 120) return false;
-        return x.equals("why") || x.equals("how") || x.equals("which") || x.equals("tell me more") ||
-                x.equals("more") || x.equals("what else") || x.equals("what about that") || x.equals("really") ||
+        return x.equals("why") || x.equals("how") || x.equals("which") || x.equals("when") || x.equals("where") ||
+                x.equals("tell me more") || x.equals("more") || x.equals("what else") || x.equals("what about that") ||
+                x.equals("what about it") || x.equals("what about them") || x.equals("really") || x.equals("that") ||
+                x.equals("it") || x.equals("those") || x.equals("them") || x.equals("same") || x.equals("same one") ||
+                x.equals("that one") || x.equals("those ones") || x.equals("the other one") || x.equals("the others") ||
                 x.equals("and that") || x.equals("go on") || x.equals("keep going") || x.equals("explain") ||
-                x.startsWith("why ") || x.startsWith("which ") || x.startsWith("what about ") || x.startsWith("how about ") || x.startsWith("and ") ||
-                x.startsWith("tell me more") || x.startsWith("go deeper") || x.startsWith("explain that") || x.startsWith("show me more");
+                x.equals("how many") || x.equals("what happened") ||
+                x.startsWith("why ") || x.startsWith("why is that") || x.startsWith("why did that") ||
+                x.startsWith("which ") || x.startsWith("what about ") || x.startsWith("what about the other") ||
+                x.startsWith("how about ") || x.startsWith("how many of ") || x.startsWith("and ") ||
+                x.startsWith("is that ") || x.startsWith("does that ") || x.startsWith("did that ") ||
+                x.startsWith("what does that ") || x.startsWith("what happened to ") ||
+                x.startsWith("tell me more") || x.startsWith("go deeper") || x.startsWith("explain that") ||
+                x.startsWith("can you explain") || x.startsWith("show me more") || x.startsWith("show those") || x.startsWith("show them");
     }
 
     static String normalise(String text) {
