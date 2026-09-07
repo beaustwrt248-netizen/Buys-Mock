@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c])),label=v=>String(v||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),label=v=>String(v||'').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 let activity=[],incidents=[],channel=null,selected=null;
 function shell(){if($('guardianLiveSessions'))return;const queue=$('guardianList')?.closest('section');if(!queue)return;const s=document.createElement('section');s.className='card';s.id='guardianLiveSessions';s.innerHTML='<div class="actions"><div><h2 style="margin-bottom:4px">Live Guardian sessions</h2><div class="muted">Realtime activity showing what Guardian is assessing, testing and waiting on.</div></div><span id="guardianLiveBadge" class="pill ok">CONNECTING</span></div><div id="guardianLiveSessionList" style="margin-top:12px"></div><div id="guardianLiveDetail" style="margin-top:14px"></div>';queue.insertAdjacentElement('beforebegin',s)}
 function statusIcon(s){return s==='success'?'✓':s==='error'?'!':s==='warning'?'△':s==='waiting'?'◷':s==='stopped'?'■':'●'}
