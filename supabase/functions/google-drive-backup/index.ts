@@ -73,6 +73,23 @@ async function upload(name: string, payload: string, token: string) {
   if (!res.ok) throw new Error(`Drive upload failed: ${json.error?.message || res.status}`);
   return json;
 }
+async function verifyUploadedBackup(fileId: string, token: string, expectedDigest: string) {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`Drive recovery verification download failed: ${res.status}`);
+  const raw = await res.text();
+  let parsed: Record<string, unknown>;
+  try { parsed = JSON.parse(raw); }
+  catch { throw new Error('Drive recovery verification failed: uploaded backup is not valid JSON'); }
+  const embedded = String(parsed.sha256 || '');
+  const { sha256: _embeddedSha, ...document } = parsed;
+  const recomputed = await sha256(JSON.stringify(document));
+  if (!embedded || embedded !== expectedDigest || recomputed !== expectedDigest) {
+    throw new Error('Drive recovery verification failed: backup digest mismatch');
+  }
+  return { verified: true, sha256: recomputed, bytes: new TextEncoder().encode(raw).byteLength };
+}
 async function cleanupOldBackups(token: string) {
   const q = `'${DRIVE_FOLDER_ID}' in parents and trashed = false and name contains 'morley-backup-'`;
   const url = new URL('https://www.googleapis.com/drive/v3/files');
@@ -153,6 +170,8 @@ Deno.serve(async (req: Request) => {
     const token = await oauthUserToken();
     phase = 'drive-upload';
     const drive = await upload(name, envelope, token);
+    phase = 'recovery-test';
+    const recoveryTest = await verifyUploadedBackup(String(drive.id), token, digest);
     let retention = { trashed: 0, scanned: 0 };
     let retentionWarning: string | null = null;
     phase = 'retention';
@@ -162,10 +181,10 @@ Deno.serve(async (req: Request) => {
     const { error: auditError } = await admin.from('admin_audit_log').insert({
       actor_user_id: actor === 'scheduler' ? null : actor,
       action: 'google_drive_backup_created', target_type: 'backup', target_id: drive.id,
-      details: { name, sha256: digest, tables: tables.length, trigger: actor, google_auth_mode: 'user-oauth', retention }
+      details: { name, sha256: digest, tables: tables.length, trigger: actor, google_auth_mode: 'user-oauth', retention, recovery_test: recoveryTest }
     });
     if (auditError) console.error('Backup audit insert failed', safeError(auditError));
-    return reply({ ok: true, name, file_id: drive.id, sha256: digest, created_at: createdAt, google_auth_mode: 'user-oauth', retention, retention_warning: retentionWarning });
+    return reply({ ok: true, name, file_id: drive.id, sha256: digest, created_at: createdAt, google_auth_mode: 'user-oauth', retention, retention_warning: retentionWarning, recovery_test: recoveryTest });
   } catch (error) {
     return reply({ error: safeError(error), phase }, 500);
   }
