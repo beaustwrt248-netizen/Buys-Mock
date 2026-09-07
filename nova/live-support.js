@@ -1,0 +1,13 @@
+(()=>{'use strict';
+const originalFetch=window.fetch.bind(window);
+const PAGE_SIZE=1000;
+const ACTIVE=new Set(['open','in_progress','waiting_on_user']);
+const categoryLabels={valuation:'Valuation',pricing:'Pricing',inventory:'Inventory',scanner:'Scanner',account:'Account',update:'Update',other:'Other'};
+function isSupportSnapshot(input){try{const raw=input instanceof Request?input.url:String(input);const url=new URL(raw,location.href);return url.origin===location.origin&&url.pathname.endsWith('/nova/support-health.json')}catch(_e){return false}}
+async function rows(){if(!window.NovaAuth?.rest)throw new Error('Nova authenticated REST access is unavailable.');const all=[];for(let offset=0;;offset+=PAGE_SIZE){const page=await window.NovaAuth.rest(`/rest/v1/support_tickets?select=status,priority,category,sla_due_at,first_response_at,updated_at&order=updated_at.desc&limit=${PAGE_SIZE}&offset=${offset}`);if(!Array.isArray(page))throw new Error('Support health response was invalid.');all.push(...page);if(page.length<PAGE_SIZE)break;}return all}
+function aggregate(items){const now=Date.now(),status=new Map(),categories=new Map();let active=0,high=0,overdue=0,awaiting=0;for(const ticket of items){const s=String(ticket?.status||'unknown');const c=String(ticket?.category||'other');status.set(s,(status.get(s)||0)+1);categories.set(c,(categories.get(c)||0)+1);if(ACTIVE.has(s)){active++;if(['high','urgent'].includes(String(ticket?.priority||'')))high++;if(ticket?.sla_due_at&&new Date(ticket.sla_due_at).getTime()<now)overdue++;if(!ticket?.first_response_at)awaiting++;}}
+return{checked_date:new Date().toISOString(),total_tickets:items.length,active_tickets:active,high_priority_active:high,sla_overdue:overdue,awaiting_first_response:awaiting,status_counts:[...status.entries()].map(([status,total])=>({status,total})).sort((a,b)=>b.total-a.total||a.status.localeCompare(b.status)),category_counts:[...categories.entries()].map(([category,total])=>({category,label:categoryLabels[category]||category.replaceAll('_',' '),total})).sort((a,b)=>b.total-a.total||a.category.localeCompare(b.category)),boundary_note:'Live aggregate only: subjects, descriptions, messages, identities, assignees and diagnostics were not requested.'}}
+async function load(){return aggregate(await rows())}
+window.NovaSupportLive={load};
+window.fetch=async(...args)=>{if(!isSupportSnapshot(args[0])||!window.NovaAuth?.rest)return originalFetch(...args);try{return new Response(JSON.stringify(await load()),{status:200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}})}catch(error){console.error('Nova live support health failed; using snapshot fallback.',error);return originalFetch(...args)}};
+})();
