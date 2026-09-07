@@ -64,4 +64,22 @@ class DeviceCatalogueImageResolutionTest {
 
         assertEquals(null, catalogueNearbyImageForExactModel(html, "ROG Phone 8", "AI2401"))
     }
+
+    @Test
+    fun nearbyImagePrefersClosestCandidateToExactIdentifier() {
+        val html = """
+            <section>
+                <img src="/images/unrelated-device.webp" />
+                <p>Other text that keeps the image in the broad search window.</p>
+                <h2>Zenfone 8</h2>
+                <img src="/images/zenfone8-front.webp" alt="Zenfone 8" />
+                <p>Hardware model ZS590KS</p>
+            </section>
+        """.trimIndent()
+
+        assertEquals(
+            "/images/zenfone8-front.webp",
+            catalogueNearbyImageForExactModel(html, "Zenfone 8", "I006D / ZS590KS"),
+        )
+    }
 }
