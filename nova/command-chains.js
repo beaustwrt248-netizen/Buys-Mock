@@ -4,10 +4,11 @@ const HISTORY_KEY='nova.command.history.v1';
 const MAX_HISTORY=50;
 const CHAIN_RE=/\s*(?:;|\band then\b|\bthen\b|\bfollowed by\b)\s*/i;
 const NEGATION=/\b(?:not|dont|cannot|cant|wont|never|stop|avoid)\b/i;
+const AUTH_BEARER=/\bauthorization\b\s*([:=]|\bis\b)\s*bearer\s+\S+/gi;
 const SECRET_ASSIGNMENT=/\b(password|passwd|passphrase|access[_ -]?token|refresh[_ -]?token|api[_ -]?key|apikey|secret|authorization)\b\s*([:=]|\bis\b)\s*(?:"[^"]*"|'[^']*'|\S+)/gi;
 const BEARER=/\bbearer\s+[a-z0-9._~+\/-]{8,}/gi;
 const JWT=/\beyJ[a-zA-Z0-9_-]{8,}\.[a-zA-Z0-9_-]{8,}\.[a-zA-Z0-9_-]{8,}\b/g;
-function sanitizeInput(value){return String(value??'').replace(BEARER,'Bearer [REDACTED]').replace(JWT,'[REDACTED JWT]').replace(SECRET_ASSIGNMENT,(_m,label,separator)=>`${label} ${separator} [REDACTED]`).slice(0,1000)}
+function sanitizeInput(value){return String(value??'').replace(AUTH_BEARER,(_m,separator)=>`Authorization ${separator} [REDACTED]`).replace(BEARER,'Bearer [REDACTED]').replace(JWT,'[REDACTED JWT]').replace(SECRET_ASSIGNMENT,(_m,label,separator)=>`${label} ${separator} [REDACTED]`).slice(0,1000)}
 function sanitizeRow(row){if(!row||typeof row!=='object')return null;return{...row,input:sanitizeInput(row.input)}}
 function loadHistory(){try{const raw=JSON.parse(sessionStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(raw)?raw.map(sanitizeRow).filter(Boolean).slice(0,MAX_HISTORY):[]}catch(_e){return[]}}
 function saveHistory(rows){try{sessionStorage.setItem(HISTORY_KEY,JSON.stringify(rows.map(sanitizeRow).filter(Boolean).slice(0,MAX_HISTORY)))}catch(_e){}}
