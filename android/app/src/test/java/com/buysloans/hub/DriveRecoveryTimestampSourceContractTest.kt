@@ -1,23 +1,36 @@
 package com.buysloans.hub
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
+import java.time.ZoneId
+import java.util.Locale
 
 class DriveRecoveryTimestampSourceContractTest {
     @Test
-    fun backupTimestampsUseDeviceLocalTimeFormatting() {
-        val source = sequenceOf(
-            File("app/src/main/java/com/buysloans/hub/DriveBackupClient.kt"),
-            File("android/app/src/main/java/com/buysloans/hub/DriveBackupClient.kt")
-        ).firstOrNull { it.exists() } ?: error("DriveBackupClient.kt not found")
+    fun postgresUtcTimestampRendersInPerthLocalTime() {
+        val formatted = DriveBackupClient.localTimestamp(
+            "2026-09-07 13:47:28.023974+00:00",
+            ZoneId.of("Australia/Perth"),
+            Locale.forLanguageTag("en-AU")
+        )
 
-        val text = source.readText()
-        assertTrue(text.contains("OffsetDateTime.parse(normalized)"))
-        assertTrue(text.contains("ZoneId.systemDefault()"))
-        assertTrue(text.contains("FormatStyle.MEDIUM"))
-        assertTrue(text.contains("FormatStyle.SHORT"))
-        assertTrue(text.contains("localTimestamp(row.optString(\"created_at\"))"))
-        assertTrue(text.contains("localTimestamp(health.optJSONObject(\"last_backup\")?.optString(\"created_at\").orEmpty())"))
+        assertFalse(formatted.contains("+00:00"))
+        assertFalse(formatted.contains("13:47"))
+        assertTrue(formatted.contains("9:47") || formatted.contains("21:47"))
+        assertTrue(formatted.contains("2026"))
+    }
+
+    @Test
+    fun malformedTimestampFallsBackWithoutCrashing() {
+        assertEquals(
+            "not-a-timestamp",
+            DriveBackupClient.localTimestamp(
+                "not-a-timestamp",
+                ZoneId.of("Australia/Perth"),
+                Locale.forLanguageTag("en-AU")
+            )
+        )
     }
 }
