@@ -42,10 +42,13 @@ class AllDeviceCatalogueVisualContractTest {
 
     @Test
     fun nonPhoneCategoriesKeepCategoryAwareFallbacks() {
-        assertTrue(source.contains("PricingVisual.LAPTOP"))
-        assertTrue(source.contains("PricingVisual.DESKTOP"))
-        assertTrue(source.contains("PricingVisual.CONSOLE"))
-        assertTrue(source.contains("\"tablet\", \"wearable\" -> PricingVisual.PHONE"))
+        assertTrue(source.contains("\"laptop\" -> PricingVisual.LAPTOP"))
+        assertTrue(source.contains("\"desktop\" -> PricingVisual.DESKTOP"))
+        assertTrue(source.contains("\"console\" -> PricingVisual.CONSOLE"))
+        assertTrue(source.contains("\"tablet\" -> PricingVisual.TABLET"))
+        assertTrue(source.contains("\"wearable\" -> PricingVisual.WATCH"))
+        assertTrue(source.contains("else -> PricingVisual.ALL"))
+        assertFalse(source.contains("\"tablet\", \"wearable\" -> PricingVisual.PHONE"))
     }
 
     @Test
