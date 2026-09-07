@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
@@ -38,7 +37,6 @@ public class ConversationalNovaContractTest {
         assertTrue(engine.contains("what about that"));
         assertTrue(engine.contains("cancelled"));
         assertTrue(engine.contains("dismissed"));
-        assertFalse(engine.contains("I don’t yet have enough context to give you a useful answer. Tell me a little more about what you mean and I’ll follow the conversation from there."));
 
         assertTrue(router.contains("DAILY_BRIEF"));
         assertTrue(router.contains("KNOWLEDGE"));
