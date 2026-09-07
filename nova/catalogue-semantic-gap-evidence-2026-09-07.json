@@ -44,6 +44,20 @@
       "recommended_action": "Queue an evidence-backed storage finding for human review; do not auto-apply."
     },
     {
+      "device_catalog_id": 1538,
+      "device": "nubia Neo 5",
+      "official_product_name": "nubia Neo 5 5G",
+      "field": "storage_options",
+      "current_value": [],
+      "result": "discrepancy",
+      "confidence": 0.99,
+      "observed_value": ["256GB"],
+      "evidence": "nubia's official Neo 5 5G product and comparison pages list the base Neo 5 5G with (8+12)GB RAM + 256GB storage. This evidence is for the base Neo 5 5G, not the GT or Max variants.",
+      "source": "https://www.nubia.com/id/products/smartphones/nubia/nubia-neo-5-5g/compare.html",
+      "secondary_source": "https://mys.nubia.com/products/nubia-neo-5-5g",
+      "recommended_action": "Queue an evidence-backed 256GB storage finding for human review; do not inherit GT or Max capacities and do not auto-apply."
+    },
+    {
       "device_catalog_id": 1593,
       "device": "ASUS ExpertBook B3 G1 14-inch",
       "model_number": "B3406CCA",
@@ -70,17 +84,19 @@
   ],
   "unresolved_cases": [
     {
+      "device_catalog_id": 857,
+      "device": "AYANEO KUN",
+      "field": "storage_options",
+      "reason": "AYANEO officially confirms an M.2 2280 PCIe 4.0 SSD slot supporting up to 8TB and separately refers to configuration/price charts, but the checked manufacturer text does not expose the exact retail storage combinations. Record hardware storage capability as evidence only; do not convert the 8TB maximum into a sold storage variant.",
+      "source": "https://store.ayaneo.com/article/782"
+    },
+    {
       "device_catalog_id": 1553,
       "device": "motorola razr 70 plus",
       "model_number": "XT2659-3",
       "field": "storage_options",
-      "reason": "Official Motorola material confirms internal storage is used and expandable storage is unsupported, but the checked manufacturer pages did not expose a reliable exact internal capacity for this market/model variant. Do not infer capacity from retailer listings."
-    },
-    {
-      "device_catalog_id": 1538,
-      "device": "nubia Neo 5",
-      "field": "storage_options",
-      "reason": "Official ZTE/nubia launch material confirms the model and rollout but did not provide an exact base-model storage capacity in the checked evidence. Do not inherit Neo 5 GT or Neo 5 Max capacities."
+      "reason": "Motorola confirms XT2659-3 and that the phone uses internal storage with no expandable storage. Lenovo/Motorola part-number evidence and multiple direct retailers strongly associate XT2659-3 with 512GB, but Motorola's checked product/support pages do not explicitly expose the exact internal capacity. Keep unresolved rather than inferring a catalogue variant from retail evidence alone.",
+      "source": "https://www.motorola.com/gb/en/p/phones/razr/razr-70-plus/pmipmjq45m3?pn=PBCF0000GB"
     }
   ]
 }
