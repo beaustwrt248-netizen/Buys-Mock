@@ -9,4 +9,10 @@ assert.doesNotMatch(index, /web-admin-mode\.js/);
 assert.match(notes, /dedicated Morley Admin website under `admin\/`/);
 assert.match(notes, /does not remove server-side role enforcement/);
 
-console.log('Embedded Admin removal regression contract OK');
+// Keep the replacement for stale Guardian PR #1016 anchored to the live srcdoc bootstrap.
+assert.match(index, /profileNetworkGuard/);
+assert.match(index, /morley:profile-network/);
+assert.match(index, /Profile bootstrap request timed out after/);
+assert.match(index, /html=html\.replace\('<\/head>',phoneProbe\+profileNetworkGuard\+styleTags\+'<\/head>'\)/);
+
+console.log('Embedded Admin removal and srcdoc profile bootstrap regression contract OK');
