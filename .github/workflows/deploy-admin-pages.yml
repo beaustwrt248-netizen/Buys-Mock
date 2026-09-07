@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js nova/app.js nova/app-core.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-phone-grouping.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js nova/app.js nova/app-core.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -81,6 +81,8 @@ jobs:
           test -s site/mobile-app-parity-v4.js
           test -s site/mobile-app-parity-v5.css
           test -s site/mobile-app-parity-v5.js
+          test -s site/mobile-phone-grouping.css
+          test -s site/mobile-phone-grouping.js
           test -s site/morley-central-pricing.js
           test -s site/web-universal-buy.js
           test -s site/admin/index.html
@@ -185,8 +187,10 @@ jobs:
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-layout-fix.js'
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.css?v='
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v4.js?v='
-          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v5.css?v=202609041'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v5.css?v=202609072'
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-app-parity-v5.js?v=202609041'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-phone-grouping.css?v=202609073'
+          fetch_until_contains "$BASE/" "$RUNNER_TEMP/page-index.html" 'mobile-phone-grouping.js?v=202609073'
           fetch_runtime_until_contains "$BASE/web-base.html" "$RUNNER_TEMP/web-base.html" 'Buys and Loans Hub'
           fetch_until_contains "$BASE/web-auth.js" "$RUNNER_TEMP/web-auth.js" 'verifyAuthorised'
           fetch_until_contains "$BASE/secure-pricing.js" "$RUNNER_TEMP/secure-pricing.js" 'localStorage.getItem(STORE)'
@@ -211,6 +215,11 @@ jobs:
           fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" 'body#morleyMobileParityRoot button{background-image:none!important}'
           fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" 'nav#morleyBottomNav'
           ! grep -Eqi '#2875ff|#2f7cff|#16c7ff|#12c9ff|#1f5fd8|#1f63e2|#12aeea' "$RUNNER_TEMP/mobile-app-parity-v5.css"
+          fetch_until_contains "$BASE/mobile-phone-grouping.js" "$RUNNER_TEMP/mobile-phone-grouping.js" 'const storageFromCard='
+          fetch_until_contains "$BASE/mobile-phone-grouping.js" "$RUNNER_TEMP/mobile-phone-grouping.js" 'data-duplicate-count'
+          node --check "$RUNNER_TEMP/mobile-phone-grouping.js"
+          fetch_until_contains "$BASE/mobile-phone-grouping.css" "$RUNNER_TEMP/mobile-phone-grouping.css" 'button.morley-storage-chip'
+          fetch_until_contains "$BASE/mobile-phone-grouping.css" "$RUNNER_TEMP/mobile-phone-grouping.css" '.morley-group-source-bin'
           fetch_until_contains "$BASE/mobile-viewport-lock.js" "$RUNNER_TEMP/mobile-viewport-lock.js" 'keep this helper immediately'
           node --check "$RUNNER_TEMP/mobile-viewport-lock.js"
           fetch_until_contains "$BASE/mobile-app-parity-v4.css" "$RUNNER_TEMP/mobile-app-parity-v4.css" '--morley-v4-accent:#167a5a'
