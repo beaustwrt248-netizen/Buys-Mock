@@ -39,15 +39,16 @@ async function newTarget(port){
 
 async function inspect(cdp,file,width,label,expectedText){
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:HEIGHT,deviceScaleFactor:1,mobile:width<=430,screenWidth:width,screenHeight:HEIGHT});
-  await cdp.call('Emulation.setScriptExecutionDisabled',{value:true});
   const url=pathToFileURL(path.join(ROOT,file)).href;
   await cdp.call('Page.navigate',{url});
   await cdp.waitEvent('Page.loadEventFired',5000).catch(()=>{});
-  await sleep(150);
-  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1200)}})()`});
+  await sleep(700);
+  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1600),bodyVisibility:getComputedStyle(b).visibility,bodyDisplay:getComputedStyle(b).display}})()`});
   const v=result.result.value;
   const semantic=`${v.title||''} ${v.bodyText||''}`.toLowerCase();
   assert.equal(v.clientWidth,width,`${label} viewport should apply at ${width}px`);
+  assert.notEqual(v.bodyDisplay,'none',`${label} body must be displayed at ${width}px`);
+  assert.notEqual(v.bodyVisibility,'hidden',`${label} body must be visible at ${width}px`);
   assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);
   assert.ok(semantic.includes(String(expectedText).toLowerCase()),`${label} should expose expected product text at ${width}px`);
   assert.ok(v.bodyWidth<=width+2,`${label} body exceeds viewport at ${width}px: ${v.bodyWidth}px`);
@@ -62,7 +63,7 @@ async function run(){
   if(!chrome){if(process.env.GITHUB_ACTIONS==='true')throw new Error('Google Chrome is required on the GitHub Actions runner');console.log('SKIP browser responsive smoke: Chrome is not installed locally');return}
   const port=await freePort();
   const profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-browser-smoke-'));
-  const proc=cp.spawn(chrome,[`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
+  const proc=cp.spawn(chrome,[`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--allow-file-access-from-files','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
   let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
   try{
     await waitForVersion(port);
