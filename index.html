@@ -26,7 +26,7 @@ const styles=[
   'reference-theme.css?v=3','no-gold.css?v=2','more-menu-v2.css?v=7','morley-graphite-web.css?v=1',
   'morley-app-parity-v2.css?v=2','mobile-parity-v3.css?v=1','morley-light-web.css?v=2','morley-ui-baseline.css?v=1',
   'mobile-menu-theme-lock.css?v=1','mobile-viewport-lock.css?v=202609022','morley-desktop-dashboard.css?v=2',
-  'web-universal-buy.css?v=2','mobile-app-parity-v4.css?v=202609044','mobile-app-parity-v5.css?v=202609041'
+  'web-universal-buy.css?v=2&imgperf=1','mobile-app-parity-v4.css?v=202609044','mobile-app-parity-v5.css?v=202609041'
 ];
 const scripts=[
   'secure-pricing.js?v=3','global-device-filter.js?v=5','match-quality.js?v=3','workflow.js?v=6',
@@ -41,60 +41,13 @@ const scripts=[
   'web-route-contract-fix.js?v=1','ultimate-parity.js?v=2','mobile-layout-fix.js?v=202609042',
   'mobile-video-polish.js?v=1','desktop-mode-layout-fix.js?v=2','web-initial-render-fix.js?v=1',
   'mobile-readability-fix.js?v=1','morley-ui-baseline.js?v=2','mobile-menu-canonical-lock.js?v=1',
-  'mobile-viewport-lock.js?v=202609022','morley-desktop-dashboard.js?v=2','morley-central-pricing.js?v=1',
-  'web-universal-buy.js?v=2','mobile-app-parity-v4.js?v=202609044','mobile-app-parity-v5.js?v=202609041&route=2'
+  'mobile-viewport-lock.js?v=202609022','morley-desktop-dashboard.js?v=2','morley-central-pricing.js?v=1&imgperf=1',
+  'web-universal-buy.js?v=2&imgperf=1','mobile-app-parity-v4.js?v=202609044','mobile-app-parity-v5.js?v=202609041&route=2'
 ];
 const requiredRecentRender="const recentEl=document.getElementById('recent');recentEl.innerHTML=activityLog.length?'':'<div class=\"muted\">No activity yet.</div>';";
 const guardedRecentRender="const recentEl=document.getElementById('recent');if(!recentEl)throw new Error('Morley render invariant failed: missing #recent target in embedded workspace.');recentEl.innerHTML=activityLog.length?'':'<div class=\"muted\">No activity yet.</div>';";
-
-async function candidateHtml(){
-  let last;
-  for(let attempt=0;attempt<5;attempt++){
-    try{
-      const url=attempt===0?CANDIDATE:CANDIDATE+'?morley_retry='+Date.now()+'_'+attempt;
-      const response=await fetch(url,{cache:'no-store'});
-      if(response.ok){
-        const html=await response.text();
-        if(html.includes(BASE_MARKER))return html;
-        last=new Error('Invalid Morley workspace response');
-      }else last=new Error('Workspace HTTP '+response.status);
-    }catch(error){
-      last=error;
-    }
-    if(attempt<4)await wait(500*(attempt+1));
-  }
-  console.error('Morley workspace bootstrap failed',last);
-  throw new Error('Could not load the Morley workspace');
-}
-
-(async()=>{
-  const loading=document.getElementById('loading');
-  const frame=document.getElementById('appframe');
-  try{
-    let html=await candidateHtml();
-    if(!html.includes(requiredRecentRender)){
-      throw new Error('Morley workspace bootstrap missing the required recent-activity render anchor.');
-    }
-    html=html.replace(requiredRecentRender,guardedRecentRender);
-    html=html.replace('<meta name="theme-color" content="#08111f">','<meta name="theme-color" content="#f5f7f4">');
-    html=html.replace('<title>Buys and Loans Hub</title>','<title>B&L Morley</title>');
-    html=html.replace(/Buys & Loans Hub/g,'B&L Morley');
-    html=html.replace(/Buys and Loans Calculator/g,'B&L Morley');
-    html=html.replace(/<span>\s*PRODUCTION(?:\s+CANDIDATE)?\s*<\/span>/gi,'');
-    html=html.replace(/<meta\s+name=["']viewport["'][^>]*>/i,'<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">');
-    if(!/<meta\s+name=["']viewport/i.test(html)){
-      html=html.replace('<head>','<head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">');
-    }
-    const phoneProbe='<script>(function(){var s=Math.min(Number(screen.width)||9999,Number(screen.height)||9999),v=window.visualViewport,m=Math.min(Number(v&&v.width)||9999,Number(v&&v.height)||9999);if(s<=600||m<=600)document.documentElement.classList.add("morley-physical-phone")})();<\/script>';
-    const styleTags=styles.map(src=>'<link rel="stylesheet" href='+JSON.stringify(src)+'>').join('');
-    html=html.replace('</head>',phoneProbe+styleTags+'</head>');
-    html=html.replace('</body>',scripts.map(src=>'<script defer src='+JSON.stringify(src)+'><\/script>').join(''));
-    frame.addEventListener('load',()=>loading.remove(),{once:true});
-    frame.srcdoc=html;
-  }catch(error){
-    loading.innerHTML='<div><b>B&L Morley</b><span>'+String(error.message||error)+'</span></div>';
-  }
-})();
+async function candidateHtml(){let last;for(let attempt=0;attempt<5;attempt++){try{const url=attempt===0?CANDIDATE:CANDIDATE+'?morley_retry='+Date.now()+'_'+attempt;const response=await fetch(url,{cache:'no-store'});if(response.ok){const html=await response.text();if(html.includes(BASE_MARKER))return html;last=new Error('Invalid Morley workspace response');}else last=new Error('Workspace HTTP '+response.status);}catch(error){last=error;}if(attempt<4)await wait(500*(attempt+1));}console.error('Morley workspace bootstrap failed',last);throw new Error('Could not load the Morley workspace');}
+(async()=>{const loading=document.getElementById('loading');const frame=document.getElementById('appframe');try{let html=await candidateHtml();if(!html.includes(requiredRecentRender))throw new Error('Morley workspace bootstrap missing the required recent-activity render anchor.');html=html.replace(requiredRecentRender,guardedRecentRender);html=html.replace('<meta name="theme-color" content="#08111f">','<meta name="theme-color" content="#f5f7f4">');html=html.replace('<title>Buys and Loans Hub</title>','<title>B&L Morley</title>');html=html.replace(/Buys & Loans Hub/g,'B&L Morley');html=html.replace(/Buys and Loans Calculator/g,'B&L Morley');html=html.replace(/<span>\s*PRODUCTION(?:\s+CANDIDATE)?\s*<\/span>/gi,'');html=html.replace(/<meta\s+name=["']viewport["'][^>]*>/i,'<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">');if(!/<meta\s+name=["']viewport/i.test(html))html=html.replace('<head>','<head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">');const phoneProbe='<script>(function(){var s=Math.min(Number(screen.width)||9999,Number(screen.height)||9999),v=window.visualViewport,m=Math.min(Number(v&&v.width)||9999,Number(v&&v.height)||9999);if(s<=600||m<=600)document.documentElement.classList.add("morley-physical-phone")})();<\/script>';const styleTags=styles.map(src=>'<link rel="stylesheet" href='+JSON.stringify(src)+'>').join('');html=html.replace('</head>',phoneProbe+styleTags+'</head>');html=html.replace('</body>',scripts.map(src=>'<script defer src='+JSON.stringify(src)+'><\/script>').join(''));frame.addEventListener('load',()=>loading.remove(),{once:true});frame.srcdoc=html;}catch(error){loading.innerHTML='<div><b>B&L Morley</b><span>'+String(error.message||error)+'</span></div>';}})();
 </script>
 </body>
 </html>

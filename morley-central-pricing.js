@@ -15,40 +15,35 @@ function authSession(){try{return JSON.parse(localStorage.getItem(AUTH)||'null')
 function status(){try{return JSON.parse(localStorage.getItem(META)||'null')||{source:'live-device-catalogue',syncedAt:null,count:load().length}}catch{return{source:'live-device-catalogue',syncedAt:null,count:load().length}}}
 function catalogueRows(payload){
  const devices=Array.isArray(payload?.devices)?payload.devices:[],prices=Array.isArray(payload?.prices)?payload.prices:[];
- const priceByDevice=new Map();
- for(const price of prices){if(price?.authoritative!==true||!Number.isFinite(Number(price?.price_aud)))continue;const id=Number(price.device_catalog_id);if(!Number.isFinite(id))continue;const key=`${id}|${normalizeStorage(price.storage)}`;priceByDevice.set(key,price)}
+ const priceByKey=new Map(),priceStorageByDevice=new Map();
+ for(const price of prices){
+  if(price?.authoritative!==true||!Number.isFinite(Number(price?.price_aud)))continue;
+  const id=Number(price.device_catalog_id);if(!Number.isFinite(id))continue;
+  const storage=String(price.storage||'').trim(),storageKey=normalizeStorage(storage);
+  priceByKey.set(`${id}|${storageKey}`,price);
+  if(storage){let list=priceStorageByDevice.get(id);if(!list){list=[];priceStorageByDevice.set(id,list)}list.push(storage)}
+ }
  const rows=[];
  for(const device of devices){
   const id=Number(device?.id);if(!Number.isFinite(id)||id<=0)continue;
   const storageSet=new Map();
   for(const storage of Array.isArray(device.storage_options)?device.storage_options:[]){const clean=String(storage||'').trim();if(clean)storageSet.set(normalizeStorage(clean),clean)}
-  for(const price of prices){if(Number(price?.device_catalog_id)!==id)continue;const clean=String(price?.storage||'').trim();if(clean&&!storageSet.has(normalizeStorage(clean)))storageSet.set(normalizeStorage(clean),clean)}
+  for(const storage of priceStorageByDevice.get(id)||[]){const key=normalizeStorage(storage);if(key&&!storageSet.has(key))storageSet.set(key,storage)}
   if(!storageSet.size)storageSet.set('','');
+  const imageUrl=String(device.image_reference_url||'').trim();
   for(const [storageKey,storage] of storageSet){
-   const price=priceByDevice.get(`${id}|${storageKey}`)||null;
-   rows.push({
-    id:`device:${id}:${storageKey||'default'}`,
-    deviceCatalogId:id,
-    category:mapCategory(device.category),
-    brand:String(device.brand||''),
-    model:String(device.model_name||''),
-    modelNumber:String(device.model_number||''),
-    storage,
-    value:price?Number(price.price_aud):null,
-    authoritative:price?.authoritative===true,
-    source:price?'Morley approved price':'Live device catalogue',
-    updatedAt:null
-   });
+   const price=priceByKey.get(`${id}|${storageKey}`)||null;
+   rows.push({id:`device:${id}:${storageKey||'default'}`,deviceCatalogId:id,category:mapCategory(device.category),brand:String(device.brand||''),model:String(device.model_name||''),modelNumber:String(device.model_number||''),storage,imageUrl,value:price?Number(price.price_aud):null,authoritative:price?.authoritative===true,source:price?'Morley approved price':'Live device catalogue',updatedAt:null});
   }
  }
  return rows.sort((a,b)=>String(a.category).localeCompare(String(b.category))||a.brand.localeCompare(b.brand)||a.model.localeCompare(b.model)||a.storage.localeCompare(b.storage));
 }
-let syncing=false;
-async function sync(){const session=authSession();const token=session?.access_token;if(!token)return{ok:false,reason:'not-authenticated',...status()};if(syncing)return{ok:false,reason:'sync-in-progress',...status()};syncing=true;try{const r=await fetch(CATALOGUE_API,{method:'GET',headers:{apikey:API_KEY,Authorization:`Bearer ${token}`,'Cache-Control':'no-cache'}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.error||`Catalogue sync failed (${r.status})`);const rows=catalogueRows(data);save(rows,'shared-device-catalogue');return{ok:true,...status()}}catch(error){dispatchEvent(new CustomEvent('morley-pricing-sync-failed',{detail:{message:String(error?.message||error)}}));return{ok:false,reason:'network',error:String(error?.message||error),...status()}}finally{syncing=false}}
-window.MorleyCentralPricing={version:4,load,search,get,updatePrice,history,reset,sync,status,get extraBrands(){return[]},grades:{A:.70,B:.50,C:.30},money:v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(v)||0)};
+let syncing=false,lastSyncAt=0;
+async function sync(){const session=authSession();const token=session?.access_token;if(!token)return{ok:false,reason:'not-authenticated',...status()};if(syncing)return{ok:false,reason:'sync-in-progress',...status()};if(Date.now()-lastSyncAt<30000)return{ok:true,reason:'recent-sync',...status()};syncing=true;try{const r=await fetch(CATALOGUE_API,{method:'GET',headers:{apikey:API_KEY,Authorization:`Bearer ${token}`}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data?.error||`Catalogue sync failed (${r.status})`);const rows=catalogueRows(data);save(rows,'shared-device-catalogue');lastSyncAt=Date.now();return{ok:true,...status()}}catch(error){dispatchEvent(new CustomEvent('morley-pricing-sync-failed',{detail:{message:String(error?.message||error)}}));return{ok:false,reason:'network',error:String(error?.message||error),...status()}}finally{syncing=false}}
+window.MorleyCentralPricing={version:5,load,search,get,updatePrice,history,reset,sync,status,get extraBrands(){return[]},grades:{A:.70,B:.50,C:.30},money:v=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(Number(v)||0)};
 let lastToken='';
 const watchAuth=()=>{const token=authSession()?.access_token||'';if(token&&token!==lastToken){lastToken=token;sync()}};
 const kick=()=>{watchAuth();if(authSession()?.access_token)sync()};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',kick,{once:true});else kick();
-addEventListener('online',kick);addEventListener('focus',watchAuth);setInterval(watchAuth,1000);
+addEventListener('online',kick);addEventListener('focus',watchAuth);setInterval(watchAuth,5000);
 })();
