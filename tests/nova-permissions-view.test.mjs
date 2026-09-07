@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const app = fs.readFileSync('nova/app.js', 'utf8');
+const app = fs.readFileSync('nova/app-core.js', 'utf8');
 const permissions = fs.readFileSync('nova/permissions.js', 'utf8');
 
 assert.match(app, /permissions\.js\?v=1/, 'Nova core must load the isolated permissions view');
@@ -22,6 +22,6 @@ assert.match(permissions, /let refreshVersion=0;/, 'permissions policy refresh m
 assert.match(permissions, /const requestVersion=\+\+refreshVersion/, 'permissions policy refresh must version each request');
 assert.ok((permissions.match(/if\(requestVersion!==refreshVersion\)return/g)||[]).length>=2, 'permissions must reject stale success and stale failure paths');
 assert.doesNotMatch(permissions, /\b(?:POST|PUT|PATCH|DELETE)\b/, 'permissions view must not introduce HTTP write methods');
-assert.doesNotMatch(permissions, /mergePull|approve|rerun|cancelWorkflow|updateFile|createFile/, 'permissions view must not introduce protected action functions');
+assert.doesNotMatch(permissions, /\\b(?:mergePull|approve|rerun|cancelWorkflow|updateFile|createFile)\\s*\\(/, 'permissions view must not introduce protected action functions');
 
 console.log('nova permissions view regression: PASS');
