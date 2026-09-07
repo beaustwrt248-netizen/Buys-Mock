@@ -26,3 +26,4 @@ window.addEventListener('DOMContentLoaded',refreshRecommendations);document.addE
 })();
 (()=>{'use strict';const script=document.createElement('script');script.src='development-history.js?v=1';script.defer=true;document.head.appendChild(script)})();
 (()=>{'use strict';const css=document.createElement('link');css.rel='stylesheet';css.href='conversation.css?v=1';document.head.appendChild(css);const script=document.createElement('script');script.src='conversation.js?v=1';script.defer=true;document.head.appendChild(script)})();
+(()=>{'use strict';let loaded=false;function load(){if(loaded||window.NovaCommands)return;loaded=true;const script=document.createElement('script');script.src='command-registry.js?v=1';script.defer=true;script.dataset.novaCommands='1';document.head.appendChild(script)}if(window.NovaAuth)load();else window.addEventListener('nova:authenticated',load,{once:true})})();
