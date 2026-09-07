@@ -7,7 +7,6 @@ on:
       - 'android/novaapp/**'
       - 'android/settings.gradle'
       - '.github/workflows/nova-apk-build.yml'
-      - 'nova/nova-update.json'
   push:
     branches: [ main ]
     paths:
