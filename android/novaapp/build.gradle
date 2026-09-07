@@ -6,6 +6,7 @@ def generatedNovaIconResDir = file("$buildDir/generated/novaIcon/res")
 def generatedNovaIconFile = file("$buildDir/generated/novaIcon/res/drawable-nodpi/nova_official_app_icon.png")
 def encodedNovaIconFile = file('src/main/nova_app_icon.b64')
 def novaMainActivity = file('src/main/java/com/buysloans/nova/MainActivity.java')
+def novaReferenceBrain = file('src/main/res/drawable-nodpi/nova_reference_brain.png')
 def novaReferenceUiMarker = file("$buildDir/generated/novaReferenceUi/.prepared")
 
 tasks.register('generateNovaAppIcon') {
@@ -18,12 +19,46 @@ tasks.register('generateNovaAppIcon') {
 }
 
 // Keep the approved visual reference reproducible at build time while the native UI remains programmatic.
-// The source checkout is ephemeral in CI; this prepares the compiled source without changing auth or authority boundaries.
+// The release fails closed if the reference asset or source hook cannot be validated. Auth and authority
+// boundaries are intentionally untouched.
 tasks.register('prepareNovaReferenceUi') {
     inputs.file(novaMainActivity)
-    inputs.file(file('src/main/res/drawable-nodpi/nova_reference_brain.webp'))
+    inputs.file(novaReferenceBrain)
     outputs.file(novaReferenceUiMarker)
     doLast {
+        if (!novaReferenceBrain.exists()) {
+            throw new GradleException('Nova reference brain PNG is missing.')
+        }
+        def image = javax.imageio.ImageIO.read(novaReferenceBrain)
+        if (image == null || image.width < 240 || image.height < 160) {
+            throw new GradleException('Nova reference brain PNG could not be decoded or has invalid dimensions.')
+        }
+
+        // Validate decoded artwork, not compressed byte size. A highly optimised PNG can be small while
+        // still containing the full approved reference. Sampling also catches blank/transparent placeholders.
+        int xStep = Math.max(1, image.width.intdiv(40))
+        int yStep = Math.max(1, image.height.intdiv(40))
+        int visibleSamples = 0
+        int litSamples = 0
+        for (int y = 0; y < image.height; y += yStep) {
+            for (int x = 0; x < image.width; x += xStep) {
+                int argb = image.getRGB(x, y)
+                int alpha = (argb >>> 24) & 0xff
+                int red = (argb >>> 16) & 0xff
+                int green = (argb >>> 8) & 0xff
+                int blue = argb & 0xff
+                if (alpha > 16) {
+                    visibleSamples++
+                    if (Math.max(red, Math.max(green, blue)) > 60) {
+                        litSamples++
+                    }
+                }
+            }
+        }
+        if (visibleSamples < 200 || litSamples < 80) {
+            throw new GradleException('Nova reference brain PNG decoded but does not contain enough visible artwork.')
+        }
+
         String source = novaMainActivity.getText('UTF-8')
 
         // Updates belong behind authenticated navigation, never on the sign-in screen.
@@ -31,12 +66,12 @@ tasks.register('prepareNovaReferenceUi') {
                 '        addOtaSection();\n        footer();\n    }\n\n    private void showWorkspace()',
                 '        footer();\n    }\n\n    private void showWorkspace()')
 
-        // Use the approved brain artwork from the supplied reference, while retaining a live thinking pulse.
-        source = source.replace(
-                'import android.graphics.Canvas;\n',
-                'import android.graphics.Bitmap;\nimport android.graphics.BitmapFactory;\nimport android.graphics.Canvas;\n')
-
         def brainPattern = ~/(?s)        @Override\n        protected void onDraw\(Canvas canvas\) \{.*?\n        \}\n\n        private int blend/
+        def brainMatcher = brainPattern.matcher(source)
+        if (!brainMatcher.find()) {
+            throw new GradleException('NovaBrainView drawing hook was not found; refusing to build an unverified hero.')
+        }
+
         String brainMethod = '''        @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
@@ -45,43 +80,111 @@ tasks.register('prepareNovaReferenceUi') {
             float cx = w / 2f;
             float cy = h / 2f;
 
-            Bitmap reference = BitmapFactory.decodeResource(getResources(), R.drawable.nova_reference_brain);
-            if (reference != null) {
-                float horizontalInset = dp(MainActivity.this, 1);
-                float verticalInset = dp(MainActivity.this, 1);
-                RectF target = new RectF(horizontalInset, verticalInset, w - horizontalInset, h - verticalInset);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setAlpha(255);
-                paint.clearShadowLayer();
-                canvas.drawBitmap(reference, null, target, paint);
+            android.graphics.drawable.Drawable reference =
+                    androidx.core.content.ContextCompat.getDrawable(MainActivity.this, R.drawable.nova_reference_brain);
+            if (reference != null && reference.getIntrinsicWidth() > 0 && reference.getIntrinsicHeight() > 0) {
+                float inset = dp(MainActivity.this, 1);
+                float availableW = Math.max(1f, w - inset * 2f);
+                float availableH = Math.max(1f, h - inset * 2f);
+                float scale = Math.min(availableW / reference.getIntrinsicWidth(),
+                        availableH / reference.getIntrinsicHeight());
+                int drawW = Math.max(1, Math.round(reference.getIntrinsicWidth() * scale));
+                int drawH = Math.max(1, Math.round(reference.getIntrinsicHeight() * scale));
+                int left = Math.round(cx - drawW / 2f);
+                int top = Math.round(cy - drawH / 2f);
 
                 if (thinking) {
                     int pulse = blend(accent, pink, phase);
-                    paint.setAlpha(185);
                     paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeCap(Paint.Cap.ROUND);
                     paint.setStrokeWidth(dp(MainActivity.this, 2));
                     paint.setColor(pulse);
-                    paint.setShadowLayer(dp(MainActivity.this, 13), 0, 0, pulse);
-                    canvas.drawCircle(cx, cy, Math.min(w, h) * (.39f + .018f * phase), paint);
+                    paint.setAlpha(72);
+                    paint.setShadowLayer(dp(MainActivity.this, 12), 0, 0, pulse);
+                    float haloRadius = Math.min(drawW, drawH) * (.48f + .012f * phase);
+                    canvas.drawCircle(cx, cy, haloRadius, paint);
                     paint.clearShadowLayer();
+                    paint.setAlpha(255);
                 }
-                paint.setAlpha(255);
+
+                reference.setBounds(left, top, left + drawW, top + drawH);
+                reference.setAlpha(255);
+                reference.draw(canvas);
                 return;
             }
 
-            float r = Math.min(w, h) * .40f;
-            int pulse = thinking ? blend(accent, pink, phase) : blend(accent, violet, phase * .45f);
+            // A drawable failure must never degrade to the empty ring seen in 0.3.11.
+            // Fall back to Nova's native detailed brain so the hero remains recognisable.
+            cy = h / 2f - dp(MainActivity.this, 2);
+            float r = Math.min(w, h) * .34f;
+            int pulse = thinking
+                    ? blend(accent, pink, phase)
+                    : blend(accent, violet, phase * .45f);
+
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(pulse);
-            paint.setStrokeWidth(dp(MainActivity.this, 3));
-            paint.setShadowLayer(dp(MainActivity.this, 18), 0, 0, pulse);
-            canvas.drawCircle(cx, cy, r, paint);
+            paint.setAlpha(255);
+            paint.setColor(Color.argb(70, Color.red(violet), Color.green(violet), Color.blue(violet)));
+            paint.setStrokeWidth(dp(MainActivity.this, 10));
+            paint.setShadowLayer(dp(MainActivity.this, 14), 0, 0, pulse);
+            canvas.drawCircle(cx, cy, r * 1.12f, paint);
+
             paint.clearShadowLayer();
+            paint.setColor(pulse);
+            paint.setStrokeWidth(dp(MainActivity.this, 2));
+            canvas.drawCircle(cx, cy, r * 1.02f, paint);
+
+            paint.setColor(Color.rgb(183, 207, 255));
+            paint.setStrokeWidth(dp(MainActivity.this, 1));
+            float left = cx - r * .72f;
+            float top = cy - r * .62f;
+            float right = cx + r * .72f;
+            float bottom = cy + r * .62f;
+            oval.set(left, top, right, bottom);
+            canvas.drawOval(oval, paint);
+            canvas.drawLine(cx, top + r * .05f, cx, bottom - r * .05f, paint);
+
+            path.reset();
+            path.moveTo(cx - r * .08f, top + r * .08f);
+            path.cubicTo(cx - r * .52f, top - r * .04f, cx - r * .82f, cy - r * .18f, cx - r * .48f, cy);
+            path.cubicTo(cx - r * .86f, cy + r * .16f, cx - r * .56f, bottom + r * .03f, cx - r * .12f, bottom - r * .10f);
+            canvas.drawPath(path, paint);
+
+            path.reset();
+            path.moveTo(cx + r * .08f, top + r * .08f);
+            path.cubicTo(cx + r * .52f, top - r * .04f, cx + r * .82f, cy - r * .18f, cx + r * .48f, cy);
+            path.cubicTo(cx + r * .86f, cy + r * .16f, cx + r * .56f, bottom + r * .03f, cx + r * .12f, bottom - r * .10f);
+            canvas.drawPath(path, paint);
+
+            for (int i = -2; i <= 2; i++) {
+                float y = cy + i * r * .20f;
+                path.reset();
+                path.moveTo(cx - r * .62f, y);
+                path.cubicTo(cx - r * .35f, y - r * .13f, cx - r * .28f, y + r * .13f, cx - r * .04f, y);
+                canvas.drawPath(path, paint);
+                path.reset();
+                path.moveTo(cx + r * .62f, y);
+                path.cubicTo(cx + r * .35f, y - r * .13f, cx + r * .28f, y + r * .13f, cx + r * .04f, y);
+                canvas.drawPath(path, paint);
+            }
+
+            paint.setColor(Color.argb(100, Color.red(accent), Color.green(accent), Color.blue(accent)));
+            paint.setStrokeWidth(dp(MainActivity.this, 1));
+            oval.set(cx - r * 1.42f, cy - r * .46f, cx + r * 1.42f, cy + r * .46f);
+            canvas.drawOval(oval, paint);
+            oval.set(cx - r * 1.18f, cy - r * .78f, cx + r * 1.18f, cy + r * .78f);
+            canvas.save();
+            canvas.rotate(48, cx, cy);
+            canvas.drawOval(oval, paint);
+            canvas.restore();
         }
 
         private int blend'''
-        source = brainPattern.matcher(source).replaceFirst(java.util.regex.Matcher.quoteReplacement(brainMethod))
+        source = brainMatcher.replaceFirst(java.util.regex.Matcher.quoteReplacement(brainMethod))
+        if (!source.contains('R.drawable.nova_reference_brain') || !source.contains('reference.draw(canvas)')) {
+            throw new GradleException('Nova reference brain rendering was not installed into the compiled source.')
+        }
+
         novaMainActivity.write(source, 'UTF-8')
         novaReferenceUiMarker.parentFile.mkdirs()
         novaReferenceUiMarker.text = 'prepared\n'
@@ -96,8 +199,8 @@ android {
         applicationId 'com.buysloans.nova'
         minSdk 29
         targetSdk 35
-        versionCode 17
-        versionName '0.3.13'
+        versionCode 18
+        versionName '0.3.14'
         buildConfigField 'String', 'OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova/nova-update.json"'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
