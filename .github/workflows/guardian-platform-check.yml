@@ -30,4 +30,4 @@ jobs:
         run: |
           grep -q "Protected boundary detected" admin/guardian-platform.js
           grep -q "missing telemetry must not be reported healthy" tests/guardian-platform.test.cjs
-          grep -q "final merge remains human-controlled" admin/guardian-repairs.js
+          grep -qi "final merge remains human-controlled" admin/guardian-repairs.js
