@@ -3,7 +3,6 @@ const assert=require('node:assert/strict');
 const cp=require('node:child_process');
 const fs=require('node:fs');
 const http=require('node:http');
-const net=require('node:net');
 const os=require('node:os');
 const path=require('node:path');
 const {pathToFileURL}=require('node:url');
@@ -20,11 +19,10 @@ function chromeBinary(){
   }
   return null;
 }
-function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.unref();s.on('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(()=>resolve(p))})})}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function withTimeout(promise,ms,label){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms);timer.unref?.()})]).finally(()=>clearTimeout(timer))}
 function json(url,options={}){return withTimeout(new Promise((resolve,reject)=>{const u=new URL(url);const req=http.request({hostname:u.hostname,port:u.port,path:u.pathname+u.search,method:options.method||'GET',headers:{Connection:'close'}},res=>{let body='';res.setEncoding('utf8');res.on('data',chunk=>{body+=chunk});res.on('end',()=>{if((res.statusCode||500)>=400){reject(new Error(`${res.statusCode} ${url}`));return}try{resolve(JSON.parse(body))}catch(error){reject(new Error(`Invalid JSON from ${url}: ${error.message}`))}})});req.on('error',reject);req.setTimeout(3000,()=>req.destroy(new Error(`HTTP socket timed out for ${url}`)));req.end()}),5000,`HTTP ${url}`)}
-async function waitForVersion(port){let last;for(let i=0;i<50;i++){try{return await json(`http://127.0.0.1:${port}/json/version`)}catch(e){last=e;await sleep(100)}}throw last||new Error('Chrome DevTools endpoint unavailable')}
+function waitForDevTools(proc,getStderr){return withTimeout(new Promise((resolve,reject)=>{const inspect=chunk=>{const text=String(chunk);const m=text.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost):(\d+)\//);if(m){cleanup();resolve(Number(m[1]))}};const exited=(code,signal)=>{cleanup();reject(new Error(`Chrome exited before DevTools became ready (${code??signal??'unknown'}). ${getStderr().slice(-1200)}`))};const cleanup=()=>{proc.stderr?.off('data',inspect);proc.off('exit',exited)};proc.stderr?.on('data',inspect);proc.on('exit',exited);const existing=getStderr().match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost):(\d+)\//);if(existing){cleanup();resolve(Number(existing[1]))}}),10000,'Chrome DevTools startup')}
 
 class Cdp{
   constructor(url){this.url=url;this.ws=null;this.seq=0;this.pending=new Map();this.events=[]}
@@ -34,10 +32,7 @@ class Cdp{
   async close(){if(!this.ws)return;for(const [id,p] of this.pending){clearTimeout(p.timer);p.reject(new Error(`CDP session closed before response ${id}`))}this.pending.clear();if(this.ws.readyState===WebSocket.CLOSED)return;await Promise.race([new Promise(resolve=>{this.ws.addEventListener('close',resolve,{once:true});try{this.ws.close()}catch{resolve()}}),sleep(500)])}
 }
 
-async function newTarget(port){
-  const target=await json(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});
-  const cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();await cdp.call('Page.enable');await cdp.call('Runtime.enable');await cdp.call('Network.enable');await cdp.call('Network.setBlockedURLs',{urls:['*.js','*.mjs']});return cdp;
-}
+async function newTarget(port){const target=await json(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});const cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();await cdp.call('Page.enable');await cdp.call('Runtime.enable');await cdp.call('Network.enable');await cdp.call('Network.setBlockedURLs',{urls:['*.js','*.mjs']});return cdp}
 async function inspect(cdp,file,width,label,expectedText){
   await cdp.call('Emulation.setDeviceMetricsOverride',{width,height:HEIGHT,deviceScaleFactor:1,mobile:width<=430,screenWidth:width,screenHeight:HEIGHT});
   const url=pathToFileURL(path.join(ROOT,file)).href;await cdp.call('Page.navigate',{url});await cdp.waitEvent('Page.loadEventFired',3000).catch(()=>{});await sleep(200);
@@ -47,7 +42,7 @@ async function inspect(cdp,file,width,label,expectedText){
 async function stopChrome(proc){if(!proc||proc.exitCode!==null)return;proc.kill('SIGTERM');await Promise.race([new Promise(resolve=>proc.once('exit',resolve)),sleep(1200)]);if(proc.exitCode===null){proc.kill('SIGKILL');await Promise.race([new Promise(resolve=>proc.once('exit',resolve)),sleep(800)])}}
 async function run(){
   if(typeof WebSocket!=='function')throw new Error('Node WebSocket support is required for real browser smoke tests');const chrome=chromeBinary();if(!chrome){if(process.env.GITHUB_ACTIONS==='true')throw new Error('Google Chrome is required on the GitHub Actions runner');console.log('SKIP browser responsive smoke: Chrome is not installed locally');return}
-  const port=await freePort(),profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-browser-smoke-'));const proc=cp.spawn(chrome,[`--remote-debugging-port=${port}`,'--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--allow-file-access-from-files','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
-  try{await waitForVersion(port);for(const [file,label,expectedText] of [['nova/index.html','Nova static shell','Nova'],['admin/index.html','Admin sign-in shell','Admin']]){const cdp=await newTarget(port);try{for(const width of WIDTHS)await inspect(cdp,file,width,label,expectedText)}finally{await cdp.close()}}console.log(`Browser responsive smoke passed at ${WIDTHS.join(', ')}px for Nova and Admin static shells`)}catch(e){throw new Error(`${e.message}\nChrome stderr: ${stderr.slice(-2000)}`)}finally{await stopChrome(proc);try{fs.rmSync(profile,{recursive:true,force:true})}catch{}}
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-browser-smoke-'));const proc=cp.spawn(chrome,['--remote-debugging-port=0','--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--allow-file-access-from-files','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});let stderr='';proc.stderr.on('data',d=>{stderr+=String(d)});
+  try{const port=await waitForDevTools(proc,()=>stderr);await json(`http://127.0.0.1:${port}/json/version`);for(const [file,label,expectedText] of [['nova/index.html','Nova static shell','Nova'],['admin/index.html','Admin sign-in shell','Admin']]){const cdp=await newTarget(port);try{for(const width of WIDTHS)await inspect(cdp,file,width,label,expectedText)}finally{await cdp.close()}}console.log(`Browser responsive smoke passed at ${WIDTHS.join(', ')}px for Nova and Admin static shells`)}catch(e){throw new Error(`${e.message}\nChrome stderr: ${stderr.slice(-2000)}`)}finally{await stopChrome(proc);try{fs.rmSync(profile,{recursive:true,force:true})}catch{}}
 }
 run().catch(e=>{console.error(e.stack||e);process.exitCode=1});
