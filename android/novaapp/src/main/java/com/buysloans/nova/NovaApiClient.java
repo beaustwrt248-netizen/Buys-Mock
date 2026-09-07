@@ -72,18 +72,39 @@ final class NovaApiClient {
     boolean isSignedIn() { return session != null; }
     String signedInEmail() { return session == null ? "" : session.email; }
 
-    JSONArray sales() throws Exception { return get("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc&limit=100"); }
-    JSONArray inventory() throws Exception { return get("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc&limit=500"); }
-    JSONArray valuations() throws Exception { return get("/rest/v1/valuation_history?select=id,expected_profit,actual_profit,status,created_at&order=created_at.desc&limit=250"); }
-    JSONArray guardian() throws Exception { return get("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc&limit=250"); }
-    JSONArray guardianRepairs() throws Exception { return get("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc&limit=250"); }
-    JSONArray support() throws Exception { return get("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,updated_at&order=updated_at.desc&limit=200"); }
+    JSONArray sales() throws Exception {
+        return getAllPages("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc", 1000);
+    }
+
+    JSONArray inventory() throws Exception {
+        return getAllPages("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc", 1000);
+    }
+
+    JSONArray valuations() throws Exception {
+        return getAllPages("/rest/v1/valuation_history?select=id,expected_profit,actual_profit,status,created_at&order=created_at.desc", 1000);
+    }
+
+    JSONArray guardian() throws Exception {
+        return getAllPages("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc", 1000);
+    }
+
+    JSONArray guardianRepairs() throws Exception {
+        return getAllPages("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc", 1000);
+    }
+
+    JSONArray support() throws Exception {
+        return getAllPages("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,subject,description,created_at,updated_at&order=updated_at.desc", 1000);
+    }
+
     JSONArray catalogue() throws Exception {
         return getAllPages(
-                "/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,active,updated_at&active=eq.true&order=id.asc",
+                "/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,image_reference_url,active,updated_at&active=eq.true&order=id.asc",
                 1000);
     }
-    JSONArray releaseConfig() throws Exception { return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)"); }
+
+    JSONArray releaseConfig() throws Exception {
+        return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)");
+    }
 
     JSONObject knowledgeSearch(String query) throws Exception {
         return edge("nova-knowledge", new JSONObject().put("action", "search").put("q", query).put("limit", 6));
@@ -95,6 +116,22 @@ final class NovaApiClient {
 
     JSONObject learningSummary() throws Exception {
         return edge("nova-learning", new JSONObject().put("action", "summary"));
+    }
+
+    JSONObject vision(String imageDataUrl, String hint) throws Exception {
+        return edge("nova-vision", new JSONObject()
+                .put("image_data_url", imageDataUrl)
+                .put("hint", hint == null ? "" : hint));
+    }
+
+    JSONObject novaAction(String action, JSONObject details) throws Exception {
+        JSONObject body = details == null ? new JSONObject() : new JSONObject(details.toString());
+        body.put("action", action);
+        return edge("nova-actions", body);
+    }
+
+    JSONObject edgeCall(String function, JSONObject body) throws Exception {
+        return edge(function, body == null ? new JSONObject() : body);
     }
 
     private JSONArray get(String path) throws Exception {
@@ -129,7 +166,9 @@ final class NovaApiClient {
         return rows.getJSONObject(0);
     }
 
-    private static String encode(String value) throws Exception { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()); }
+    private static String encode(String value) throws Exception {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+    }
 
     private String request(String method, String path, String body, String bearer) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(BuildConfig.SUPABASE_URL + path).openConnection();
@@ -144,7 +183,9 @@ final class NovaApiClient {
         if (body != null) {
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "application/json");
-            try (OutputStream out = connection.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(body.getBytes(StandardCharsets.UTF_8));
+            }
         }
         int code = connection.getResponseCode();
         InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
