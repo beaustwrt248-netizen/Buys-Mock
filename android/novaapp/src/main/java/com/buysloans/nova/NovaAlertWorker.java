@@ -1,61 +1,73 @@
 package com.buysloans.nova;
 
+import android.app.job.JobParameters;
+import android.app.job.JobService;
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import androidx.annotation.NonNull;
-import androidx.work.Worker;
-import androidx.work.WorkerParameters;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public final class NovaAlertWorker extends Worker {
+public final class NovaAlertWorker extends JobService {
     private static final String PREFS = "nova_alert_state";
     private static final String LAST_DIGEST = "last_digest";
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
 
-    public NovaAlertWorker(@NonNull Context context, @NonNull WorkerParameters params) {
-        super(context, params);
+    @Override
+    public boolean onStartJob(JobParameters params) {
+        worker.execute(() -> {
+            boolean retry = false;
+            try {
+                runSnapshot();
+            } catch (SecurityException ignored) {
+                retry = false;
+            } catch (Exception ignored) {
+                retry = true;
+            }
+            jobFinished(params, retry);
+        });
+        return true;
     }
 
-    @NonNull
     @Override
-    public Result doWork() {
+    public boolean onStopJob(JobParameters params) {
+        return true;
+    }
+
+    @Override
+    public void onDestroy() {
+        worker.shutdownNow();
+        super.onDestroy();
+    }
+
+    private void runSnapshot() throws Exception {
         Context context = getApplicationContext();
-        try {
-            NovaCredentialStore store = new NovaCredentialStore(context);
-            if (!store.hasRememberedSession()) return Result.success();
-            String refresh = store.refreshToken();
-            if (refresh == null || refresh.isBlank()) return Result.success();
+        NovaCredentialStore store = new NovaCredentialStore(context);
+        if (!store.hasRememberedSession()) return;
+        String refresh = store.refreshToken();
+        if (refresh == null || refresh.isBlank()) return;
 
-            NovaApiClient api = new NovaApiClient();
-            NovaApiClient.Session session = api.restoreSession(refresh);
-            try { store.save(session); } catch (Exception ignored) {}
+        NovaApiClient api = new NovaApiClient();
+        NovaApiClient.Session session = api.restoreSession(refresh);
+        try { store.save(session); } catch (Exception ignored) {}
 
-            JSONArray guardian = api.guardian();
-            JSONArray support = api.support();
-            JSONArray catalogue = api.catalogue();
-            AlertSnapshot snapshot = snapshot(guardian, support, catalogue);
-            String digest = snapshot.digest();
-            SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-            String previous = prefs.getString(LAST_DIGEST, "");
-            if (!digest.equals(previous) && snapshot.actionable()) {
-                NovaAndroidOperator.postAttentionNotification(
-                        context,
-                        "Nova found items needing attention",
-                        snapshot.summary(),
-                        8201);
-            }
-            prefs.edit().putString(LAST_DIGEST, digest).apply();
-            return Result.success();
-        } catch (SecurityException e) {
-            return Result.success();
-        } catch (Exception e) {
-            return Result.retry();
+        AlertSnapshot snapshot = snapshot(api.guardian(), api.support(), api.catalogue());
+        String digest = snapshot.digest();
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String previous = prefs.getString(LAST_DIGEST, "");
+        if (!digest.equals(previous) && snapshot.actionable()) {
+            NovaAndroidOperator.postAttentionNotification(
+                    context,
+                    "Nova found items needing attention",
+                    snapshot.summary(),
+                    8201);
         }
+        prefs.edit().putString(LAST_DIGEST, digest).apply();
     }
 
     private static AlertSnapshot snapshot(JSONArray guardian, JSONArray support, JSONArray catalogue) {
