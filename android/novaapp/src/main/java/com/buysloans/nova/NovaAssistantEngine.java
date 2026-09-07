@@ -234,10 +234,10 @@ final class NovaAssistantEngine {
         }
         for(int i=0;i<catalogue.length();i++){
             JSONObject x=catalogue.getJSONObject(i); if(x.optString("model_number").isBlank()) missingModel++;
-            JSONArray s=x.optJSONArray("storage_options"); if(s==null||s.length()==0) missingStorage++;
+            JSONArray s=x.optJSONArray("storage_options"); if(categoryRequiresStorage(x.optString("category"))&&(s==null||s.length()==0)) missingStorage++;
         }
         if(approvals+high+urgent+overdue+missingModel+missingStorage==0) return "Nothing urgent is showing in the authorised live sources right now.";
-        return "What needs attention\n\nGuardian: "+approvals+" awaiting approval, "+high+" high/critical open.\nSupport: "+urgent+" high/urgent, "+overdue+" SLA overdue.\nCatalogue: "+missingModel+" missing model numbers, "+missingStorage+" missing storage options.\n\nNova can identify and explain these items, but protected actions remain human-approved.";
+        return "What needs attention\n\nGuardian: "+approvals+" awaiting approval, "+high+" high/critical open.\nSupport: "+urgent+" high/urgent, "+overdue+" SLA overdue.\nCatalogue: "+missingModel+" missing model numbers, "+missingStorage+" actionable storage gaps.\n\nNova can identify and explain these items, but protected actions remain human-approved.";
     }
 
     private static boolean isGuardianCurrent(String state) {
@@ -247,6 +247,12 @@ final class NovaAssistantEngine {
 
     private static boolean isSupportTerminal(String state) {
         return state.equals("resolved") || state.equals("closed") || state.equals("cancelled") || state.equals("dismissed");
+    }
+
+    static boolean categoryRequiresStorage(String category) {
+        String c = category == null ? "" : category.trim().toLowerCase(Locale.ROOT);
+        return c.equals("mobile_phone") || c.equals("tablet") || c.equals("laptop")
+                || c.equals("desktop") || c.equals("console");
     }
 
     private String summarise(IntentRouter.Intent intent) throws Exception {
@@ -267,8 +273,8 @@ final class NovaAssistantEngine {
         }
         if(intent==IntentRouter.Intent.CATALOGUE){
             JSONArray rows=api.catalogue();int missingModel=0,missingStorage=0,missingRam=0;Map<String,Integer> categories=new TreeMap<>();
-            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String category=x.optString("category","unknown");categories.put(category,categories.getOrDefault(category,0)+1);if(x.optString("model_number").isBlank())missingModel++;JSONArray storage=x.optJSONArray("storage_options");if(storage==null||storage.length()==0)missingStorage++;JSONArray ram=x.optJSONArray("ram_options");if("mobile_phone".equals(category)&&!"apple".equalsIgnoreCase(x.optString("brand"))&&(ram==null||ram.length()==0))missingRam++;}
-            return "Device catalogue health\n\n"+rows.length()+" active devices.\nMissing model number: "+missingModel+"\nMissing storage options: "+missingStorage+"\nNon-Apple phone RAM gaps: "+missingRam+"\n\nCategories: "+categories;
+            for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String category=x.optString("category","unknown");categories.put(category,categories.getOrDefault(category,0)+1);if(x.optString("model_number").isBlank())missingModel++;JSONArray storage=x.optJSONArray("storage_options");if(categoryRequiresStorage(category)&&(storage==null||storage.length()==0))missingStorage++;JSONArray ram=x.optJSONArray("ram_options");if("mobile_phone".equals(category)&&!"apple".equalsIgnoreCase(x.optString("brand"))&&(ram==null||ram.length()==0))missingRam++;}
+            return "Device catalogue health\n\n"+rows.length()+" active devices.\nMissing model number: "+missingModel+"\nActionable storage gaps: "+missingStorage+"\nNon-Apple phone RAM gaps: "+missingRam+"\n\nCategories: "+categories;
         }
         if(intent==IntentRouter.Intent.LEARNING){
             JSONObject live=api.learningSummary(); int count=live.optInt("count"), verified=live.optInt("verified_count");
