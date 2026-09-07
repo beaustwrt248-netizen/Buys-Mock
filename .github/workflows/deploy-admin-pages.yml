@@ -216,7 +216,7 @@ jobs:
           fetch_until_contains "$BASE/mobile-app-parity-v5.css" "$RUNNER_TEMP/mobile-app-parity-v5.css" 'nav#morleyBottomNav'
           ! grep -Eqi '#2875ff|#2f7cff|#16c7ff|#12c9ff|#1f5fd8|#1f63e2|#12aeea' "$RUNNER_TEMP/mobile-app-parity-v5.css"
           fetch_until_contains "$BASE/mobile-phone-grouping.js" "$RUNNER_TEMP/mobile-phone-grouping.js" 'const storageFromCard='
-          fetch_until_contains "$BASE/mobile-phone-grouping.js" "$RUNNER_TEMP/mobile-phone-grouping.js" 'data-duplicate-count'
+          fetch_until_contains "$BASE/mobile-phone-grouping.js" "$RUNNER_TEMP/mobile-phone-grouping.js" 'dataset.duplicateCount'
           node --check "$RUNNER_TEMP/mobile-phone-grouping.js"
           fetch_until_contains "$BASE/mobile-phone-grouping.css" "$RUNNER_TEMP/mobile-phone-grouping.css" 'button.morley-storage-chip'
           fetch_until_contains "$BASE/mobile-phone-grouping.css" "$RUNNER_TEMP/mobile-phone-grouping.css" '.morley-group-source-bin'
