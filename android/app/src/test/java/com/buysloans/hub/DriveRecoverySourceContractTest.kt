@@ -40,4 +40,6 @@ class DriveRecoverySourceContractTest {
         assertTrue(client.contains("current_client_state"))
         assertTrue(client.contains("WorkspaceStore.importJson"))
     }
+
+    // Keep this contract tied to the PR's release-evidence refresh so UI/checklist gates run on the current head.
 }
