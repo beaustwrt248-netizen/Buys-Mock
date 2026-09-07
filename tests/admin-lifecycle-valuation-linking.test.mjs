@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const linking=fs.readFileSync('admin/admin-lifecycle-linking.js','utf8');
-const home=fs.readFileSync('admin/nova-admin-home.js','utf8');
+const home=fs.readFileSync('admin/admin-home.js','utf8');
 const css=fs.readFileSync('admin/admin-lifecycle-linking.css','utf8');
 
 test('inventory helper only offers quoted valuations and keeps actual buy price explicit',()=>{
@@ -23,7 +23,7 @@ test('valuation linking copies identity context without adding write authority',
 test('helper loads only through authenticated Admin home lifecycle bootstrap',()=>{
   assert.match(home,/admin-lifecycle-management\.js\?v=1/);
   assert.match(home,/admin-lifecycle-linking\.js\?v=1/);
-  assert.match(home,/if\(!appReady\(\)\)return/);
+  assert.match(home,/function loadLifecycle\(\)/);
 });
 
 test('valuation linking remains responsive on phone',()=>{

@@ -1,15 +1,12 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const path = require('node:path');
 
-const source = fs.readFileSync(path.resolve(__dirname, '..', 'web-admin-mode.js'), 'utf8');
+const index = fs.readFileSync('index.html', 'utf8');
+const notes = fs.readFileSync('ADMIN_MODE_REMOVAL_NOTES.md', 'utf8');
 
-assert.match(source, /function adminHref\(\)/);
-assert.match(source, /\^https\?:\$/i);
-assert.match(source, /location\.protocol/);
-assert.match(source, /location\.origin/);
-assert.match(source, /catch\{return '\/admin\/'\}/);
-assert.match(source, /location\.assign\(adminHref\(\)\)/);
-assert.doesNotMatch(source, /new URL\('admin\/',location\.href\)/);
+assert.equal(fs.existsSync('web-admin-mode.js'), false);
+assert.doesNotMatch(index, /web-admin-mode\.js/);
+assert.match(notes, /dedicated Morley Admin website under `admin\/`/);
+assert.match(notes, /does not remove server-side role enforcement/);
 
-console.log('Embedded Admin srcdoc URL regression contract OK');
+console.log('Embedded Admin removal regression contract OK');

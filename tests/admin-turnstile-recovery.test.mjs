@@ -4,20 +4,19 @@ import fs from 'node:fs';
 
 const turnstile=fs.readFileSync('admin/turnstile.html','utf8');
 const login=fs.readFileSync('admin/login-security.js','utf8');
-const nova=fs.readFileSync('admin/nova-admin-home.js','utf8');
 
 test('Turnstile bootstrap retries instead of hanging forever',()=>{
   assert.match(turnstile,/MAX_API_ATTEMPTS=3/);
   assert.match(turnstile,/bootstrap-error/);
-  assert.match(turnstile,/api\\.js\\?render=explicit['\"]/);\n  assert.doesNotMatch(turnstile,/morley_retry=|[?&]ts=/);
+  assert.match(turnstile,/api\.js\?render=explicit['"]/);
+  assert.doesNotMatch(turnstile,/morley_retry=|[?&]ts=/);
   assert.match(login,/MAX_BOOTSTRAP_RETRIES=2/);
   assert.match(login,/turnstile\.html\?v=3&retry=/);
   assert.match(login,/Security check unavailable\. Tap here to retry\./);
 });
 
-test('Nova dashboard enhancer does not mutate unauthenticated sign-in UI',()=>{
-  assert.match(nova,/function appReady\(\)/);
-  assert.match(nova,/if\(!appReady\(\)\)return/);
+test('removed Nova Admin enhancer cannot mutate unauthenticated sign-in UI',()=>{
+  assert.equal(fs.existsSync('admin/nova-admin-home.js'),false);
 });
 
 test('authentication still requires a Turnstile captcha token',()=>{

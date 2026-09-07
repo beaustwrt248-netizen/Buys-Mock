@@ -15,4 +15,4 @@ assert.match(src, /allowFileAccess = false/);
 assert.match(src, /allowContentAccess = false/);
 assert.match(src, /MIXED_CONTENT_NEVER_ALLOW/);
 assert.match(gradle, /versionCode 26/);
-assert.match(gradle, /versionName '0\.1\.24'/);
+assert.match(gradle, /versionName '0\.1\.25'/);
