@@ -34,6 +34,14 @@ test('Nova resolves natural polite variants to the same canonical command',()=>{
   assert.equal(api.resolve('how many commands do you know')?.command?.id,'nova.command.stats');
 });
 
+test('Nova does not turn negated requests into affirmative fuzzy commands',()=>{
+  const {api}=loadRegistry();
+  assert.equal(api.resolve("don't open guardian"),null);
+  assert.equal(api.resolve('do not refresh everything'),null);
+  assert.equal(api.resolve('never show support status'),null);
+  assert.equal(api.resolve('what can nova not do')?.command?.id,'security.boundaries.explain');
+});
+
 test('protected commands are recognised but cannot bypass Guardian or human approval',async()=>{
   const {api,events}=loadRegistry();
   const deploy=api.resolve('deploy production');
