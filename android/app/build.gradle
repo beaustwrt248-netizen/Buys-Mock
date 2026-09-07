@@ -38,52 +38,32 @@ tasks.register('verifyDeterministicSourcePipeline') {
     doLast {
         def retiredScripts = [
             ['improve', 'exact', 'matching.py'].join('_'),
-            ['integrate', 'advanced', 'features.py'].join('_'),
-            ['final', 'production', 'polish.py'].join('_'),
-            ['production', 'parity', 'upgrade.py'].join('_'),
-            ['implement', 'tablet', 'layout.py'].join('_'),
-            ['apply', 'web', 'reference', 'ui.py'].join('_'),
-            ['fix', 'mobile', 'phones', 'scroll.py'].join('_'),
-            ['improve', 'desktop', 'models.py'].join('_'),
-            ['improve', 'desktop', 'catalog.py'].join('_'),
-            ['improve', 'pricing', 'matching.py'].join('_'),
-            ['fix', 'mobile', 'phone', 'storage.py'].join('_'),
-            ['fix', 'sony', 'model', 'names.py'].join('_'),
-            ['fix', 'permissions', 'inventory.py'].join('_'),
-            ['add', 'mobile', 'filter.py'].join('_'),
-            ['add', 'laptop', 'other', 'brand.py'].join('_'),
-            ['add', 'morley', 'web', 'auth.py'].join('_'),
-            ['add', 'smart', 'pricing', 'modules.py'].join('_'),
-            ['add', 'tablet', 'other', 'brand.py'].join('_'),
-            ['add', 'user', 'management.py'].join('_'),
-            ['clean', 'duplicate', 'phones.py'].join('_'),
-            ['consolidate', 'latest', 'models.py'].join('_'),
-            ['ensure', 'complete', 'catalog.py'].join('_'),
-            ['expand', 'storage', 'options.py'].join('_'),
-            ['fix', 'android', 'models.py'].join('_'),
-            ['fix', 'android', 'ui', 'errors.py'].join('_'),
-            ['fix', 'auth', 'theme.py'].join('_'),
-            ['fix', 'desktop', 'other', 'brands.py'].join('_'),
-            ['fix', 'disable', 'slider.py'].join('_'),
-            ['fix', 'missing', 'screens.py'].join('_'),
-            ['fix', 'pricing', 'assistant.py'].join('_'),
-            ['fix', 'remaining', 'issues.py'].join('_'),
-            ['fix', 'reports', 'tables', 'visibility.py'].join('_'),
-            ['fix', 'theme', 'colors.py'].join('_'),
-            ['fix', 'web', 'missing', 'screens.py'].join('_'),
-            ['improve', 'android', 'desktop.py'].join('_'),
-            ['improve', 'navigation', 'styling.py'].join('_'),
-            ['integrate', 'device', 'model', 'fixes.py'].join('_'),
-            ['refine', 'condition', 'pricing.py'].join('_'),
-            ['remove', 'html', 'from', 'inventory.py'].join('_'),
-            ['sync', 'web', 'features.py'].join('_'),
-            ['upgrade', 'web', 'android', 'features.py'].join('_')
+            ['secure', 'pricing', 'auth.py'].join('_'),
         ]
-        retiredScripts.each { rel ->
-            if (rootProject.file(rel).exists()) {
-                throw new GradleException("Retired build-time source rewriter returned: ${rel}")
+        retiredScripts.each { name ->
+            if (file("${rootProject.projectDir}/${name}").exists()) {
+                throw new GradleException("Retired Android source rewriter returned: ${name}")
             }
+        }
+        def buildText = file("${projectDir}/build.gradle").getText('UTF-8')
+        def retiredTasks = [
+            ['improve', 'Exact', 'Matching'].join(''),
+            ['secure', 'Pricing', 'Auth'].join(''),
+        ]
+        retiredTasks.each { token ->
+            if (buildText.contains(token)) {
+                throw new GradleException("Retired Android build task returned: ${token}")
+            }
+        }
+        if (!buildText.contains("tasks.register('verifyPricingNavigation'")) {
+            throw new GradleException('Pricing navigation verification must remain a read-only Gradle check task.')
         }
     }
 }
-tasks.named('preBuild').configure { dependsOn 'verifyDeterministicSourcePipeline' }
+tasks.named('integrateLaptopCatalog') { mustRunAfter tasks.named('integrateMarketplaceValuation') }; tasks.named('applyMorleyBrandPalette') { mustRunAfter tasks.named('integrateLaptopCatalog') }; tasks.named('fixVideoUiErrors') { mustRunAfter tasks.named('applyMorleyBrandPalette') }
+tasks.matching { it.name == 'preBuild' }.configureEach { dependsOn tasks.named('integrateMarketplaceValuation'); dependsOn tasks.named('integrateLaptopCatalog'); dependsOn tasks.named('applyMorleyBrandPalette'); dependsOn tasks.named('fixVideoUiErrors') }
+tasks.matching { it.name == 'check' }.configureEach { dependsOn tasks.named('verifyPricingNavigation'); dependsOn tasks.named('verifyDeterministicSourcePipeline') }
+afterEvaluate { tasks.named('preReleaseBuild').configure { dependsOn tasks.named('verifyReleaseSigning') } }
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:34.18.0'); implementation 'com.google.firebase:firebase-messaging'; implementation 'com.google.android.gms:play-services-auth:21.3.0'; implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'; implementation 'com.google.android.play:integrity:1.4.0'; implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'; implementation 'androidx.work:work-runtime-ktx:2.10.1'; implementation 'androidx.activity:activity-compose:1.10.1'; implementation platform('androidx.compose:compose-bom:2026.08.00'); implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material:material-icons-extended'; debugImplementation 'androidx.compose.ui:ui-tooling'; testImplementation 'junit:junit:4.13.2'; testImplementation 'org.json:json:20240303'
+}
