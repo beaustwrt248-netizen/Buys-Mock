@@ -15,6 +15,11 @@ import android.util.Base64;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,12 +27,14 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 final class NovaAndroidOperator {
     static final int REQ_CAMERA = 9101;
     static final int REQ_IMAGE = 9102;
     static final int REQ_NOTIFICATIONS = 9103;
     private static final String ALERT_CHANNEL = "nova_attention";
+    private static final String ALERT_WORK = "nova-proactive-attention";
     private static final int MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
     private NovaAndroidOperator() {}
@@ -100,6 +107,15 @@ final class NovaAndroidOperator {
         NotificationChannel channel = new NotificationChannel(ALERT_CHANNEL, "Nova attention alerts", NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription("Actionable Morley alerts found by Nova AI.");
         manager.createNotificationChannel(channel);
+    }
+
+    static void scheduleBackgroundAlerts(Context context) {
+        ensureNotificationChannel(context);
+        Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
+        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(NovaAlertWorker.class, 15, TimeUnit.MINUTES)
+                .setConstraints(constraints)
+                .build();
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(ALERT_WORK, ExistingPeriodicWorkPolicy.UPDATE, request);
     }
 
     static boolean notificationPermissionGranted(Activity activity) {
