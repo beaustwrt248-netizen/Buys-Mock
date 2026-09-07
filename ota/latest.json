@@ -1,7 +1,7 @@
 {
-  "versionCode": 122,
-  "versionName": "2.15.78",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.78/B-and-L-Morley-2.15.78.apk",
-  "sha256": "7023714509d3293a6ef64b01d9c9c94c0b7ba0df9f5fad67d443eb08ea91fcc8",
-  "notes": "Android encrypted Google Drive Backup & Data v2.15.78"
+  "versionCode": 123,
+  "versionName": "2.15.79",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.79/B-and-L-Morley-2.15.79.apk",
+  "sha256": "1665ab8b7aea3a8e9bf16cf48fbd19569cde97a1e0458df8dfae7d0f741b4b2f",
+  "notes": "Format Backup & Data timestamps in local time"
 }
