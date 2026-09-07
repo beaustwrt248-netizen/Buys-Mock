@@ -1,7 +1,9 @@
 package com.buysloans.nova;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.provider.Settings;
 
@@ -21,6 +23,10 @@ import java.util.Locale;
 
 final class UpdateManager {
     private static final String RELEASE_PREFIX = "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v";
+    private static final String UPDATE_PREFS = "nova_verified_update";
+    private static final String PENDING_PATH = "pending_path";
+    private static final String PENDING_SHA = "pending_sha";
+    private static final String PENDING_CODE = "pending_code";
 
     interface Listener {
         void onStatus(String message);
@@ -99,6 +105,7 @@ final class UpdateManager {
                     if (info.versionCode > BuildConfig.VERSION_CODE) {
                         listener.onUpdateAvailable(info);
                     } else {
+                        clearObsoletePending(activity);
                         listener.onUpToDate();
                     }
                 });
@@ -123,10 +130,21 @@ final class UpdateManager {
                     throw new IllegalStateException("Could not create update directory");
                 }
                 File apk = new File(updateDir, "Nova-AI-" + info.versionName + ".apk");
+
+                if (apk.isFile() && info.sha256.equals(sha256(apk))) {
+                    rememberVerifiedUpdate(activity, apk, info.sha256, info.versionCode);
+                    activity.runOnUiThread(() -> installVerifiedApk(apk));
+                    return;
+                }
+                if (apk.exists() && !apk.delete()) {
+                    throw new IllegalStateException("Could not replace an invalid cached update");
+                }
+
                 connection = (HttpURLConnection) new URL(info.apkUrl).openConnection();
                 connection.setConnectTimeout(20_000);
                 connection.setReadTimeout(30_000);
                 connection.setInstanceFollowRedirects(true);
+                connection.setUseCaches(false);
                 int response = connection.getResponseCode();
                 if (response < 200 || response >= 300) {
                     throw new IllegalStateException("APK download returned HTTP " + response);
@@ -148,6 +166,7 @@ final class UpdateManager {
                     apk.delete();
                     throw new SecurityException("Downloaded APK failed SHA-256 verification");
                 }
+                rememberVerifiedUpdate(activity, apk, info.sha256, info.versionCode);
                 activity.runOnUiThread(() -> installVerifiedApk(apk));
             } catch (Exception error) {
                 activity.runOnUiThread(() -> listener.onError("Update download failed: " + safeMessage(error)));
@@ -159,18 +178,70 @@ final class UpdateManager {
 
     private void installVerifiedApk(File apk) {
         if (!activity.getPackageManager().canRequestPackageInstalls()) {
-            listener.onStatus("Allow Nova to install updates, then tap Install Update again.");
+            listener.onStatus("Allow Nova to install updates. Installation will resume automatically when you return.");
             Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + activity.getPackageName()));
             activity.startActivity(settings);
             return;
         }
+        launchInstaller(activity, apk);
+        clearPending(activity);
+    }
+
+    static void resumePendingInstall(Activity activity) {
+        if (activity == null || BuildConfig.VERSION_CODE <= 0) return;
+        SharedPreferences prefs = activity.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE);
+        int pendingCode = prefs.getInt(PENDING_CODE, 0);
+        String path = prefs.getString(PENDING_PATH, "");
+        String expected = prefs.getString(PENDING_SHA, "");
+        if (pendingCode <= BuildConfig.VERSION_CODE) {
+            clearPending(activity);
+            return;
+        }
+        if (path == null || path.isBlank() || expected == null || !expected.matches("[0-9a-f]{64}")) {
+            clearPending(activity);
+            return;
+        }
+        if (!activity.getPackageManager().canRequestPackageInstalls()) return;
+        File apk = new File(path);
+        try {
+            if (!apk.isFile() || !expected.equals(sha256(apk))) {
+                if (apk.exists()) apk.delete();
+                clearPending(activity);
+                return;
+            }
+            launchInstaller(activity, apk);
+        } catch (Exception ignored) {
+            clearPending(activity);
+            return;
+        }
+        clearPending(activity);
+    }
+
+    private static void launchInstaller(Activity activity, File apk) {
         Uri uri = FileProvider.getUriForFile(activity,
                 activity.getPackageName() + ".fileprovider", apk);
         Intent install = new Intent(Intent.ACTION_VIEW)
                 .setDataAndType(uri, "application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
         activity.startActivity(install);
+    }
+
+    private static void rememberVerifiedUpdate(Context context, File apk, String sha, int code) {
+        context.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE).edit()
+                .putString(PENDING_PATH, apk.getAbsolutePath())
+                .putString(PENDING_SHA, sha)
+                .putInt(PENDING_CODE, code)
+                .apply();
+    }
+
+    private static void clearObsoletePending(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE);
+        if (prefs.getInt(PENDING_CODE, 0) <= BuildConfig.VERSION_CODE) clearPending(context);
+    }
+
+    private static void clearPending(Context context) {
+        context.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE).edit().clear().apply();
     }
 
     private static String readFully(InputStream input) throws Exception {

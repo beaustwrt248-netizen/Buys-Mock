@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -171,36 +172,62 @@ final class NovaApiClient {
     }
 
     private String request(String method, String path, String body, String bearer) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(BuildConfig.SUPABASE_URL + path).openConnection();
-        connection.setRequestMethod(method);
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(15000);
-        connection.setUseCaches(false);
-        connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY);
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Cache-Control", "no-cache, no-store");
-        if (bearer != null && !bearer.isBlank()) connection.setRequestProperty("Authorization", "Bearer " + bearer);
-        if (body != null) {
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
-            try (OutputStream out = connection.getOutputStream()) {
-                out.write(body.getBytes(StandardCharsets.UTF_8));
+        if (!"GET".equals(method)) return requestOnce(method, path, body, bearer);
+        try {
+            return requestOnce(method, path, body, bearer);
+        } catch (IOException first) {
+            try {
+                Thread.sleep(350L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw first;
+            }
+            try {
+                return requestOnce(method, path, body, bearer);
+            } catch (IOException second) {
+                IOException offline = new IOException("Nova could not reach Morley. Check your connection and try again.");
+                offline.addSuppressed(first);
+                offline.addSuppressed(second);
+                throw offline;
             }
         }
-        int code = connection.getResponseCode();
-        InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
-        String response = read(stream);
-        connection.disconnect();
-        if (code < 200 || code >= 300) {
-            String message = "Nova request failed (" + code + ")";
-            try {
-                JSONObject error = new JSONObject(response);
-                String detail = error.optString("msg", error.optString("message", error.optString("error_description", error.optString("error"))));
-                if (!detail.isBlank()) message += ": " + detail;
-            } catch (Exception ignored) {}
-            throw new Exception(message);
+    }
+
+    private String requestOnce(String method, String path, String body, String bearer) throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(BuildConfig.SUPABASE_URL + path).openConnection();
+            connection.setRequestMethod(method);
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(15000);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Cache-Control", "no-cache, no-store");
+            if (bearer != null && !bearer.isBlank()) connection.setRequestProperty("Authorization", "Bearer " + bearer);
+            if (body != null) {
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Content-Type", "application/json");
+                try (OutputStream out = connection.getOutputStream()) {
+                    out.write(body.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            int code = connection.getResponseCode();
+            InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
+            String response = read(stream);
+            if (code < 200 || code >= 300) {
+                String message = "Nova request failed (" + code + ")";
+                try {
+                    JSONObject error = new JSONObject(response);
+                    String detail = error.optString("msg", error.optString("message", error.optString("error_description", error.optString("error"))));
+                    if (!detail.isBlank()) message += ": " + detail;
+                } catch (Exception ignored) {}
+                throw new Exception(message);
+            }
+            return response;
+        } finally {
+            if (connection != null) connection.disconnect();
         }
-        return response;
     }
 
     private static String read(InputStream stream) throws Exception {

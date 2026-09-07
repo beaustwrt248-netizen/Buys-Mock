@@ -32,7 +32,10 @@ public final class NovaOperatorInitializer extends ContentProvider {
                 public void onActivityResumed(Activity activity) {
                     if (!(activity instanceof MainActivity)) return;
                     installWatcher(activity);
-                    activity.getWindow().getDecorView().post(() -> NovaOperatorUi.install(activity));
+                    activity.getWindow().getDecorView().post(() -> {
+                        NovaOperatorUi.install(activity);
+                        UpdateManager.resumePendingInstall(activity);
+                    });
                 }
 
                 @Override
