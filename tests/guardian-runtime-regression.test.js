@@ -57,3 +57,19 @@ test('real browser smoke renders Nova and Admin static shells without root overf
   const result=cp.spawnSync(process.execPath,['tests/browser-responsive-smoke.js'],{cwd:process.cwd(),encoding:'utf8',timeout:55000,env:process.env});
   assert.equal(result.status,0,`Browser responsive smoke failed\nSTDOUT:\n${result.stdout||''}\nSTDERR:\n${result.stderr||''}`);
 });
+
+test('Nova approved dashboard derives live status from real evidence instead of decorative hard-coded states',()=>{
+  const source=read('nova/control-centre-visual.js');
+  assert.match(source,/MutationObserver\(renderLive\)/);
+  assert.match(source,/window\.NovaCommands\?\.stats/);
+  assert.match(source,/catalogueModelGaps/);
+  assert.match(source,/monitorRunning/);
+  assert.match(source,/supportSla/);
+  assert.match(source,/guardianState/);
+  assert.match(source,/releaseOverall/);
+  assert.match(source,/connectionLabel/);
+  assert.doesNotMatch(source,/Australian retailer scanning/);
+  assert.doesNotMatch(source,/style=\"width:(?:78|63|86|58|91|96)%\"/);
+  assert.doesNotMatch(source,/<em>ONLINE<\/em>/);
+  assert.doesNotMatch(source,/<em>ACTIVE<\/em>/);
+});
