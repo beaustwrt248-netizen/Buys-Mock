@@ -18,21 +18,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-internal enum class PricingVisual { LAPTOP, DESKTOP, PHONE, CONSOLE }
+internal enum class PricingVisual { ALL, LAPTOP, DESKTOP, PHONE, TABLET, WATCH, CONSOLE }
 
 @Composable
 internal fun PricingCategoryVisual(type: PricingVisual, modifier: Modifier = Modifier) {
     val background = when (type) {
+        PricingVisual.ALL -> Color(0xFFE4F2EE)
         PricingVisual.LAPTOP -> Color(0xFFE7EEF8)
         PricingVisual.DESKTOP -> Color(0xFFE9ECEC)
         PricingVisual.PHONE -> Color(0xFFE4F2EE)
+        PricingVisual.TABLET -> Color(0xFFE8F1EF)
+        PricingVisual.WATCH -> Color(0xFFEAF3EF)
         PricingVisual.CONSOLE -> Color(0xFFF0ECE8)
     }
     Box(modifier.background(background, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
         when (type) {
+            PricingVisual.ALL -> MorleyIcon(MorleyIcons.Categories, "All devices", Color(0xFF287E68), Modifier.size(31.dp))
             PricingVisual.LAPTOP -> MorleyIcon(MorleyIcons.Laptop, "Laptop", Color(0xFF355B8C), Modifier.size(31.dp))
             PricingVisual.DESKTOP -> MorleyIcon(MorleyIcons.Computer, "Desktop", Color(0xFF37403E), Modifier.size(31.dp))
             PricingVisual.PHONE -> MorleyIcon(MorleyIcons.Phone, "Mobile phone", Color(0xFF287E68), Modifier.size(31.dp))
+            PricingVisual.TABLET -> MorleyIcon(MorleyIcons.Tablet, "Tablet", Color(0xFF287E68), Modifier.size(31.dp))
+            PricingVisual.WATCH -> MorleyIcon(MorleyIcons.Watch, "Smart watch", Color(0xFF287E68), Modifier.size(31.dp))
             PricingVisual.CONSOLE -> MorleyIcon(MorleyIcons.Console, "Gaming console", Color(0xFF34383A), Modifier.size(31.dp))
         }
     }

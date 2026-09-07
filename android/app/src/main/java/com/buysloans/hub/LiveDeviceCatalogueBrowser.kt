@@ -111,8 +111,9 @@ private fun CatalogueDevicePhoto(device: LiveDeviceCatalogueRow) {
             "laptop" -> PricingVisual.LAPTOP
             "desktop" -> PricingVisual.DESKTOP
             "console" -> PricingVisual.CONSOLE
-            "tablet", "wearable" -> PricingVisual.PHONE
-            else -> PricingVisual.PHONE
+            "tablet" -> PricingVisual.TABLET
+            "wearable" -> PricingVisual.WATCH
+            else -> PricingVisual.ALL
         }
         PricingCategoryVisual(visual, Modifier.size(40.dp))
     }
