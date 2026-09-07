@@ -25,8 +25,8 @@ assert(
   'srcdoc bootstrap must identify the source recent-activity render write before iframe creation'
 );
 assert(
-  shell.includes('Morley render invariant failed: missing #recent target in embedded workspace.'),
-  'a missing required srcdoc render target must produce a controlled invariant diagnostic'
+  shell.includes("if(!recentEl)return"),
+  'a removed recent-activity panel must make the legacy renderer exit safely'
 );
 assert(
   shell.includes('html=html.replace(requiredRecentRender,guardedRecentRender);'),
