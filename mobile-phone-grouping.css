@@ -1,0 +1,20 @@
+/* Mobile catalogue grouping + density repair. Loaded after universal-buy styles. */
+#mobilePhones .morley-phone-model-group{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:start;padding:10px;border:1px solid #d9e4df;border-radius:14px;background:#fff;box-shadow:0 5px 16px rgba(27,64,50,.045)}
+#mobilePhones .morley-phone-model-group .morley-device-media{width:64px;height:64px;grid-row:1/span 2}
+#mobilePhones .morley-phone-model-group .morley-result-copy{min-width:0}
+#mobilePhones .morley-phone-model-group h3{margin:0 0 2px;font-size:15px;line-height:1.2;color:#1c2b26!important}
+#mobilePhones .morley-phone-model-group h3::before,#mobilePhones .morley-phone-model-group h3::after{content:none!important;display:none!important;border:0!important;background:none!important}
+#mobilePhones .morley-phone-model-group .morley-group-meta{margin:0;color:#62726b;font-size:11px;line-height:1.3}
+#mobilePhones .morley-phone-model-group .morley-storage-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+#mobilePhones .morley-phone-model-group .morley-storage-chip{appearance:none;border:1px solid #cad9d2;background:#f3f7f5;color:#315348;border-radius:999px;padding:5px 8px;min-height:30px;font:700 11px/1 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:none}
+#mobilePhones .morley-phone-model-group .morley-storage-chip.active{border-color:#167a5a;background:#dff1e8;color:#0f684c}
+#mobilePhones .morley-phone-model-group .morley-storage-chip[data-duplicate-count]:not([data-duplicate-count="1"])::after{content:" ×" attr(data-duplicate-count);font-weight:800;opacity:.7}
+#mobilePhones .morley-phone-model-group .morley-group-price{margin-top:7px;display:inline-flex;align-items:center;min-height:24px;border-radius:999px;padding:4px 8px;background:#edf5f1;color:#587067;font-size:10px;font-weight:800}
+#mobilePhones .morley-phone-model-group .morley-group-price.is-priced{background:#e2f3eb;color:#167a5a}
+#mobilePhones .morley-phone-model-group .morley-group-actions{grid-column:2;display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:7px;margin-top:1px}
+#mobilePhones .morley-phone-model-group .morley-group-actions button{min-height:40px;border-radius:12px}
+#mobilePhones .morley-phone-model-group .morley-group-open{background:#0f684c!important;color:#fff!important;border:1px solid #0f684c!important;font-weight:800}
+#mobilePhones .morley-phone-model-group .morley-group-favourite{background:#eef4f0!important;color:#167a5a!important;border:1px solid #cedbd5!important;font-size:18px}
+#mobilePhones .morley-group-source-bin{display:none!important}
+#mobilePhones .morley-phone-grid{gap:7px;margin-top:9px;padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+@media(min-width:761px){#mobilePhones .morley-phone-model-group{grid-template-columns:72px minmax(0,1fr) auto;align-items:center}#mobilePhones .morley-phone-model-group .morley-device-media{width:72px;height:72px;grid-row:auto}#mobilePhones .morley-phone-model-group .morley-group-actions{grid-column:auto;grid-template-columns:minmax(150px,1fr) 44px;min-width:210px}}
