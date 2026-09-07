@@ -225,20 +225,9 @@ jobs:
           path: dist/nova-update.json
           if-no-files-found: error
           retention-days: 14
-      - name: Promote verified Nova OTA metadata to main
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Record PR-only OTA handoff
         shell: bash
         run: |
           set -euo pipefail
-          # This is a mechanical promotion only: the immutable release, stable signer and SHA-256
-          # were verified above. It does not create or select a different release.
-          MANIFEST_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/nova/nova-update.json?ref=main" --jq '.sha')"
-          ENCODED="$(base64 -w0 dist/nova-update.json)"
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/nova/nova-update.json" \
-            -f message="Promote Nova ${NOVA_VERSION_NAME} OTA metadata" \
-            -f content="$ENCODED" \
-            -f sha="$MANIFEST_SHA" \
-            -f branch=main >/dev/null
-          LIVE_CONTENT="$(gh api "repos/${GITHUB_REPOSITORY}/contents/nova/nova-update.json?ref=main" --jq -r '.content' | tr -d '\n' | base64 --decode)"
-          test "$LIVE_CONTENT" = "$(cat dist/nova-update.json)"
+          echo "Verified Nova OTA metadata is staged in artifact nova-ota-metadata-${NOVA_VERSION_SAFE}."
+          echo "Repository rules require promotion of nova/nova-update.json through a reviewed pull request; no direct main write is attempted."
