@@ -28,7 +28,8 @@ test('Nova domain packs add broad canonical coverage without alias collisions',(
   const {commands}=boot();
   const stats=commands.stats();
   assert.ok(stats.domainPacks>=15,`expected >=15 packs, got ${stats.domainPacks}`);
-  assert.ok(stats.domainCommands>=120,`expected >=120 domain commands, got ${stats.domainCommands}`);
+  assert.ok(stats.domainCommands>=125,`expected >=125 domain commands, got ${stats.domainCommands}`);
+  assert.ok(stats.parameterisedCommands>=5,`expected parameterised commands, got ${stats.parameterisedCommands}`);
   assert.ok(stats.understoodPhrases>=100000,`expected >=100000 phrases, got ${stats.understoodPhrases}`);
   assert.equal(stats.collisions.length,0,JSON.stringify(stats.collisions.slice(0,5)));
 });
@@ -44,9 +45,20 @@ test('Natural read-only domain commands execute and protected commands remain bl
   assert.match(protected.message,/human\/Guardian approval boundary/);
 });
 
+test('Parameterised commands preserve the requested subject',()=>{
+  const {commands}=boot();
+  const research=commands.resolve('Nova please research device Motorola Edge 60 Fusion');
+  assert.equal(research.command.id,'research.device.lookup');
+  assert.equal(research.args.remainder,'motorola edge 60 fusion');
+  const market=commands.resolve('compare market price for Galaxy S25 Ultra');
+  assert.equal(market.command.id,'pricing.market.compare');
+  assert.equal(market.args.remainder,'galaxy s25 ultra');
+});
+
 test('Domain packs preserve negation safety and publish readiness event',()=>{
   const {commands,events}=boot();
   assert.equal(commands.resolve('do not deploy production now'),null);
+  assert.equal(commands.resolve('do not research device Pixel 10'),null);
   assert.ok(events.some(event=>event.type==='nova:command-packs-ready'));
   assert.ok(commands.domainPacks.includes('catalogue'));
   assert.ok(commands.domainPacks.includes('guardian'));
