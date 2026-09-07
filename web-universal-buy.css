@@ -2,3 +2,4 @@
 /* Keep brand labels readable; overflow belongs to the filter row. */
 html body #mobilePhones #morleyBrandStrip{display:flex;flex-wrap:nowrap;gap:8px;min-width:0;max-width:100%;overflow-x:auto;padding:4px 2px 10px;scroll-padding-inline:4px;}
 html body #mobilePhones #morleyBrandStrip>button{flex:0 0 auto!important;width:auto!important;min-width:max-content!important;max-width:none!important;min-height:44px;white-space:nowrap!important;padding:10px 16px;}
+/* Catalogue image performance contract: bounded media and viewport-only image loading are owned by web-universal-buy.js. */
