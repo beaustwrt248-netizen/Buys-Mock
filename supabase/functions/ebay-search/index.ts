@@ -1,13 +1,19 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { toLegacyMarketResponse } from "./compat.mjs";
 
-const ORIGIN = "https://beaustwrt248-netizen.github.io";
+const ALLOWED_ORIGINS = new Set([
+  "https://buyshub.me",
+  "https://www.buyshub.me",
+  "https://beaustwrt248-netizen.github.io",
+]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-function cors(_req: Request) {
+function cors(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://buyshub.me";
   return {
-    "Access-Control-Allow-Origin": ORIGIN,
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
