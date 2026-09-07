@@ -381,7 +381,6 @@ public final class NovaControlCenterActivity extends Activity {
     private Button button(String label, boolean important) {
         Button b = new Button(this);
         b.setText(label);
-        b.setTextAllCaps(false);
         b.setTextSize(12);
         b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         b.setTextColor(primary);
