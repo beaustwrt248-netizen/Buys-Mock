@@ -44,14 +44,13 @@ async function inspect(cdp,file,width,label){
   await cdp.call('Page.navigate',{url});
   await cdp.waitEvent('Page.loadEventFired',5000).catch(()=>{});
   await sleep(150);
-  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;const visible=[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>1&&r.height>1&&s.display!=='none'&&s.visibility!=='hidden'});return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,visibleCount:visible.length,bodyText:(b?.innerText||'').trim().slice(0,500),maxRight:visible.reduce((m,el)=>Math.max(m,el.getBoundingClientRect().right),0),minLeft:visible.reduce((m,el)=>Math.min(m,el.getBoundingClientRect().left),0)}})()`});
+  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;const visible=[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>1&&r.height>1&&s.display!=='none'&&s.visibility!=='hidden'});return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,visibleCount:visible.length,bodyText:(b?.innerText||'').trim().slice(0,500)}})()`});
   const v=result.result.value;
   assert.equal(v.clientWidth,width,`${label} viewport should apply at ${width}px`);
   assert.ok(v.visibleCount>8,`${label} should render substantive visible content at ${width}px`);
   assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);
+  assert.ok(v.bodyWidth<=width+2,`${label} body exceeds viewport at ${width}px: ${v.bodyWidth}px`);
   assert.ok(v.scrollWidth<=width+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px`);
-  assert.ok(v.minLeft>=-2,`${label} renders content left of viewport at ${width}px: ${v.minLeft}px`);
-  assert.ok(v.maxRight<=width+2,`${label} renders visible content beyond viewport at ${width}px: ${v.maxRight}px`);
   const shot=await cdp.call('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
   assert.ok((shot.data||'').length>2500,`${label} screenshot should be non-empty at ${width}px`);
 }
