@@ -1,8 +1,8 @@
 {
-  "versionCode": 23,
-  "versionName": "0.3.19",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.19/Nova-AI-0.3.19.apk",
-  "sha256": "b42dc82aea0ec81e3ef523237aad89a681b3c864a2a69c2666124f56bb38c823",
+  "versionCode": 24,
+  "versionName": "0.3.20",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.20/Nova-AI-0.3.20.apk",
+  "sha256": "023c516f3d58a8d82ca95dc1b3476876021e83996aa1b94d42a7165bcaa48295",
   "mandatory": false,
-  "notes": "Nova AI 0.3.19 hotfixes an Android startup crash by making optional operator and pending-installer resume helpers fail open instead of terminating MainActivity."
+  "notes": "Nova AI 0.3.20 brings the native Android Control Center into visual parity with the approved purple/black Nova design while preserving authenticated live actions, Guardian protection and human approval boundaries."
 }
