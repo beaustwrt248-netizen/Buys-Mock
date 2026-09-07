@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));const REPO='beaustwrt248-netizen/Buys-Mock',API=`https://api.github.com/repos/${REPO}`,TERMINAL=new Set(['resolved','ignored','closed','dismissed']);
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));const REPO='beaustwrt248-netizen/Buys-Mock',API=`https://api.github.com/repos/${REPO}`,TERMINAL=new Set(['resolved','ignored','cancelled','closed','dismissed']);
 async function gh(path){const r=await fetch(API+path,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!r.ok)throw new Error(`GitHub ${r.status}`);return r.json()}
 async function mainRuns(){const commit=await gh('/commits/main'),sha=String(commit?.sha||'');if(!sha)throw new Error('GitHub did not return current main SHA.');const payload=await gh(`/actions/runs?head_sha=${encodeURIComponent(sha)}&per_page=100`);return{sha,runs:(payload.workflow_runs||[]).filter(r=>String(r.head_sha||'')===sha)}}
 function base(){const o=location.origin;return o.includes('github.io')?`${o}/Buys-Mock`:o}
