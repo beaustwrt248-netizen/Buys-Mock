@@ -15,6 +15,7 @@ public class IntentRouterTest {
         assertEquals(IntentRouter.Intent.PERFORMANCE, IntentRouter.classify("How are sales and profit?"));
         assertEquals(IntentRouter.Intent.RELEASES, IntentRouter.classify("Is there a new Nova APK release?"));
         assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("How healthy is the device catalogue?"));
+        assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("How many devices do we have?"));
         assertEquals(IntentRouter.Intent.LEARNING, IntentRouter.classify("What is Nova learning from outcomes?"));
     }
 
@@ -44,6 +45,12 @@ public class IntentRouterTest {
         assertTrue(IntentRouter.isFollowUp("and which one is worst?"));
         assertTrue(IntentRouter.isFollowUp("keep going"));
         assertTrue(IntentRouter.isFollowUp("show me more"));
+        assertTrue(IntentRouter.isFollowUp("why is that happening?"));
+        assertTrue(IntentRouter.isFollowUp("how many of those?"));
+        assertTrue(IntentRouter.isFollowUp("what about the other one?"));
+        assertTrue(IntentRouter.isFollowUp("does that include tablets?"));
+        assertTrue(IntentRouter.isFollowUp("show them"));
+        assertTrue(IntentRouter.isFollowUp("the others"));
         assertFalse(IntentRouter.isFollowUp("write me a detailed unrelated report about the moon and its geology"));
     }
 
