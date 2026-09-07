@@ -41,7 +41,7 @@ assert.match(timeout, /timeout_milliseconds := 120000/);
 assert.match(docs, /service accounts do not have personal Drive storage quota/i);
 assert.match(docs, /must never be placed in the website, Android APK, Admin APK, repository/);
 assert.match(docs, /30-day retention/i);
-assert.match(docs, /daily at 03:00 AWST/i);
+assert.match(docs, /daily at \\*\\*03:00 AWST\\*\\*/i);
 assert.match(docs, /human-approved Admin operation/);
 
 console.log('Google Drive backup security contract passed');
