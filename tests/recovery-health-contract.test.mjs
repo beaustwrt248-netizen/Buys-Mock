@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+// Recovery contracts deliberately verify observability without granting restore/repair authority.
 const globalBackup=readFileSync('supabase/functions/google-drive-backup/index.ts','utf8');
 const health=readFileSync('supabase/migrations/20260907194500_add_recovery_health_monitor.sql','utf8');
 const ui=readFileSync('recovery-health.js','utf8');
