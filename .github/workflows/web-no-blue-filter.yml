@@ -86,7 +86,7 @@ jobs:
               raise SystemExit('Quick Deal grade calculation asset cache version is stale')
           if 'morley-desktop-dashboard.js?v=2' not in index:
               raise SystemExit('Canonical desktop dashboard behaviour is not loaded')
-          if index.index('mobile-app-parity-v5.css?v=202609041') < index.index('mobile-app-parity-v4.css?v=202609044'):
+          if index.index('mobile-app-parity-v5.css?v=202609072') < index.index('mobile-app-parity-v4.css?v=202609044'):
               raise SystemExit('Mobile parity v5 stylesheet must load after v4')
           if index.index('mobile-app-parity-v5.js?v=202609041&route=2') < index.index('mobile-app-parity-v4.js?v=202609044'):
               raise SystemExit('Mobile parity v5 runtime must load after v4')
