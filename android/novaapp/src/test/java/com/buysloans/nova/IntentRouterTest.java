@@ -37,6 +37,14 @@ public class IntentRouterTest {
         assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("Who are you?"));
     }
 
+    @Test public void prefersSpecificMorleyDomainsOverGenericOpinionPhrase() {
+        assertEquals(IntentRouter.Intent.SMALL_TALK, IntentRouter.classify("What do you think?"));
+        assertEquals(IntentRouter.Intent.SUPPORT, IntentRouter.classify("What do you think about the support tickets?"));
+        assertEquals(IntentRouter.Intent.CATALOGUE, IntentRouter.classify("What do you think about the catalogue gaps?"));
+        assertEquals(IntentRouter.Intent.PERFORMANCE, IntentRouter.classify("What do you think about Morley sales?"));
+        assertEquals(IntentRouter.Intent.RELEASES, IntentRouter.classify("What do you think about the latest release?"));
+    }
+
     @Test public void recognisesShortContextualFollowUps() {
         assertTrue(IntentRouter.isFollowUp("why?"));
         assertTrue(IntentRouter.isFollowUp("tell me more"));
