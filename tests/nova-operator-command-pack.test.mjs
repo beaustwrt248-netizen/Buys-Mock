@@ -22,12 +22,13 @@ function boot(){
   };
   const window={NovaCommands:base,NovaBusinessIntelligence:{load:async()=>({checked_at:'2026-09-08T00:00:00Z'}),analyse:()=>analysis},dispatchEvent:event=>events.push(event)};
   const document={
+    scripts:[],
     querySelector(selector){if(selector==='[data-section="business"]')return{click(){}};return null},
     createElement(){return{dataset:{},addEventListener(){},set src(_v){},set async(_v){}}},
     head:{appendChild(){}}
   };
   class CustomEvent{constructor(type,init={}){this.type=type;this.detail=init.detail}}
-  const context={window,document,CustomEvent,Intl,Map,Date,console};
+  const context={window,document,CustomEvent,Intl,Map,Date,console,URL,location:{href:'https://example.test/nova/'},queueMicrotask};
   vm.runInNewContext(source,context,{filename:'nova/operator-command-pack.js'});
   return{commands:window.NovaCommands,events};
 }
@@ -75,6 +76,13 @@ test('operator commands stay safe and chainable metadata is explicit',()=>{
     assert.equal(command.requiresGuardian,false);
     assert.equal(typeof command.handler,'function');
   }
+});
+
+test('operator lazy loader reuses every shared Nova module identity',()=>{
+  assert.match(source,/script\.dataset\.novaOperatorModule===src\|\|script\.dataset\.novaModule===src\|\|script\.dataset\.novaFeature===src/);
+  assert.match(source,/new URL\(script\.src,location\.href\)\.pathname\.endsWith\('\/'\+src\)/);
+  assert.match(source,/s\.dataset\.novaOperatorModule=src;s\.dataset\.novaModule=src/);
+  assert.match(source,/queueMicrotask\(\(\)=>\{if\(window\[globalName\]\)resolve\(window\[globalName\]\)\}\)/);
 });
 
 test('discovery loads operator commands before command chains and refreshes live counts',()=>{
