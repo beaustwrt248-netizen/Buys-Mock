@@ -36,7 +36,7 @@
     input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ask();}});
     command.querySelector('[data-commands]')?.addEventListener('click',()=>window.dispatchEvent(new Event('nova:open-command-browser')));
     document.querySelector('[data-nova="ask"]')?.addEventListener('click',()=>input.focus());
-    window.addEventListener('nova:commands-ready',()=>showResult('Nova command intelligence is ready.'));
+    window.addEventListener('nova:commands-ready',()=>{document.getElementById('nova-command-console')?.remove();showResult('Nova command intelligence is ready.');});
   }
   const footer=document.querySelector('footer');if(footer)footer.textContent='NOVA AI | Backed by Morley Buys · Smarter Data. Stronger Decisions. · Guardian protected';
 })();
