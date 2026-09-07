@@ -1,3 +1,40 @@
+function values(items) {
+  return items
+    .map(item => Number(item?.deliveredPrice ?? item?.price ?? 0))
+    .filter(value => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+}
+
+function percentile(sorted, p) {
+  if (!sorted.length) return 0;
+  if (sorted.length === 1) return sorted[0];
+  const index = (sorted.length - 1) * p;
+  const lower = Math.floor(index), upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower];
+  const weight = index - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+function usedPricing(items) {
+  const sorted = values(items);
+  return {
+    typicalUsed: percentile(sorted, 0.5),
+    p25: percentile(sorted, 0.25),
+    p75: percentile(sorted, 0.75),
+    lowest: sorted[0] || 0,
+    highest: sorted.at(-1) || 0,
+  };
+}
+
+function retailPricing(items) {
+  const sorted = values(items);
+  return {
+    typicalNew: percentile(sorted, 0.5),
+    competitiveLow: percentile(sorted, 0.25),
+    competitiveHigh: percentile(sorted, 0.75),
+  };
+}
+
 export function mergeUsedSources(payload) {
   const ebay = Array.isArray(payload?.ebay?.items) ? payload.ebay.items : [];
   const gumtree = Array.isArray(payload?.gumtree?.items) ? payload.gumtree.items : [];
@@ -44,13 +81,13 @@ export function toLegacyMarketResponse(payload, inputQuery = '') {
       provider: 'market-search-v2-compat',
       analysedListings: usedItems.length,
       items: usedItems,
-      pricing: { typicalUsed: 0, p25: 0, p75: 0, lowest: 0, highest: 0 },
+      pricing: usedPricing(usedItems),
     },
     google: {
       provider: payload?.retailProvider || payload?.webRetail?.provider || 'market-search-v2',
       analysedListings: retailItems.length,
       items: retailItems,
-      pricing: { typicalNew: 0, competitiveLow: 0, competitiveHigh: 0 },
+      pricing: retailPricing(retailItems),
     },
     sourcePolicy: payload?.sourcePolicy || {
       mode: 'trusted-sellers-only',
