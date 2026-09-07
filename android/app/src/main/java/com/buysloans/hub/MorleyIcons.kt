@@ -85,6 +85,28 @@ internal object MorleyIcons {
         }
     }.build()
 
+    val Tablet: ImageVector = iconBuilder("Tablet").apply {
+        strokePath {
+            moveTo(5f, 3f); lineTo(19f, 3f); curveTo(20.1f, 3f, 21f, 3.9f, 21f, 5f)
+            lineTo(21f, 19f); curveTo(21f, 20.1f, 20.1f, 21f, 19f, 21f)
+            lineTo(5f, 21f); curveTo(3.9f, 21f, 3f, 20.1f, 3f, 19f)
+            lineTo(3f, 5f); curveTo(3f, 3.9f, 3.9f, 3f, 5f, 3f); close()
+            moveTo(10.5f, 18f); lineTo(13.5f, 18f)
+        }
+    }.build()
+
+    val Watch: ImageVector = iconBuilder("Watch").apply {
+        strokePath {
+            moveTo(9f, 2f); lineTo(15f, 2f); lineTo(16f, 6f)
+            moveTo(8f, 6f); curveTo(8f, 5.4f, 8.4f, 5f, 9f, 5f); lineTo(15f, 5f)
+            curveTo(15.6f, 5f, 16f, 5.4f, 16f, 6f); lineTo(16f, 18f)
+            curveTo(16f, 18.6f, 15.6f, 19f, 15f, 19f); lineTo(9f, 19f)
+            curveTo(8.4f, 19f, 8f, 18.6f, 8f, 18f); lineTo(8f, 6f); close()
+            moveTo(9f, 22f); lineTo(15f, 22f); lineTo(16f, 18f)
+            moveTo(10f, 12f); lineTo(12f, 12f); lineTo(13.5f, 10.5f)
+        }
+    }.build()
+
     val Money: ImageVector = iconBuilder("Money").apply {
         strokePath {
             moveTo(12f, 3f); lineTo(12f, 21f)
