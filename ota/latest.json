@@ -1,7 +1,7 @@
 {
-  "versionCode": 121,
-  "versionName": "2.15.77",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.77/B-and-L-Morley-2.15.77.apk",
-  "sha256": "7c91665a3975c203a225e7e6f988806f513351cfe17fb6bf7fa94e63c8c264d0",
-  "notes": "Harden catalogue image resolution for multi-model identifiers (#1023)"
+  "versionCode": 122,
+  "versionName": "2.15.78",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.78/B-and-L-Morley-2.15.78.apk",
+  "sha256": "7023714509d3293a6ef64b01d9c9c94c0b7ba0df9f5fad67d443eb08ea91fcc8",
+  "notes": "Android encrypted Google Drive Backup & Data v2.15.78"
 }
