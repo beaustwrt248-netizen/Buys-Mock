@@ -5,12 +5,10 @@ on:
     branches: [ main ]
     paths:
       - 'nova/nova-update.json'
-      - '.github/workflows/nova-ota-metadata-contract.yml'
   push:
     branches: [ main ]
     paths:
       - 'nova/nova-update.json'
-      - '.github/workflows/nova-ota-metadata-contract.yml'
   workflow_dispatch:
 
 permissions:
