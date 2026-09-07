@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ConversationalNovaContractTest {
@@ -17,17 +18,28 @@ public class ConversationalNovaContractTest {
         String source = readUtf8("src/main/java/com/buysloans/nova/MainActivity.java");
         String engine = readUtf8("src/main/java/com/buysloans/nova/NovaAssistantEngine.java");
         String router = readUtf8("src/main/java/com/buysloans/nova/IntentRouter.java");
+        String gradle = readUtf8("build.gradle");
 
-        assertTrue(source.contains("enum Tab { CHAT, INTELLIGENCE, UPDATES, ACCOUNT }"));
         assertTrue(source.contains("navButton(\"Chat\",Tab.CHAT)"));
         assertTrue(source.contains("navButton(\"Intelligence\",Tab.INTELLIGENCE)"));
-        assertTrue(source.contains("navButton(\"Updates\",Tab.UPDATES)"));
         assertTrue(source.contains("navButton(\"Account\",Tab.ACCOUNT)"));
+        assertTrue(gradle.contains("private enum Tab { CHAT, INTELLIGENCE, ACCOUNT }"));
+        assertTrue(gradle.contains("conversationScroll.fullScroll(View.FOCUS_DOWN)"));
+        assertTrue(gradle.contains("addOtaSection();\\n        footer();\\n    }\\n\\n    private void sendQuestion"));
         assertTrue(source.contains("Message Nova…"));
         assertTrue(source.contains("Clear conversation"));
-        assertTrue(engine.contains("Nova daily brief"));
-        assertTrue(engine.contains("Nova knowledge overview"));
-        assertTrue(engine.contains("lastKnowledgeQuery"));
+
+        assertTrue(engine.contains("lastQuestion"));
+        assertTrue(engine.contains("lastAnswer"));
+        assertTrue(engine.contains("contextualFollowUp"));
+        assertTrue(engine.contains("capabilityContinuation"));
+        assertTrue(engine.contains("show me more"));
+        assertTrue(engine.contains("tell me more"));
+        assertTrue(engine.contains("what about that"));
+        assertTrue(engine.contains("cancelled"));
+        assertTrue(engine.contains("dismissed"));
+        assertFalse(engine.contains("I don’t yet have enough context to give you a useful answer. Tell me a little more about what you mean and I’ll follow the conversation from there."));
+
         assertTrue(router.contains("DAILY_BRIEF"));
         assertTrue(router.contains("KNOWLEDGE"));
         assertTrue(router.contains("keep going"));
