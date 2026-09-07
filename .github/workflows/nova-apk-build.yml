@@ -33,39 +33,97 @@ jobs:
           fetch-depth: 2
       - name: Detect Nova app source change
         id: nova-change
-        if: github.event_name == 'push'
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- android/novaapp; then
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            if git diff --quiet HEAD^1 HEAD -- android/novaapp android/settings.gradle; then
+              echo 'changed=false' >> "$GITHUB_OUTPUT"
+            else
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+            fi
+          elif git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- android/novaapp android/settings.gradle; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
           else
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
+      - name: Validate Nova OTA metadata
+        env:
+          NOVA_APP_CHANGED: ${{ steps.nova-change.outputs.changed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          manifest_path = Path('nova/nova-update.json')
+          if not manifest_path.exists():
+              raise SystemExit('Nova OTA metadata is missing')
+          data = json.loads(manifest_path.read_text(encoding='utf-8'))
+          required = {'versionCode','versionName','apkUrl','sha256','mandatory','notes'}
+          missing = required.difference(data)
+          if missing:
+              raise SystemExit(f'Nova OTA metadata missing fields: {sorted(missing)}')
+          code = data['versionCode']
+          name = str(data['versionName']).strip()
+          url = str(data['apkUrl']).strip()
+          sha = str(data['sha256']).strip().lower()
+          if not isinstance(code, int) or code < 1:
+              raise SystemExit('Nova OTA versionCode must be a positive integer')
+          if not re.fullmatch(r'[0-9A-Za-z._-]+', name):
+              raise SystemExit('Nova OTA versionName is invalid')
+          expected = f'https://github.com/{os.environ["GITHUB_REPOSITORY"]}/releases/download/nova-v{name}/Nova-AI-{name}.apk'
+          if url != expected:
+              raise SystemExit(f'Nova OTA apkUrl must be the immutable release URL for {name}')
+          if not re.fullmatch(r'[0-9a-f]{64}', sha):
+              raise SystemExit('Nova OTA sha256 must be a 64-character lowercase hex digest')
+          if not isinstance(data['mandatory'], bool):
+              raise SystemExit('Nova OTA mandatory must be boolean')
+          if not isinstance(data['notes'], str) or not data['notes'].strip():
+              raise SystemExit('Nova OTA notes must be non-empty text')
+
+          # A metadata-only promotion must describe the already-built current app source exactly.
+          # Real Android source changes remain governed by the next-version release contract in unit tests.
+          if os.environ.get('GITHUB_EVENT_NAME') == 'pull_request' and os.environ.get('NOVA_APP_CHANGED') == 'false':
+              gradle = Path('android/novaapp/build.gradle').read_text(encoding='utf-8')
+              source_code = re.search(r'\bversionCode\s+(\d+)', gradle)
+              source_name = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
+              if not source_code or not source_name:
+                  raise SystemExit('Invalid Nova source release identity')
+              if code != int(source_code.group(1)) or name != source_name.group(1).strip():
+                  raise SystemExit('Metadata-only Nova OTA promotion must match the current app source identity exactly')
+          print(f'Nova OTA metadata valid: {name} ({code})')
+          PY
       - name: Java 17
+        if: steps.nova-change.outputs.changed == 'true'
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '17'
       - name: Gradle 9.3.1
+        if: steps.nova-change.outputs.changed == 'true'
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
           gradle-version: '9.3.1'
       - name: Test and lint Nova APK
+        if: steps.nova-change.outputs.changed == 'true'
         working-directory: android
         shell: bash
         run: |
           set -euo pipefail
           gradle :novaapp:testDebugUnitTest :novaapp:lintDebug --stacktrace --console=plain
       - name: Build Nova debug APK
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.nova-change.outputs.changed == 'true'
         working-directory: android
         shell: bash
         run: |
           set -euo pipefail
           gradle :novaapp:assembleDebug --stacktrace --console=plain
       - name: Stage Nova PR APK
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.nova-change.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -87,7 +145,7 @@ jobs:
             sha256sum --check "$APK_NAME.sha256"
           )
       - name: Upload Nova PR APK artifact
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.nova-change.outputs.changed == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nova-ai-debug-apk
