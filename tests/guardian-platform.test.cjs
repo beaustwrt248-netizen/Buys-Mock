@@ -1,6 +1,8 @@
 'use strict';
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
 const g=require('../admin/guardian-platform.js');
+const release=require('../admin/guardian-release-evidence.js');
 
 function incident(overrides={}){return {id:'i1',source:'runtime_crash',classification:'javascript_error',state:'diagnosing',risk_level:'low',confidence:0.95,auto_fix_eligible:true,created_at:'2026-09-07T10:10:00Z',updated_at:'2026-09-07T10:10:00Z',...overrides}}
 
@@ -29,6 +31,24 @@ function incident(overrides={}){return {id:'i1',source:'runtime_crash',classific
 }
 
 {
+  const main='abc123';
+  const runs=[
+    {id:1,name:release.DEPLOY_WORKFLOW,head_sha:main,status:'completed',conclusion:'success',run_number:44,updated_at:'2026-09-07T10:00:00Z'},
+    {id:2,name:release.DEPLOY_WORKFLOW,head_sha:'older',status:'completed',conclusion:'success',run_number:43,updated_at:'2026-09-07T09:50:00Z'},
+    {id:3,name:release.DEPLOY_WORKFLOW,head_sha:main,status:'completed',conclusion:'failure',run_number:45,updated_at:'2026-09-07T10:05:00Z'}
+  ];
+  const incidents=[
+    incident({id:'inside',created_at:'2026-09-07T10:30:00Z'}),
+    incident({id:'outside',created_at:'2026-09-07T11:01:00Z'}),
+    incident({id:'cancelled',state:'cancelled',created_at:'2026-09-07T10:20:00Z'})
+  ];
+  const exact=release.correlateExactDeployments(incidents,runs,main);
+  assert.deepEqual(exact.map(x=>x.id),['inside'],'only open incidents inside the successful exact-head deployment window should correlate');
+  assert.equal(exact[0].release_evidence.run_number,44);
+  assert.equal(release.successfulDeployments(runs,main).length,1,'failed and wrong-head deployments must never count as authoritative success');
+}
+
+{
   const snapshot=g.buildSnapshot({settings:{enabled:true,operating_mode:'assist'},incidents:[incident({risk_level:'critical',diagnosis_summary:'runtime crash'})],repairs:[],activity:[]});
   assert.ok(snapshot.criticalCount===1);
   assert.ok(snapshot.findings.some(x=>x.level==='critical'));
@@ -49,6 +69,12 @@ function incident(overrides={}){return {id:'i1',source:'runtime_crash',classific
   assert.equal(runtime.open,0);
   assert.equal(runtime.critical,0);
   assert.equal(runtime.status,'healthy');
+}
+
+{
+  const live=fs.readFileSync('admin/guardian-live.js','utf8');
+  assert.match(live,/resolved','ignored','cancelled/,'live Guardian sessions must use the same terminal-state contract');
+  assert.match(live,/guardian-release-evidence\.js/,'authoritative release evidence must be loaded by Guardian');
 }
 
 {
