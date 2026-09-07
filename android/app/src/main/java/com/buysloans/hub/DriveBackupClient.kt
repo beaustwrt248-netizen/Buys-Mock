@@ -10,6 +10,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 object DriveBackupClient {
     const val DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
@@ -97,6 +102,25 @@ object DriveBackupClient {
         }
     }
 
+    internal fun localTimestamp(
+        value: String,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        locale: Locale = Locale.getDefault()
+    ): String {
+        if (value.isBlank()) return value
+        val normalized = if (value.length > 10 && value[10] == ' ') {
+            value.substring(0, 10) + "T" + value.substring(11)
+        } else value
+        return runCatching {
+            val formatter = DateTimeFormatter
+                .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                .withLocale(locale)
+            OffsetDateTime.parse(normalized)
+                .atZoneSameInstant(zoneId)
+                .format(formatter)
+        }.getOrElse { value }
+    }
+
     suspend fun createBackup(context: Context, googleToken: String, reason: String = "android-manual"): JSONObject =
         request(context, googleToken, "backup", JSONObject().put("reason", reason).put("client_state", nativeClientState(context)))
 
@@ -105,7 +129,7 @@ object DriveBackupClient {
         val health = request(context, googleToken, "health")
         val google = list.optJSONObject("google") ?: health.optJSONObject("google")
         val googleEmail = google?.optString("email").orEmpty()
-        val last = health.optJSONObject("last_backup")?.optString("created_at").orEmpty()
+        val last = localTimestamp(health.optJSONObject("last_backup")?.optString("created_at").orEmpty())
         val rows = mutableListOf<BackupRow>()
         val arr = list.optJSONArray("backups") ?: JSONArray()
         for (i in 0 until arr.length()) {
@@ -114,7 +138,7 @@ object DriveBackupClient {
             if (id.isBlank()) continue
             rows += BackupRow(
                 id = id,
-                createdAt = row.optString("created_at"),
+                createdAt = localTimestamp(row.optString("created_at")),
                 byteSize = row.optLong("byte_size"),
                 status = row.optString("status", "ready")
             )
