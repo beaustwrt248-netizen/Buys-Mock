@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const source = fs.readFileSync('nova/app.js', 'utf8');
+const source = fs.readFileSync('nova/app-core.js', 'utf8');
 
 assert.match(source, /let refreshVersion=0;/, 'Nova refreshes must keep a monotonic freshness version');
 assert.match(source, /async function refresh\(\)\{const requestVersion=\+\+refreshVersion;/, 'each refresh must capture a new request version before async work');

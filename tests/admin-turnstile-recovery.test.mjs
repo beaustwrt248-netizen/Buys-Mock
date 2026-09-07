@@ -9,7 +9,7 @@ const nova=fs.readFileSync('admin/nova-admin-home.js','utf8');
 test('Turnstile bootstrap retries instead of hanging forever',()=>{
   assert.match(turnstile,/MAX_API_ATTEMPTS=3/);
   assert.match(turnstile,/bootstrap-error/);
-  assert.match(turnstile,/morley_retry=/);
+  assert.match(turnstile,/api\\.js\\?render=explicit['\"]/);\n  assert.doesNotMatch(turnstile,/morley_retry=|[?&]ts=/);
   assert.match(login,/MAX_BOOTSTRAP_RETRIES=2/);
   assert.match(login,/turnstile\.html\?v=3&retry=/);
   assert.match(login,/Security check unavailable\. Tap here to retry\./);

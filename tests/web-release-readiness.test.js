@@ -15,7 +15,7 @@ const diagnostics = read('web-diagnostics.js');
 const quickDealGrade = read('quick-deal-grade.js');
 const smartWorkspace = read('smart-workspace.js');
 
-for (const label of ['Home', 'Computer', 'Console', 'GP']) assert.match(layout, new RegExp(`'${label}'`));
+for (const label of ['Home', 'Categories', 'General Buys', 'More']) assert.match(layout, new RegExp(`'${label}'`));
 assert.match(desktop, /const VALID=\['home','computer','console','laptop','desktop','general','settings'/);
 assert.match(workflow, /window\.show\?\.\('laptop'\)/);
 assert.match(workflow, /window\.show\?\.\('desktop'\)/);

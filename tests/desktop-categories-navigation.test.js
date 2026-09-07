@@ -8,7 +8,7 @@ const context = {
  document: {readyState:'loading', addEventListener(){}, querySelectorAll(){return [];}},
  window: {show(page){shown.push(page);}, scrollTo(){}},
  localStorage: {setItem(key,page){saved.push([key,page]);}},
- location: {hash:'#home'},
+ location: {hash:'#home', protocol:'https:'},
  history: {pushState(state,title,hash){history.push(hash);}, replaceState(){}},
 };
 vm.runInNewContext(source, context);

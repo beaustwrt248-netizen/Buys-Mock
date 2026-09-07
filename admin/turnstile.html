@@ -96,7 +96,7 @@
     script.id='morleyTurnstileApi';
     script.async=true;
     script.defer=true;
-    script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&morley_retry='+apiAttempt+'&ts='+Date.now();
+    script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.onload=function(){
       if(window.turnstile)renderChallenge();
       else retryApi('Security check script loaded incompletely. Retrying…');
