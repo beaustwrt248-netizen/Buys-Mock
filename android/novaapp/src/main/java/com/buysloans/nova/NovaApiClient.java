@@ -61,8 +61,7 @@ final class NovaApiClient {
         JSONObject profile = first(getWith(candidate,
                 "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
         String role = profile.optString("role");
-        if (!profile.optBoolean("is_enabled", false)
-                || !("admin".equals(role) || "manager".equals(role))) {
+        if (!profile.optBoolean("is_enabled", false) || !"admin".equals(role)) {
             throw new SecurityException("This account is not authorised for Nova AI.");
         }
         session = candidate;
