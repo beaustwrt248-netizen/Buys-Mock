@@ -38,6 +38,9 @@ test('Nova does not turn negated requests into affirmative fuzzy commands',()=>{
   const {api}=loadRegistry();
   assert.equal(api.resolve("don't open guardian"),null);
   assert.equal(api.resolve('do not refresh everything'),null);
+  assert.equal(api.resolve('not open guardian'),null);
+  assert.equal(api.resolve("I can't refresh everything"),null);
+  assert.equal(api.resolve("Nova won't show support status"),null);
   assert.equal(api.resolve('never show support status'),null);
   assert.equal(api.resolve('what can nova not do')?.command?.id,'security.boundaries.explain');
 });
