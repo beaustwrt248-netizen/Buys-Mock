@@ -55,8 +55,8 @@ internal fun cataloguePageTitleMatchesDevice(html: String, model: String, modelN
 internal fun catalogueNearbyImageForExactModel(html: String, model: String, modelNumber: String?): String? {
     val numbers = catalogueModelNumberCandidates(modelNumber)
     if (numbers.isEmpty()) return null
-    val modelText = model.trim().takeIf { normalizeCatalogueIdentity(it).length >= 4 }
-    val modelMatches = modelText?.let { Regex(Regex.escape(it), RegexOption.IGNORE_CASE).findAll(html).toList() }.orEmpty()
+    val modelText = model.trim().takeIf { normalizeCatalogueIdentity(it).length >= 4 } ?: return null
+    val modelRegex = Regex(Regex.escape(modelText), RegexOption.IGNORE_CASE)
     val imageTagRegex = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
     val attributeRegexes = listOf(
         Regex("""\bsrc=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE),
@@ -73,28 +73,34 @@ internal fun catalogueNearbyImageForExactModel(html: String, model: String, mode
         return candidate
     }
 
+    fun insideImageTag(offset: Int): Boolean {
+        val opening = html.lastIndexOf("<img", offset, ignoreCase = true)
+        if (opening < 0) return false
+        val closing = html.indexOf('>', opening)
+        return closing >= offset
+    }
+
+    val modelMatches = modelRegex.findAll(html).filterNot { insideImageTag(it.range.first) }.toList()
     numbers.forEach { number ->
         val numberRegex = Regex(Regex.escape(number), RegexOption.IGNORE_CASE)
         numberRegex.findAll(html).forEach { numberMatch ->
             val sectionModel = modelMatches.lastOrNull { modelMatch ->
                 modelMatch.range.first < numberMatch.range.first &&
                     numberMatch.range.first - modelMatch.range.last <= 5_000
-            }
-            val segmentStart = sectionModel?.range?.first ?: (numberMatch.range.first - 4_000).coerceAtLeast(0)
-            val segmentEnd = (numberMatch.range.last + 2_000).coerceAtMost(html.length)
+            } ?: return@forEach
+
+            val segmentStart = sectionModel.range.first
+            val segmentEnd = numberMatch.range.last + 1
             val segment = html.substring(segmentStart, segmentEnd)
-            val localNumberOffset = numberMatch.range.first - segmentStart
-
-            val candidates = imageTagRegex.findAll(segment).mapNotNull { image ->
-                val url = attributeRegexes.firstNotNullOfOrNull { regex ->
-                    regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
-                } ?: return@mapNotNull null
-                val imageOffset = image.range.first
-                val distance = kotlin.math.abs(imageOffset - localNumberOffset)
-                if (distance > 4_500) null else distance to url
-            }.sortedBy { it.first }.toList()
-
-            candidates.firstOrNull()?.second?.let { return it }
+            val candidate = imageTagRegex.findAll(segment)
+                .toList()
+                .asReversed()
+                .firstNotNullOfOrNull { image ->
+                    attributeRegexes.firstNotNullOfOrNull { regex ->
+                        regex.find(image.value)?.groupValues?.getOrNull(1)?.let(::usable)
+                    }
+                }
+            if (candidate != null) return candidate
         }
     }
     return null
