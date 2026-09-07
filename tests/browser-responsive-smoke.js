@@ -43,16 +43,17 @@ async function inspect(cdp,file,width,label,expectedText){
   await cdp.call('Page.navigate',{url});
   await cdp.waitEvent('Page.loadEventFired',5000).catch(()=>{});
   await sleep(700);
-  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1600),bodyVisibility:getComputedStyle(b).visibility,bodyDisplay:getComputedStyle(b).display}})()`});
+  const result=await cdp.call('Runtime.evaluate',{returnByValue:true,expression:`(()=>{const de=document.documentElement,b=document.body;return {title:document.title,innerWidth:window.innerWidth,clientWidth:de.clientWidth,scrollWidth:Math.max(de.scrollWidth,b?.scrollWidth||0),bodyWidth:b?.getBoundingClientRect().width||0,bodyText:(b?.innerText||'').trim().slice(0,1600),bodyVisibility:getComputedStyle(b).visibility,bodyDisplay:getComputedStyle(b).display}})()`});
   const v=result.result.value;
   const semantic=`${v.title||''} ${v.bodyText||''}`.toLowerCase();
-  assert.equal(v.clientWidth,width,`${label} viewport should apply at ${width}px`);
+  assert.equal(v.innerWidth,width,`${label} emulated viewport should apply at ${width}px`);
+  assert.ok(v.clientWidth>0&&v.clientWidth<=v.innerWidth,`${label} layout viewport should fit the emulated viewport at ${width}px`);
   assert.notEqual(v.bodyDisplay,'none',`${label} body must be displayed at ${width}px`);
   assert.notEqual(v.bodyVisibility,'hidden',`${label} body must be visible at ${width}px`);
   assert.ok(v.bodyText.length>20,`${label} should not render blank at ${width}px`);
   assert.ok(semantic.includes(String(expectedText).toLowerCase()),`${label} should expose expected product text at ${width}px`);
-  assert.ok(v.bodyWidth<=width+2,`${label} body exceeds viewport at ${width}px: ${v.bodyWidth}px`);
-  assert.ok(v.scrollWidth<=width+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px`);
+  assert.ok(v.bodyWidth<=v.clientWidth+2,`${label} body exceeds layout viewport at ${width}px: ${v.bodyWidth}px > ${v.clientWidth}px`);
+  assert.ok(v.scrollWidth<=v.clientWidth+2,`${label} root horizontally overflows at ${width}px: ${v.scrollWidth}px > ${v.clientWidth}px`);
   const shot=await cdp.call('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
   assert.ok((shot.data||'').length>2500,`${label} screenshot should be non-empty at ${width}px`);
 }
