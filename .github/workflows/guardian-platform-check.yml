@@ -24,6 +24,7 @@ jobs:
         run: |
           node --check admin/guardian-platform.js
           node --check admin/guardian-live.js
+          node --check admin/guardian-domain-telemetry.js
       - name: Guardian policy regression tests
         run: node tests/guardian-platform.test.cjs
       - name: Protected boundary assertions
@@ -31,3 +32,4 @@ jobs:
           grep -q "Protected boundary detected" admin/guardian-platform.js
           grep -q "missing telemetry must not be reported healthy" tests/guardian-platform.test.cjs
           grep -qi "final merge remains human-controlled" admin/guardian-repairs.js
+          grep -q "restricted telemetry remains unverified rather than bypassed" admin/guardian-domain-telemetry.js
