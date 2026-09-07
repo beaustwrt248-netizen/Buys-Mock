@@ -4,12 +4,13 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class NovaAndroidOperatorContractTest {
     private static String read(String relative) throws Exception {
-        return Files.readString(Path.of(relative));
+        return new String(Files.readAllBytes(Paths.get(relative)), StandardCharsets.UTF_8);
     }
 
     @Test
