@@ -36,10 +36,10 @@ fun CategoriesPricingScreen() {
     if (selected == null) {
         Screen("Categories") {
             Text("Select a category to get started.", color = MorleyTextSecondary, fontSize = 15.sp)
-            CategoryCard(null, "All Device Catalogue", "Browse every live device with images", "ALL") { selected = PricingCategory.ALL_DEVICES }
+            CategoryCard(PricingVisual.ALL, "All Device Catalogue", "Browse every live device with images") { selected = PricingCategory.ALL_DEVICES }
             CategoryCard(PricingVisual.PHONE, "Mobile Phones", "Price mobile phones", highlighted = true) { selected = PricingCategory.MOBILE_PHONES }
-            CategoryCard(null, "Tablets", "Price iPad, Galaxy Tab, Surface & more", "TAB") { selected = PricingCategory.TABLETS }
-            CategoryCard(null, "Smart Watches", "Price Apple Watch, Galaxy Watch & wearables", "WATCH") { selected = PricingCategory.WEARABLES }
+            CategoryCard(PricingVisual.TABLET, "Tablets", "Price iPad, Galaxy Tab, Surface & more") { selected = PricingCategory.TABLETS }
+            CategoryCard(PricingVisual.WATCH, "Smart Watches", "Price Apple Watch, Galaxy Watch & wearables") { selected = PricingCategory.WEARABLES }
             CategoryCard(PricingVisual.LAPTOP, "Laptops", "Price laptops & MacBooks") { selected = PricingCategory.LAPTOPS }
             CategoryCard(PricingVisual.DESKTOP, "Desktops", "Price desktop computers") { selected = PricingCategory.DESKTOPS }
             CategoryCard(PricingVisual.CONSOLE, "Gaming Consoles", "Price consoles & handhelds") { selected = PricingCategory.GAMING_CONSOLES }
@@ -71,10 +71,9 @@ fun CategoriesPricingScreen() {
 
 @Composable
 private fun CategoryCard(
-    visual: PricingVisual?,
+    visual: PricingVisual,
     title: String,
     subtitle: String,
-    badge: String? = null,
     highlighted: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -90,17 +89,7 @@ private fun CategoryCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (visual != null) {
-                PricingCategoryVisual(visual, Modifier.size(54.dp))
-            } else {
-                Text(
-                    badge.orEmpty(),
-                    modifier = Modifier.size(54.dp),
-                    color = MorleyAccent,
-                    fontSize = if (badge == "WATCH") 10.sp else 12.sp,
-                    fontWeight = FontWeight.Black,
-                )
-            }
+            PricingCategoryVisual(visual, Modifier.size(54.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, color = if (highlighted) MorleyAccent else MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text(subtitle, color = MorleyTextSecondary, fontSize = 13.sp)
