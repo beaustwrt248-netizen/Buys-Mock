@@ -12,3 +12,6 @@ function render(){if(!window.MorleySmartAlerts||!window.MorleyIntelligenceRuntim
 function boot(){loadCss();loadModel(()=>{ensureUi();render();window.addEventListener('morley:intelligence-updated',render)})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,550),{once:true});else setTimeout(boot,550);
 })();
+
+// Source Health shares the Smart Alerts evidence surface but remains read-only.
+(()=>{const load=()=>{if(document.querySelector('#morleyIntelligenceSourceHealthLoader'))return;const s=document.createElement('script');s.id='morleyIntelligenceSourceHealthLoader';s.src='intelligence-source-health.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
