@@ -1,0 +1,56 @@
+name: Catalogue Live Sync
+
+on:
+  pull_request:
+    paths:
+      - 'catalogue-live-sync.js'
+      - 'morley-central-pricing.js'
+      - 'admin/catalogue-live-sync.js'
+      - 'admin/control-governance.js'
+      - 'nova/live-catalogue.js'
+      - 'supabase/migrations/*catalogue_realtime_sync.sql'
+      - '.github/workflows/catalogue-live-sync.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'catalogue-live-sync.js'
+      - 'morley-central-pricing.js'
+      - 'admin/catalogue-live-sync.js'
+      - 'admin/control-governance.js'
+      - 'nova/live-catalogue.js'
+      - 'supabase/migrations/*catalogue_realtime_sync.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check catalogue-live-sync.js
+          node --check morley-central-pricing.js
+          node --check admin/catalogue-live-sync.js
+          node --check admin/control-governance.js
+          node --check nova/live-catalogue.js
+      - name: Realtime contract
+        run: |
+          grep -q "table:'catalog_sync_state'" catalogue-live-sync.js
+          grep -q "catalogue-live-sync.js?v=20260908" morley-central-pricing.js
+          grep -q "table:'catalog_sync_state'" admin/catalogue-live-sync.js
+          grep -q "catalogue-live-sync.js?v=20260908" admin/control-governance.js
+          grep -q "table:'catalog_sync_state'" nova/live-catalogue.js
+          grep -q "create table if not exists public.catalog_sync_state" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
+          grep -q "authenticated_read_catalog_sync_state" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
+          grep -q "revoke all on function public.bump_catalog_sync_revision() from public, anon, authenticated" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
+      - name: No catalogue polling delay contract
+        run: |
+          if grep -q "lastSyncAt<30000" morley-central-pricing.js; then
+            echo '30-second catalogue sync suppression must not return.'
+            exit 1
+          fi
