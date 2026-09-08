@@ -76,11 +76,22 @@ for label in ("Apple iPhone", "Samsung Galaxy", "Select Storage Capacity", "Sele
 for label in ("Galaxy S25 Ultra", "Galaxy Z Fold 7", '"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
     require(phone_catalog, label, f"mobile pricing catalog {label}")
 
-# Expanded console contract: series-first browsing, search and safe unpriced rows.
-for label in ("Sony PS5 Pro", "Sony PS5 Slim Disc", "Sony PS5 Slim Digital", "Nintendo DSi XL", "Game Boy Advance SP", "Price to be added"):
-    require(console_catalog + console_ui, label, f"console catalogue/UI {label}")
+# Live console contract: the canonical catalogue now comes from LiveDevicePricing rather
+# than a compiled seed. Keep search, grades and safe nullable buy-price behaviour while
+# explicitly preventing the stale hard-coded catalogue from returning.
+for needle in (
+    "val catalogue: List<ConsoleDeviceEntry>",
+    "LiveDevicePricing.catalogue()",
+    '.filter { it.category == "console" }',
+    "LiveDevicePricing.find(",
+    "val entries: List<ConsolePriceEntry>",
+    "fun search(query: String): List<ConsoleDeviceEntry>",
+    "fun buyPrice(entry: ConsoleDeviceEntry",
+):
+    require(console_catalog, needle, "live console catalogue contract")
+for retired in ("private val catalogueSeed", "Sony PS5 Pro", "Nintendo DSi XL", "Game Boy Advance SP"):
+    forbid(console_catalog, retired, "compiled console catalogue fallback")
 require(console_ui, "Search all consoles", "console global search")
-require(console_catalog, "fun buyPrice(entry: ConsoleDeviceEntry", "unpriced console buy boundary")
 read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
 
 # Morley light/emerald theme contract across native and web surfaces.
@@ -160,4 +171,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, live console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
