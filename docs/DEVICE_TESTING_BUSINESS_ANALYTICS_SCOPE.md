@@ -1,1 +1,0 @@
-Operational scope only: catalogue quality, protected pricing coverage, marketplace exceptions, alerts, support pressure and release risk. Customer CRM and inventory-lifecycle analytics remain excluded.
