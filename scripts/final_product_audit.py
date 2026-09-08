@@ -128,13 +128,24 @@ need(
     'Search all consoles',
     'Price to be added',
 )
+# Console catalogue is authoritative live data after #1161. Validate the adapter and
+# representative fixture contract instead of requiring retired compiled device-name rows.
 need(
     'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
-    'Sony PS5 Pro',
-    'Sony PS5 Slim Digital',
-    'Nintendo DSi XL',
-    'Game Boy Advance SP',
+    'LiveDevicePricing.catalogue()',
+    '.filter { it.category == "console" }',
+    'family = device.brand',
+    'series = device.family?.takeIf { it.isNotBlank() } ?: device.brand',
+    'fun search(query: String)',
     'fun buyPrice(entry: ConsoleDeviceEntry',
+)
+need(
+    'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt',
+    'PlayStation 5 Pro',
+    'Xbox Series X',
+    'Nintendo Switch 2',
+    'Nintendo DS Lite',
+    'unpricedLiveConsolesNeverInventABuyPrice',
 )
 for retired in (
     'android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt',
@@ -210,4 +221,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; live mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
