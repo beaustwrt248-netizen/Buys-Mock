@@ -1,0 +1,1 @@
+Implementation note: Device Testing stores only the current browser-session review state and does not write authoritative device data. Business Analytics reads the existing intelligence runtime and fails closed when evidence is unavailable.
