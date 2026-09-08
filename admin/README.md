@@ -14,6 +14,8 @@ Admin consumes the same Morley Core source of truth as Morley Buys and Nova. Cat
 
 Nova is the ecosystem's AI/operator product. Guardian is Nova's independent security, governance and enforcement layer, not a fourth user-facing application. Existing Guardian-named database/audit objects remain valid compatibility and enforcement names.
 
+Legacy Guardian routes and filenames may remain temporarily while UI entry points migrate to Nova Security wording. Their continued presence is compatibility-only and does not make Guardian a separate product.
+
 Protected actions remain human-gated and auditable. Admin must not provide a bypass around Guardian or grant Nova broader authority than the approved server-side policy.
 
 See `../docs/MORLEY_ECOSYSTEM_ARCHITECTURE.md` and `../morley-core.js` for the canonical ecosystem contract.
