@@ -30,7 +30,7 @@ class ConsolePricingCatalogTest {
     }
 
     @Test fun liveAuthoritativePricesDriveConsolePricing() {
-        assertEquals(1199.0, ConsolePricingCatalog.search("PS5 Pro").single().priceSheetValue!!, 0.0)
+        assertEquals(1199.0, ConsolePricingCatalog.search("PlayStation 5 Pro").single().priceSheetValue!!, 0.0)
         assertEquals(549.0, ConsolePricingCatalog.search("Series X").single().priceSheetValue!!, 0.0)
         assertEquals(599.0, ConsolePricingCatalog.search("Switch 2").single().priceSheetValue!!, 0.0)
     }
