@@ -32,3 +32,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Marketplace Manager reconciles stock/listings without performing destructive marketplace actions.
 (()=>{const load=()=>{if(document.querySelector('#morleyMarketplaceManagerLoader'))return;const s=document.createElement('script');s.id='morleyMarketplaceManagerLoader';s.src='marketplace-manager.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Smart Alerts surfaces deduplicated evidence-backed exceptions and routes staff to the appropriate review surface.
+(()=>{const load=()=>{if(document.querySelector('#morleySmartAlertsLoader'))return;const s=document.createElement('script');s.id='morleySmartAlertsLoader';s.src='smart-alerts.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
