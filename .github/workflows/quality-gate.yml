@@ -53,6 +53,8 @@ jobs:
             ultimate-parity.js \
             product-parity-v3.js \
             morley-core.js \
+            morley-auth-client.js \
+            nova/app.js \
             nova/module-loader.js \
             nova/live-support.js \
             nova/control-centre.js \
@@ -74,6 +76,9 @@ jobs:
 
       - name: Nova shared module loader contract
         run: node --test tests/nova-module-loader-contract.test.mjs
+
+      - name: Morley shared auth client contract
+        run: node --test tests/morley-auth-client-contract.test.mjs
 
       - name: Verify Android light palette transform with Morley emerald contract
         shell: bash
