@@ -1,79 +1,54 @@
 package com.buysloans.hub
 
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class ConsolePricingCatalogTest {
-    @Test
-    fun suppliedPricingSheetIsFullyRepresented() {
-        assertEquals(19, ConsolePricingCatalog.entries.size)
-        assertEquals(149.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS4 OG 500 GB" }.rrp, 0.01)
-        assertEquals(189.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS4 OG 1 TB" }.rrp, 0.01)
-        assertEquals(229.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS4 Slim 500 GB" }.rrp, 0.01)
-        assertEquals(269.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS4 Slim 1 TB" }.rrp, 0.01)
-        assertEquals(649.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Digital" }.rrp, 0.01)
-        assertEquals(699.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Disc" }.rrp, 0.01)
-        assertEquals(799.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Digital Slim" }.rrp, 0.01)
-        assertEquals(849.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Slim Disc" }.rrp, 0.01)
-        assertEquals(1199.0, ConsolePricingCatalog.entries.first { it.name == "Sony PS5 Pro" }.rrp, 0.01)
-        assertEquals(549.0, ConsolePricingCatalog.entries.first { it.name == "Xbox Series X" }.rrp, 0.01)
-        assertEquals(599.0, ConsolePricingCatalog.entries.first { it.name == "Nintendo Switch 2" }.rrp, 0.01)
+    private val devices = listOf(
+        LiveDeviceCatalogueRow(1, "console", "Sony", "PlayStation 5 Pro", "CFI-7002", listOf("2TB"), family = "PlayStation 5"),
+        LiveDeviceCatalogueRow(2, "console", "Microsoft", "Xbox Series X", "1882", listOf("1TB"), family = "Xbox Series"),
+        LiveDeviceCatalogueRow(3, "console", "Nintendo", "Nintendo Switch 2", "BEE-001", listOf("256GB"), family = "Switch"),
+        LiveDeviceCatalogueRow(4, "console", "Nintendo", "Nintendo DS Lite", "USG-001", emptyList(), family = "Nintendo DS"),
+        LiveDeviceCatalogueRow(5, "mobile_phone", "Samsung", "Galaxy S24", "SM-S921B", listOf("128GB")),
+    )
+    private val prices = listOf(
+        LiveDevicePrice(1, "Sony", "PlayStation 5 Pro", "CFI-7002", "2TB", 1199.0, true),
+        LiveDevicePrice(2, "Microsoft", "Xbox Series X", "1882", "1TB", 549.0, true),
+        LiveDevicePrice(3, "Nintendo", "Nintendo Switch 2", "BEE-001", "256GB", 599.0, true),
+    )
+
+    @Before fun setUp() = LiveDevicePricing.replaceSnapshotsForTesting(prices, devices)
+    @After fun tearDown() = LiveDevicePricing.replaceSnapshotsForTesting(emptyList(), emptyList())
+
+    @Test fun consoleCatalogueComesOnlyFromLiveConsoleRows() {
+        assertEquals(4, ConsolePricingCatalog.catalogue.size)
+        assertTrue(ConsolePricingCatalog.catalogue.none { it.name.contains("Galaxy S24") })
     }
 
-    @Test
-    fun consoleGradesAreRestrictedToABC() {
-        assertEquals(listOf("A", "B", "C"), ConsolePricingCatalog.grades)
-        assertTrue(ConsolePricingCatalog.entries.none { it.rrp <= 0.0 })
+    @Test fun liveAuthoritativePricesDriveConsolePricing() {
+        assertEquals(1199.0, ConsolePricingCatalog.search("PS5 Pro").single().priceSheetValue!!, 0.0)
+        assertEquals(549.0, ConsolePricingCatalog.search("Series X").single().priceSheetValue!!, 0.0)
+        assertEquals(599.0, ConsolePricingCatalog.search("Switch 2").single().priceSheetValue!!, 0.0)
     }
 
-    @Test
-    fun ps5FamilyUsesRequestedNewestVariantOrder() {
-        assertEquals(
-            listOf("Sony PS5 Pro", "Sony PS5 Slim Disc", "Sony PS5 Slim Digital", "Sony PS5 Disc", "Sony PS5 Digital"),
-            ConsolePricingCatalog.devices("PlayStation", "PS5").map { it.name }
-        )
-    }
-
-    @Test
-    fun existingPriceSheetValuesRemainAuthoritativeAcrossCanonicalNames() {
-        assertEquals(799.0, ConsolePricingCatalog.search("PS5 Slim Digital").single().priceSheetValue!!, 0.0)
-        assertEquals(549.0, ConsolePricingCatalog.search("Series X 1 TB").first { "All-Digital" !in it.name }.priceSheetValue!!, 0.0)
-        assertEquals(329.0, ConsolePricingCatalog.search("Series S 512 GB").single().priceSheetValue!!, 0.0)
-    }
-
-    @Test
-    fun newlyAddedRetroModelsRemainUnpricedAndCannotCalculateBuyPrice() {
-        val gameBoy = ConsolePricingCatalog.search("Game Boy Color").single()
-        assertNull(gameBoy.priceSheetValue)
-        assertNull(ConsolePricingCatalog.buyPrice(gameBoy, "A"))
-        val ds = ConsolePricingCatalog.search("Nintendo DS Lite").single()
+    @Test fun unpricedLiveConsolesNeverInventABuyPrice() {
+        val ds = ConsolePricingCatalog.search("DS Lite").single()
         assertNull(ds.priceSheetValue)
         assertNull(ConsolePricingCatalog.buyPrice(ds, "B"))
     }
 
-    @Test
-    fun searchCoversSeriesAndFamilies() {
-        assertTrue(ConsolePricingCatalog.search("PS5 Slim").size >= 2)
-        assertTrue(ConsolePricingCatalog.search("Nintendo DS").any { it.name == "Nintendo DSi XL" })
-        assertTrue(ConsolePricingCatalog.search("Game Boy").any { it.name == "Game Boy Advance SP" })
-        assertTrue(ConsolePricingCatalog.search("Xbox Series X").any { it.name == "Xbox Series X 2 TB" })
+    @Test fun familiesAndSeriesAreDerivedFromCanonicalFields() {
+        assertTrue("Sony" in ConsolePricingCatalog.families())
+        assertTrue("PlayStation 5" in ConsolePricingCatalog.series("Sony"))
+        assertTrue("Xbox Series" in ConsolePricingCatalog.series("Microsoft"))
     }
 
-    @Test
-    fun familiesAndSeriesStayInExplicitNewestFirstOrder() {
-        val playStationSeries = ConsolePricingCatalog.series("PlayStation")
-        assertTrue(playStationSeries.indexOf("PS5") < playStationSeries.indexOf("PS4"))
-        assertTrue(playStationSeries.indexOf("PS4") < playStationSeries.indexOf("PS3"))
-        val nintendoSeries = ConsolePricingCatalog.series("Nintendo")
-        assertTrue(nintendoSeries.indexOf("Switch 2") < nintendoSeries.indexOf("Switch"))
-        assertTrue(nintendoSeries.indexOf("Switch") < nintendoSeries.indexOf("Wii U"))
-    }
-
-    @Test
-    fun expandedCatalogueHasNoDuplicateDeviceNames() {
-        val names = ConsolePricingCatalog.catalogue.map { it.name.lowercase() }
+    @Test fun catalogueHasNoDuplicateVisibleRows() {
+        val names = ConsolePricingCatalog.catalogue.map { "${it.family}|${it.series}|${it.name}".lowercase() }
         assertEquals(names.size, names.distinct().size)
     }
 }
