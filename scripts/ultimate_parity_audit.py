@@ -29,8 +29,10 @@ dashboard = read("android/app/src/main/java/com/buysloans/hub/DashboardActivity.
 categories = read("android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt")
 phones = read("android/app/src/main/java/com/buysloans/hub/MobilePhonePricingScreen.kt")
 phone_catalog = read("android/app/src/main/java/com/buysloans/hub/MobilePhonePricingCatalog.kt")
+mobile_live_catalog = read("android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt")
 console_catalog = read("android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt")
 console_ui = read("android/app/src/main/java/com/buysloans/hub/ComputerConsolePricingScreens.kt")
+live_pricing = read("android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt")
 manifest = read("android/app/src/main/AndroidManifest.xml")
 nfc_logic = read("android/app/src/main/java/com/buysloans/hub/NfcScanLogic.kt")
 nfc_activity = read("android/app/src/main/java/com/buysloans/hub/NfcScannerActivity.kt")
@@ -39,8 +41,6 @@ guardian_js = read("admin/guardian.js")
 guardian_health = read("admin/guardian-health.js")
 menu_js = read("more-menu-v2.js")
 
-# Shared product navigation and help terminology. Pricing workflows are reached through
-# Categories; GP replaced History as the fourth primary destination.
 for label in ('CATEGORIES("Categories", MorleyIcons.Categories)', 'GP("General Buys", MorleyIcons.Money)', "General Buys / GP"):
     require(dashboard, label, "Android primary navigation")
 for label in ("Categories → Laptops", "Categories → Desktops", "Categories → Mobile Phones", "Categories → Gaming Consoles", "General Buys / GP", "More → Support", "NFC", "Valuation"):
@@ -73,17 +73,22 @@ for label in ("Laptops", "Desktops", "Mobile Phones", "Gaming Consoles"):
 require(categories, "MobilePhonePricingScreen()", "Mobile Phones route")
 for label in ("Apple iPhone", "Samsung Galaxy", "Select Storage Capacity", "Select Condition Grade"):
     require(phones, label, f"mobile pricing UI {label}")
-for label in ("Galaxy S25 Ultra", "Galaxy Z Fold 7", '"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
-    require(phone_catalog, label, f"mobile pricing catalog {label}")
+for label in ('"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
+    require(phone_catalog, label, f"mobile pricing policy {label}")
+require(mobile_live_catalog, 'filter { it.category == "mobile_phone" }', "live mobile catalogue source")
+require(mobile_live_catalog, "LiveDevicePricing.find", "live mobile authoritative price source")
 
-# Expanded console contract: series-first browsing, search and safe unpriced rows.
-for label in ("Sony PS5 Pro", "Sony PS5 Slim Disc", "Sony PS5 Slim Digital", "Nintendo DSi XL", "Game Boy Advance SP", "Price to be added"):
-    require(console_catalog + console_ui, label, f"console catalogue/UI {label}")
+# Canonical data, not compiled device names/prices, defines current console and mobile coverage.
+require(console_catalog, 'filter { it.category == "console" }', "live console catalogue source")
+require(console_catalog, "LiveDevicePricing.find", "live console authoritative price source")
+require(console_catalog, "device.family", "canonical console family/series source")
 require(console_ui, "Search all consoles", "console global search")
+require(console_ui, "Price to be added", "safe unpriced console state")
 require(console_catalog, "fun buyPrice(entry: ConsoleDeviceEntry", "unpriced console buy boundary")
+forbid(console_catalog, "private val catalogueSeed", "compiled console catalogue")
 read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
+require(live_pricing, "catalog_sync_state?id=eq.1&select=revision", "native catalogue revision reconciliation")
 
-# Morley light/emerald theme contract across native and web surfaces.
 for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):
     require(android_theme, token, "Android Morley theme token")
 require(android_theme, "lightColorScheme", "Android light color scheme")
@@ -95,7 +100,6 @@ for token in ("#f5f7f4", "#ffffff", "#167a5a", "#1c2b26", "#cedbd5"):
 for retired in ("0xFF16C7FF", "0xFF2684FF", "0xFF030712", "0xFF0B1528"):
     forbid(android_help, retired, "Help-only blue/cyan theme token")
 
-# NFC release contract: optional hardware, permission, activity and guarded parsing.
 require(manifest, 'android.permission.NFC', "NFC permission")
 require(manifest, 'android.hardware.nfc', "NFC hardware declaration")
 require(manifest, 'android:required="false"', "optional NFC hardware policy")
@@ -140,9 +144,6 @@ for typo in ("Valution", "Consol Pricing", "Macbook", "signout everywhere", "Sel
     if typo in combined:
         errors.append(f"Copy-quality sentinel found: {typo}")
 
-# Nova catalogue evidence is advisory/read-only. Any catalogue evidence package that
-# declares an execution_authorized flag must remain fail-closed until a separate,
-# explicitly approved production mutation is prepared.
 for evidence_path in sorted((ROOT / "nova").glob("catalogue-*.json")):
     try:
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
@@ -150,9 +151,7 @@ for evidence_path in sorted((ROOT / "nova").glob("catalogue-*.json")):
         errors.append(f"Invalid Nova catalogue evidence JSON {evidence_path.name}: {exc}")
         continue
     if "execution_authorized" in evidence and evidence["execution_authorized"] is not False:
-        errors.append(
-            f"Nova catalogue evidence must not authorize production execution: {evidence_path.name}"
-        )
+        errors.append(f"Nova catalogue evidence must not authorize production execution: {evidence_path.name}")
 
 if errors:
     print("ULTIMATE PARITY AUDIT FAILED", file=sys.stderr)
@@ -160,4 +159,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, live console/mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
