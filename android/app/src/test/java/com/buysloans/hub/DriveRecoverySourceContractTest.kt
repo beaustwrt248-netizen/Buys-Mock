@@ -14,9 +14,10 @@ class DriveRecoverySourceContractTest {
 
     @Test fun encryptedDriveRecoveryOwnsAndroidBackupRoute() {
         val app = source("app/src/main/java/com/buysloans/hub/MorleyApplication.kt")
+        val compactApp = app.replace(Regex("\\s+"), "")
         val recovery = source("app/src/main/java/com/buysloans/hub/DriveRecoveryActivity.kt")
-        assertTrue(app.contains("EXTRA_FEATURE)==\"backup\""))
-        assertTrue(app.contains("DriveRecoveryActivity::class.java"))
+        assertTrue(compactApp.contains("EXTRA_FEATURE)==\"backup\""))
+        assertTrue(compactApp.contains("Intent(activity,DriveRecoveryActivity::class.java)"))
         assertTrue(recovery.contains("Encrypted Google Drive backup"))
         assertTrue(recovery.contains("Connect Google Drive"))
         assertTrue(recovery.contains("Back Up Now"))

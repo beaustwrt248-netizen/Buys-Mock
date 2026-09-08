@@ -38,14 +38,13 @@ class UiCopyStyleTest {
         }
     }
 
-    @Test fun consoleCapacityAndProductNamesRemainPolished() {
+    @Test fun consoleLabelsComeFromCanonicalLiveCatalogueRatherThanCompiledCopy() {
         val catalog = sourceFile("ConsolePricingCatalog.kt")
-        listOf("500gb", "1tb", "Switch Oled").forEach { legacy ->
-            assertFalse("Unpolished console label returned: $legacy", catalog.contains(legacy))
-        }
-        listOf("500 GB", "1 TB", "Switch OLED").forEach { expected ->
-            assertTrue("Expected polished console label is missing: $expected", catalog.contains(expected))
-        }
+        assertTrue("Console catalogue must filter the canonical live console category", catalog.contains("filter { it.category == \"console\" }"))
+        assertTrue("Console display names must be derived from live model/storage data", catalog.contains("displayName(device, storage)"))
+        assertTrue("Console prices must resolve through the live authoritative pricing snapshot", catalog.contains("LiveDevicePricing.find"))
+        assertFalse("Compiled console catalogue seeds must not return", catalog.contains("catalogueSeed"))
+        assertFalse("Retired hard-coded console copy must not return", catalog.contains("Switch Oled"))
     }
 
     @Test fun polishedPricingScreensDoNotUseEmojiHeadings() {
@@ -187,7 +186,6 @@ class UiCopyStyleTest {
         )
     }
 
-    // FVP-013: keep the mandatory-update state readable without changing update enforcement.
     @Test fun mandatoryUpdateStatusRemainsReadableOnLightCards() {
         val gate = sourceFile("MandatoryUpdateActivity.kt")
         assertFalse("Low-contrast white mandatory-update status returned", gate.contains("else Color.White"))

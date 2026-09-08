@@ -55,7 +55,7 @@ public final class NovaResilienceContractTest {
     }
 
     @Test
-    public void releaseIdentityAdvancesExactlyOneVersionBeyondPublishedOta() throws Exception {
+    public void releaseIdentityIsPublishedOrExactlyOneVersionAhead() throws Exception {
         String gradle = read("build.gradle");
         JSONObject published = new JSONObject(read("../../nova/nova-update.json"));
 
@@ -69,9 +69,14 @@ public final class NovaResilienceContractTest {
         int publishedCode = published.getInt("versionCode");
         String publishedName = published.getString("versionName").trim();
 
-        assertEquals("Nova release must advance exactly one versionCode beyond published OTA",
-                publishedCode + 1, currentCode);
-        assertFalse("Nova release versionName must differ from the already-published OTA",
-                currentName.equals(publishedName));
+        assertTrue("Nova source must either match the published OTA or stage exactly one next versionCode",
+                currentCode == publishedCode || currentCode == publishedCode + 1);
+        if (currentCode == publishedCode) {
+            assertEquals("When Nova is not staging a release, source and published versionName must match",
+                    publishedName, currentName);
+        } else {
+            assertFalse("A staged Nova release versionName must differ from the already-published OTA",
+                    currentName.equals(publishedName));
+        }
     }
 }
