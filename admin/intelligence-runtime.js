@@ -7,7 +7,7 @@ function catalogue(){if(!engine)return {state:'unavailable',devices:[],findings:
 function pricing(options={}){if(!engine)return {state:'unavailable'};return engine.pricingRecommendation(state.pricing,options)}
 function marketplace(){if(!engine)return [];const input=state.marketplace.find(x=>x&&Array.isArray(x.stock)&&Array.isArray(x.listings));return input?engine.marketplaceMatch(input.stock,input.listings):[]}
 function alerts(){if(!engine)return [];return engine.smartAlerts({catalogueFindings:catalogue().findings,marketplace:marketplace(),system:state.system})}
-function snapshot(){return Object.freeze({updatedAt:state.updatedAt,sources:clone(state.sources),catalogue:catalogue(),pricing:pricing(),marketplace:marketplace(),alerts:alerts()})}
+function snapshot(){return Object.freeze({updatedAt:state.updatedAt,sources:clone(state.sources),catalogue:catalogue(),pricing:pricing(),pricingObservations:clone(state.pricing),systemEvidence:clone(state.system),marketplace:marketplace(),alerts:alerts()})}
 function subscribe(fn){if(typeof fn!=='function')return()=>{};listeners.add(fn);return()=>listeners.delete(fn)}
 function clear(kind){if(kind&&Object.prototype.hasOwnProperty.call(state,kind)&&!['sources','updatedAt'].includes(kind)){state[kind]=[];delete state.sources[kind];return publish()}for(const k of ['catalogue','pricing','marketplace','system'])state[k]=[];state.sources={};return publish()}
 return Object.freeze({ingest,snapshot,subscribe,clear});
