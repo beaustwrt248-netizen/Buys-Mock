@@ -30,11 +30,30 @@ class UniversalBuySearchTest {
     }
 
     @Test
-    fun findsConsoleAndPreservesUnpricedBoundary() {
-        val result = UniversalBuySearch.search("Nintendo DSi XL").first { it.category == UniversalBuyCategory.CONSOLE }
-        assertEquals("Nintendo DSi XL", result.title)
-        assertEquals(null, result.priceSheetValue)
-        assertFalse(result.canAuthoriseBuy)
+    fun findsLiveConsoleAndPreservesUnpricedBoundary() {
+        LiveDevicePricing.replaceSnapshotsForTesting(
+            emptyList(),
+            listOf(
+                LiveDeviceCatalogueRow(
+                    id = 418,
+                    category = "console",
+                    brand = "Nintendo",
+                    model = "Nintendo DSi XL",
+                    modelNumber = "UTL-001",
+                    storageOptions = emptyList(),
+                    family = "Nintendo DSi"
+                )
+            )
+        )
+        try {
+            val result = UniversalBuySearch.search("Nintendo DSi XL").first { it.category == UniversalBuyCategory.CONSOLE }
+            assertEquals("Nintendo DSi XL", result.title)
+            assertEquals(null, result.priceSheetValue)
+            assertFalse(result.canAuthoriseBuy)
+            assertTrue(result.subtitle.contains("Price to be added"))
+        } finally {
+            LiveDevicePricing.replaceSnapshotsForTesting(emptyList(), emptyList())
+        }
     }
 
     @Test
