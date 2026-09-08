@@ -35,3 +35,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Smart Alerts surfaces deduplicated evidence-backed exceptions and routes staff to the appropriate review surface.
 (()=>{const load=()=>{if(document.querySelector('#morleySmartAlertsLoader'))return;const s=document.createElement('script');s.id='morleySmartAlertsLoader';s.src='smart-alerts.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Image Intelligence surfaces photo-derived identification and condition evidence for staff verification only.
+(()=>{const load=()=>{if(document.querySelector('#morleyImageIntelligenceModelLoader'))return;const m=document.createElement('script');m.id='morleyImageIntelligenceModelLoader';m.src='image-intelligence-model.js?v=1';m.async=false;document.body.appendChild(m);const s=document.createElement('script');s.id='morleyImageIntelligenceReviewLoader';s.src='image-intelligence-review.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
