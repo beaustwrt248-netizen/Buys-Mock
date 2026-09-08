@@ -1,0 +1,47 @@
+name: Nova OTA Metadata Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'nova/nova-update.json'
+  push:
+    branches: [ main ]
+    paths:
+      - 'nova/nova-update.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-nova-ota-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Validate source and OTA identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/nova_ota_metadata_contract.py \
+            --gradle android/novaapp/build.gradle \
+            --metadata nova/nova-update.json \
+            --repository "$GITHUB_REPOSITORY" \
+            --github-env "$GITHUB_ENV"
+      - name: Verify published GitHub release asset digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_JSON="$RUNNER_TEMP/nova-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${NOVA_RELEASE_TAG}" > "$RELEASE_JSON"
+          python3 scripts/nova_release_asset_contract.py \
+            --release-json "$RELEASE_JSON" \
+            --asset-name "$NOVA_RELEASE_FILE" \
+            --expected-sha256 "$NOVA_EXPECTED_SHA256"
