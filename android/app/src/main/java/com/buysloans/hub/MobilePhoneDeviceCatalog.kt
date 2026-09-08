@@ -115,10 +115,7 @@ object MobilePhoneDeviceCatalog {
     }
 
     fun pricedEntry(entry: MobilePhoneDeviceEntry): MobilePhonePriceEntry? {
-        val live = LiveDevicePricing.find(entry.brand, entry.model, entry.modelNumber, entry.storage)
-        if (live != null) return MobilePhonePriceEntry(entry.brand, entry.model, entry.storage, live.priceAud)
-        return MobilePhonePricingCatalog.entries.firstOrNull {
-            it.brand == entry.brand && it.model == entry.model && key(it.brand, it.model, it.storage) == key(entry.brand, entry.model, entry.storage)
-        }
+        val live = LiveDevicePricing.find(entry.brand, entry.model, entry.modelNumber, entry.storage) ?: return null
+        return MobilePhonePriceEntry(entry.brand, entry.model, entry.storage, live.priceAud)
     }
 }
