@@ -26,3 +26,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Catalogue Autopilot surfaces evidence-backed review work only; authoritative changes remain approval-gated.
 (()=>{const load=()=>{if(document.querySelector('#morleyCatalogueAutopilotLoader'))return;const s=document.createElement('script');s.id='morleyCatalogueAutopilotLoader';s.src='catalogue-autopilot.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Pricing Intelligence presents confirmed Australian market evidence and sell-speed without inventing missing values.
+(()=>{const load=()=>{if(document.querySelector('#morleyPricingIntelligenceLoader'))return;const s=document.createElement('script');s.id='morleyPricingIntelligenceLoader';s.src='pricing-intelligence-centre.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
