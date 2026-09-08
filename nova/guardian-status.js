@@ -22,7 +22,7 @@ function mergePresentation(){
   const boundary=[...document.querySelectorAll('.boundary-list')].find(Boolean);if(boundary){const card=boundary.closest('.card');const title=card?.querySelector('h2');const eyebrow=card?.querySelector('.eyebrow');if(title)title.textContent='Nova + Guardian security boundary';if(eyebrow)eyebrow.textContent='SECURITY & GOVERNANCE';}
   const footer=document.querySelector('footer');if(footer&&/Guardian protected/i.test(footer.textContent||''))footer.textContent='© 2026 Morley Buys · Nova AI · Guardian-enforced security boundary';
 }
-function captureBaseAttention(){const list=$('attentionList');if(!list)return;const fresh=[...list.children].filter(node=>!node.hasAttribute('data-nova-merged-attention')&&!node.classList.contains('empty'));if(fresh.length)baseAttentionRows=fresh.map(node=>node.outerHTML)}
+function captureBaseAttention(){const list=$('attentionList');if(!list)return;const fresh=[...list.children].filter(node=>!node.hasAttribute('data-nova-merged-attention')&&!node.classList.contains('empty'));baseAttentionRows=fresh.map(node=>node.outerHTML)}
 function renderUnifiedAttention(){
   const list=$('attentionList');if(!list)return;
   captureBaseAttention();
