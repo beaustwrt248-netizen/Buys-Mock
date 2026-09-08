@@ -8,7 +8,7 @@
   .topbar>div:first-child{display:block!important}
   .topbar .eyebrow{display:block!important;color:#25b9ff!important;font-size:9px!important;letter-spacing:.18em!important;margin-bottom:3px!important}
   #appView>.panel,#appView>section.panel{padding:14px 14px 26px!important;background:#050a14!important;max-width:none!important}
-  #tab-overview{display:block!important}
+  #tab-overview:not(.hidden){display:block!important}
   .admin-visual-hero{margin:4px 0 14px!important;padding:20px 18px!important;border-radius:20px!important;background:radial-gradient(circle at 82% 18%,rgba(37,185,255,.18),transparent 28%),linear-gradient(145deg,#0b1b34,#07111f 68%)!important;border:1px solid rgba(37,185,255,.24)!important;box-shadow:0 14px 36px rgba(0,0,0,.34)!important;min-height:0!important}
   .admin-visual-hero .eyebrow{font-size:9px!important;color:#52c9ff!important;letter-spacing:.17em!important}
   .admin-visual-hero h2{font-size:25px!important;line-height:1.05!important;margin:7px 0 8px!important;color:#fff!important}
