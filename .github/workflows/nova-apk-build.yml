@@ -36,7 +36,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- android/novaapp; then
+          if git diff --quiet "${GITHUB_SHA}^" "$GITHUB_SHA" -- \
+            android/novaapp/build.gradle \
+            android/novaapp/proguard-rules.pro \
+            android/novaapp/src/main; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
           else
             echo 'changed=true' >> "$GITHUB_OUTPUT"
