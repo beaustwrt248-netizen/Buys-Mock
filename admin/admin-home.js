@@ -20,3 +20,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Morley Intelligence Command Centre is an Admin evidence surface only; Nova remains isolated in its standalone app.
 (()=>{const load=()=>{if(document.querySelector('#morleyIntelligenceCommandCentre'))return;const s=document.createElement('script');s.id='morleyIntelligenceCommandCentre';s.src='intelligence-command-centre.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Device Intelligence is a read-only evidence surface until an authoritative catalogue dataset is ingested.
+(()=>{const load=()=>{if(document.querySelector('#morleyDeviceIntelligenceCentreLoader'))return;const s=document.createElement('script');s.id='morleyDeviceIntelligenceCentreLoader';s.src='device-intelligence-centre.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
