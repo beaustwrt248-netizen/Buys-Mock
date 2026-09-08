@@ -1,0 +1,7 @@
+(()=>{'use strict';
+function contractValid(){return window.MorleyEcosystem?.guardian?.parent==='nova'&&window.MorleyEcosystem?.guardian?.product===false}
+function markContract(){document.documentElement.dataset.guardianContract=contractValid()?'validated':'pending'}
+function loadContract(){if(window.MorleyEcosystem){markContract();return}if(document.querySelector('#morleyEcosystemContract'))return;const s=document.createElement('script');s.id='morleyEcosystemContract';s.src='../morley-core.js?v=1';s.defer=true;document.head.appendChild(s)}
+function apply(){document.title='Nova Security · Guardian Enforcement';const header=document.querySelector('.guardian-dashboard-header');if(header){const eyebrow=header.querySelector('.eyebrow');const h1=header.querySelector('h1');const p=header.querySelector('p');if(eyebrow)eyebrow.textContent='NOVA BY MORLEY';if(h1)h1.textContent='Nova Security · Guardian Enforcement';if(p)p.textContent='Protected incident oversight, repair approvals and Guardian enforcement controls. Nova can observe this boundary but cannot bypass or self-approve it.'}document.documentElement.dataset.guardianPresentation='nova-security';markContract()}
+window.addEventListener('morley:ecosystem-ready',markContract);loadContract();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
+})();

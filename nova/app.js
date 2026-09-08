@@ -7,6 +7,10 @@ const SESSION_KEY='nova.morley.session.v1';
 const nativeFetch=window.fetch.bind(window);
 let unlockNetwork;
 const networkReady=new Promise(resolve=>{unlockNetwork=resolve});
+function loadEcosystemContract(){if(window.MorleyEcosystem||document.querySelector('#morleyEcosystemContract'))return;const script=document.createElement('script');script.id='morleyEcosystemContract';script.src='../morley-core.js?v=1';script.defer=true;document.head.appendChild(script)}
+function applyEcosystemPresentation(){const nav=document.querySelector('[data-section="guardian"]');if(nav)nav.textContent='Security';const page=document.querySelector('[data-page="guardian"]');if(page){const heading=page.querySelector('h2');if(heading)heading.textContent='Guardian Enforcement';const intro=page.querySelector(':scope > .card p');if(intro)intro.textContent='Protected Guardian enforcement evidence for Nova. Nova can observe outcomes and recommendations but cannot inherit, bypass or self-approve Guardian authority.'}const footer=document.querySelector('footer');if(footer)footer.textContent='© 2026 Morley Buys · Nova by Morley · Guardian enforcement protected'}
+loadEcosystemContract();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyEcosystemPresentation,{once:true});else applyEcosystemPresentation();
 function shouldGateFetch(input){try{const raw=input instanceof Request?input.url:String(input);const url=new URL(raw,location.href);return url.origin===location.origin||url.origin==='https://api.github.com'}catch(_e){return true}}
 window.fetch=(...args)=>shouldGateFetch(args[0])?networkReady.then(()=>nativeFetch(...args)):nativeFetch(...args);
 

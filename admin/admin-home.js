@@ -50,3 +50,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Business Analytics consumes existing intelligence evidence and never infers CRM or inventory-lifecycle metrics.
 (()=>{const load=()=>{if(document.querySelector('#morleyBusinessIntelligenceModelLoader'))return;const m=document.createElement('script');m.id='morleyBusinessIntelligenceModelLoader';m.src='business-intelligence-model.js?v=1';m.async=false;document.body.appendChild(m);const s=document.createElement('script');s.id='morleyBusinessIntelligenceCentreLoader';s.src='business-intelligence-centre.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Ecosystem presentation keeps Admin administrative while exposing Guardian as Nova's protected enforcement boundary.
+(()=>{const load=()=>{if(document.querySelector('#morleyAdminEcosystemPresentation'))return;const s=document.createElement('script');s.id='morleyAdminEcosystemPresentation';s.src='ecosystem-presentation.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
