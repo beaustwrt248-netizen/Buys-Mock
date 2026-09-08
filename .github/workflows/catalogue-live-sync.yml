@@ -8,6 +8,11 @@ on:
       - 'admin/catalogue-live-sync.js'
       - 'admin/control-governance.js'
       - 'nova/live-catalogue.js'
+      - 'android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt'
+      - 'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt'
       - 'supabase/migrations/*catalogue_realtime_sync.sql'
       - '.github/workflows/catalogue-live-sync.yml'
   push:
@@ -18,6 +23,11 @@ on:
       - 'admin/catalogue-live-sync.js'
       - 'admin/control-governance.js'
       - 'nova/live-catalogue.js'
+      - 'android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt'
+      - 'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt'
       - 'supabase/migrations/*catalogue_realtime_sync.sql'
 
 permissions:
@@ -45,12 +55,28 @@ jobs:
           grep -q "table:'catalog_sync_state'" admin/catalogue-live-sync.js
           grep -q "catalogue-live-sync.js?v=20260908" admin/control-governance.js
           grep -q "table:'catalog_sync_state'" nova/live-catalogue.js
+          grep -q "catalog_sync_state?id=eq.1&select=revision" android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt
+          grep -q "delay(1_000L)" android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt
+          grep -q 'filter { it.category == "console" }' android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt
+          grep -q "LiveDevicePricing.find" android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt
           grep -q "create table if not exists public.catalog_sync_state" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
           grep -q "authenticated_read_catalog_sync_state" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
           grep -q "revoke all on function public.bump_catalog_sync_revision() from public, anon, authenticated" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
-      - name: No catalogue polling delay contract
+      - name: No stale catalogue delay or price fallback
         run: |
           if grep -q "lastSyncAt<30000" morley-central-pricing.js; then
-            echo '30-second catalogue sync suppression must not return.'
+            echo '30-second website catalogue sync suppression must not return.'
+            exit 1
+          fi
+          if grep -q "lastPricingRefreshAt" android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt; then
+            echo 'Native catalogue refresh throttling must not return.'
+            exit 1
+          fi
+          if grep -q "MobilePhonePricingCatalog.entries.firstOrNull" android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt; then
+            echo 'Compiled mobile price fallback must not return.'
+            exit 1
+          fi
+          if grep -q "private val catalogueSeed" android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt; then
+            echo 'Compiled console catalogue fallback must not return.'
             exit 1
           fi
