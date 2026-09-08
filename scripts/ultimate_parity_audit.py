@@ -76,12 +76,24 @@ for label in ("Apple iPhone", "Samsung Galaxy", "Select Storage Capacity", "Sele
 for label in ("Galaxy S25 Ultra", "Galaxy Z Fold 7", '"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
     require(phone_catalog, label, f"mobile pricing catalog {label}")
 
-# Expanded console contract: series-first browsing, search and safe unpriced rows.
-for label in ("Sony PS5 Pro", "Sony PS5 Slim Disc", "Sony PS5 Slim Digital", "Nintendo DSi XL", "Game Boy Advance SP", "Price to be added"):
-    require(console_catalog + console_ui, label, f"console catalogue/UI {label}")
+# Console catalogue parity is now a live-source contract. Exact device names belong to
+# the canonical device_catalog dataset, not a compiled Kotlin seed. Validate the live
+# category filter, canonical family/series derivation, global search and fail-closed
+# unpriced boundary here; ConsolePricingCatalogTest provides representative device rows.
+for label in (
+    'LiveDevicePricing.catalogue()',
+    '.filter { it.category == "console" }',
+    'family = device.brand',
+    'series = device.family?.takeIf { it.isNotBlank() } ?: device.brand',
+    'fun search(query: String)',
+    'fun buyPrice(entry: ConsoleDeviceEntry',
+):
+    require(console_catalog, label, f"live console catalogue contract {label}")
 require(console_ui, "Search all consoles", "console global search")
-require(console_catalog, "fun buyPrice(entry: ConsoleDeviceEntry", "unpriced console buy boundary")
-read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
+require(console_ui, "Price to be added", "safe unpriced console UI")
+console_test = read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
+for label in ("PlayStation 5 Pro", "Xbox Series X", "Nintendo Switch 2", "Nintendo DS Lite", "unpricedLiveConsolesNeverInventABuyPrice"):
+    require(console_test, label, f"live console test fixture {label}")
 
 # Morley light/emerald theme contract across native and web surfaces.
 for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):
@@ -160,4 +172,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, live console and mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
