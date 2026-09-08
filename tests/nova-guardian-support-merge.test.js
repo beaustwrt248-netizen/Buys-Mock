@@ -18,6 +18,7 @@ test('Nova merges Guardian and support evidence into one attention surface witho
   assert.match(source,/data-nova-merged-attention/);
   assert.match(source,/metricAttention/);
   assert.match(source,/window\.NovaGuardianSupportMerge=\{render:renderUnifiedAttention\}/);
+  assert.match(read('nova/index.html'),/guardian-status\.js\?v=2/);
   assert.match(source,/protected Guardian decisions remain human-controlled/);
   assert.match(source,/cannot approve, merge, deploy, execute, disable or bypass protected Guardian decisions/);
 });
