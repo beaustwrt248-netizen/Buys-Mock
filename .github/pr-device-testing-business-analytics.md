@@ -1,0 +1,1 @@
+Temporary branch-local validation note for Device Testing and Business Analytics. This file can be removed before merge if repository policy treats branch-only validation notes as noise.
