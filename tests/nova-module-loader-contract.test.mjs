@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const loader=fs.readFileSync('nova/module-loader.js','utf8');
 const support=fs.readFileSync('nova/live-support.js','utf8');
@@ -43,4 +44,23 @@ test('Control Centre presents Guardian as Nova Security while retaining the prot
   assert.match(control,/item\('Nova Security','Protected Guardian enforcement evidence and repair workflow\.'/);
   assert.match(control,/root\+'\/admin\/guardian\.html'/);
   assert.match(control,/<b>Guardian enforcement<\/b>/);
+});
+
+test('support retries the shared loader after a transient script failure',async()=>{
+  const listeners={};
+  const scripts=[];
+  const document={
+    head:{appendChild(script){scripts.push(script)}},
+    getElementById(id){return scripts.find(script=>script.id===id&&!script.removed)||null},
+    createElement(){return{addEventListener(type,listener){this['on'+type]=listener},remove(){this.removed=true}}}
+  };
+  const window={fetch:async()=>{},NovaAuth:{getAccessToken:()=>null},addEventListener(type,listener){listeners[type]=listener}};
+  vm.runInNewContext(support,{window,document,location:{origin:'https://nova.test',href:'https://nova.test/'},Request:class Request{},URL,Response,console:{error(){}}});
+  listeners['nova:authenticated']();
+  assert.equal(scripts.length,1);
+  scripts[0].onerror();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(scripts[0].removed,true);
+  listeners['nova:authenticated']();
+  assert.equal(scripts.length,2);
 });
