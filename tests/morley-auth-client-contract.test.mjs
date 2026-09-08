@@ -66,7 +66,8 @@ test('Nova delegates primitives but retains Admin-only Turnstile and network gat
   assert.doesNotMatch(nova,/function readJson\(/);
   assert.doesNotMatch(nova,/function authorisedProfile\(/);
   assert.doesNotMatch(nova,/function refreshSession\(/);
-  assert.equal((nova.match(/validateProfile\([^\n]+roles:\['admin'\]/g)||[]).length,3);
+  assert.equal((nova.match(/client\.validateProfile\(/g)||[]).length,3);
+  assert.equal((nova.match(/roles:\['admin'\]/g)||[]).length,3);
   assert.match(nova,/client\.signInPassword\(\{email,password,captchaToken\}\)/);
   assert.match(nova,/const TURNSTILE_SITE_KEY=/);
   assert.match(nova,/function loadTurnstile\(/);
