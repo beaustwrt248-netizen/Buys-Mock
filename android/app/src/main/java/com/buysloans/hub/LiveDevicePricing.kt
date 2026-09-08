@@ -25,6 +25,7 @@ data class LiveDeviceCatalogueRow(
     val id: Long,
     val category: String,
     val brand: String,
+    val family: String?,
     val model: String,
     val modelNumber: String?,
     val storageOptions: List<String>,
@@ -35,6 +36,7 @@ object LiveDevicePricing {
     private const val PREFS = "morley_live_device_pricing"
     private const val PRICE_CACHE = "prices"
     private const val DEVICE_CACHE = "devices"
+    private const val REVISION_CACHE = "catalogue_revision"
 
     @Volatile
     private var snapshot: List<LiveDevicePrice> = emptyList()
@@ -81,6 +83,17 @@ object LiveDevicePricing {
         return prices
     }
 
+    suspend fun reconcile(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val token = AuthManager.validAccessToken(context)
+        val revision = fetchRevision(token) ?: return@withContext false
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val localRevision = prefs.getLong(REVISION_CACHE, Long.MIN_VALUE)
+        if (revision == localRevision) return@withContext false
+        refresh(context)
+        prefs.edit().putLong(REVISION_CACHE, revision).apply()
+        true
+    }
+
     suspend fun refresh(context: Context): List<LiveDevicePrice> = withContext(Dispatchers.IO) {
         val token = AuthManager.validAccessToken(context)
         val connection = (URL("${BuildConfig.SUPABASE_URL}/functions/v1/app-pricing-catalogue").openConnection() as HttpURLConnection).apply {
@@ -100,9 +113,31 @@ object LiveDevicePricing {
             val devices = parseDevices(rawDevices)
             snapshot = prices
             catalogueSnapshot = devices
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putString(PRICE_CACHE, rawPrices).putString(DEVICE_CACHE, rawDevices).apply()
+            val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(PRICE_CACHE, rawPrices)
+                .putString(DEVICE_CACHE, rawDevices)
+            fetchRevision(token)?.let { editor.putLong(REVISION_CACHE, it) }
+            editor.apply()
             prices
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun fetchRevision(token: String): Long? {
+        val connection = (URL("${BuildConfig.SUPABASE_URL}/rest/v1/catalog_sync_state?id=eq.1&select=revision").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 5_000
+            readTimeout = 5_000
+            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Cache-Control", "no-cache")
+            setRequestProperty("Accept", "application/json")
+        }
+        return try {
+            if (connection.responseCode !in 200..299) return null
+            val rows = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+            if (rows.length() == 0) null else rows.getJSONObject(0).optLong("revision", Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE }
         } finally {
             connection.disconnect()
         }
@@ -146,6 +181,7 @@ object LiveDevicePricing {
                         id = id,
                         category = category,
                         brand = brand,
+                        family = row.optString("family").trim().takeIf { it.isNotBlank() },
                         model = model,
                         modelNumber = row.optString("model_number").trim().takeIf { it.isNotBlank() },
                         storageOptions = storages,
