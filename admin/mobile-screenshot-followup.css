@@ -21,14 +21,24 @@
   body.admin-v2 #pricingList .pricing-row .muted{color:#9cacbf!important}
   body.admin-v2 #pricingList .pricing-row strong{color:#83d8b8!important}
   body.admin-v2 #pricingList .pricing-row>div:last-child{border-top-color:rgba(74,154,215,.18)!important}
+  body.admin-v2 #tab-pricing input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;width:22px!important;height:22px!important;min-width:22px!important;max-width:22px!important;padding:0!important;margin:0 10px 0 0!important;transform:none!important;accent-color:#24b8ff!important;box-shadow:none!important;vertical-align:middle!important}
+  body.admin-v2 #tab-pricing label:has(>input[type="checkbox"]){display:flex!important;align-items:center!important;gap:10px!important;color:#dce8f5!important}
 
-  /* Accounts sub-navigation: inactive tabs were nearly black on navy in the authenticated screenshot. */
+  /* Accounts sub-navigation and invite rows: keep inactive controls and live records readable on the navy surface. */
   body.admin-v2 .admin-account-subnav button,
   body.admin-v2 .admin-account-subnav .tab,
   body.admin-v2 .admin-account-subnav [role="tab"]{color:#b9c8d9!important}
   body.admin-v2 .admin-account-subnav button.active,
   body.admin-v2 .admin-account-subnav .active,
   body.admin-v2 .admin-account-subnav [aria-selected="true"]{background:#f4f8f6!important;color:#173a2f!important}
+  body.admin-v2 #invitesList .row,
+  body.admin-v2 #downloadInvitesList .row{background:#091524!important;border:1px solid rgba(74,154,215,.18)!important;border-radius:11px!important;padding:11px!important;margin:8px 0!important;color:#f7faff!important}
+  body.admin-v2 #invitesList .row-title,
+  body.admin-v2 #downloadInvitesList .row-title{color:#f7faff!important;font-size:14px!important;line-height:1.28!important}
+  body.admin-v2 #invitesList .muted,
+  body.admin-v2 #downloadInvitesList .muted{color:#aab9ca!important;font-size:10px!important;line-height:1.42!important;overflow-wrap:anywhere!important}
+  body.admin-v2 #invitesList .pill,
+  body.admin-v2 #downloadInvitesList .pill{width:auto!important;min-width:0!important;justify-self:start!important}
 
   /* Release controls: never allow global input width/scale rules to turn checkboxes into giant blank squares. */
   body.admin-v2 #tab-release input[type="checkbox"],
@@ -40,6 +50,7 @@
   body.admin-v2 #saveReleaseBtn{width:auto!important;min-width:0!important}
 
   /* Dashboard evidence must either be labelled data or an explicit unavailable state, never decorative bars. */
+  body.admin-v2 #adminInventoryBars.admin-version-evidence{height:auto!important;min-height:0!important;display:grid!important;gap:8px!important;padding:2px 0!important}
   body.admin-v2 #adminInventoryBars.admin-version-evidence-empty{display:block!important;height:auto!important;min-height:0!important;padding:0!important}
   body.admin-v2 .admin-version-evidence-empty-copy{color:#9cacbf!important;font-size:10px!important;line-height:1.45!important;padding:8px 2px!important}
   body.admin-v2 #adminVisualActivity>div{color:#aebed0!important;font-size:10px!important;line-height:1.42!important;padding:8px!important;border:1px solid rgba(74,154,215,.14)!important;border-radius:8px!important;background:#091524!important;overflow-wrap:anywhere!important}
