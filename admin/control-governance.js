@@ -38,6 +38,13 @@
   }
 
   governFeatureControls();
+  if(!document.getElementById('adminCatalogueLiveSyncScript')){
+    const realtime=document.createElement('script');
+    realtime.id='adminCatalogueLiveSyncScript';
+    realtime.src='catalogue-live-sync.js?v=20260908';
+    realtime.defer=true;
+    document.body.appendChild(realtime);
+  }
   if(!document.getElementById('adminV2Script')){
     const script=document.createElement('script');
     script.id='adminV2Script';

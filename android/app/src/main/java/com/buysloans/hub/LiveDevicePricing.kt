@@ -29,12 +29,14 @@ data class LiveDeviceCatalogueRow(
     val modelNumber: String?,
     val storageOptions: List<String>,
     val imageReferenceUrl: String? = null,
+    val family: String? = null,
 )
 
 object LiveDevicePricing {
     private const val PREFS = "morley_live_device_pricing"
     private const val PRICE_CACHE = "prices"
     private const val DEVICE_CACHE = "devices"
+    private const val REVISION_CACHE = "catalogue_revision"
 
     @Volatile
     private var snapshot: List<LiveDevicePrice> = emptyList()
@@ -62,10 +64,13 @@ object LiveDevicePricing {
     fun find(prices: List<LiveDevicePrice>, brand: String, model: String, modelNumber: String?, storage: String): LiveDevicePrice? {
         val normalizedModelNumber = modelNumber?.trim()?.lowercase().orEmpty()
         val normalizedStorage = normalizeStorage(storage)
-        return prices.firstOrNull { price ->
-            val sameDevice = (normalizedModelNumber.isNotBlank() && price.modelNumber?.trim()?.lowercase() == normalizedModelNumber) ||
+        fun sameDevice(price: LiveDevicePrice): Boolean =
+            (normalizedModelNumber.isNotBlank() && price.modelNumber?.trim()?.lowercase() == normalizedModelNumber) ||
                 (price.brand.equals(brand, true) && price.model.equals(model, true))
-            price.authoritative && normalizeStorage(price.storage) == normalizedStorage && sameDevice
+        return prices.firstOrNull { price ->
+            price.authoritative && sameDevice(price) && normalizeStorage(price.storage) == normalizedStorage
+        } ?: prices.firstOrNull { price ->
+            price.authoritative && sameDevice(price) && normalizeStorage(price.storage).isBlank()
         }
     }
 
@@ -79,6 +84,17 @@ object LiveDevicePricing {
         snapshot = prices
         catalogueSnapshot = devices
         return prices
+    }
+
+    suspend fun reconcile(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val token = AuthManager.validAccessToken(context)
+        val revision = fetchRevision(token) ?: return@withContext false
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val localRevision = prefs.getLong(REVISION_CACHE, Long.MIN_VALUE)
+        if (revision == localRevision) return@withContext false
+        refresh(context)
+        prefs.edit().putLong(REVISION_CACHE, revision).apply()
+        true
     }
 
     suspend fun refresh(context: Context): List<LiveDevicePrice> = withContext(Dispatchers.IO) {
@@ -100,9 +116,31 @@ object LiveDevicePricing {
             val devices = parseDevices(rawDevices)
             snapshot = prices
             catalogueSnapshot = devices
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putString(PRICE_CACHE, rawPrices).putString(DEVICE_CACHE, rawDevices).apply()
+            val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(PRICE_CACHE, rawPrices)
+                .putString(DEVICE_CACHE, rawDevices)
+            fetchRevision(token)?.let { editor.putLong(REVISION_CACHE, it) }
+            editor.apply()
             prices
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun fetchRevision(token: String): Long? {
+        val connection = (URL("${BuildConfig.SUPABASE_URL}/rest/v1/catalog_sync_state?id=eq.1&select=revision").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 5_000
+            readTimeout = 5_000
+            setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
+            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Cache-Control", "no-cache")
+            setRequestProperty("Accept", "application/json")
+        }
+        return try {
+            if (connection.responseCode !in 200..299) return null
+            val rows = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+            if (rows.length() == 0) null else rows.getJSONObject(0).optLong("revision", Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE }
         } finally {
             connection.disconnect()
         }
@@ -118,7 +156,7 @@ object LiveDevicePricing {
                 val id = row.optLong("device_catalog_id", -1)
                 val storage = row.optString("storage").trim()
                 val price = row.optDouble("price_aud", Double.NaN)
-                if (id > 0 && storage.isNotBlank() && price.isFinite() && price >= 0) {
+                if (id > 0 && price.isFinite() && price >= 0) {
                     add(LiveDevicePrice(id, device.optString("brand"), device.optString("model_name"), device.optString("model_number").takeIf { it.isNotBlank() }, storage, price, true))
                 }
             }
@@ -150,6 +188,7 @@ object LiveDevicePricing {
                         modelNumber = row.optString("model_number").trim().takeIf { it.isNotBlank() },
                         storageOptions = storages,
                         imageReferenceUrl = row.optString("image_reference_url").trim().takeIf { it.isNotBlank() },
+                        family = row.optString("family").trim().takeIf { it.isNotBlank() },
                     ))
                 }
             }
