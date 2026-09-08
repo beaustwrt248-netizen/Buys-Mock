@@ -1,1 +1,0 @@
-Validation scope: staff-verified device test states, truthful analytics unavailable states, Admin loader presence, and single-boot Command Centre regression coverage.
