@@ -35,6 +35,7 @@ required = [
     "morley_buys_login_bg_app.zip",
     "scripts/catalogue_integrity_gate.py", "scripts/test_catalogue_integrity_gate.py",
     "scripts/nova_ota_metadata_contract.py", "scripts/test_nova_ota_metadata_contract.py",
+    "scripts/nova_release_asset_contract.py", "scripts/test_nova_release_asset_contract.py",
 ]
 for f in required: require(f)
 
@@ -61,6 +62,18 @@ if nova_ota_tests.returncode:
     errors.append(f"Nova OTA metadata contract regression tests failed: {details}")
 else:
     notes.append("Nova OTA metadata contract regression tests passed")
+
+nova_release_asset_tests = subprocess.run(
+    [sys.executable, str(ROOT / "scripts/test_nova_release_asset_contract.py")],
+    cwd=ROOT,
+    capture_output=True,
+    text=True,
+)
+if nova_release_asset_tests.returncode:
+    details = (nova_release_asset_tests.stdout + nova_release_asset_tests.stderr).strip()
+    errors.append(f"Nova release asset contract regression tests failed: {details}")
+else:
+    notes.append("Nova release asset contract regression tests passed")
 
 video = ROOT / "web-assets/morley_buys_login_bg_app.mp4"
 if video.exists() and video.stat().st_size < 1_000_000:
