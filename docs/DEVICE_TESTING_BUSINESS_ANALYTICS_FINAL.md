@@ -1,1 +1,0 @@
-Final note: this slice is non-destructive and does not alter pricing, catalogue master data, marketplace listings, release state, roles, Guardian approvals, CRM, or inventory lifecycle.
