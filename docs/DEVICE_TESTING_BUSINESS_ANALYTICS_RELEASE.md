@@ -1,0 +1,1 @@
+Release safety: no protected writes, schema changes, auth changes, destructive marketplace actions, or automated catalogue mutations are introduced.
