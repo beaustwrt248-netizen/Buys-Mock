@@ -39,9 +39,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RELEASE_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${NOVA_RELEASE_TAG}")"
-          ASSET_DIGEST="$(printf '%s' "$RELEASE_JSON" | jq -r --arg name "$NOVA_RELEASE_FILE" '.assets[] | select(.name == $name) | .digest' | head -n 1)"
-          ASSET_SIZE="$(printf '%s' "$RELEASE_JSON" | jq -r --arg name "$NOVA_RELEASE_FILE" '.assets[] | select(.name == $name) | .size' | head -n 1)"
-          test "$ASSET_DIGEST" = "sha256:${NOVA_EXPECTED_SHA256}"
-          test "$ASSET_SIZE" -gt 0
-          echo "Nova OTA metadata matches the published release asset and SHA-256."
+          RELEASE_JSON="$RUNNER_TEMP/nova-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${NOVA_RELEASE_TAG}" > "$RELEASE_JSON"
+          python3 scripts/nova_release_asset_contract.py \
+            --release-json "$RELEASE_JSON" \
+            --asset-name "$NOVA_RELEASE_FILE" \
+            --expected-sha256 "$NOVA_EXPECTED_SHA256"
