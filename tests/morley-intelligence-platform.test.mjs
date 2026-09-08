@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const contracts=require('../admin/intelligence-contracts.js');
 const engine=require('../admin/intelligence-engine.js');
+const deviceAdapter=require('../admin/intelligence-device-adapter.js');
 
 test('unavailable evidence never carries a fabricated value',()=>{const e=contracts.evidence({state:'unavailable',value:999,source:'missing'});assert.equal(e.value,null);assert.equal(e.state,'unavailable')});
 
@@ -22,3 +23,9 @@ test('image identification remains a proposal requiring staff confirmation',()=>
 test('device testing distinguishes unsupported from failure and only trusts platform-verified automation',()=>{const rows=engine.testSession([{name:'NFC',state:'unsupported',automated:true,platformVerified:false},{name:'Speaker',state:'pass',automated:true,platformVerified:true}]);assert.equal(rows[0].state,'unsupported');assert.equal(rows[0].automated,false);assert.equal(rows[1].automated,true)});
 
 test('smart alerts deduplicate stable alert keys',()=>{const finding={type:'missing_image',deviceId:'d1',severity:'medium'};const alerts=engine.smartAlerts({catalogueFindings:[finding,finding]});assert.equal(alerts.length,1)});
+
+test('device catalogue adapter preserves Australian identity and provenance',()=>{const row=deviceAdapter.normalize({id:42,category:'mobile_phone',brand:'Samsung',family:'Galaxy S',model_name:'Galaxy S26',model_number:'SM-S000',release_year:2026,ram_options:['12GB'],storage_options:['256GB','512GB'],image_reference_url:'https://example.invalid/device.jpg',source_url:'https://manufacturer.invalid/device',source_name:'Manufacturer AU',source_checked_at:'2026-09-08T00:00:00Z',market_region:'Australia',sim_configuration:'nano-SIM + eSIM',physical_sim_slots:1,esim_supported:true,dual_sim_supported:true});assert.equal(row.id,'42');assert.equal(row.storage,'256GB / 512GB');assert.equal(row.marketRegion,'Australia');assert.equal(row.sourceName,'Manufacturer AU');assert.equal(row.evidence.length,1);assert.equal(row.esimSupported,true)});
+
+test('device catalogue adapter pages until the final short batch',async()=>{const calls=[];const batches=[[{id:1,category:'tablet',brand:'A',model_name:'One',storage_options:['128GB'],ram_options:[]}],[{id:2,category:'tablet',brand:'A',model_name:'Two',storage_options:['256GB'],ram_options:[]}],[]];const sb={from(){return{select(){return this},eq(){return this},order(){return this},range(from,to){calls.push([from,to]);return Promise.resolve({data:batches[calls.length-1],error:null})}}}};const rows=await deviceAdapter.fetchAll(sb,{pageSize:1,maxRows:10});assert.equal(rows.length,2);assert.deepEqual(calls,[[0,0],[1,1],[2,2]])});
+
+test('device catalogue refresh fails closed and clears stale catalogue on query error',async()=>{let cleared=null,ingested=false;const runtime={ingest(){ingested=true},clear(kind){cleared=kind}};const sb={from(){return{select(){return this},eq(){return this},order(){return this},range(){return Promise.resolve({data:null,error:{message:'offline'}})}}}};const result=await deviceAdapter.refresh({sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.count,null);assert.equal(cleared,'catalogue');assert.equal(ingested,false)});
