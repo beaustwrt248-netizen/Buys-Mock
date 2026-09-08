@@ -27,6 +27,6 @@ test('activity is human readable while internal event evidence remains available
 });
 
 test('existing Admin runtime loads the polish assets',()=>{
-  assert.match(dock,/mobile-density-polish\.css\?v=1/);
-  assert.match(dock,/mobile-density-polish\.js\?v=1/);
+  assert.match(dock,/mobile-density-polish\.css\?v=2/);
+  assert.match(dock,/mobile-density-polish\.js\?v=2/);
 });
