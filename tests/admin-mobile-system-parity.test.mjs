@@ -14,9 +14,9 @@ const guardianCss=read('admin/guardian-admin-parity.css');
 test('Admin loads the authoritative mobile parity and authenticated screenshot layers last',()=>{
   assert.match(home,/mobile-system-parity\.css\?v=1/);
   assert.match(home,/mobile-system-parity\.js\?v=2/);
-  assert.match(home,/mobile-screenshot-followup\.css\?v=1/);
+  assert.match(home,/mobile-screenshot-followup\.css\?v=2/);
   assert.match(home,/release-fetch-fallback\.js\?v=1/);
-  assert.ok(home.indexOf('mobile-screenshot-followup.css?v=1')>home.indexOf('mobile-system-parity.css?v=1'));
+  assert.ok(home.indexOf('mobile-screenshot-followup.css?v=2')>home.indexOf('mobile-system-parity.css?v=1'));
 });
 
 test('mobile navigation cannot regress to clipped secondary tabs',()=>{
