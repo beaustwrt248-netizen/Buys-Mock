@@ -52,6 +52,7 @@ jobs:
             web-a11y.js \
             ultimate-parity.js \
             product-parity-v3.js \
+            morley-core.js \
             admin/app.js \
             admin/guardian.js \
             admin/guardian-health.js \
@@ -64,6 +65,9 @@ jobs:
 
       - name: Guardian runtime regression coverage
         run: node --test tests/guardian-runtime-regression.test.js
+
+      - name: Morley ecosystem contract
+        run: node --test tests/morley-ecosystem-contract.test.mjs
 
       - name: Verify Android light palette transform with Morley emerald contract
         shell: bash

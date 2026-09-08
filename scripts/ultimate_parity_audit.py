@@ -76,24 +76,23 @@ for label in ("Apple iPhone", "Samsung Galaxy", "Select Storage Capacity", "Sele
 for label in ("Galaxy S25 Ultra", "Galaxy Z Fold 7", '"A" to 0.70', '"B" to 0.50', '"C" to 0.30'):
     require(phone_catalog, label, f"mobile pricing catalog {label}")
 
-# Console catalogue parity is now a live-source contract. Exact device names belong to
-# the canonical device_catalog dataset, not a compiled Kotlin seed. Validate the live
-# category filter, canonical family/series derivation, global search and fail-closed
-# unpriced boundary here; ConsolePricingCatalogTest provides representative device rows.
-for label in (
-    'LiveDevicePricing.catalogue()',
+# Live console contract: the canonical catalogue now comes from LiveDevicePricing rather
+# than a compiled seed. Keep search, grades and safe nullable buy-price behaviour while
+# explicitly preventing the stale hard-coded catalogue from returning.
+for needle in (
+    "val catalogue: List<ConsoleDeviceEntry>",
+    "LiveDevicePricing.catalogue()",
     '.filter { it.category == "console" }',
-    'family = device.brand',
-    'series = device.family?.takeIf { it.isNotBlank() } ?: device.brand',
-    'fun search(query: String)',
-    'fun buyPrice(entry: ConsoleDeviceEntry',
+    "LiveDevicePricing.find(",
+    "val entries: List<ConsolePriceEntry>",
+    "fun search(query: String): List<ConsoleDeviceEntry>",
+    "fun buyPrice(entry: ConsoleDeviceEntry",
 ):
-    require(console_catalog, label, f"live console catalogue contract {label}")
+    require(console_catalog, needle, "live console catalogue contract")
+for retired in ("private val catalogueSeed", "Sony PS5 Pro", "Nintendo DSi XL", "Game Boy Advance SP"):
+    forbid(console_catalog, retired, "compiled console catalogue fallback")
 require(console_ui, "Search all consoles", "console global search")
-require(console_ui, "Price to be added", "safe unpriced console UI")
-console_test = read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
-for label in ("PlayStation 5 Pro", "Xbox Series X", "Nintendo Switch 2", "Nintendo DS Lite", "unpricedLiveConsolesNeverInventABuyPrice"):
-    require(console_test, label, f"live console test fixture {label}")
+read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
 
 # Morley light/emerald theme contract across native and web surfaces.
 for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):

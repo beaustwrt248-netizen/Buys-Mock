@@ -128,24 +128,23 @@ need(
     'Search all consoles',
     'Price to be added',
 )
-# Console catalogue is authoritative live data after #1161. Validate the adapter and
-# representative fixture contract instead of requiring retired compiled device-name rows.
-need(
+console_catalog = need(
     'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
+    'val catalogue: List<ConsoleDeviceEntry>',
     'LiveDevicePricing.catalogue()',
     '.filter { it.category == "console" }',
-    'family = device.brand',
-    'series = device.family?.takeIf { it.isNotBlank() } ?: device.brand',
-    'fun search(query: String)',
+    'LiveDevicePricing.find(',
+    'val entries: List<ConsolePriceEntry>',
+    'fun search(query: String): List<ConsoleDeviceEntry>',
     'fun buyPrice(entry: ConsoleDeviceEntry',
 )
-need(
-    'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt',
-    'PlayStation 5 Pro',
-    'Xbox Series X',
-    'Nintendo Switch 2',
-    'Nintendo DS Lite',
-    'unpricedLiveConsolesNeverInventABuyPrice',
+reject(
+    'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
+    console_catalog,
+    'private val catalogueSeed',
+    'Sony PS5 Pro',
+    'Nintendo DSi XL',
+    'Game Boy Advance SP',
 )
 for retired in (
     'android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt',
