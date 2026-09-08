@@ -25,11 +25,11 @@ data class LiveDeviceCatalogueRow(
     val id: Long,
     val category: String,
     val brand: String,
-    val family: String?,
     val model: String,
     val modelNumber: String?,
     val storageOptions: List<String>,
     val imageReferenceUrl: String? = null,
+    val family: String? = null,
 )
 
 object LiveDevicePricing {
@@ -153,7 +153,7 @@ object LiveDevicePricing {
                 val id = row.optLong("device_catalog_id", -1)
                 val storage = row.optString("storage").trim()
                 val price = row.optDouble("price_aud", Double.NaN)
-                if (id > 0 && storage.isNotBlank() && price.isFinite() && price >= 0) {
+                if (id > 0 && price.isFinite() && price >= 0) {
                     add(LiveDevicePrice(id, device.optString("brand"), device.optString("model_name"), device.optString("model_number").takeIf { it.isNotBlank() }, storage, price, true))
                 }
             }
@@ -181,11 +181,11 @@ object LiveDevicePricing {
                         id = id,
                         category = category,
                         brand = brand,
-                        family = row.optString("family").trim().takeIf { it.isNotBlank() },
                         model = model,
                         modelNumber = row.optString("model_number").trim().takeIf { it.isNotBlank() },
                         storageOptions = storages,
                         imageReferenceUrl = row.optString("image_reference_url").trim().takeIf { it.isNotBlank() },
+                        family = row.optString("family").trim().takeIf { it.isNotBlank() },
                     ))
                 }
             }
