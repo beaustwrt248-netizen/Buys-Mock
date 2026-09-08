@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const source=fs.readFileSync(new URL('../morley-core.js',import.meta.url),'utf8');
 const architecture=fs.readFileSync(new URL('../docs/MORLEY_ECOSYSTEM_ARCHITECTURE.md',import.meta.url),'utf8');
+const webIndex=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const novaApp=fs.readFileSync(new URL('../nova/app.js',import.meta.url),'utf8');
 const adminPresentation=fs.readFileSync(new URL('../admin/ecosystem-presentation.js',import.meta.url),'utf8');
 const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',import.meta.url),'utf8');
@@ -38,7 +39,8 @@ test('destructive and privileged actions remain human gated',()=>{
   assert.match(architecture,/protected pricing writes\/approval/);
 });
 
-test('Nova and Admin consume the ecosystem contract at runtime',()=>{
+test('Morley Buys, Nova and Admin consume the ecosystem contract at runtime',()=>{
+  assert.match(webIndex,/'morley-core\.js\?v=1'/);
   assert.match(novaApp,/\.\.\/morley-core\.js\?v=1/);
   assert.match(adminPresentation,/\.\.\/morley-core\.js\?v=1/);
   assert.match(guardianBranding,/\.\.\/morley-core\.js\?v=1/);
