@@ -1,0 +1,51 @@
+/* Authenticated Android screenshot follow-up. Loaded after every older Admin mobile layer. */
+@media (max-width:960px){
+  body.admin-v2 .shell{padding-bottom:calc(118px + env(safe-area-inset-bottom))!important}
+
+  /* Support queue: the support runtime injects a light-theme stylesheet after startup. Override it with higher-specificity dark tokens. */
+  body.admin-v2 #ticketsList .ticket-row .row-title{color:#f7faff!important;font-size:15px!important;line-height:1.28!important;margin-bottom:5px!important}
+  body.admin-v2 #ticketsList .ticket-row .muted{color:#9cacbf!important;font-size:11px!important;line-height:1.42!important}
+  body.admin-v2 #ticketsList .ticket-row:hover,
+  body.admin-v2 #ticketsList .ticket-row:focus-visible{background:#0c1d32!important;border-color:rgba(36,184,255,.42)!important}
+  body.admin-v2 #ticketsList .ticket-actions .pill{width:auto!important;max-width:100%!important;background:#dff5ec!important;color:#174f3e!important;border-color:#a8d9c8!important}
+  body.admin-v2 #ticketsList .ticket-open-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;background:#0b2740!important;color:#eef8ff!important;border-color:rgba(36,184,255,.4)!important}
+  body.admin-v2 #ticketDetail #ticketDescription,
+  body.admin-v2 #ticketDetail #ticketMessages,
+  body.admin-v2 #ticketDetail pre{color:#e7f0fa!important}
+  body.admin-v2 #ticketDetail #ticketMessages .row{background:#091524!important;border-color:rgba(74,154,215,.22)!important;color:#e7f0fa!important}
+
+  /* Pricing catalogue: neutral light row rules from styles.css must not leak into the dark mobile shell. */
+  body.admin-v2 #pricingList .pricing-row{background:linear-gradient(145deg,#0d1b31,#0b1628)!important;background-image:none!important;color:#f7faff!important;border-color:rgba(74,154,215,.22)!important}
+  body.admin-v2 #pricingList .pricing-row:hover{background:#0c1d32!important;border-color:rgba(36,184,255,.42)!important}
+  body.admin-v2 #pricingList .pricing-row .row-title{color:#f7faff!important;font-size:15px!important}
+  body.admin-v2 #pricingList .pricing-row .muted{color:#9cacbf!important}
+  body.admin-v2 #pricingList .pricing-row strong{color:#83d8b8!important}
+  body.admin-v2 #pricingList .pricing-row>div:last-child{border-top-color:rgba(74,154,215,.18)!important}
+
+  /* Accounts sub-navigation: inactive tabs were nearly black on navy in the authenticated screenshot. */
+  body.admin-v2 .admin-account-subnav button,
+  body.admin-v2 .admin-account-subnav .tab,
+  body.admin-v2 .admin-account-subnav [role="tab"]{color:#b9c8d9!important}
+  body.admin-v2 .admin-account-subnav button.active,
+  body.admin-v2 .admin-account-subnav .active,
+  body.admin-v2 .admin-account-subnav [aria-selected="true"]{background:#f4f8f6!important;color:#173a2f!important}
+
+  /* Release controls: never allow global input width/scale rules to turn checkboxes into giant blank squares. */
+  body.admin-v2 #tab-release input[type="checkbox"],
+  body.admin-v2 #otaEnabledControl input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;width:22px!important;height:22px!important;min-width:22px!important;max-width:22px!important;margin:0 10px 0 0!important;padding:0!important;border-radius:4px!important;transform:none!important;accent-color:#24b8ff!important;box-shadow:none!important;vertical-align:middle!important}
+  body.admin-v2 #tab-release label:has(>input[type="checkbox"]),
+  body.admin-v2 #otaEnabledControl .switchrow{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;min-height:44px!important;color:#dce8f5!important}
+  body.admin-v2 #otaEnabledControl .switchrow span{flex:1 1 auto!important;color:#dce8f5!important}
+  body.admin-v2 #saveOtaEnabledBtn,
+  body.admin-v2 #saveReleaseBtn{width:auto!important;min-width:0!important}
+
+  /* Dashboard evidence must either be labelled data or an explicit unavailable state, never decorative bars. */
+  body.admin-v2 #adminInventoryBars.admin-version-evidence-empty{display:block!important;height:auto!important;min-height:0!important;padding:0!important}
+  body.admin-v2 .admin-version-evidence-empty-copy{color:#9cacbf!important;font-size:10px!important;line-height:1.45!important;padding:8px 2px!important}
+  body.admin-v2 #adminVisualActivity>div{color:#aebed0!important;font-size:10px!important;line-height:1.42!important;padding:8px!important;border:1px solid rgba(74,154,215,.14)!important;border-radius:8px!important;background:#091524!important;overflow-wrap:anywhere!important}
+
+  /* Keep content above both the in-app bottom nav and Android's system navigation/footer area. */
+  body.admin-v2 .tabs{bottom:calc(12px + env(safe-area-inset-bottom))!important;z-index:1000!important}
+  body.admin-v2 footer,
+  body.admin-v2 .footer{margin-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+}
