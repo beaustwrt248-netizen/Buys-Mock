@@ -1,7 +1,7 @@
 {
-  "versionCode": 123,
-  "versionName": "2.15.79",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.79/B-and-L-Morley-2.15.79.apk",
-  "sha256": "1665ab8b7aea3a8e9bf16cf48fbd19569cde97a1e0458df8dfae7d0f741b4b2f",
-  "notes": "Format Backup & Data timestamps in local time"
+  "versionCode": 124,
+  "versionName": "2.15.80",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.80/B-and-L-Morley-2.15.80.apk",
+  "sha256": "812692b24aaa3c1eeeba070586276038876fafccaee23e1ab0d1a1e2fb393592",
+  "notes": "Live catalogue sync and release regression fixes"
 }
