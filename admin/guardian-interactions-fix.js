@@ -27,3 +27,6 @@
  let resizeTimer=null;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(scheduleEnhance,150)});
  setInterval(recoverGuardianWork,60000);
 })();
+
+// Guardian Analyst is evidence-only and does not change approval, retry or repair execution authority.
+(()=>{const load=()=>{if(document.querySelector('#guardianAnalystModelLoader'))return;if(!document.querySelector('#guardianAnalystCss')){const l=document.createElement('link');l.id='guardianAnalystCss';l.rel='stylesheet';l.href='guardian-analyst.css?v=1';document.head.appendChild(l)}const m=document.createElement('script');m.id='guardianAnalystModelLoader';m.src='guardian-analyst-model.js?v=1';m.async=false;m.onload=()=>{if(document.querySelector('#guardianAnalystLoader'))return;const s=document.createElement('script');s.id='guardianAnalystLoader';s.src='guardian-analyst.js?v=1';s.async=false;document.body.appendChild(s)};document.body.appendChild(m)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
