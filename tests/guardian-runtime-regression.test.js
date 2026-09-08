@@ -70,6 +70,17 @@ test('Nova approved dashboard derives live status from real evidence instead of 
   assert.match(source,/connectionLabel/);
   assert.match(source,/\['Open Nova PRs','Needs Attention','Main','Command Intelligence'\]/);
   assert.match(source,/metrics\[3\].*textContent=commandCount/);
+  assert.match(source,/Evidence-backed/);
+  assert.match(source,/VERIFIED ACTIVITY/);
+  assert.match(source,/set\('novaSystemResearch','—'\)/);
+  assert.match(source,/set\('novaSystemCatalogue',\/\^CHECKED/);
+  assert.match(source,/\?'CHECKED':'—'/);
+  assert.match(source,/set\('novaSystemCommands',commandCount\?'AVAILABLE':'—'\)/);
+  assert.doesNotMatch(source,/Always On/);
+  assert.doesNotMatch(source,/Live intelligence across/);
+  assert.doesNotMatch(source,/set\('novaSystemResearch',commandCount\?'READY'/);
+  assert.doesNotMatch(source,/set\('novaSystemCatalogue',[^^]*\?'LIVE'/);
+  assert.doesNotMatch(source,/set\('novaSystemCommands',commandCount\?'READY'/);
   assert.doesNotMatch(source,/metrics\[[012]\].*textContent=/);
   assert.doesNotMatch(source,/liveTasks=openPrs\+running/);
   assert.doesNotMatch(source,/Australian retailer scanning/);
