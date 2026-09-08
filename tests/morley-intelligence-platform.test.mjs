@@ -6,6 +6,7 @@ const contracts=require('../admin/intelligence-contracts.js');
 const engine=require('../admin/intelligence-engine.js');
 const deviceAdapter=require('../admin/intelligence-device-adapter.js');
 const pricingAdapter=require('../admin/intelligence-pricing-adapter.js');
+const marketAdapter=require('../admin/intelligence-market-adapter.js');
 
 test('unavailable evidence never carries a fabricated value',()=>{const e=contracts.evidence({state:'unavailable',value:999,source:'missing'});assert.equal(e.value,null);assert.equal(e.state,'unavailable')});
 
@@ -36,3 +37,9 @@ test('pricing adapter separates authoritative, reference and unpriced slots',()=
 test('pricing adapter uses protected Edge Function instead of direct table reads',async()=>{const calls=[];const sb={functions:{invoke(name,{body}){calls.push([name,body]);return Promise.resolve({data:{items:[{id:'x',device_catalog_id:7,price_aud:99,authoritative:true,is_active:true}]},error:null})}}};const rows=await pricingAdapter.fetchAll(sb);assert.equal(rows.length,1);assert.equal(rows[0].deviceCatalogId,7);assert.deepEqual(calls,[['admin-pricing-control',{action:'list'}]])});
 
 test('pricing refresh fails closed and clears stale buy pricing',async()=>{let cleared=null;const runtime={ingest(){throw new Error('should not ingest')},clear(kind){cleared=kind}};const sb={functions:{invoke(){return Promise.resolve({data:null,error:{message:'offline'}})}}};const result=await pricingAdapter.refresh({sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.count,null);assert.equal(cleared,'buyPricing')});
+
+test('market adapter builds exact device query with model and storage',()=>{assert.equal(marketAdapter.deviceQuery({brand:'Samsung',name:'Galaxy S26',modelNumber:'SM-S000',storage:'256GB'}),'Samsung Galaxy S26 SM-S000 256GB')});
+
+test('market adapter keeps retail references out of confirmed used-market evidence',()=>{const r=marketAdapter.normalise({query:'phone',currency:'AUD',ebay:{items:[{title:'Used phone',price:500,source:'eBay AU',url:'https://example.invalid/used'}]},gumtree:{items:[{title:'Phone',price:450,source:'Gumtree',url:'https://example.invalid/gum'}]},facebook:{items:[]},webRetail:{items:[{title:'New phone',price:999,source:'JB Hi-Fi',url:'https://example.invalid/new'}]}},{deviceId:7});assert.equal(r.state,'confirmed');assert.equal(r.observations.length,2);assert.ok(r.observations.every(x=>x.confirmed===true&&x.sourceType==='used-marketplace'));assert.equal(r.retailReferences.length,1);assert.equal(r.retailReferences[0].confirmed,false);assert.equal(engine.pricingRecommendation([...r.observations,...r.retailReferences]).median,475)});
+
+test('market search failure clears stale market pricing',async()=>{let cleared=null,ingested=false;const runtime={ingest(){ingested=true},clear(kind){cleared=kind}};const sb={functions:{invoke(){return Promise.resolve({data:null,error:{message:'market offline'}})}}};const result=await marketAdapter.searchDevice({id:9,brand:'Apple',name:'iPhone',modelNumber:'A0000',storage:'128GB'},{sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.observations.length,0);assert.equal(cleared,'pricing');assert.equal(ingested,false)});
