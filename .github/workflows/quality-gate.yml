@@ -53,6 +53,9 @@ jobs:
             ultimate-parity.js \
             product-parity-v3.js \
             morley-core.js \
+            nova/module-loader.js \
+            nova/live-support.js \
+            nova/control-centre.js \
             admin/app.js \
             admin/guardian.js \
             admin/guardian-health.js \
@@ -68,6 +71,9 @@ jobs:
 
       - name: Morley ecosystem contract
         run: node --test tests/morley-ecosystem-contract.test.mjs
+
+      - name: Nova shared module loader contract
+        run: node --test tests/nova-module-loader-contract.test.mjs
 
       - name: Verify Android light palette transform with Morley emerald contract
         shell: bash
