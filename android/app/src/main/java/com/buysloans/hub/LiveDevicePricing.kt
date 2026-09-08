@@ -64,10 +64,13 @@ object LiveDevicePricing {
     fun find(prices: List<LiveDevicePrice>, brand: String, model: String, modelNumber: String?, storage: String): LiveDevicePrice? {
         val normalizedModelNumber = modelNumber?.trim()?.lowercase().orEmpty()
         val normalizedStorage = normalizeStorage(storage)
-        return prices.firstOrNull { price ->
-            val sameDevice = (normalizedModelNumber.isNotBlank() && price.modelNumber?.trim()?.lowercase() == normalizedModelNumber) ||
+        fun sameDevice(price: LiveDevicePrice): Boolean =
+            (normalizedModelNumber.isNotBlank() && price.modelNumber?.trim()?.lowercase() == normalizedModelNumber) ||
                 (price.brand.equals(brand, true) && price.model.equals(model, true))
-            price.authoritative && normalizeStorage(price.storage) == normalizedStorage && sameDevice
+        return prices.firstOrNull { price ->
+            price.authoritative && sameDevice(price) && normalizeStorage(price.storage) == normalizedStorage
+        } ?: prices.firstOrNull { price ->
+            price.authoritative && sameDevice(price) && normalizeStorage(price.storage).isBlank()
         }
     }
 
