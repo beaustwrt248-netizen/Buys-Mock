@@ -55,3 +55,10 @@ test('Guardian is presented as Nova Security without renaming protected internal
   assert.match(guardianHtml,/id="guardianKillSwitch"/);
   assert.match(guardianHtml,/guardian\.js\?v=6/);
 });
+
+test('Guardian compatibility surface validates the canonical Nova parent boundary at runtime',()=>{
+  assert.match(guardianBranding,/guardian\?\.parent==='nova'/);
+  assert.match(guardianBranding,/guardian\?\.product===false/);
+  assert.match(guardianBranding,/dataset\.guardianContract=contractValid\(\)\?'validated':'pending'/);
+  assert.match(guardianBranding,/morley:ecosystem-ready/);
+});
