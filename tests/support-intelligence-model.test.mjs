@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';const require=createRequire(import.meta.url);const model=require('../admin/support-intelligence-model.js');
+test('fails closed without support evidence',()=>{const r=model.analyse([]);assert.equal(r.state,'unavailable');assert.equal(r.items.length,0)});
+test('prioritises SLA and urgent support evidence',()=>{const r=model.analyse([{id:'1',subject:'A',priority:'normal'},{id:'2',subject:'B',priority:'urgent'},{id:'3',subject:'C',priority:'low',slaRisk:true}]);assert.equal(r.items[0].id,'3');assert.equal(r.counts.urgent,1);assert.equal(r.counts.slaRisk,1)});
+test('detects duplicate clusters and filters attention',()=>{const r=model.analyse([{id:'1',subject:'Login broken',category:'account'},{id:'2',subject:'Login broken',category:'account'}]);assert.equal(r.counts.duplicates,2);assert.equal(model.filter(r,'login','duplicates').length,2)});
