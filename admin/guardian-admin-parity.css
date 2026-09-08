@@ -20,6 +20,12 @@ body.guardian-page .pill{background:#0a2a25!important;color:#bdf0dd!important;bo
 body.guardian-page .guardian-history-table>*,body.guardian-page #guardianAuditList>*,body.guardian-page .guardian-quarantine-list>*{background:#091524!important;color:var(--gp-text)!important;border-color:var(--gp-line)!important}
 body.guardian-page .guardian-platform-overview,body.guardian-page [class*="guardian-domain"]{color:var(--gp-text)!important}
 body.guardian-page [class*="guardian-domain"] small,body.guardian-page [class*="guardian-domain"] span{color:var(--gp-muted)!important}
+body.guardian-page .guardian-platform-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+body.guardian-page .guardian-platform-domain{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:3px 10px!important;align-items:center!important;padding:11px 12px!important;background:#091524!important;border:1px solid var(--gp-line)!important;border-radius:11px!important}
+body.guardian-page .guardian-platform-domain>span{grid-column:1!important;font-weight:850!important;color:#dce8f5!important}
+body.guardian-page .guardian-platform-domain>strong{grid-column:2!important;grid-row:1!important;color:#fff!important;text-align:right!important}
+body.guardian-page .guardian-platform-domain>small{grid-column:1/-1!important;display:block!important;color:var(--gp-muted)!important;line-height:1.35!important}
+body.guardian-page .guardian-platform-finding{padding:10px 11px!important;margin-top:7px!important;background:#091524!important;border:1px solid var(--gp-line)!important;border-radius:10px!important}
 @media(max-width:700px){
   body.guardian-page .shell.guardian-dashboard{padding:12px 12px 30px!important}
   body.guardian-page .guardian-dashboard-header{padding:10px 0 12px!important;display:grid!important;gap:10px!important}
@@ -36,4 +42,5 @@ body.guardian-page [class*="guardian-domain"] small,body.guardian-page [class*="
   body.guardian-page details.card>summary{padding:13px 0!important}
   body.guardian-page .guardian-history-filters{grid-template-columns:1fr!important;gap:7px!important}
   body.guardian-page .guardian-control-body{grid-template-columns:1fr!important}
+  body.guardian-page .guardian-platform-grid{grid-template-columns:1fr!important}
 }
