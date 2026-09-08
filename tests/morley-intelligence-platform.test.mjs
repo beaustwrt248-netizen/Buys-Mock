@@ -5,6 +5,8 @@ const require=createRequire(import.meta.url);
 const contracts=require('../admin/intelligence-contracts.js');
 const engine=require('../admin/intelligence-engine.js');
 const deviceAdapter=require('../admin/intelligence-device-adapter.js');
+const pricingAdapter=require('../admin/intelligence-pricing-adapter.js');
+const marketAdapter=require('../admin/intelligence-market-adapter.js');
 
 test('unavailable evidence never carries a fabricated value',()=>{const e=contracts.evidence({state:'unavailable',value:999,source:'missing'});assert.equal(e.value,null);assert.equal(e.state,'unavailable')});
 
@@ -29,3 +31,20 @@ test('device catalogue adapter preserves Australian identity and provenance',()=
 test('device catalogue adapter pages until the final short batch',async()=>{const calls=[];const batches=[[{id:1,category:'tablet',brand:'A',model_name:'One',storage_options:['128GB'],ram_options:[]}],[{id:2,category:'tablet',brand:'A',model_name:'Two',storage_options:['256GB'],ram_options:[]}],[]];const sb={from(){return{select(){return this},eq(){return this},order(){return this},range(from,to){calls.push([from,to]);return Promise.resolve({data:batches[calls.length-1],error:null})}}}};const rows=await deviceAdapter.fetchAll(sb,{pageSize:1,maxRows:10});assert.equal(rows.length,2);assert.deepEqual(calls,[[0,0],[1,1],[2,2]])});
 
 test('device catalogue refresh fails closed and clears stale catalogue on query error',async()=>{let cleared=null,ingested=false;const runtime={ingest(){ingested=true},clear(kind){cleared=kind}};const sb={from(){return{select(){return this},eq(){return this},order(){return this},range(){return Promise.resolve({data:null,error:{message:'offline'}})}}}};const result=await deviceAdapter.refresh({sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.count,null);assert.equal(cleared,'catalogue');assert.equal(ingested,false)});
+
+test('pricing adapter separates authoritative, reference and unpriced slots',()=>{const s=pricingAdapter.summary([{id:'1',price_aud:250,authoritative:true,is_active:true},{id:'2',price_aud:200,authoritative:false,is_active:true},{id:'3',price_aud:null,authoritative:false,is_active:true},{id:'4',price_aud:999,authoritative:true,is_active:false}]);assert.equal(s.slots,3);assert.equal(s.priced,2);assert.equal(s.authoritative,1);assert.equal(s.reference,1);assert.equal(s.unpriced,1);assert.equal(s.coverage,2/3)});
+
+test('pricing adapter uses protected Edge Function instead of direct table reads',async()=>{const calls=[];const sb={functions:{invoke(name,{body}){calls.push([name,body]);return Promise.resolve({data:{items:[{id:'x',device_catalog_id:7,price_aud:99,authoritative:true,is_active:true}]},error:null})}}};const rows=await pricingAdapter.fetchAll(sb);assert.equal(rows.length,1);assert.equal(rows[0].deviceCatalogId,7);assert.deepEqual(calls,[['admin-pricing-control',{action:'list'}]])});
+
+test('pricing refresh fails closed and clears stale buy pricing',async()=>{let cleared=null;const runtime={ingest(){throw new Error('should not ingest')},clear(kind){cleared=kind}};const sb={functions:{invoke(){return Promise.resolve({data:null,error:{message:'offline'}})}}};const result=await pricingAdapter.refresh({sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.count,null);assert.equal(cleared,'buyPricing')});
+
+test('market adapter builds exact device query with model and storage',()=>{assert.equal(marketAdapter.deviceQuery({brand:'Samsung',name:'Galaxy S26',modelNumber:'SM-S000',storage:'256GB'}),'Samsung Galaxy S26 SM-S000 256GB')});
+
+test('market adapter keeps retail references out of confirmed used-market evidence',()=>{const r=marketAdapter.normalise({query:'phone',currency:'AUD',ebay:{items:[{title:'Used phone',price:500,source:'eBay AU',url:'https://example.invalid/used'}]},gumtree:{items:[{title:'Phone',price:450,source:'Gumtree',url:'https://example.invalid/gum'}]},facebook:{items:[]},webRetail:{items:[{title:'New phone',price:999,source:'JB Hi-Fi',url:'https://example.invalid/new'}]}},{deviceId:7});assert.equal(r.state,'confirmed');assert.equal(r.observations.length,2);assert.ok(r.observations.every(x=>x.confirmed===true&&x.sourceType==='used-marketplace'));assert.equal(r.retailReferences.length,1);assert.equal(r.retailReferences[0].confirmed,false);assert.equal(engine.pricingRecommendation([...r.observations,...r.retailReferences]).median,475)});
+
+test('market adapter rejects non-AUD responses instead of relabelling them',()=>{const r=marketAdapter.normalise({query:'phone',currency:'USD',ebay:{items:[{title:'Used phone',price:500,source:'eBay',url:'https://example.invalid/used'}]}},{deviceId:7});assert.equal(r.state,'unavailable');assert.equal(r.currency,'USD');assert.equal(r.observations.length,0)});
+
+test('market search failure clears stale market pricing',async()=>{let cleared=null,ingested=false;const runtime={ingest(){ingested=true},clear(kind){cleared=kind}};const sb={functions:{invoke(){return Promise.resolve({data:null,error:{message:'market offline'}})}}};const result=await marketAdapter.searchDevice({id:9,brand:'Apple',name:'iPhone',modelNumber:'A0000',storage:'128GB'},{sb,runtime});assert.equal(result.state,'unavailable');assert.equal(result.observations.length,0);assert.equal(cleared,'pricing');assert.equal(ingested,false)});
+
+
+test('admin intelligence loaders expose changed scripts through fresh cache URLs',()=>{const fs=require('node:fs');const home=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');const index=fs.readFileSync(new URL('../admin/index.html',import.meta.url),'utf8');assert.match(index,/admin-home\.js\?v=2/);assert.match(home,/intelligence-command-centre\.js\?v=2/);assert.match(home,/device-intelligence-centre\.js\?v=2/)});
