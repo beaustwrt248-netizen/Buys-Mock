@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 
 const read=path=>fs.readFileSync(path,'utf8');
 
@@ -38,3 +39,54 @@ test('merged attention is advisory navigation, not a protected write executor',(
   assert.doesNotMatch(source,/fetch\([^\n]*(?:POST|PATCH|DELETE)/i);
   assert.doesNotMatch(source,/method\s*:\s*['"](?:POST|PATCH|PUT|DELETE)['"]/i);
 });
+
+test('merged attention clears stale GitHub rows when the source queue becomes empty',()=>{
+  const source=read('nova/guardian-status.js');
+  const elements={
+    attentionList:{
+      children:[{
+        outerHTML:'<a class="item">stale protected PR</a>',
+        hasAttribute:()=>false,
+        classList:{contains:()=>false},
+      }],
+      innerHTML:'',
+    },
+    metricAttention:{textContent:'1'},
+    supportChecked:{textContent:'CHECKED 2026-09-08'},
+    supportSla:{textContent:'0'},
+    supportHigh:{textContent:'0'},
+    guardianState:{textContent:'ENFORCED'},
+    guardianOpen:{textContent:'0'},
+  };
+  const document={
+    readyState:'loading',
+    getElementById:id=>elements[id]||null,
+    querySelector:()=>null,
+    querySelectorAll:()=>[],
+    addEventListener:()=>{},
+  };
+  const window={addEventListener:()=>{}};
+  vm.runInNewContext(source,{
+    window,
+    document,
+    console,
+    clearTimeout,
+    setTimeout,
+    MutationObserver:class{observe(){}},
+  });
+
+  window.NovaGuardianSupportMerge.render();
+  assert.match(elements.attentionList.innerHTML,/stale protected PR/);
+
+  elements.attentionList.children=[{
+    outerHTML:'<div class="empty">No current item requires human attention.</div>',
+    hasAttribute:()=>false,
+    classList:{contains:name=>name==='empty'},
+  }];
+  window.NovaGuardianSupportMerge.render();
+
+  assert.doesNotMatch(elements.attentionList.innerHTML,/stale protected PR/);
+  assert.match(elements.attentionList.innerHTML,/No current item requires human attention/);
+  assert.equal(elements.metricAttention.textContent,'0');
+});
+
