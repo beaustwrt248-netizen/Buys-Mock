@@ -128,13 +128,23 @@ need(
     'Search all consoles',
     'Price to be added',
 )
-need(
+console_catalog = need(
     'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
+    'val catalogue: List<ConsoleDeviceEntry>',
+    'LiveDevicePricing.catalogue()',
+    '.filter { it.category == "console" }',
+    'LiveDevicePricing.find(',
+    'val entries: List<ConsolePriceEntry>',
+    'fun search(query: String): List<ConsoleDeviceEntry>',
+    'fun buyPrice(entry: ConsoleDeviceEntry',
+)
+reject(
+    'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt',
+    console_catalog,
+    'private val catalogueSeed',
     'Sony PS5 Pro',
-    'Sony PS5 Slim Digital',
     'Nintendo DSi XL',
     'Game Boy Advance SP',
-    'fun buyPrice(entry: ConsoleDeviceEntry',
 )
 for retired in (
     'android/app/src/main/java/com/buysloans/hub/AdminModePolicy.kt',
@@ -210,4 +220,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; series-first mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
+print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; live mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
