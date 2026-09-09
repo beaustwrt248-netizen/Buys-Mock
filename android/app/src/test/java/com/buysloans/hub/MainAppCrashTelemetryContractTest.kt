@@ -30,11 +30,15 @@ class MainAppCrashTelemetryContractTest {
         assertFalse(telemetry.contains("user_id"))
     }
 
-    @Test fun databasePolicyKeepsCrashSubmissionsBounded() {
+    @Test fun databasePolicyPreservesProtectedRoleBoundaryAndBoundsSubmissions() {
         val migration = source("../supabase/migrations/20260909121000_main_app_crash_telemetry.sql")
         assertTrue(migration.contains("to authenticated"))
-        assertTrue(migration.contains("auth.uid() is not null"))
+        assertTrue(migration.contains("private.is_admin_or_manager()"))
+        assertFalse(migration.contains("auth.uid() is not null"))
         assertTrue(migration.contains("length(error_class) between 1 and 160"))
         assertTrue(migration.contains("occurred_at >= now() - interval '30 days'"))
+        assertTrue(migration.contains("occurred_at <= now() + interval '5 minutes'"))
+        assertTrue(migration.contains("received_at >= now() - interval '5 minutes'"))
+        assertTrue(migration.contains("received_at <= now() + interval '5 minutes'"))
     }
 }
