@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.MorleyMarketplaceSource=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';
 const clean=v=>String(v??'').trim(),num=v=>Number.isFinite(Number(v))?Number(v):null,arr=v=>Array.isArray(v)?v:[];
-const stockPattern=/(?<!\d)(\d{5,12})(?!\d)/g;
+const stockPattern=/(?:^|\D)(\d{5,12})(?=\D|$)/g;
 function safeUrl(value,host){const raw=clean(value);if(!raw)return null;try{const u=new URL(raw);if(u.protocol!=='https:'||!(u.hostname===host||u.hostname.endsWith('.'+host)))return null;return u.href}catch{return null}}
 function stockNumber(...values){for(const value of values){const text=clean(value);if(!text)continue;const matches=[...text.matchAll(stockPattern)].map(m=>m[1]);if(matches.length)return matches[0]}return null}
 function stockRow(input={}){const url=safeUrl(input.url||input.listing_url,'cashconverters.com.au');const id=clean(input.stockNumber||input.stock_number||input.itemNumber||input.item_number)||stockNumber(input.title,input.description,url);return Object.freeze({stockNumber:id||null,title:clean(input.title||input.name)||null,price:num(input.price??input.current_price),url,store:clean(input.store)||'Morley',source:'Cash Converters',checkedAt:clean(input.checkedAt||input.checked_at)||null})}
