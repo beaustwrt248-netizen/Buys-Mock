@@ -21,6 +21,11 @@ test('Camera audit deliberately excludes photos and full identifiers',()=>{
   assert.doesNotMatch(fn,/label_identifiers/);
 });
 
+test('saved final-offer readiness independently requires verified identity and complete passed functionality',()=>{
+  assert.match(fn,/const identityVerified=market\.identity_verified===true/);
+  assert.match(fn,/final_offer_ready:Boolean\(body\?\.final_offer_ready\)&&identityVerified&&func\.complete&&func\.failed\.length===0&&func\.pending\.length===0/);
+});
+
 test('client save is an explicit staff action and sends bounded structured state',()=>{
   assert.match(client,/Save assessment/);
   assert.match(client,/cameraAuditSaveBtn/);
