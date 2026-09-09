@@ -30,10 +30,11 @@ import java.util.concurrent.Executors;
 public final class NovaVisionActivity extends Activity {
     private static final int REQ_CAMERA_PERMISSION = 9110;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private final ArrayList<Uri> sessionUris = new ArrayList<>();
     private Uri pendingCameraUri;
     private TextView result;
     private EditText hint;
-    private Button camera, gallery, valuation;
+    private Button camera, gallery, analyseSession, clearSession, valuation;
     private JSONObject lastAssessment;
     private JSONArray lastCatalogueMatches = new JSONArray();
 
@@ -62,7 +63,7 @@ public final class NovaVisionActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setPadding(0, dp(14), 0, dp(4));
         root.addView(title);
-        root.addView(text("Take one photo or choose up to six images. Nova combines evidence across angles, checks active Morley catalogue matches, grades visible condition and can research current Australian pricing. Catalogue and final pricing remain human-controlled.", 13, secondary));
+        root.addView(text("Build one evidence session with up to six camera or gallery photos. Nova combines every retained angle, checks active Morley catalogue matches, grades visible condition, requests useful follow-up angles and can research current Australian pricing. Catalogue and final pricing remain human-controlled.", 13, secondary));
 
         hint = new EditText(this);
         hint.setHint("Optional hint — e.g. ‘customer says iPhone 15 Pro 256GB’");
@@ -76,21 +77,31 @@ public final class NovaVisionActivity extends Activity {
         hintLp.topMargin = dp(18);
         root.addView(hint, hintLp);
 
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout captureRow = new LinearLayout(this);
+        captureRow.setOrientation(LinearLayout.HORIZONTAL);
         camera = button("Take photo", true, primary, accent, surface, outline);
         gallery = button("Choose up to 6", false, primary, accent, surface, outline);
         LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, dp(52), 1f);
         left.setMarginEnd(dp(5));
         LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, dp(52), 1f);
         right.setMarginStart(dp(5));
-        row.addView(camera, left);
-        row.addView(gallery, right);
-        LinearLayout.LayoutParams rowLp = full();
-        rowLp.topMargin = dp(12);
-        root.addView(row, rowLp);
+        captureRow.addView(camera, left);
+        captureRow.addView(gallery, right);
+        LinearLayout.LayoutParams captureLp = full();
+        captureLp.topMargin = dp(12);
+        root.addView(captureRow, captureLp);
 
-        result = text("Ready. For best results include front, back, model label and any visible damage.", 14, secondary);
+        LinearLayout sessionRow = new LinearLayout(this);
+        sessionRow.setOrientation(LinearLayout.HORIZONTAL);
+        analyseSession = button("Analyse photos", true, primary, accent, surface, outline);
+        clearSession = button("Clear photos", false, primary, accent, surface, outline);
+        sessionRow.addView(analyseSession, left);
+        sessionRow.addView(clearSession, right);
+        LinearLayout.LayoutParams sessionLp = full();
+        sessionLp.topMargin = dp(8);
+        root.addView(sessionRow, sessionLp);
+
+        result = text("Ready. Add front, back, model-label or damage photos, then analyse the retained evidence together.", 14, secondary);
         result.setPadding(dp(16), dp(16), dp(16), dp(16));
         result.setBackground(rounded(surface, 18, outline));
         LinearLayout.LayoutParams resultLp = full();
@@ -115,10 +126,17 @@ public final class NovaVisionActivity extends Activity {
 
         camera.setOnClickListener(v -> beginCamera());
         gallery.setOnClickListener(v -> startActivityForResult(NovaAndroidOperator.imagePickerIntent(), NovaAndroidOperator.REQ_IMAGE));
+        analyseSession.setOnClickListener(v -> analyseSession());
+        clearSession.setOnClickListener(v -> clearEvidenceSession());
+        updateSessionControls();
         setContentView(scroll);
     }
 
     private void beginCamera() {
+        if (sessionUris.size() >= NovaAndroidOperator.MAX_VISION_PHOTOS) {
+            showError("This Vision assessment already has six photos. Analyse or clear the current evidence before adding more.");
+            return;
+        }
         if (android.os.Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAMERA_PERMISSION);
             return;
@@ -142,19 +160,74 @@ public final class NovaVisionActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode != RESULT_OK) return;
-        ArrayList<Uri> uris = new ArrayList<>();
-        if (requestCode == NovaAndroidOperator.REQ_CAMERA && pendingCameraUri != null) uris.add(pendingCameraUri);
-        else if (requestCode == NovaAndroidOperator.REQ_IMAGE && data != null) {
+        if (requestCode == NovaAndroidOperator.REQ_CAMERA && pendingCameraUri != null) {
+            if (sessionUris.size() < NovaAndroidOperator.MAX_VISION_PHOTOS) sessionUris.add(pendingCameraUri);
+            pendingCameraUri = null;
+            evidenceChanged();
+            return;
+        }
+        if (requestCode == NovaAndroidOperator.REQ_IMAGE && data != null) {
+            ArrayList<Uri> selected = new ArrayList<>();
             ClipData clip = data.getClipData();
             if (clip != null) {
                 int count = Math.min(clip.getItemCount(), NovaAndroidOperator.MAX_VISION_PHOTOS);
                 for (int i = 0; i < count; i++) {
                     Uri uri = clip.getItemAt(i).getUri();
-                    if (uri != null) uris.add(uri);
+                    if (uri != null) selected.add(uri);
                 }
-            } else if (data.getData() != null) uris.add(data.getData());
+            } else if (data.getData() != null) selected.add(data.getData());
+            if (!selected.isEmpty()) {
+                sessionUris.clear();
+                sessionUris.addAll(selected);
+                evidenceChanged();
+            }
         }
-        if (!uris.isEmpty()) analyse(uris);
+    }
+
+    private void evidenceChanged() {
+        lastAssessment = null;
+        lastCatalogueMatches = new JSONArray();
+        valuation.setEnabled(false);
+        updateSessionControls();
+        result.setTextColor(Color.rgb(169, 185, 211));
+        result.setText(sessionUris.size() + " photo" + (sessionUris.size() == 1 ? "" : "s") + " retained. Add another useful angle or analyse the full evidence set now.");
+    }
+
+    private void clearEvidenceSession() {
+        sessionUris.clear();
+        pendingCameraUri = null;
+        lastAssessment = null;
+        lastCatalogueMatches = new JSONArray();
+        valuation.setEnabled(false);
+        updateSessionControls();
+        result.setTextColor(Color.rgb(169, 185, 211));
+        result.setText("Evidence session cleared. Add new device photos to begin another assessment.");
+    }
+
+    private void updateSessionControls() {
+        int count = sessionUris.size();
+        if (camera != null) {
+            camera.setEnabled(count < NovaAndroidOperator.MAX_VISION_PHOTOS);
+            camera.setText(count == 0 ? "Take photo" : "Add photo (" + count + "/" + NovaAndroidOperator.MAX_VISION_PHOTOS + ")");
+        }
+        if (gallery != null) gallery.setEnabled(true);
+        if (analyseSession != null) analyseSession.setEnabled(count > 0);
+        if (clearSession != null) clearSession.setEnabled(count > 0);
+    }
+
+    private void setCaptureControlsEnabled(boolean enabled) {
+        camera.setEnabled(enabled && sessionUris.size() < NovaAndroidOperator.MAX_VISION_PHOTOS);
+        gallery.setEnabled(enabled);
+        analyseSession.setEnabled(enabled && !sessionUris.isEmpty());
+        clearSession.setEnabled(enabled && !sessionUris.isEmpty());
+    }
+
+    private void analyseSession() {
+        if (sessionUris.isEmpty()) {
+            showError("Add at least one device photo before running Nova Vision.");
+            return;
+        }
+        analyse(new ArrayList<>(sessionUris));
     }
 
     private void analyse(List<Uri> uris) {
@@ -163,13 +236,12 @@ public final class NovaVisionActivity extends Activity {
             showError("Your active Nova session is not available in this screen. Return to Nova and open Vision again.");
             return;
         }
-        camera.setEnabled(false);
-        gallery.setEnabled(false);
+        setCaptureControlsEnabled(false);
         valuation.setEnabled(false);
         lastAssessment = null;
         lastCatalogueMatches = new JSONArray();
         result.setTextColor(Color.rgb(169, 185, 211));
-        result.setText("Analysing " + uris.size() + " photo" + (uris.size() == 1 ? "" : "s") + " with Nova Vision…");
+        result.setText("Analysing " + uris.size() + " retained photo" + (uris.size() == 1 ? "" : "s") + " with Nova Vision…");
         String hintText = hint.getText().toString().trim();
         worker.execute(() -> {
             try {
@@ -184,15 +256,15 @@ public final class NovaVisionActivity extends Activity {
                     lastCatalogueMatches = matches;
                     result.setTextColor(Color.rgb(239, 244, 255));
                     result.setText(formatted);
-                    camera.setEnabled(true);
-                    gallery.setEnabled(true);
+                    setCaptureControlsEnabled(true);
+                    updateSessionControls();
                     valuation.setEnabled(hasPricingIdentity(assessment));
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     showError(e.getMessage());
-                    camera.setEnabled(true);
-                    gallery.setEnabled(true);
+                    setCaptureControlsEnabled(true);
+                    updateSessionControls();
                 });
             }
         });
