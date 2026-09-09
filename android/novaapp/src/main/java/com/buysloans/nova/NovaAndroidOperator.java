@@ -30,6 +30,7 @@ final class NovaAndroidOperator {
     static final int REQ_CAMERA = 9101;
     static final int REQ_IMAGE = 9102;
     static final int REQ_NOTIFICATIONS = 9103;
+    static final int MAX_VISION_PHOTOS = 6;
     private static final String ALERT_CHANNEL = "nova_attention";
     private static final int ALERT_JOB_ID = 8201;
     private static final int MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -54,6 +55,7 @@ final class NovaAndroidOperator {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         return intent;
     }
@@ -86,10 +88,15 @@ final class NovaAndroidOperator {
         append(out, "Model number", r.optString("model_number"));
         append(out, "Colour", r.optString("colour"));
         append(out, "Storage", r.optString("storage"));
+        append(out, "Condition grade", r.optString("condition_grade"));
+        append(out, "Condition summary", r.optString("condition_summary"));
         double confidence = r.optDouble("confidence", 0);
         out.append("Confidence: ").append(Math.round(confidence * 100)).append("%\n");
         appendArray(out, "Visible condition", r.optJSONArray("visible_condition"));
+        appendArray(out, "Damage flags", r.optJSONArray("damage_flags"));
+        appendArray(out, "Accessories present", r.optJSONArray("accessories_present"));
         appendArray(out, "Possible missing parts", r.optJSONArray("missing_parts"));
+        appendArray(out, "Next useful photos", r.optJSONArray("next_photos"));
         appendArray(out, "Label identifiers", r.optJSONArray("label_identifiers"));
         appendArray(out, "Visible evidence", r.optJSONArray("evidence"));
         appendArray(out, "Uncertainties", r.optJSONArray("uncertainties"));
