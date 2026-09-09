@@ -135,6 +135,20 @@ function sanitizeClientState(input: unknown) {
   return out;
 }
 
+function validatePayloadSchema(payload: any, userId: string, permissionId: string, backupId: string) {
+  if (payload?.format !== 'morley-user-backup-v1' || payload?.format_version !== 1 || payload?.backup_id !== backupId) {
+    throw new Error('BACKUP_PAYLOAD_INVALID');
+  }
+  if (payload?.owner_user_id !== userId || payload?.google_permission_id !== permissionId) {
+    throw new Error('BACKUP_OWNER_MISMATCH');
+  }
+  if (!payload?.data || typeof payload.data !== 'object' || Array.isArray(payload.data)) throw new Error('BACKUP_PAYLOAD_INVALID');
+  if (payload.data.profile != null && (typeof payload.data.profile !== 'object' || Array.isArray(payload.data.profile))) throw new Error('BACKUP_PAYLOAD_INVALID');
+  if (!Array.isArray(payload.data.valuation_history)) throw new Error('BACKUP_PAYLOAD_INVALID');
+  if (payload.client_state != null && (typeof payload.client_state !== 'object' || Array.isArray(payload.client_state))) throw new Error('BACKUP_PAYLOAD_INVALID');
+  return payload;
+}
+
 async function collectUserData(userId: string) {
   const [{ data: profile, error: profileError }, { data: valuations, error: valuationError }] = await Promise.all([
     admin.from('profiles').select('id,display_name,created_at,updated_at').eq('id', userId).maybeSingle(),
@@ -181,6 +195,66 @@ async function deleteDriveFile(fileId: string, token: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok && res.status !== 404) throw new Error(`DRIVE_DELETE_FAILED:${res.status}`);
+}
+
+async function verifyRemoteEnvelope(raw: string, backupId: string, expectedHash: string, expectedByteSize: number | null = null) {
+  if (expectedByteSize != null && new TextEncoder().encode(raw).byteLength !== expectedByteSize) throw new Error('BACKUP_SIZE_MISMATCH');
+  let envelope: any;
+  try { envelope = JSON.parse(raw); } catch { throw new Error('BACKUP_ENVELOPE_INVALID'); }
+  if (envelope?.format !== 'morley-user-backup-encrypted-v1' || envelope?.format_version !== 1 || envelope?.backup_id !== backupId || envelope?.cipher !== 'AES-256-GCM' || !envelope?.iv || !envelope?.ciphertext) {
+    throw new Error('BACKUP_ENVELOPE_INVALID');
+  }
+  let ciphertext: Uint8Array;
+  try {
+    base64ToBytes(String(envelope.iv));
+    ciphertext = base64ToBytes(String(envelope.ciphertext));
+  } catch {
+    throw new Error('BACKUP_ENVELOPE_INVALID');
+  }
+  if ((await sha256Bytes(ciphertext)) !== expectedHash) throw new Error('BACKUP_HASH_MISMATCH');
+  return { envelope, ciphertext };
+}
+
+async function decodeRemoteBackup(
+  userId: string,
+  permissionId: string,
+  backupId: string,
+  raw: string,
+  expectedHash: string,
+  wrappedKeyB64: string,
+  wrapIvB64: string,
+) {
+  const { envelope, ciphertext } = await verifyRemoteEnvelope(raw, backupId, expectedHash);
+  let plaintextBytes: Uint8Array;
+  try {
+    plaintextBytes = await decryptForUser(
+      userId,
+      ciphertext,
+      base64ToBytes(String(envelope.iv)),
+      base64ToBytes(wrappedKeyB64),
+      base64ToBytes(wrapIvB64),
+    );
+  } catch {
+    throw new Error('BACKUP_DECRYPT_FAILED');
+  }
+  try {
+    let payload: any;
+    try { payload = JSON.parse(new TextDecoder().decode(plaintextBytes)); } catch { throw new Error('BACKUP_PAYLOAD_INVALID'); }
+    return validatePayloadSchema(payload, userId, permissionId, backupId);
+  } finally {
+    plaintextBytes.fill(0);
+  }
+}
+
+async function verifyUploadedBackup(
+  google: { token: string },
+  backupId: string,
+  driveFileId: string,
+  expectedHash: string,
+  expectedByteSize: number,
+) {
+  const raw = await downloadAppData(driveFileId, google.token);
+  await verifyRemoteEnvelope(raw, backupId, expectedHash, expectedByteSize);
 }
 
 async function pruneOldBackups(userId: string, google: { token: string; permissionId: string }) {
@@ -230,11 +304,16 @@ async function createBackup(
   };
   const encoded = new TextEncoder().encode(JSON.stringify(envelope));
   const hash = await sha256Bytes(encrypted.ciphertext);
+  const wrappedKeyB64 = bytesToBase64(encrypted.wrappedKey);
+  const wrapIvB64 = bytesToBase64(encrypted.wrapIv);
   const fileName = `morley-user-backup-${createdAt.replace(/[:.]/g, '-')}-${backupId.slice(0, 8)}.mbak`;
 
   let driveFile: Record<string, unknown> | null = null;
+  let metadataCreated = false;
   try {
     driveFile = await uploadAppData(fileName, new TextDecoder().decode(encoded), google.token);
+    await verifyUploadedBackup(google, backupId, String(driveFile.id), hash, encoded.byteLength);
+
     const { error: metaError } = await admin.from('user_drive_backups').insert({
       id: backupId,
       user_id: userId,
@@ -244,34 +323,47 @@ async function createBackup(
       format_version: 1,
       ciphertext_sha256: hash,
       byte_size: encoded.byteLength,
-      status: 'ready',
+      status: 'creating',
     });
     if (metaError) throw new Error(`BACKUP_METADATA_FAILED:${safeError(metaError)}`);
+    metadataCreated = true;
+
     const { error: keyError } = await admin.from('user_drive_backup_keys').insert({
       backup_id: backupId,
-      wrapped_key: bytesToBase64(encrypted.wrappedKey),
-      wrap_iv: bytesToBase64(encrypted.wrapIv),
+      wrapped_key: wrappedKeyB64,
+      wrap_iv: wrapIvB64,
     });
     if (keyError) throw new Error(`BACKUP_KEY_STORE_FAILED:${safeError(keyError)}`);
+
+    const { error: readyError } = await admin.from('user_drive_backups')
+      .update({ status: 'ready' }).eq('id', backupId).eq('user_id', userId).eq('status', 'creating');
+    if (readyError) throw new Error(`BACKUP_READY_FAILED:${safeError(readyError)}`);
+
     await admin.from('user_drive_backup_events').insert({
       user_id: userId,
       backup_id: backupId,
       event_type: 'backup_created',
-      detail: { reason, google_email: google.email, client_state_included: Boolean(sanitizedClientState) },
+      detail: { reason, google_email: google.email, client_state_included: Boolean(sanitizedClientState), integrity_verified: true },
     });
     await pruneOldBackups(userId, google);
-    return { id: backupId, created_at: createdAt, drive_file_name: fileName, byte_size: encoded.byteLength };
+    return { id: backupId, created_at: createdAt, drive_file_name: fileName, byte_size: encoded.byteLength, integrity_verified: true };
   } catch (error) {
+    if (metadataCreated) {
+      try { await admin.from('user_drive_backups').delete().eq('id', backupId).eq('user_id', userId); } catch {}
+    }
     if (driveFile?.id) {
       try { await deleteDriveFile(String(driveFile.id), google.token); } catch {}
     }
-    try { await admin.from('user_drive_backups').delete().eq('id', backupId).eq('user_id', userId); } catch {}
     await admin.from('user_drive_backup_events').insert({
       user_id: userId,
       backup_id: null,
       event_type: 'backup_failed',
-      detail: { reason, error: safeError(error) },
+      detail: { reason, error: safeError(error), integrity_verified: false },
     });
+    const message = safeError(error);
+    if (message.startsWith('BACKUP_ENVELOPE_') || message.startsWith('BACKUP_HASH_') || message.startsWith('BACKUP_SIZE_')) {
+      throw new Error(`BACKUP_INTEGRITY_VERIFICATION_FAILED:${message}`);
+    }
     throw error;
   }
 }
@@ -288,30 +380,17 @@ async function loadBackupPayload(userId: string, google: { token: string; permis
   const { data: keyRow, error: keyError } = await admin.from('user_drive_backup_keys')
     .select('wrapped_key,wrap_iv').eq('backup_id', backupId).maybeSingle();
   if (keyError || !keyRow) throw new Error('BACKUP_KEY_NOT_FOUND');
-
   const raw = await downloadAppData(backup.drive_file_id, google.token);
-  const envelope = JSON.parse(raw);
-  if (envelope?.format !== 'morley-user-backup-encrypted-v1' || envelope?.backup_id !== backupId || !envelope?.iv || !envelope?.ciphertext) {
-    throw new Error('BACKUP_ENVELOPE_INVALID');
-  }
-  const ciphertext = base64ToBytes(envelope.ciphertext);
-  if ((await sha256Bytes(ciphertext)) !== backup.ciphertext_sha256) throw new Error('BACKUP_HASH_MISMATCH');
-  const plaintextBytes = await decryptForUser(
+  const payload = await decodeRemoteBackup(
     userId,
-    ciphertext,
-    base64ToBytes(envelope.iv),
-    base64ToBytes(keyRow.wrapped_key),
-    base64ToBytes(keyRow.wrap_iv),
+    google.permissionId,
+    backupId,
+    raw,
+    String(backup.ciphertext_sha256),
+    String(keyRow.wrapped_key),
+    String(keyRow.wrap_iv),
   );
-  try {
-    const payload = JSON.parse(new TextDecoder().decode(plaintextBytes));
-    if (payload?.format !== 'morley-user-backup-v1' || payload?.owner_user_id !== userId || payload?.google_permission_id !== google.permissionId || payload?.backup_id !== backupId) {
-      throw new Error('BACKUP_OWNER_MISMATCH');
-    }
-    return { backup, payload };
-  } finally {
-    plaintextBytes.fill(0);
-  }
+  return { backup, payload };
 }
 
 async function restorePreview(userId: string, google: { token: string; permissionId: string }, backupId: string) {
@@ -498,6 +577,9 @@ Deno.serve(async (req) => {
     if (message === 'CLIENT_STATE_INVALID' || message === 'CLIENT_STATE_TOO_LARGE') return reply({ error: 'Backup data is invalid or too large' }, 400);
     if (message === 'BACKUP_MASTER_KEY_NOT_CONFIGURED' || message === 'BACKUP_MASTER_KEY_INVALID') {
       return reply({ error: 'Encrypted backup service is not configured' }, 503);
+    }
+    if (message.startsWith('BACKUP_INTEGRITY_VERIFICATION_FAILED')) {
+      return reply({ error: 'Backup upload failed integrity verification and was not marked ready' }, 502);
     }
     console.error('user-google-drive-backup', message);
     return reply({ error: 'Backup operation failed' }, 500);
