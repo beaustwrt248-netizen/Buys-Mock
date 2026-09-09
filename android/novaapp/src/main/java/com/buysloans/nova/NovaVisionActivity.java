@@ -26,9 +26,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class NovaVisionActivity extends Activity {
     private static final int REQ_CAMERA_PERMISSION = 9110;
+    private static final Pattern STORAGE_VALUE = Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(TB|GB)", Pattern.CASE_INSENSITIVE);
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final ArrayList<Uri> sessionUris = new ArrayList<>();
     private Uri pendingCameraUri;
@@ -37,6 +40,17 @@ public final class NovaVisionActivity extends Activity {
     private Button camera, gallery, analyseSession, clearSession, valuation;
     private JSONObject lastAssessment;
     private JSONArray lastCatalogueMatches = new JSONArray();
+
+    private static final class StorageCheck {
+        final boolean known;
+        final boolean conflict;
+        final String detail;
+        StorageCheck(boolean known, boolean conflict, String detail) {
+            this.known = known;
+            this.conflict = conflict;
+            this.detail = detail;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle state) {
@@ -118,7 +132,7 @@ public final class NovaVisionActivity extends Activity {
         LinearLayout.LayoutParams valuationLp = full();
         valuationLp.topMargin = dp(12);
         root.addView(valuation, valuationLp);
-        TextView valuationBoundary = text("Pricing research is advisory. A/B/C guidance uses Morley’s existing 70% / 50% / 30% market-value factors. D/PARTS requires manual pricing and a human approves every final offer.", 12, secondary);
+        TextView valuationBoundary = text("Pricing research is advisory. A/B/C guidance uses Morley’s existing 70% / 50% / 30% market-value factors. A storage conflict with the matched catalogue model blocks automatic research until staff verify the correct variant. D/PARTS requires manual pricing and a human approves every final offer.", 12, secondary);
         valuationBoundary.setPadding(0, dp(8), 0, 0);
         root.addView(valuationBoundary);
 
@@ -259,7 +273,8 @@ public final class NovaVisionActivity extends Activity {
                 JSONObject payload = api.vision(images, hintText);
                 JSONObject assessment = payload.optJSONObject("result");
                 JSONArray matches = assessment == null ? new JSONArray() : api.catalogueMatches(visualIdentityQuery(assessment));
-                String formatted = NovaAndroidOperator.formatVision(payload) + "\n\n" + formatCatalogueMatches(matches);
+                StorageCheck storageCheck = checkStorage(assessment, matches);
+                String formatted = NovaAndroidOperator.formatVision(payload) + "\n\n" + formatCatalogueMatches(matches) + "\n" + storageCheck.detail;
                 runOnUiThread(() -> {
                     lastAssessment = assessment;
                     lastCatalogueMatches = matches;
@@ -267,7 +282,7 @@ public final class NovaVisionActivity extends Activity {
                     result.setText(formatted);
                     setCaptureControlsEnabled(true);
                     updateSessionControls();
-                    valuation.setEnabled(hasPricingIdentity(assessment));
+                    valuation.setEnabled(hasPricingIdentity(assessment) && !storageCheck.conflict);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -281,6 +296,11 @@ public final class NovaVisionActivity extends Activity {
 
     private void researchValuation() {
         NovaApiClient api = NovaSessionBridge.api();
+        StorageCheck storageCheck = checkStorage(lastAssessment, lastCatalogueMatches);
+        if (storageCheck.conflict) {
+            showError("Valuation blocked: " + storageCheck.detail + " Verify the storage variant or add clearer evidence, then analyse again.");
+            return;
+        }
         if (api == null || !api.isSignedIn() || !hasPricingIdentity(lastAssessment)) {
             showError("Nova needs a reliable device identity before valuation research.");
             return;
@@ -299,7 +319,7 @@ public final class NovaVisionActivity extends Activity {
                 String catalogueSummary = formatCatalogueMatches(matches);
                 runOnUiThread(() -> {
                     result.setTextColor(Color.rgb(239, 244, 255));
-                    result.setText(visionSummary + "\n\n" + catalogueSummary + "\n\n" + formatted);
+                    result.setText(visionSummary + "\n\n" + catalogueSummary + "\n" + storageCheck.detail + "\n\n" + formatted);
                     valuation.setText("Research valuation");
                     valuation.setEnabled(true);
                 });
@@ -352,6 +372,46 @@ public final class NovaVisionActivity extends Activity {
         return q.toString().replaceAll("\\s+", " ").trim();
     }
 
+    private static StorageCheck checkStorage(JSONObject assessment, JSONArray matches) {
+        if (assessment == null) return new StorageCheck(false, false, "Storage verification: no visual storage evidence yet.");
+        String visual = assessment.optString("storage").trim();
+        Double visualGb = storageGb(visual);
+        if (visual.isEmpty() || visualGb == null) return new StorageCheck(false, false, "Storage verification: storage is unknown or not reliably visible.");
+        boolean explicitOptions = false;
+        ArrayList<String> options = new ArrayList<>();
+        if (matches != null) {
+            for (int i = 0; i < matches.length(); i++) {
+                JSONObject row = matches.optJSONObject(i);
+                if (row == null) continue;
+                JSONArray storage = row.optJSONArray("storage_options");
+                if (storage == null || storage.length() == 0) continue;
+                explicitOptions = true;
+                for (int j = 0; j < storage.length(); j++) {
+                    String option = storage.optString(j).trim();
+                    if (!option.isEmpty() && !options.contains(option)) options.add(option);
+                    Double optionGb = storageGb(option);
+                    if (optionGb != null && Math.abs(optionGb - visualGb) < 0.5) {
+                        return new StorageCheck(true, false, "Storage verification: " + visual + " is supported by the matched catalogue model.");
+                    }
+                }
+            }
+        }
+        if (!explicitOptions) return new StorageCheck(false, false, "Storage verification: catalogue storage options are unavailable, so no conflict is inferred.");
+        return new StorageCheck(true, true, "Storage conflict: Vision inferred " + visual + " but matched catalogue options are " + String.join(", ", options) + ".");
+    }
+
+    private static Double storageGb(String raw) {
+        if (raw == null) return null;
+        Matcher matcher = STORAGE_VALUE.matcher(raw);
+        if (!matcher.find()) return null;
+        try {
+            double value = Double.parseDouble(matcher.group(1));
+            return "TB".equalsIgnoreCase(matcher.group(2)) ? value * 1024d : value;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private static String formatCatalogueMatches(JSONArray matches) {
         StringBuilder out = new StringBuilder("Morley catalogue verification\n");
         if (matches == null || matches.length() == 0) return out.append("No active catalogue match found for the current visual identity.").toString();
@@ -365,7 +425,7 @@ public final class NovaVisionActivity extends Activity {
             String model = row.optString("model_number").trim();
             if (!model.isEmpty()) out.append(" • ").append(model);
             JSONArray storage = row.optJSONArray("storage_options");
-            if (storage != null && storage.length() > 0) out.append(" • storage options verified");
+            if (storage != null && storage.length() > 0) out.append(" • storage options available");
             out.append("\n");
         }
         out.append("Catalogue matches are evidence only; no record is modified from Vision.");
