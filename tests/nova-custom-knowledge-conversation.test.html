@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>Nova custom knowledge conversation tests</title>
+<section class="page" data-page="overview"><div class="hero"></div></section>
+<section class="page" data-page="knowledge"></section>
+<script>window.NovaCatalogueLive={load:async()=>null};window.NovaSupportLive={load:async()=>null};window.NovaMemoryLive={load:async()=>null};window.NovaProactiveAlerts={load:async()=>[]};</script>
+<script src="../nova/knowledge-engine.js"></script>
+<script src="../nova/knowledge-integration.js"></script>
+<script src="../nova/conversation-custom-knowledge.js"></script>
+<script>
+(async()=>{const assert=(v,m)=>{if(!v)throw new Error(m)};assert(window.NovaCustomKnowledge,'shared custom knowledge engine should exist');assert(document.querySelector('#novaCustomKnowledge'),'knowledge import card should install');assert(document.querySelector('#novaConversation'),'Ask Nova should install');assert(document.querySelector('#novaKnowledgeAuthority'),'authority selector should exist');await window.NovaCustomKnowledge.ingestText({name:'Store Guide',authority:'internal-approved',text:'Blue-tag devices require a second visual inspection before the assessment is completed.'});const hit=window.NovaCustomKnowledge.search('second visual inspection',{limit:1})[0];assert(hit&&hit.source==='Store Guide','imported knowledge should be retrievable');assert(hit.authority==='internal-approved','authority should survive retrieval');const hint=document.querySelector('.nova-conversation-hint')?.textContent||'';assert(/Live evidence first/i.test(hint),'live evidence precedence should be visible');assert(/protected authority remains human-gated/i.test(hint),'protected boundary should remain visible');document.body.dataset.testResult='pass';console.log('PASS — Nova custom knowledge conversation');})().catch(e=>{document.body.dataset.testResult='fail';document.body.textContent='FAIL — '+e.message;throw e});
+</script>
