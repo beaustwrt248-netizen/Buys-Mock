@@ -1,6 +1,7 @@
 package com.buysloans.hub
 
 import android.content.Context
+import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -17,7 +18,11 @@ object AuthManager {
     private const val USER_EMAIL = "user_email"
     private const val DISPLAY_NAME = "display_name"
     private const val USER_ROLE = "user_role"
+    private const val PROFILE_VERIFY_REUSE_MS = 15_000L
     const val AUTH_CALLBACK = "bnlmorley://auth/callback"
+
+    @Volatile private var lastVerifiedProfileToken = ""
+    @Volatile private var lastVerifiedProfileAtElapsedMs = 0L
 
     fun accessToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACCESS_TOKEN, "").orEmpty()
     fun refreshToken(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(REFRESH_TOKEN, "").orEmpty()
@@ -30,7 +35,15 @@ object AuthManager {
     fun isSignedIn(context: Context): Boolean = accessToken(context).isNotBlank() || refreshToken(context).isNotBlank()
 
     fun signOut(context: Context) {
+        lastVerifiedProfileToken = ""
+        lastVerifiedProfileAtElapsedMs = 0L
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
+    private fun profileWasJustVerified(token: String): Boolean {
+        if (token.isBlank() || token != lastVerifiedProfileToken) return false
+        val age = SystemClock.elapsedRealtime() - lastVerifiedProfileAtElapsedMs
+        return age in 0..PROFILE_VERIFY_REUSE_MS
     }
 
     private suspend fun requestAbsolute(url: String, method: String, payload: JSONObject? = null, bearer: String? = null): Pair<Int,String> = withContext(Dispatchers.IO) {
@@ -98,6 +111,8 @@ object AuthManager {
             if (profileEmail.isNotBlank()) putString(USER_EMAIL, profileEmail)
             putString(USER_ROLE, profileRole)
         }.apply()
+        lastVerifiedProfileToken = token
+        lastVerifiedProfileAtElapsedMs = SystemClock.elapsedRealtime()
         return true
     }
 
@@ -147,7 +162,7 @@ object AuthManager {
         val expiry = expiresAt(context)
         val now = System.currentTimeMillis() / 1000L
         if (access.isNotBlank() && (expiry == 0L || expiry > now + 60L)) {
-            if (!verifyAndCacheProfile(context, access)) {
+            if (!profileWasJustVerified(access) && !verifyAndCacheProfile(context, access)) {
                 signOut(context)
                 throw IllegalStateException("This account is no longer authorised for B&L Morley.")
             }
