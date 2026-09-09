@@ -30,41 +30,25 @@ final class NovaApiClient {
     private Session session;
 
     Session signIn(String email, String password, String captchaToken) throws Exception {
-        if (captchaToken == null || captchaToken.isBlank()) {
-            throw new SecurityException("Complete the security check before signing in.");
-        }
-        JSONObject body = new JSONObject()
-                .put("email", email)
-                .put("password", password)
-                .put("gotrue_meta_security", new JSONObject().put("captcha_token", captchaToken));
-        JSONObject json = new JSONObject(request(
-                "POST", "/auth/v1/token?grant_type=password", body.toString(), null));
+        if (captchaToken == null || captchaToken.isBlank()) throw new SecurityException("Complete the security check before signing in.");
+        JSONObject body = new JSONObject().put("email", email).put("password", password).put("gotrue_meta_security", new JSONObject().put("captcha_token", captchaToken));
+        JSONObject json = new JSONObject(request("POST", "/auth/v1/token?grant_type=password", body.toString(), null));
         return acceptSession(json, email);
     }
 
     Session restoreSession(String refreshToken) throws Exception {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new SecurityException("No remembered Nova session is available.");
-        }
+        if (refreshToken == null || refreshToken.isBlank()) throw new SecurityException("No remembered Nova session is available.");
         JSONObject body = new JSONObject().put("refresh_token", refreshToken);
-        JSONObject json = new JSONObject(request(
-                "POST", "/auth/v1/token?grant_type=refresh_token", body.toString(), null));
+        JSONObject json = new JSONObject(request("POST", "/auth/v1/token?grant_type=refresh_token", body.toString(), null));
         return acceptSession(json, "");
     }
 
     private Session acceptSession(JSONObject json, String fallbackEmail) throws Exception {
         JSONObject user = json.getJSONObject("user");
-        Session candidate = new Session(
-                json.getString("access_token"),
-                json.optString("refresh_token"),
-                user.getString("id"),
-                user.optString("email", fallbackEmail));
-        JSONObject profile = first(getWith(candidate,
-                "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
+        Session candidate = new Session(json.getString("access_token"), json.optString("refresh_token"), user.getString("id"), user.optString("email", fallbackEmail));
+        JSONObject profile = first(getWith(candidate, "/rest/v1/profiles?select=role,is_enabled&id=eq." + encode(candidate.userId)));
         String role = profile.optString("role");
-        if (!profile.optBoolean("is_enabled", false) || !"admin".equals(role)) {
-            throw new SecurityException("This account is not authorised for Nova AI.");
-        }
+        if (!profile.optBoolean("is_enabled", false) || !"admin".equals(role)) throw new SecurityException("This account is not authorised for Nova AI.");
         session = candidate;
         return candidate;
     }
@@ -73,56 +57,27 @@ final class NovaApiClient {
     boolean isSignedIn() { return session != null; }
     String signedInEmail() { return session == null ? "" : session.email; }
 
-    JSONArray sales() throws Exception {
-        return getAllPages("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc", 1000);
-    }
-
-    JSONArray inventory() throws Exception {
-        return getAllPages("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc", 1000);
-    }
-
-    JSONArray valuations() throws Exception {
-        return getAllPages("/rest/v1/valuation_history?select=id,expected_profit,actual_profit,status,created_at&order=created_at.desc", 1000);
-    }
-
-    JSONArray guardian() throws Exception {
-        return getAllPages("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc", 1000);
-    }
-
-    JSONArray guardianRepairs() throws Exception {
-        return getAllPages("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc", 1000);
-    }
-
-    JSONArray support() throws Exception {
-        return getAllPages("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,subject,description,created_at,updated_at&order=updated_at.desc", 1000);
-    }
-
-    JSONArray catalogue() throws Exception {
-        return getAllPages(
-                "/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,image_reference_url,active,updated_at&active=eq.true&order=id.asc",
-                1000);
-    }
-
-    JSONArray releaseConfig() throws Exception {
-        return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)");
-    }
-
-    JSONObject knowledgeSearch(String query) throws Exception {
-        return edge("nova-knowledge", new JSONObject().put("action", "search").put("q", query).put("limit", 6));
-    }
-
-    JSONObject knowledgeSummary() throws Exception {
-        return edge("nova-knowledge", new JSONObject().put("action", "summary"));
-    }
-
-    JSONObject learningSummary() throws Exception {
-        return edge("nova-learning", new JSONObject().put("action", "summary"));
-    }
+    JSONArray sales() throws Exception { return getAllPages("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc", 1000); }
+    JSONArray inventory() throws Exception { return getAllPages("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc", 1000); }
+    JSONArray valuations() throws Exception { return getAllPages("/rest/v1/valuation_history?select=id,expected_profit,actual_profit,status,created_at&order=created_at.desc", 1000); }
+    JSONArray guardian() throws Exception { return getAllPages("/rest/v1/guardian_incidents?select=id,state,risk_level,requires_approval,classification,occurrence_count,verified_at,updated_at&order=updated_at.desc", 1000); }
+    JSONArray guardianRepairs() throws Exception { return getAllPages("/rest/v1/guardian_repairs?select=id,status,generated_at,tested_at,completed_at,updated_at&order=updated_at.desc", 1000); }
+    JSONArray support() throws Exception { return getAllPages("/rest/v1/support_tickets?select=id,status,priority,assigned_to,sla_due_at,subject,description,created_at,updated_at&order=updated_at.desc", 1000); }
+    JSONArray catalogue() throws Exception { return getAllPages("/rest/v1/device_catalog?select=id,category,brand,model_name,model_number,release_year,ram_options,storage_options,image_reference_url,active,updated_at&active=eq.true&order=id.asc", 1000); }
+    JSONArray releaseConfig() throws Exception { return get("/rest/v1/app_config?select=key,value&key=in.(current_release,minimum_supported_version,feature_flags)"); }
+    JSONObject knowledgeSearch(String query) throws Exception { return edge("nova-knowledge", new JSONObject().put("action", "search").put("q", query).put("limit", 6)); }
+    JSONObject knowledgeSummary() throws Exception { return edge("nova-knowledge", new JSONObject().put("action", "summary")); }
+    JSONObject learningSummary() throws Exception { return edge("nova-learning", new JSONObject().put("action", "summary")); }
 
     JSONObject vision(String imageDataUrl, String hint) throws Exception {
-        return edge("nova-vision", new JSONObject()
-                .put("image_data_url", imageDataUrl)
-                .put("hint", hint == null ? "" : hint));
+        JSONArray images = new JSONArray().put(imageDataUrl);
+        return vision(images, hint);
+    }
+
+    JSONObject vision(JSONArray imageDataUrls, String hint) throws Exception {
+        if (imageDataUrls == null || imageDataUrls.length() == 0) throw new IllegalArgumentException("Choose at least one image for Nova Vision.");
+        if (imageDataUrls.length() > NovaAndroidOperator.MAX_VISION_PHOTOS) throw new IllegalArgumentException("Nova Vision accepts up to " + NovaAndroidOperator.MAX_VISION_PHOTOS + " images per assessment.");
+        return edge("nova-vision", new JSONObject().put("image_data_urls", imageDataUrls).put("hint", hint == null ? "" : hint));
     }
 
     JSONObject novaAction(String action, JSONObject details) throws Exception {
@@ -131,9 +86,7 @@ final class NovaApiClient {
         return edge("nova-actions", body);
     }
 
-    JSONObject edgeCall(String function, JSONObject body) throws Exception {
-        return edge(function, body == null ? new JSONObject() : body);
-    }
+    JSONObject edgeCall(String function, JSONObject body) throws Exception { return edge(function, body == null ? new JSONObject() : body); }
 
     private JSONArray get(String path) throws Exception {
         if (session == null) throw new SecurityException("Sign in to Nova first.");
@@ -145,50 +98,33 @@ final class NovaApiClient {
         JSONArray all = new JSONArray();
         int offset = 0;
         while (true) {
-            JSONArray page = getWith(session, path + (path.contains("?") ? "&" : "?")
-                    + "limit=" + pageSize + "&offset=" + offset);
+            JSONArray page = getWith(session, path + (path.contains("?") ? "&" : "?") + "limit=" + pageSize + "&offset=" + offset);
             for (int i = 0; i < page.length(); i++) all.put(page.get(i));
             if (page.length() < pageSize) return all;
             offset += page.length();
         }
     }
 
-    private JSONArray getWith(Session useSession, String path) throws Exception {
-        return new JSONArray(request("GET", path, null, useSession.accessToken));
-    }
-
+    private JSONArray getWith(Session useSession, String path) throws Exception { return new JSONArray(request("GET", path, null, useSession.accessToken)); }
     private JSONObject edge(String function, JSONObject body) throws Exception {
         if (session == null) throw new SecurityException("Sign in to Nova first.");
         return new JSONObject(request("POST", "/functions/v1/" + function, body.toString(), session.accessToken));
     }
-
     private static JSONObject first(JSONArray rows) throws Exception {
         if (rows.length() == 0) throw new SecurityException("Authorised profile was not found.");
         return rows.getJSONObject(0);
     }
-
-    private static String encode(String value) throws Exception {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-    }
+    private static String encode(String value) throws Exception { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()); }
 
     private String request(String method, String path, String body, String bearer) throws Exception {
         if (!"GET".equals(method)) return requestOnce(method, path, body, bearer);
-        try {
-            return requestOnce(method, path, body, bearer);
-        } catch (IOException first) {
-            try {
-                Thread.sleep(350L);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw first;
-            }
-            try {
-                return requestOnce(method, path, body, bearer);
-            } catch (IOException second) {
+        try { return requestOnce(method, path, body, bearer); }
+        catch (IOException first) {
+            try { Thread.sleep(350L); } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw first; }
+            try { return requestOnce(method, path, body, bearer); }
+            catch (IOException second) {
                 IOException offline = new IOException("Nova could not reach Morley. Check your connection and try again.");
-                offline.addSuppressed(first);
-                offline.addSuppressed(second);
-                throw offline;
+                offline.addSuppressed(first); offline.addSuppressed(second); throw offline;
             }
         }
     }
@@ -208,9 +144,7 @@ final class NovaApiClient {
             if (body != null) {
                 connection.setDoOutput(true);
                 connection.setRequestProperty("Content-Type", "application/json");
-                try (OutputStream out = connection.getOutputStream()) {
-                    out.write(body.getBytes(StandardCharsets.UTF_8));
-                }
+                try (OutputStream out = connection.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
             }
             int code = connection.getResponseCode();
             InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
@@ -225,9 +159,7 @@ final class NovaApiClient {
                 throw new Exception(message);
             }
             return response;
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+        } finally { if (connection != null) connection.disconnect(); }
     }
 
     private static String read(InputStream stream) throws Exception {
