@@ -11,6 +11,13 @@ test('camera captures accumulate into one retained Vision evidence session',()=>
   assert.match(activity,/analyse\(new ArrayList<>\(sessionUris\)\)/);
 });
 
+test('gallery evidence appends to retained camera evidence without exceeding six photos',()=>{
+  assert.match(activity,/int remaining = NovaAndroidOperator\.MAX_VISION_PHOTOS - sessionUris\.size\(\)/);
+  assert.match(activity,/sessionUris\.addAll\(selected\)/);
+  assert.doesNotMatch(activity,/sessionUris\.clear\(\);\s*sessionUris\.addAll\(selected\)/);
+  assert.match(activity,/!sessionUris\.contains\(uri\)/);
+});
+
 test('new follow-up evidence invalidates stale valuation and catalogue conclusions',()=>{
   assert.match(activity,/private void evidenceChanged\(\)/);
   assert.match(activity,/lastAssessment = null/);
