@@ -1,5 +1,5 @@
--- Allow authenticated Morley app sessions to submit privacy-minimal crash metadata.
--- Admin/manager remain the only readers via the existing select policy.
+-- Allow authorised Morley Admin/Manager sessions to submit privacy-minimal crash metadata.
+-- Preserve the existing protected role boundary for both reads and inserts.
 
 drop policy if exists admin_error_events_authenticated_insert on public.admin_error_events;
 create policy admin_error_events_authenticated_insert
@@ -7,7 +7,7 @@ on public.admin_error_events
 for insert
 to authenticated
 with check (
-  auth.uid() is not null
+  private.is_admin_or_manager()
   and length(app_version) between 1 and 160
   and length(device_model) between 1 and 160
   and length(failing_screen) between 1 and 160
