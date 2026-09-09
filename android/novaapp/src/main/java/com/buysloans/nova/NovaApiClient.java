@@ -86,6 +86,13 @@ final class NovaApiClient {
         return edge("market-search-v2", new JSONObject().put("query", clean).put("limit", 30));
     }
 
+    JSONArray catalogueMatches(String raw) throws Exception {
+        String clean = raw == null ? "" : raw.replaceAll("[%_,()]", " ").trim().replaceAll("\\s+", "*");
+        if (clean.isBlank()) return new JSONArray();
+        String pattern = encode("*" + clean + "*");
+        return get("/rest/v1/device_catalog?select=id,category,brand,family,model_name,model_number,release_year,storage_options,market_region&active=is.true&search_text=ilike." + pattern + "&limit=10");
+    }
+
     JSONObject novaAction(String action, JSONObject details) throws Exception {
         JSONObject body = details == null ? new JSONObject() : new JSONObject(details.toString());
         body.put("action", action);
