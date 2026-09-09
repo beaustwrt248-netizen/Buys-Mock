@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const q=(s,r=document)=>r.querySelector(s);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));let selected=null,marketBusy=false,lastSelectionKey='__unset__';
+const q=(s,r=document)=>r.querySelector(s);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let selected=null,marketBusy=false,lastSelectionKey='__unset__';
 function appReady(){const app=q('#appView');return !!app&&!app.classList.contains('hidden')}
 function loadCss(){if(q('#morleyDeviceIntelligenceCss'))return;const l=document.createElement('link');l.id='morleyDeviceIntelligenceCss';l.rel='stylesheet';l.href='device-intelligence-centre.css?v=1';document.head.appendChild(l)}
 function loadScript(id,src,ready,done){if(ready())return done();if(q('#'+id)){const wait=()=>ready()?done():setTimeout(wait,40);return wait()}const s=document.createElement('script');s.id=id;s.src=src;s.onload=done;document.body.appendChild(s)}
