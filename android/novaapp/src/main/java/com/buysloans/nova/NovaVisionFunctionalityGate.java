@@ -35,8 +35,15 @@ final class NovaVisionFunctionalityGate {
                 @Override public void afterTextChanged(Editable s) {
                     if (state.rewriting) return;
                     String value = String.valueOf(s);
-                    if (value.startsWith("Analysing ")) reset(activity);
-                    else applyPricingGate(state);
+                    if (value.startsWith("Analysing ")) {
+                        state.latestPricingResult = null;
+                        reset(activity);
+                    } else if (value.contains("Australian pricing intelligence")) {
+                        state.latestPricingResult = withoutGateMarker(value);
+                        applyPricingGate(state);
+                    } else {
+                        state.latestPricingResult = null;
+                    }
                 }
             });
         }
@@ -141,17 +148,21 @@ final class NovaVisionFunctionalityGate {
         TextView result=state.result;
         if (result==null) return;
         String text=String.valueOf(result.getText());
-        if (!text.contains("Australian pricing intelligence")) return;
+        if (state.latestPricingResult==null || !text.contains("Australian pricing intelligence")) return;
         int failed=count(state,Status.FAIL),pending=count(state,Status.PENDING);
-        String next=text;
+        String next=state.latestPricingResult;
         if (failed>0) next=next.replaceAll("Suggested maximum buy: \\$[^\\n]+","Suggested maximum buy: manual pricing required because functionality failed");
         String marker="\nFunctionality gate: ";
-        int markerAt=next.indexOf(marker);
-        if(markerAt>=0) next=next.substring(0,markerAt);
         if(failed>0) next+=marker+failed+" failed check"+(failed==1?"":"s")+" • automatic max-buy suppressed.";
         else if(pending>0) next+=marker+pending+" check"+(pending==1?"":"s")+" still untested • final offer not ready.";
         else next+=marker+"all 8 manual checks passed • human final approval still required.";
         if(!next.equals(text)) { state.rewriting=true; result.setText(next); state.rewriting=false; }
+    }
+
+    private static String withoutGateMarker(String text) {
+        String marker="\nFunctionality gate: ";
+        int markerAt=text.indexOf(marker);
+        return markerAt>=0?text.substring(0,markerAt):text;
     }
 
     private static int count(GateState state,Status status){int n=0;for(Status value:state.values.values())if(value==status)n++;return n;}
@@ -177,6 +188,7 @@ final class NovaVisionFunctionalityGate {
     private static final class GateState {
         final Map<String,Status> values=new LinkedHashMap<>();
         TextView result;
+        String latestPricingResult;
         boolean rewriting;
         GateState(){for(String id:IDS)values.put(id,Status.PENDING);}
     }
