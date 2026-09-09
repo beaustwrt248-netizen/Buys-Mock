@@ -209,9 +209,10 @@ public final class NovaVisionActivity extends Activity {
             try {
                 JSONObject market = api.marketSearch(query);
                 String formatted = formatValuation(assessment, market);
+                String visionSummary = NovaAndroidOperator.formatVision(new JSONObject().put("result", assessment));
                 runOnUiThread(() -> {
                     result.setTextColor(Color.rgb(239, 244, 255));
-                    result.setText(NovaAndroidOperator.formatVision(new JSONObject().put("result", assessment)) + "\n\n" + formatted);
+                    result.setText(visionSummary + "\n\n" + formatted);
                     valuation.setText("Research valuation");
                     valuation.setEnabled(true);
                 });
