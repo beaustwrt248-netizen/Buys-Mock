@@ -52,6 +52,15 @@ public final class NovaVisionActivity extends Activity {
         }
     }
 
+    private static final class IdentityCheck {
+        final boolean verified;
+        final String detail;
+        IdentityCheck(boolean verified, String detail) {
+            this.verified = verified;
+            this.detail = detail;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -132,7 +141,7 @@ public final class NovaVisionActivity extends Activity {
         LinearLayout.LayoutParams valuationLp = full();
         valuationLp.topMargin = dp(12);
         root.addView(valuation, valuationLp);
-        TextView valuationBoundary = text("Pricing research is advisory. A/B/C guidance uses Morley’s existing 70% / 50% / 30% market-value factors. A storage conflict with the matched catalogue model blocks automatic research until staff verify the correct variant. D/PARTS requires manual pricing and a human approves every final offer.", 12, secondary);
+        TextView valuationBoundary = text("Pricing research is advisory. Market evidence can be researched from a plausible visual identity, but A/B/C maximum-buy guidance is withheld until Nova has a strong live-catalogue identity match. Storage conflicts block valuation research. D/PARTS requires manual pricing and a human approves every final offer.", 12, secondary);
         valuationBoundary.setPadding(0, dp(8), 0, 0);
         root.addView(valuationBoundary);
 
@@ -274,7 +283,8 @@ public final class NovaVisionActivity extends Activity {
                 JSONObject assessment = payload.optJSONObject("result");
                 JSONArray matches = assessment == null ? new JSONArray() : api.catalogueMatches(visualIdentityQuery(assessment));
                 StorageCheck storageCheck = checkStorage(assessment, matches);
-                String formatted = NovaAndroidOperator.formatVision(payload) + "\n\n" + formatCatalogueMatches(matches) + "\n" + storageCheck.detail;
+                IdentityCheck identityCheck = checkIdentity(assessment, matches);
+                String formatted = NovaAndroidOperator.formatVision(payload) + "\n\n" + formatCatalogueMatches(matches) + "\n" + storageCheck.detail + "\n" + identityCheck.detail;
                 runOnUiThread(() -> {
                     lastAssessment = assessment;
                     lastCatalogueMatches = matches;
@@ -307,6 +317,7 @@ public final class NovaVisionActivity extends Activity {
         }
         final JSONObject assessment = lastAssessment;
         final JSONArray matches = lastCatalogueMatches;
+        final IdentityCheck identityCheck = checkIdentity(assessment, matches);
         final String query = pricingQuery(assessment, matches);
         valuation.setEnabled(false);
         valuation.setText("Researching…");
@@ -314,12 +325,12 @@ public final class NovaVisionActivity extends Activity {
         worker.execute(() -> {
             try {
                 JSONObject market = api.marketSearch(query);
-                String formatted = formatValuation(assessment, market);
+                String formatted = formatValuation(assessment, market, identityCheck.verified);
                 String visionSummary = NovaAndroidOperator.formatVision(new JSONObject().put("result", assessment));
                 String catalogueSummary = formatCatalogueMatches(matches);
                 runOnUiThread(() -> {
                     result.setTextColor(Color.rgb(239, 244, 255));
-                    result.setText(visionSummary + "\n\n" + catalogueSummary + "\n" + storageCheck.detail + "\n\n" + formatted);
+                    result.setText(visionSummary + "\n\n" + catalogueSummary + "\n" + storageCheck.detail + "\n" + identityCheck.detail + "\n\n" + formatted);
                     valuation.setText("Research valuation");
                     valuation.setEnabled(true);
                 });
@@ -370,6 +381,57 @@ public final class NovaVisionActivity extends Activity {
             q.append(storage);
         }
         return q.toString().replaceAll("\\s+", " ").trim();
+    }
+
+    private static IdentityCheck checkIdentity(JSONObject assessment, JSONArray matches) {
+        if (assessment == null) return new IdentityCheck(false, "Identity verification: no visual identity is available.");
+        String visualModelNumber = normaliseIdentity(assessment.optString("model_number"));
+        if (!visualModelNumber.isEmpty() && matches != null) {
+            for (int i = 0; i < matches.length(); i++) {
+                JSONObject row = matches.optJSONObject(i);
+                if (row == null || !visualModelNumber.equals(normaliseIdentity(row.optString("model_number")))) continue;
+                if (storageCompatibleWithMatch(assessment, row)) return new IdentityCheck(true, "Identity verification: exact model number matched the live catalogue.");
+                return new IdentityCheck(false, "Identity verification: model number matched, but the visible storage conflicts with that catalogue variant.");
+            }
+        }
+        String visualModel = normaliseIdentity(assessment.optString("likely_model"));
+        String visualBrand = normaliseIdentity(assessment.optString("likely_brand"));
+        double confidence = assessment.optDouble("confidence", 0);
+        if (!visualModel.isEmpty() && confidence >= .90 && matches != null) {
+            JSONObject candidate = null;
+            int count = 0;
+            for (int i = 0; i < matches.length(); i++) {
+                JSONObject row = matches.optJSONObject(i);
+                if (row == null || !visualModel.equals(normaliseIdentity(row.optString("model_name")))) continue;
+                String rowBrand = normaliseIdentity(row.optString("brand"));
+                if (!visualBrand.isEmpty() && !rowBrand.isEmpty() && !visualBrand.equals(rowBrand)) continue;
+                candidate = row;
+                count++;
+            }
+            if (count == 1 && candidate != null) {
+                if (storageCompatibleWithMatch(assessment, candidate)) return new IdentityCheck(true, "Identity verification: one high-confidence model-name match was found in the live catalogue.");
+                return new IdentityCheck(false, "Identity verification: high-confidence model matched, but the visible storage conflicts with that catalogue variant.");
+            }
+        }
+        return new IdentityCheck(false, matches == null || matches.length() == 0 ? "Identity verification: no strong live-catalogue match was found; automatic max-buy guidance will be withheld." : "Identity verification: catalogue identity remains ambiguous; automatic max-buy guidance will be withheld.");
+    }
+
+    private static String normaliseIdentity(String raw) {
+        return raw == null ? "" : raw.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "");
+    }
+
+    private static boolean storageCompatibleWithMatch(JSONObject assessment, JSONObject row) {
+        Double visualGb = storageGb(assessment == null ? null : assessment.optString("storage"));
+        JSONArray options = row == null ? null : row.optJSONArray("storage_options");
+        if (visualGb == null || options == null || options.length() == 0) return true;
+        boolean parsedAny = false;
+        for (int i = 0; i < options.length(); i++) {
+            Double optionGb = storageGb(options.optString(i));
+            if (optionGb == null) continue;
+            parsedAny = true;
+            if (Math.abs(optionGb - visualGb) < .5) return true;
+        }
+        return !parsedAny;
     }
 
     private static StorageCheck checkStorage(JSONObject assessment, JSONArray matches) {
@@ -432,7 +494,7 @@ public final class NovaVisionActivity extends Activity {
         return out.toString();
     }
 
-    private static String formatValuation(JSONObject assessment, JSONObject market) {
+    private static String formatValuation(JSONObject assessment, JSONObject market, boolean verifiedIdentity) {
         ArrayList<Double> prices = new ArrayList<>();
         collectPrices(prices, market.optJSONObject("ebay"), "deliveredPrice", "price");
         collectPrices(prices, market.optJSONObject("gumtree"), "price");
@@ -444,7 +506,8 @@ public final class NovaVisionActivity extends Activity {
         StringBuilder out = new StringBuilder("Australian pricing intelligence\n");
         if (median > 0) out.append("Used-market median: $").append(Math.round(median)).append(" from ").append(prices.size()).append(" retained listing").append(prices.size() == 1 ? "" : "s").append("\n");
         else out.append("Used-market median: no reliable marketplace median available\n");
-        if (median > 0 && factor > 0) out.append("Suggested maximum buy: $").append(Math.round(median * factor)).append(" • Grade ").append(grade).append(" factor ").append(Math.round(factor * 100)).append("%\n");
+        if (median > 0 && factor > 0 && verifiedIdentity) out.append("Suggested maximum buy: $").append(Math.round(median * factor)).append(" • Grade ").append(grade).append(" factor ").append(Math.round(factor * 100)).append("%\n");
+        else if (median > 0 && factor > 0) out.append("Suggested maximum buy: withheld until catalogue identity is verified\n");
         else if ("D".equals(grade) || "PARTS".equals(grade)) out.append("Suggested maximum buy: manual pricing required for ").append(grade).append(" condition\n");
         else out.append("Suggested maximum buy: confirm A, B or C condition first\n");
         out.append("Evidence policy: used-market results prioritise eBay AU, Gumtree and Facebook Marketplace. Retail results are reference-only.\n");
