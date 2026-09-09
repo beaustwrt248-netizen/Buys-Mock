@@ -14,6 +14,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 final class NovaApiClient {
+    private static final int MAX_VISION_TOTAL_DATA_URL_CHARS = 20_000_000;
+
     static final class Session {
         final String accessToken;
         final String refreshToken;
@@ -77,6 +79,14 @@ final class NovaApiClient {
     JSONObject vision(JSONArray imageDataUrls, String hint) throws Exception {
         if (imageDataUrls == null || imageDataUrls.length() == 0) throw new IllegalArgumentException("Choose at least one image for Nova Vision.");
         if (imageDataUrls.length() > NovaAndroidOperator.MAX_VISION_PHOTOS) throw new IllegalArgumentException("Nova Vision accepts up to " + NovaAndroidOperator.MAX_VISION_PHOTOS + " images per assessment.");
+        long totalChars = 0;
+        for (int i = 0; i < imageDataUrls.length(); i++) {
+            String image = imageDataUrls.optString(i, "");
+            totalChars += image.length();
+            if (totalChars > MAX_VISION_TOTAL_DATA_URL_CHARS) {
+                throw new IllegalArgumentException("The combined Vision photos are too large. Use fewer or smaller photos, then try the assessment again.");
+            }
+        }
         return edge("nova-vision", new JSONObject().put("image_data_urls", imageDataUrls).put("hint", hint == null ? "" : hint));
     }
 
