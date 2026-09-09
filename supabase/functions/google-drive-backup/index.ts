@@ -18,6 +18,9 @@ const DEFAULT_TABLES = [
   'support_ticket_internal_notes','support_ticket_attachments','admin_audit_log',
   'announcements','notification_jobs'
 ];
+const EXCLUDED_BACKUP_FIELDS: Record<string, ReadonlySet<string>> = {
+  devices: new Set(['fcm_token']),
+};
 
 function safeError(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -26,6 +29,11 @@ function safeError(error: unknown) {
     return String(c.message || c.error_description || c.error || c.code || 'Unknown backend error');
   }
   return String(error);
+}
+function sanitizeBackupRow(table: string, row: Record<string, unknown>) {
+  const excluded = EXCLUDED_BACKUP_FIELDS[table];
+  if (!excluded?.size) return row;
+  return Object.fromEntries(Object.entries(row).filter(([key]) => !excluded.has(key)));
 }
 async function sha256(text: string) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))))
@@ -54,7 +62,7 @@ async function collectTable(table: string) {
   while (true) {
     const { data, error } = await admin.from(table).select('*').range(from, from + size - 1);
     if (error) throw new Error(`Export ${table} failed: ${safeError(error)}`);
-    rows.push(...(data || []));
+    rows.push(...(data || []).map(row => sanitizeBackupRow(table, row as Record<string, unknown>)));
     if (!data || data.length < size) break;
     from += size;
   }
