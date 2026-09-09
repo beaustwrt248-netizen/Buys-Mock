@@ -22,8 +22,9 @@ public class NovaAndroidOperatorContractTest {
         assertTrue(api.contains("put(\"image_data_urls\", imageDataUrls)"));
         assertTrue(vision.contains("NovaAndroidOperator.imageDataUrl"));
         assertTrue(vision.contains("api.vision(images, hintText)"));
-        assertTrue(helper.contains("Photo privacy: not stored by Nova Vision"));
-        assertTrue(helper.contains("MAX_IMAGE_BYTES = 6 * 1024 * 1024"));
+        assertTrue(helper.contains("not stored by Nova Vision"));
+        assertTrue(helper.contains("TARGET_IMAGE_BYTES = 2_250_000"));
+        assertTrue(helper.contains("Bitmap.CompressFormat.JPEG"));
         assertTrue(helper.contains("MAX_VISION_PHOTOS = 6"));
     }
 
