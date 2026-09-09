@@ -9,7 +9,9 @@ assert.match(source, /location\.origin==='null'\|\|location\.protocol==='about:'
 assert.match(source, /document\.querySelectorAll\('iframe\[srcdoc\]'\)/, 'parent must limit requests to owned srcdoc frames');
 assert.match(source, /frame\.contentWindow===source/, 'parent must authenticate the requesting window by identity');
 assert.match(source, /event\.source!==window\.parent/, 'child must accept responses only from its parent window');
+assert.match(source, /message\.kind!=='response'/, 'child must accept only bridge response messages');
 assert.match(source, /message\.action!==BRIDGE_ACTION/, 'unexpected bridge actions must be rejected');
+assert.match(source, /setTimeout\(\(\)=>finish\(new Error\('Catalogue bridge request timed out'\)\),15000\)/, 'bridge requests must have a bounded timeout');
 assert.match(source, /fetchCatalogueViaParent\(\)/, 'sync must have a parent-bridge path');
 assert.match(source, /if\(!isOpaqueRuntime\(\)\)return fetchCatalogueDirect\(\)/, 'normal top-level runtime must continue to fetch directly');
 assert.doesNotMatch(source, /Access-Control-Allow-Origin/, 'client bridge must not weaken server CORS');
