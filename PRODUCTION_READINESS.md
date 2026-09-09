@@ -21,7 +21,7 @@ A checked item means the current repository/live-control evidence is sufficient 
 - [ ] Real-device login/CAPTCHA regression pass
 
 ## Security / release hardening
-- [ ] GitHub Actions least-privilege review
+- [x] GitHub Actions least-privilege review
 - [x] Supabase SECURITY DEFINER/service-role review
 - [x] Storage-policy review
 - [x] Signing/checksum safeguards review
@@ -54,6 +54,7 @@ A checked item means the current repository/live-control evidence is sufficient 
 - Admin integration contract verifies user-control wiring, device/app-version visibility, support controls, audit access, Android Admin web parity, automatic OTA scheduling, OTA feature governance, trusted release URLs and downloaded APK SHA-256 validation.
 - Remote configuration is restricted to maintenance mode/message and OTA enablement and requires Admin/Manager authority; the private implementation is not directly executable by normal authenticated clients.
 - Privileged support-ticket changes are durably audited while ticket/message body content is excluded from the audit record.
+- GitHub Actions security audit scans every workflow and enforces explicit non-write permission baselines on critical workflows, rejects workflow-wide write grants and `pull_request_target`, requires critical checkouts to disable persisted credentials, and requires critical third-party actions to be pinned to immutable commit SHAs. Release/deploy write permissions are job-scoped to the publishing operations that need them.
 - Supabase live review verified public-table RLS, client TRUNCATE revocation, SECURITY DEFINER/service-role boundaries, and restricted private support attachment storage.
 - Guardian platform contracts verify missing telemetry cannot be reported healthy, sensitive readiness is aggregated for Admin/Manager, raw sensitive datasets are not exposed, automated authority is not expanded, and final merge remains human-controlled.
 - Global Drive backup verifies the uploaded file by downloading it and recomputing SHA-256. Per-user Drive backup validates ciphertext SHA-256, AES-256-GCM decryption, Morley user ownership and Google-account identity. Restore creates a safety backup before writes and the merged write-before-prune flow avoids clearing live valuation history before restored rows are accepted.
