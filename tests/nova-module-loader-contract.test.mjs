@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const loader=fs.readFileSync('nova/module-loader.js','utf8');
 const support=fs.readFileSync('nova/live-support.js','utf8');
 const control=fs.readFileSync('nova/control-centre.js','utf8');
+const catalogue=fs.readFileSync('nova/live-catalogue.js','utf8');
 
 const requiredRuntimeModules=[
   'knowledge-engine.js',
@@ -90,4 +91,13 @@ test('support retries the shared loader after a transient script failure',async(
   assert.equal(scripts[0].removed,true);
   listeners['nova:authenticated']();
   assert.equal(scripts.length,2);
+});
+
+
+test('Camera and custom knowledge use the shared authenticated module loader only',()=>{
+  assert.match(support,/ordered\('camera-assistant\.js\?v=2','nova-camera-assistant-script'\)/);
+  assert.doesNotMatch(catalogue,/camera-assistant\.js/);
+  assert.doesNotMatch(catalogue,/knowledge-engine\.js/);
+  assert.doesNotMatch(catalogue,/conversation-custom-knowledge\.js/);
+  assert.doesNotMatch(catalogue,/function load\(src,id\)/);
 });
