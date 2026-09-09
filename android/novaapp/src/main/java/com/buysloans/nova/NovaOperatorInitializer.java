@@ -18,11 +18,8 @@ public final class NovaOperatorInitializer extends ContentProvider {
     @Override
     public boolean onCreate() {
         if (getContext() == null) return true;
-        try {
-            NovaAndroidOperator.scheduleBackgroundAlerts(getContext());
-        } catch (Throwable ignored) {
-            // Operator extras must never prevent Nova itself from launching.
-        }
+        try { NovaAndroidOperator.scheduleBackgroundAlerts(getContext()); }
+        catch (Throwable ignored) { /* Optional operator extras must never prevent Nova launching. */ }
 
         try {
             Object app = getContext().getApplicationContext();
@@ -36,29 +33,34 @@ public final class NovaOperatorInitializer extends ContentProvider {
 
                     @Override
                     public void onActivityResumed(Activity activity) {
-                        if (!(activity instanceof MainActivity) || activity.isFinishing() || activity.isDestroyed()) return;
+                        if (activity.isFinishing() || activity.isDestroyed()) return;
+                        if (activity instanceof NovaVisionActivity) {
+                            try {
+                                View decor=activity.getWindow().getDecorView();
+                                decor.post(() -> {
+                                    if (!activity.isFinishing() && !activity.isDestroyed()) {
+                                        try { NovaVisionFunctionalityGate.install((NovaVisionActivity) activity); }
+                                        catch (Throwable ignored) { /* Functionality overlay must never crash Vision. */ }
+                                    }
+                                });
+                            } catch (Throwable ignored) { /* Keep Vision usable if optional gate cannot install. */ }
+                            return;
+                        }
+                        if (!(activity instanceof MainActivity)) return;
                         try {
                             installWatcher(activity);
                             View decor = activity.getWindow().getDecorView();
                             decor.post(() -> {
                                 if (activity.isFinishing() || activity.isDestroyed()) return;
-                                try {
-                                    NovaOperatorUi.install(activity);
-                                } catch (Throwable ignored) {
-                                    // UI operator overlay is optional; keep the core app alive.
-                                }
+                                try { NovaOperatorUi.install(activity); }
+                                catch (Throwable ignored) { /* UI operator overlay is optional. */ }
                                 decor.postDelayed(() -> {
                                     if (activity.isFinishing() || activity.isDestroyed()) return;
-                                    try {
-                                        UpdateManager.resumePendingInstall(activity);
-                                    } catch (Throwable ignored) {
-                                        // A stale or malformed pending installer must never crash startup.
-                                    }
+                                    try { UpdateManager.resumePendingInstall(activity); }
+                                    catch (Throwable ignored) { /* Malformed pending installer must not crash startup. */ }
                                 }, 900L);
                             });
-                        } catch (Throwable ignored) {
-                            // Lifecycle helpers fail open so MainActivity can still render.
-                        }
+                        } catch (Throwable ignored) { /* Lifecycle helpers fail open. */ }
                     }
 
                     @Override
@@ -66,19 +68,14 @@ public final class NovaOperatorInitializer extends ContentProvider {
                         try {
                             View decor = activity.getWindow().getDecorView();
                             ViewTreeObserver.OnGlobalLayoutListener listener = watchers.remove(activity);
-                            if (listener != null && decor.getViewTreeObserver().isAlive()) {
-                                decor.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
-                            }
+                            if (listener != null && decor.getViewTreeObserver().isAlive()) decor.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
                             if (activity instanceof MainActivity) NovaOperatorUi.clearSession();
-                        } catch (Throwable ignored) {
-                            watchers.remove(activity);
-                        }
+                            if (activity instanceof NovaVisionActivity) NovaVisionFunctionalityGate.clear((NovaVisionActivity) activity);
+                        } catch (Throwable ignored) { watchers.remove(activity); }
                     }
                 });
             }
-        } catch (Throwable ignored) {
-            // ContentProvider initialisation must never take down the process.
-        }
+        } catch (Throwable ignored) { /* ContentProvider initialisation must never take down the process. */ }
         return true;
     }
 
@@ -87,11 +84,8 @@ public final class NovaOperatorInitializer extends ContentProvider {
         View decor = activity.getWindow().getDecorView();
         ViewTreeObserver.OnGlobalLayoutListener listener = () -> decor.post(() -> {
             if (activity.isFinishing() || activity.isDestroyed()) return;
-            try {
-                NovaOperatorUi.install(activity);
-            } catch (Throwable ignored) {
-                // Optional layout helper only.
-            }
+            try { NovaOperatorUi.install(activity); }
+            catch (Throwable ignored) { /* Optional layout helper only. */ }
         });
         watchers.put(activity, listener);
         decor.getViewTreeObserver().addOnGlobalLayoutListener(listener);
