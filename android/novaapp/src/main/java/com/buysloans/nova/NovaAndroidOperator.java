@@ -10,10 +10,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Size;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -24,7 +27,6 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.InputStream;
 
 final class NovaAndroidOperator {
     static final int REQ_CAMERA = 9101;
@@ -33,7 +35,9 @@ final class NovaAndroidOperator {
     static final int MAX_VISION_PHOTOS = 6;
     private static final String ALERT_CHANNEL = "nova_attention";
     private static final int ALERT_JOB_ID = 8201;
-    private static final int MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+    private static final int VISION_LONG_EDGE = 2560;
+    private static final int VISION_FALLBACK_EDGE = 2048;
+    private static final int TARGET_IMAGE_BYTES = 2_250_000;
 
     private NovaAndroidOperator() {}
 
@@ -61,22 +65,65 @@ final class NovaAndroidOperator {
     }
 
     static String imageDataUrl(Context context, Uri uri) throws Exception {
-        String mime = context.getContentResolver().getType(uri);
-        if (mime == null || !(mime.equals("image/jpeg") || mime.equals("image/png") || mime.equals("image/webp"))) mime = "image/jpeg";
-        byte[] bytes;
-        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
-            if (in == null) throw new IllegalArgumentException("The selected image could not be opened.");
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[32 * 1024];
-            int total = 0;
-            for (int read; (read = in.read(buffer)) != -1;) {
-                total += read;
-                if (total > MAX_IMAGE_BYTES) throw new IllegalArgumentException("Use a photo smaller than 6 MB.");
-                out.write(buffer, 0, read);
-            }
-            bytes = out.toByteArray();
+        Bitmap bitmap = decodeVisionBitmap(context, uri, VISION_LONG_EDGE);
+        try {
+            byte[] bytes = encodeVisionJpeg(bitmap);
+            return "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP);
+        } finally {
+            bitmap.recycle();
         }
-        return "data:" + mime + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP);
+    }
+
+    private static Bitmap decodeVisionBitmap(Context context, Uri uri, int longEdgeLimit) throws Exception {
+        ImageDecoder.Source source = ImageDecoder.createSource(context.getContentResolver(), uri);
+        return ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
+            decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
+            Size size = info.getSize();
+            int width = size.getWidth();
+            int height = size.getHeight();
+            int longEdge = Math.max(width, height);
+            if (longEdge > longEdgeLimit) {
+                double scale = (double) longEdgeLimit / (double) longEdge;
+                int targetWidth = Math.max(1, (int) Math.round(width * scale));
+                int targetHeight = Math.max(1, (int) Math.round(height * scale));
+                decoder.setTargetSize(targetWidth, targetHeight);
+            }
+        });
+    }
+
+    private static byte[] encodeVisionJpeg(Bitmap bitmap) {
+        byte[] encoded = compress(bitmap, new int[]{88, 80, 72, 64, 56, 48});
+        if (encoded.length <= TARGET_IMAGE_BYTES) return encoded;
+
+        int longEdge = Math.max(bitmap.getWidth(), bitmap.getHeight());
+        if (longEdge > VISION_FALLBACK_EDGE) {
+            double scale = (double) VISION_FALLBACK_EDGE / (double) longEdge;
+            int width = Math.max(1, (int) Math.round(bitmap.getWidth() * scale));
+            int height = Math.max(1, (int) Math.round(bitmap.getHeight() * scale));
+            Bitmap smaller = Bitmap.createScaledBitmap(bitmap, width, height, true);
+            try {
+                encoded = compress(smaller, new int[]{80, 72, 64, 56, 48, 40});
+            } finally {
+                if (smaller != bitmap) smaller.recycle();
+            }
+        }
+        if (encoded.length > TARGET_IMAGE_BYTES) {
+            throw new IllegalArgumentException("This photo could not be safely compressed for Nova Vision. Retake it closer to the device or choose a smaller image.");
+        }
+        return encoded;
+    }
+
+    private static byte[] compress(Bitmap bitmap, int[] qualities) {
+        byte[] best = new byte[0];
+        for (int quality : qualities) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)) {
+                throw new IllegalArgumentException("The selected image could not be encoded for Nova Vision.");
+            }
+            best = out.toByteArray();
+            if (best.length <= TARGET_IMAGE_BYTES) break;
+        }
+        return best;
     }
 
     static String formatVision(JSONObject payload) {
@@ -101,7 +148,7 @@ final class NovaAndroidOperator {
         appendArray(out, "Visible evidence", r.optJSONArray("evidence"));
         appendEvidenceByPhoto(out, r.optJSONArray("evidence_by_photo"));
         appendArray(out, "Uncertainties", r.optJSONArray("uncertainties"));
-        out.append("\nPhoto privacy: not stored by Nova Vision; full serial/IMEI values are not returned.");
+        out.append("\nPhoto privacy: re-encoded before upload where supported, not stored by Nova Vision; full serial/IMEI values are not returned.");
         return out.toString();
     }
 
