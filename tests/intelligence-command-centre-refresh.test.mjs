@@ -16,3 +16,10 @@ test('Command Centre refresh preserves unavailable optional sources',async()=>{
   assert.match(code,/Promise\.resolve\(\)\.then\(\(\)=>fn\(\)\)/);
   assert.match(code,/finally/);
 });
+
+test('Australian catalogue metric uses explicit AU/Australia identity instead of loose au text',async()=>{
+  const code=await src();
+  assert.match(code,/region==='au'\|\|region\.includes\('australia'\)/);
+  assert.match(code,/devices\.filter\(d=>isAustralianRegion\(d\.marketRegion\)\)/);
+  assert.doesNotMatch(code,/australia\|australian\|au/);
+});
