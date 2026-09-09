@@ -23,3 +23,11 @@ test('Australian catalogue metric uses explicit AU/Australia identity instead of
   assert.match(code,/devices\.filter\(d=>isAustralianRegion\(d\.marketRegion\)\)/);
   assert.doesNotMatch(code,/australia\|australian\|au/);
 });
+
+test('support pressure comes from authoritative Support Intelligence rather than rendered rows',async()=>{
+  const code=await src();
+  assert.match(code,/snap\?\.sources\?\.support/);
+  assert.match(code,/snap\?\.supportEvidence/);
+  assert.match(code,/source:'Support Intelligence'/);
+  assert.doesNotMatch(code,/safeCount\('#ticketsList/);
+});
