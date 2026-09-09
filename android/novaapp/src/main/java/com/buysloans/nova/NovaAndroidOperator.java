@@ -35,6 +35,7 @@ final class NovaAndroidOperator {
     static final int MAX_VISION_PHOTOS = 6;
     private static final String ALERT_CHANNEL = "nova_attention";
     private static final int ALERT_JOB_ID = 8201;
+    private static final int MAX_IMAGE_BYTES = 6 * 1024 * 1024;
     private static final int VISION_LONG_EDGE = 2560;
     private static final int VISION_FALLBACK_EDGE = 2048;
     private static final int TARGET_IMAGE_BYTES = 2_250_000;
@@ -68,6 +69,7 @@ final class NovaAndroidOperator {
         Bitmap bitmap = decodeVisionBitmap(context, uri, VISION_LONG_EDGE);
         try {
             byte[] bytes = encodeVisionJpeg(bitmap);
+            if (bytes.length > MAX_IMAGE_BYTES) throw new IllegalArgumentException("Use a photo smaller than 6 MB after preprocessing.");
             return "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP);
         } finally {
             bitmap.recycle();
@@ -94,22 +96,16 @@ final class NovaAndroidOperator {
     private static byte[] encodeVisionJpeg(Bitmap bitmap) {
         byte[] encoded = compress(bitmap, new int[]{88, 80, 72, 64, 56, 48});
         if (encoded.length <= TARGET_IMAGE_BYTES) return encoded;
-
         int longEdge = Math.max(bitmap.getWidth(), bitmap.getHeight());
         if (longEdge > VISION_FALLBACK_EDGE) {
             double scale = (double) VISION_FALLBACK_EDGE / (double) longEdge;
             int width = Math.max(1, (int) Math.round(bitmap.getWidth() * scale));
             int height = Math.max(1, (int) Math.round(bitmap.getHeight() * scale));
             Bitmap smaller = Bitmap.createScaledBitmap(bitmap, width, height, true);
-            try {
-                encoded = compress(smaller, new int[]{80, 72, 64, 56, 48, 40});
-            } finally {
-                if (smaller != bitmap) smaller.recycle();
-            }
+            try { encoded = compress(smaller, new int[]{80, 72, 64, 56, 48, 40}); }
+            finally { if (smaller != bitmap) smaller.recycle(); }
         }
-        if (encoded.length > TARGET_IMAGE_BYTES) {
-            throw new IllegalArgumentException("This photo could not be safely compressed for Nova Vision. Retake it closer to the device or choose a smaller image.");
-        }
+        if (encoded.length > TARGET_IMAGE_BYTES) throw new IllegalArgumentException("This photo could not be safely compressed for Nova Vision. Retake it closer to the device or choose a smaller image.");
         return encoded;
     }
 
@@ -117,9 +113,7 @@ final class NovaAndroidOperator {
         byte[] best = new byte[0];
         for (int quality : qualities) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)) {
-                throw new IllegalArgumentException("The selected image could not be encoded for Nova Vision.");
-            }
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)) throw new IllegalArgumentException("The selected image could not be encoded for Nova Vision.");
             best = out.toByteArray();
             if (best.length <= TARGET_IMAGE_BYTES) break;
         }
@@ -148,7 +142,7 @@ final class NovaAndroidOperator {
         appendArray(out, "Visible evidence", r.optJSONArray("evidence"));
         appendEvidenceByPhoto(out, r.optJSONArray("evidence_by_photo"));
         appendArray(out, "Uncertainties", r.optJSONArray("uncertainties"));
-        out.append("\nPhoto privacy: re-encoded before upload where supported, not stored by Nova Vision; full serial/IMEI values are not returned.");
+        out.append("\nPhoto privacy: not stored by Nova Vision; photos are re-encoded before upload where supported; full serial/IMEI values are not returned.");
         return out.toString();
     }
 
@@ -165,11 +159,7 @@ final class NovaAndroidOperator {
         ensureNotificationChannel(context);
         JobScheduler scheduler = context.getSystemService(JobScheduler.class);
         if (scheduler == null) return;
-        JobInfo job = new JobInfo.Builder(ALERT_JOB_ID, new ComponentName(context, NovaAlertWorker.class))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPersisted(true)
-                .setPeriodic(15 * 60 * 1000L)
-                .build();
+        JobInfo job = new JobInfo.Builder(ALERT_JOB_ID, new ComponentName(context, NovaAlertWorker.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true).setPeriodic(15 * 60 * 1000L).build();
         scheduler.schedule(job);
     }
 
@@ -179,59 +169,19 @@ final class NovaAndroidOperator {
 
     static void requestNotificationPermission(Activity activity) {
         ensureNotificationChannel(activity);
-        if (Build.VERSION.SDK_INT >= 33 && !notificationPermissionGranted(activity)) {
-            activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS);
-        }
+        if (Build.VERSION.SDK_INT >= 33 && !notificationPermissionGranted(activity)) activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS);
     }
 
     static void postAttentionNotification(Context context, String title, String body, int id) {
         ensureNotificationChannel(context);
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, ALERT_CHANNEL)
-                .setSmallIcon(R.drawable.nova_official_app_icon)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, ALERT_CHANNEL).setSmallIcon(R.drawable.nova_official_app_icon).setContentTitle(title).setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body)).setPriority(NotificationCompat.PRIORITY_DEFAULT).setAutoCancel(true);
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) manager.notify(id, builder.build());
     }
 
-    private static String join(String a, String b) {
-        String x = a == null ? "" : a.trim();
-        String y = b == null ? "" : b.trim();
-        if (x.isEmpty()) return y;
-        if (y.isEmpty()) return x;
-        return x + " " + y;
-    }
-
-    private static void append(StringBuilder out, String label, String value) {
-        if (value != null && !value.isBlank()) out.append(label).append(": ").append(value.trim()).append("\n");
-    }
-
-    private static void appendArray(StringBuilder out, String label, JSONArray values) {
-        if (values == null || values.length() == 0) return;
-        out.append(label).append(":\n");
-        for (int i = 0; i < values.length(); i++) {
-            String value = values.optString(i).trim();
-            if (!value.isEmpty()) out.append("• ").append(value).append("\n");
-        }
-    }
-
-    private static void appendEvidenceByPhoto(StringBuilder out, JSONArray groups) {
-        if (groups == null || groups.length() == 0) return;
-        out.append("Evidence by photo:\n");
-        for (int i = 0; i < groups.length(); i++) {
-            JSONObject group = groups.optJSONObject(i);
-            if (group == null) continue;
-            int photo = group.optInt("photo_index", 0);
-            JSONArray evidence = group.optJSONArray("evidence");
-            if (photo < 1 || photo > MAX_VISION_PHOTOS || evidence == null || evidence.length() == 0) continue;
-            for (int j = 0; j < evidence.length(); j++) {
-                String value = evidence.optString(j).trim();
-                if (!value.isEmpty()) out.append("• Photo ").append(photo).append(": ").append(value).append("\n");
-            }
-        }
-    }
+    private static String join(String a, String b) { String x=a==null?"":a.trim(), y=b==null?"":b.trim(); if(x.isEmpty())return y; if(y.isEmpty())return x; return x+" "+y; }
+    private static void append(StringBuilder out,String label,String value){if(value!=null&&!value.isBlank())out.append(label).append(": ").append(value.trim()).append("\n");}
+    private static void appendArray(StringBuilder out,String label,JSONArray values){if(values==null||values.length()==0)return;out.append(label).append(":\n");for(int i=0;i<values.length();i++){String value=values.optString(i).trim();if(!value.isEmpty())out.append("• ").append(value).append("\n");}}
+    private static void appendEvidenceByPhoto(StringBuilder out,JSONArray groups){if(groups==null||groups.length()==0)return;out.append("Evidence by photo:\n");for(int i=0;i<groups.length();i++){JSONObject group=groups.optJSONObject(i);if(group==null)continue;int photo=group.optInt("photo_index",0);JSONArray evidence=group.optJSONArray("evidence");if(photo<1||photo>MAX_VISION_PHOTOS||evidence==null||evidence.length()==0)continue;for(int j=0;j<evidence.length();j++){String value=evidence.optString(j).trim();if(!value.isEmpty())out.append("• Photo ").append(photo).append(": ").append(value).append("\n");}}}
 }
