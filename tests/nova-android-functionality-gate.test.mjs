@@ -28,3 +28,18 @@ test('Vision functionality installs only through Nova activity lifecycle and is 
   assert.match(init,/NovaVisionFunctionalityGate\.install/);
   assert.match(init,/NovaVisionFunctionalityGate\.clear/);
 });
+
+
+test('functionality state changes always re-render from the untouched pricing result',()=>{
+  assert.match(gate,/String latestPricingResult/);
+  assert.match(gate,/state\.latestPricingResult = withoutGateMarker\(value\)/);
+  assert.match(gate,/String next=state\.latestPricingResult/);
+  assert.doesNotMatch(gate,/String next=text/);
+  assert.match(gate,/state\.latestPricingResult = null;\s*reset\(activity\)/);
+});
+
+test('gate-generated text cannot overwrite the retained authoritative pricing result',()=>{
+  assert.match(gate,/if \(state\.rewriting\) return/);
+  assert.match(gate,/private static String withoutGateMarker/);
+  assert.match(gate,/return markerAt>=0\?text\.substring\(0,markerAt\):text/);
+});
