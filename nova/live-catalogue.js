@@ -21,5 +21,8 @@ window.addEventListener('nova:authenticated',startRealtime,{once:true});if(windo
 })();
 (()=>{'use strict';
 function load(src,id){return new Promise((resolve,reject)=>{const prior=document.getElementById(id);if(prior){if(prior.dataset.loaded==='1')resolve(prior);else{prior.addEventListener('load',()=>resolve(prior),{once:true});prior.addEventListener('error',reject,{once:true})}return}const s=document.createElement('script');s.id=id;s.src=src;s.async=false;s.onload=()=>{s.dataset.loaded='1';resolve(s)};s.onerror=()=>reject(new Error(`Failed to load ${src}`));document.head.appendChild(s)})}
-load('knowledge-engine.js?v=1','novaKnowledgeEngine').then(()=>load('knowledge-integration.js?v=1','novaKnowledgeIntegration')).then(()=>load('conversation-custom-knowledge.js?v=1','novaCustomKnowledgeConversation')).catch(error=>console.error('Nova custom knowledge modules unavailable',error));
+Promise.all([
+  load('camera-assistant.js?v=2','novaCameraAssistant'),
+  load('knowledge-engine.js?v=1','novaKnowledgeEngine').then(()=>load('knowledge-integration.js?v=1','novaKnowledgeIntegration')).then(()=>load('conversation-custom-knowledge.js?v=1','novaCustomKnowledgeConversation'))
+]).catch(error=>console.error('Nova optional intelligence modules unavailable',error));
 })();
