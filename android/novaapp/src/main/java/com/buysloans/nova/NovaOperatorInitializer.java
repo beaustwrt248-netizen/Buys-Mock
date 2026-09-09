@@ -36,7 +36,24 @@ public final class NovaOperatorInitializer extends ContentProvider {
 
                     @Override
                     public void onActivityResumed(Activity activity) {
-                        if (!(activity instanceof MainActivity) || activity.isFinishing() || activity.isDestroyed()) return;
+                        if (activity.isFinishing() || activity.isDestroyed()) return;
+                        if (activity instanceof NovaVisionActivity) {
+                            try {
+                                View decor = activity.getWindow().getDecorView();
+                                decor.post(() -> {
+                                    if (activity.isFinishing() || activity.isDestroyed()) return;
+                                    try {
+                                        NovaVisionFunctionalityGate.install((NovaVisionActivity) activity);
+                                    } catch (Throwable ignored) {
+                                        // The manual functionality gate must never prevent Vision from rendering.
+                                    }
+                                });
+                            } catch (Throwable ignored) {
+                                // Keep Vision usable if the optional gate cannot be installed.
+                            }
+                            return;
+                        }
+                        if (!(activity instanceof MainActivity)) return;
                         try {
                             installWatcher(activity);
                             View decor = activity.getWindow().getDecorView();
@@ -70,6 +87,9 @@ public final class NovaOperatorInitializer extends ContentProvider {
                                 decor.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
                             }
                             if (activity instanceof MainActivity) NovaOperatorUi.clearSession();
+                            if (activity instanceof NovaVisionActivity) {
+                                NovaVisionFunctionalityGate.clear((NovaVisionActivity) activity);
+                            }
                         } catch (Throwable ignored) {
                             watchers.remove(activity);
                         }
