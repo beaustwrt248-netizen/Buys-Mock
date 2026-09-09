@@ -19,10 +19,12 @@ public class NovaAndroidOperatorContractTest {
         String vision = read("src/main/java/com/buysloans/nova/NovaVisionActivity.java");
         String helper = read("src/main/java/com/buysloans/nova/NovaAndroidOperator.java");
         assertTrue(api.contains("edge(\"nova-vision\""));
+        assertTrue(api.contains("put(\"image_data_urls\", imageDataUrls)"));
         assertTrue(vision.contains("NovaAndroidOperator.imageDataUrl"));
-        assertTrue(vision.contains("api.vision(dataUrl, hintText)"));
+        assertTrue(vision.contains("api.vision(images, hintText)"));
         assertTrue(helper.contains("Photo privacy: not stored by Nova Vision"));
         assertTrue(helper.contains("MAX_IMAGE_BYTES = 6 * 1024 * 1024"));
+        assertTrue(helper.contains("MAX_VISION_PHOTOS = 6"));
     }
 
     @Test

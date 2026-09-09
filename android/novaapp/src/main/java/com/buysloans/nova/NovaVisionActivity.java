@@ -2,6 +2,8 @@ package com.buysloans.nova;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -9,13 +11,16 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,13 +39,8 @@ public final class NovaVisionActivity extends Activity {
     }
 
     private void buildUi() {
-        int background = Color.rgb(2, 10, 22);
-        int surface = Color.rgb(7, 23, 42);
-        int outline = Color.rgb(38, 66, 101);
-        int primary = Color.rgb(239, 244, 255);
-        int secondary = Color.rgb(169, 185, 211);
-        int accent = Color.rgb(82, 139, 255);
-
+        int background = Color.rgb(2, 10, 22), surface = Color.rgb(7, 23, 42), outline = Color.rgb(38, 66, 101);
+        int primary = Color.rgb(239, 244, 255), secondary = Color.rgb(169, 185, 211), accent = Color.rgb(82, 139, 255);
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(background);
@@ -53,16 +53,14 @@ public final class NovaVisionActivity extends Activity {
         brand.setLetterSpacing(.18f);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(brand);
-
         TextView title = text("Device image intelligence", 24, primary);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setPadding(0, dp(14), 0, dp(4));
         root.addView(title);
-        TextView sub = text("Take or choose a device photo. Nova separates visible evidence from uncertain inference and never applies catalogue changes automatically.", 13, secondary);
-        root.addView(sub);
+        root.addView(text("Take one photo or choose up to six images. Nova combines evidence across angles, grades visible condition, identifies accessories and requests another angle only when useful. Catalogue and pricing changes remain human-controlled.", 13, secondary));
 
         hint = new EditText(this);
-        hint.setHint("Optional hint — e.g. ‘check the rear model label’");
+        hint.setHint("Optional hint — e.g. ‘customer says iPhone 15 Pro 256GB’");
         hint.setHintTextColor(secondary);
         hint.setTextColor(primary);
         hint.setSingleLine(false);
@@ -76,7 +74,7 @@ public final class NovaVisionActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         camera = button("Take photo", true, primary, accent, surface, outline);
-        gallery = button("Choose photo", false, primary, accent, surface, outline);
+        gallery = button("Choose up to 6", false, primary, accent, surface, outline);
         LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, dp(52), 1f);
         left.setMarginEnd(dp(5));
         LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, dp(52), 1f);
@@ -87,7 +85,7 @@ public final class NovaVisionActivity extends Activity {
         rowLp.topMargin = dp(12);
         root.addView(row, rowLp);
 
-        result = text("Ready. Use a clear photo of the device, label or visible damage.", 14, secondary);
+        result = text("Ready. For best results include front, back, model label and any visible damage.", 14, secondary);
         result.setPadding(dp(16), dp(16), dp(16), dp(16));
         result.setBackground(rounded(surface, 18, outline));
         LinearLayout.LayoutParams resultLp = full();
@@ -113,9 +111,7 @@ public final class NovaVisionActivity extends Activity {
         try {
             pendingCameraUri = NovaAndroidOperator.createCameraUri(this);
             startActivityForResult(NovaAndroidOperator.cameraIntent(pendingCameraUri), NovaAndroidOperator.REQ_CAMERA);
-        } catch (Exception e) {
-            showError(e.getMessage());
-        }
+        } catch (Exception e) { showError(e.getMessage()); }
     }
 
     @Override
@@ -123,21 +119,30 @@ public final class NovaVisionActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_CAMERA_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) beginCamera();
-            else showError("Camera permission is required to take a photo. You can still choose an existing image.");
+            else showError("Camera permission is required to take a photo. You can still choose existing images.");
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode != RESULT_OK) return;
-        Uri uri = null;
-        if (requestCode == NovaAndroidOperator.REQ_CAMERA) uri = pendingCameraUri;
-        else if (requestCode == NovaAndroidOperator.REQ_IMAGE && data != null) uri = data.getData();
-        if (uri != null) analyse(uri);
+        ArrayList<Uri> uris = new ArrayList<>();
+        if (requestCode == NovaAndroidOperator.REQ_CAMERA && pendingCameraUri != null) uris.add(pendingCameraUri);
+        else if (requestCode == NovaAndroidOperator.REQ_IMAGE && data != null) {
+            ClipData clip = data.getClipData();
+            if (clip != null) {
+                int count = Math.min(clip.getItemCount(), NovaAndroidOperator.MAX_VISION_PHOTOS);
+                for (int i = 0; i < count; i++) {
+                    Uri uri = clip.getItemAt(i).getUri();
+                    if (uri != null) uris.add(uri);
+                }
+            } else if (data.getData() != null) uris.add(data.getData());
+        }
+        if (!uris.isEmpty()) analyse(uris);
     }
 
-    private void analyse(Uri uri) {
+    private void analyse(List<Uri> uris) {
         NovaApiClient api = NovaSessionBridge.api();
         if (api == null || !api.isSignedIn()) {
             showError("Your active Nova session is not available in this screen. Return to Nova and open Vision again.");
@@ -146,12 +151,13 @@ public final class NovaVisionActivity extends Activity {
         camera.setEnabled(false);
         gallery.setEnabled(false);
         result.setTextColor(Color.rgb(169, 185, 211));
-        result.setText("Analysing the photo with Nova Vision…");
+        result.setText("Analysing " + uris.size() + " photo" + (uris.size() == 1 ? "" : "s") + " with Nova Vision…");
         String hintText = hint.getText().toString().trim();
         worker.execute(() -> {
             try {
-                String dataUrl = NovaAndroidOperator.imageDataUrl(this, uri);
-                String formatted = NovaAndroidOperator.formatVision(api.vision(dataUrl, hintText));
+                JSONArray images = new JSONArray();
+                for (Uri uri : uris) images.put(NovaAndroidOperator.imageDataUrl(this, uri));
+                String formatted = NovaAndroidOperator.formatVision(api.vision(images, hintText));
                 runOnUiThread(() -> {
                     result.setTextColor(Color.rgb(239, 244, 255));
                     result.setText(formatted);
@@ -170,7 +176,7 @@ public final class NovaVisionActivity extends Activity {
 
     private void showError(String message) {
         result.setTextColor(Color.rgb(255, 103, 122));
-        result.setText(message == null || message.isBlank() ? "Nova Vision could not complete that photo." : message);
+        result.setText(message == null || message.isBlank() ? "Nova Vision could not complete that assessment." : message);
     }
 
     private TextView text(String value, float size, int color) {
@@ -202,13 +208,8 @@ public final class NovaVisionActivity extends Activity {
         return d;
     }
 
-    private LinearLayout.LayoutParams full() {
-        return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
+    private LinearLayout.LayoutParams full() { return new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); }
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     @Override
     protected void onDestroy() {
