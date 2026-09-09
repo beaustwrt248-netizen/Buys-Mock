@@ -17,8 +17,15 @@ test('explicit functionality failure removes automatic maximum-buy value',()=>{
 });
 
 test('untested functions remain a final-offer human gate',()=>{
-  assert.match(checklist,/detail\.final_offer_ready=state\.complete&&!state\.failed\.length/);
+  assert.match(checklist,/detail\.final_offer_ready=state\.complete&&!state\.failed\.length&&detail\.identity_gate\?\.verified===true/);
   assert.match(checklist,/Functionality checks incomplete/);
+});
+
+test('missing or unverified identity remains fail closed after all manual tests pass',()=>{
+  assert.match(checklist,/detail\.identity_gate\?\.verified!==true/);
+  assert.match(checklist,/detail\.suggested_max_buy_aud=null/);
+  assert.match(checklist,/Verified identity required/);
+  assert.match(checklist,/strong live-catalogue identity verification/);
 });
 
 test('checklist loads after Camera Assistant and before any later user interaction',()=>{
