@@ -13,7 +13,7 @@ A checked item means the current repository/live-control evidence is sufficient 
 
 ## Admin Control
 - [x] Support-ticket SLA controls
-- [ ] Protected-message access verification
+- [x] Protected-message access verification
 - [x] User-management permission verification
 - [x] Device/app-version visibility completion
 - [x] Safe remote configuration guardrails
@@ -50,6 +50,7 @@ A checked item means the current repository/live-control evidence is sufficient 
 ## Evidence notes — 9 September 2026
 
 - Admin support governance contract verifies ticket ownership/RLS, assignment, SLA due timestamps, first-response tracking, and priority windows of urgent 2h, high 8h, normal 24h.
+- Live support RLS verification confirms customer message access is limited to the ticket owner; Admin/Manager can access governed tickets; support staff access is limited to tickets assigned to them. Internal notes are restricted to Admin/Manager or assigned support staff and are not exposed to customers. Attachment access follows the same owner/Admin/assigned-staff boundary.
 - Admin integration contract verifies user-control wiring, device/app-version visibility, support controls, audit access, Android Admin web parity, automatic OTA scheduling, OTA feature governance, trusted release URLs and downloaded APK SHA-256 validation.
 - Remote configuration is restricted to maintenance mode/message and OTA enablement and requires Admin/Manager authority; the private implementation is not directly executable by normal authenticated clients.
 - Privileged support-ticket changes are durably audited while ticket/message body content is excluded from the audit record.
