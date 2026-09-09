@@ -23,6 +23,7 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        MainAppCrashTelemetry.install(this)
         registerActivityLifecycleCallbacks(this)
         AppCopyrightFooter.install(this)
         NotificationHelper.createChannels(this)
@@ -31,7 +32,10 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
         LiveDevicePricing.cached(this)
         if (AuthManager.isSignedIn(this)) {
             ensureCatalogueLiveSync()
-            appScope.launch { runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) } }
+            appScope.launch {
+                runCatching { MainAppCrashTelemetry.flushPending(this@MorleyApplication) }
+                runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) }
+            }
             FirebaseMessaging.getInstance().token.addOnSuccessListener { token -> DeviceRegistrar.register(this, token) }
         }
     }
@@ -74,7 +78,10 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
     override fun onActivityResumed(activity: Activity) {
         DiagnosticContextStore.recordActivity(this, activity::class.java.simpleName)
         ensureCatalogueLiveSync()
-        appScope.launch { runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) } }
+        appScope.launch {
+            runCatching { MainAppCrashTelemetry.flushPending(this@MorleyApplication) }
+            runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) }
+        }
         checkMaintenance(activity)
     }
 
