@@ -8,7 +8,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession:
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -23,6 +23,17 @@ function message(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+function safeError(error: unknown) {
+  if (!error || typeof error !== 'object') return { message: message(error) };
+  const r = error as Record<string, unknown>;
+  return {
+    message: String(r.message || 'unknown'),
+    code: r.code ? String(r.code) : undefined,
+    details: r.details ? String(r.details).slice(0, 300) : undefined,
+    hint: r.hint ? String(r.hint).slice(0, 300) : undefined,
+  };
+}
+
 function decodeJwtPayload(token: string) {
   const part = token.split('.')[1] || '';
   const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
@@ -34,12 +45,17 @@ async function requireUser(req: Request) {
   const auth = req.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) throw new Error('AUTH_REQUIRED');
   const token = auth.slice(7).trim();
-  const { data, error } = await admin.auth.getUser(token);
-  if (error || !data.user) throw new Error('AUTH_REQUIRED');
-  const claims = decodeJwtPayload(token);
-  const sessionId = String(claims?.session_id || '').trim();
-  if (!sessionId) throw new Error('SESSION_ID_REQUIRED');
-  return { user: data.user, token, sessionId };
+  try {
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data.user) throw new Error('AUTH_REQUIRED');
+    const claims = decodeJwtPayload(token);
+    const sessionId = String(claims?.session_id || '').trim();
+    if (!sessionId) throw new Error('SESSION_ID_REQUIRED');
+    return { user: data.user, token, sessionId };
+  } catch (error) {
+    console.error('user-security-center', { stage: 'auth_validation', error: safeError(error) });
+    throw error;
+  }
 }
 
 function cleanText(value: unknown, max = 160) {
@@ -53,102 +69,125 @@ async function heartbeat(userId: string, sessionId: string, body: Record<string,
   const deviceName = cleanText(body.device_name, 160) || null;
   const appVersion = cleanText(body.app_version, 80) || null;
 
-  const { data: existing, error: lookupError } = await admin.from('user_session_devices')
-    .select('id,trusted_at,revoked_at,first_seen_at')
-    .eq('user_id', userId)
-    .eq('session_id', sessionId)
-    .maybeSingle();
-  if (lookupError) throw lookupError;
-  const isNew = !existing;
+  try {
+    const { data: existing, error: lookupError } = await admin.from('user_session_devices')
+      .select('id,trusted_at,revoked_at,first_seen_at')
+      .eq('user_id', userId)
+      .eq('session_id', sessionId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    const isNew = !existing;
 
-  const row = {
-    user_id: userId,
-    session_id: sessionId,
-    installation_id: installationId,
-    platform,
-    device_name: deviceName,
-    app_version: appVersion,
-    last_seen_at: new Date().toISOString(),
-    revoked_at: null,
-  };
-  const { data, error } = await admin.from('user_session_devices')
-    .upsert(row, { onConflict: 'user_id,session_id' })
-    .select('id,session_id,installation_id,platform,device_name,app_version,first_seen_at,last_seen_at,trusted_at,revoked_at')
-    .single();
-  if (error) throw error;
-
-  if (isNew) {
-    await admin.from('user_security_events').insert({
+    const row = {
       user_id: userId,
       session_id: sessionId,
-      event_type: 'new_session',
-      detail: { installation_id: installationId, platform, device_name: deviceName, app_version: appVersion },
-    });
+      installation_id: installationId,
+      platform,
+      device_name: deviceName,
+      app_version: appVersion,
+      last_seen_at: new Date().toISOString(),
+      revoked_at: null,
+    };
+    const { data, error } = await admin.from('user_session_devices')
+      .upsert(row, { onConflict: 'user_id,session_id' })
+      .select('id,session_id,installation_id,platform,device_name,app_version,first_seen_at,last_seen_at,trusted_at,revoked_at')
+      .single();
+    if (error) throw error;
+
+    if (isNew) {
+      const { error: eventError } = await admin.from('user_security_events').insert({
+        user_id: userId,
+        session_id: sessionId,
+        event_type: 'new_session',
+        detail: { installation_id: installationId, platform, device_name: deviceName, app_version: appVersion },
+      });
+      if (eventError) console.error('user-security-center', { stage: 'heartbeat_event', error: safeError(eventError) });
+    }
+    return { device: data, is_new: isNew };
+  } catch (error) {
+    console.error('user-security-center', { stage: 'heartbeat', error: safeError(error) });
+    throw error;
   }
-  return { device: data, is_new: isNew };
 }
 
 async function listCenter(userId: string, sessionId: string) {
-  const [{ data: devices, error: deviceError }, { data: events, error: eventError }] = await Promise.all([
-    admin.from('user_session_devices')
-      .select('id,session_id,installation_id,platform,device_name,app_version,first_seen_at,last_seen_at,trusted_at,revoked_at')
-      .eq('user_id', userId)
-      .order('last_seen_at', { ascending: false })
-      .limit(50),
-    admin.from('user_security_events')
-      .select('id,session_id,event_type,detail,created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(100),
-  ]);
-  if (deviceError) throw deviceError;
-  if (eventError) throw eventError;
-  return {
-    current_session_id: sessionId,
-    devices: (devices || []).map(d => ({ ...d, current: d.session_id === sessionId })),
-    events: events || [],
-  };
+  try {
+    const [{ data: devices, error: deviceError }, { data: events, error: eventError }] = await Promise.all([
+      admin.from('user_session_devices')
+        .select('id,session_id,installation_id,platform,device_name,app_version,first_seen_at,last_seen_at,trusted_at,revoked_at')
+        .eq('user_id', userId)
+        .order('last_seen_at', { ascending: false })
+        .limit(50),
+      admin.from('user_security_events')
+        .select('id,session_id,event_type,detail,created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ]);
+    if (deviceError) throw deviceError;
+    if (eventError) throw eventError;
+    return {
+      current_session_id: sessionId,
+      devices: (devices || []).map(d => ({ ...d, current: d.session_id === sessionId })),
+      events: events || [],
+    };
+  } catch (error) {
+    console.error('user-security-center', { stage: 'list', error: safeError(error) });
+    throw error;
+  }
 }
 
 async function trustCurrent(userId: string, sessionId: string) {
-  const trustedAt = new Date().toISOString();
-  const { data, error } = await admin.from('user_session_devices')
-    .update({ trusted_at: trustedAt })
-    .eq('user_id', userId)
-    .eq('session_id', sessionId)
-    .select('id,trusted_at')
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) throw new Error('SESSION_DEVICE_NOT_FOUND');
-  await admin.from('user_security_events').insert({
-    user_id: userId,
-    session_id: sessionId,
-    event_type: 'trusted_device',
-    detail: {},
-  });
-  return { trusted_at: trustedAt };
+  try {
+    const trustedAt = new Date().toISOString();
+    const { data, error } = await admin.from('user_session_devices')
+      .update({ trusted_at: trustedAt })
+      .eq('user_id', userId)
+      .eq('session_id', sessionId)
+      .select('id,trusted_at')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('SESSION_DEVICE_NOT_FOUND');
+    const { error: eventError } = await admin.from('user_security_events').insert({
+      user_id: userId,
+      session_id: sessionId,
+      event_type: 'trusted_device',
+      detail: {},
+    });
+    if (eventError) console.error('user-security-center', { stage: 'trust_event', error: safeError(eventError) });
+    return { trusted_at: trustedAt };
+  } catch (error) {
+    console.error('user-security-center', { stage: 'trust_current', error: safeError(error) });
+    throw error;
+  }
 }
 
 async function signOutOthers(userId: string, sessionId: string, token: string) {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=others`, {
-    method: 'POST',
-    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error(`AUTH_SIGNOUT_OTHERS_FAILED:${response.status}`);
-  const now = new Date().toISOString();
-  const { error } = await admin.from('user_session_devices')
-    .update({ revoked_at: now })
-    .eq('user_id', userId)
-    .neq('session_id', sessionId)
-    .is('revoked_at', null);
-  if (error) throw error;
-  await admin.from('user_security_events').insert({
-    user_id: userId,
-    session_id: sessionId,
-    event_type: 'signout_others',
-    detail: { note: 'Other refresh sessions revoked; outstanding access JWTs expire normally.' },
-  });
-  return { signed_out_others: true, revoked_at: now };
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=others`, {
+      method: 'POST',
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error(`AUTH_SIGNOUT_OTHERS_FAILED:${response.status}`);
+    const now = new Date().toISOString();
+    const { error } = await admin.from('user_session_devices')
+      .update({ revoked_at: now })
+      .eq('user_id', userId)
+      .neq('session_id', sessionId)
+      .is('revoked_at', null);
+    if (error) throw error;
+    const { error: eventError } = await admin.from('user_security_events').insert({
+      user_id: userId,
+      session_id: sessionId,
+      event_type: 'signout_others',
+      detail: { note: 'Other refresh sessions revoked; outstanding access JWTs expire normally.' },
+    });
+    if (eventError) console.error('user-security-center', { stage: 'signout_event', error: safeError(eventError) });
+    return { signed_out_others: true, revoked_at: now };
+  } catch (error) {
+    console.error('user-security-center', { stage: 'signout_others', error: safeError(error) });
+    throw error;
+  }
 }
 
 Deno.serve(async req => {
@@ -167,7 +206,7 @@ Deno.serve(async req => {
     const m = message(error);
     if (m === 'AUTH_REQUIRED' || m === 'SESSION_ID_REQUIRED') return reply({ error: 'Authentication required' }, 401);
     if (m === 'INSTALLATION_ID_REQUIRED') return reply({ error: 'Installation identifier required' }, 400);
-    console.error('user-security-center', m);
-    return reply({ error: 'Security operation failed' }, 500);
+    console.error('user-security-center', { stage: 'request', error: safeError(error) });
+    return reply({ error: 'Security operation failed', code: 'SECURITY_OPERATION_FAILED' }, 500);
   }
 });
