@@ -80,6 +80,12 @@ final class NovaApiClient {
         return edge("nova-vision", new JSONObject().put("image_data_urls", imageDataUrls).put("hint", hint == null ? "" : hint));
     }
 
+    JSONObject marketSearch(String query) throws Exception {
+        String clean = query == null ? "" : query.trim();
+        if (clean.isBlank()) throw new IllegalArgumentException("Nova needs a reliable device identity before market research.");
+        return edge("market-search-v2", new JSONObject().put("query", clean).put("limit", 30));
+    }
+
     JSONObject novaAction(String action, JSONObject details) throws Exception {
         JSONObject body = details == null ? new JSONObject() : new JSONObject(details.toString());
         body.put("action", action);
