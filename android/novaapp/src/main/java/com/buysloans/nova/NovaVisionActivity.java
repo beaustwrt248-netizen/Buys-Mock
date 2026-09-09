@@ -35,6 +35,7 @@ public final class NovaVisionActivity extends Activity {
     private EditText hint;
     private Button camera, gallery, valuation;
     private JSONObject lastAssessment;
+    private JSONArray lastCatalogueMatches = new JSONArray();
 
     @Override
     protected void onCreate(Bundle state) {
@@ -61,7 +62,7 @@ public final class NovaVisionActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setPadding(0, dp(14), 0, dp(4));
         root.addView(title);
-        root.addView(text("Take one photo or choose up to six images. Nova combines evidence across angles, grades visible condition, identifies accessories and requests another angle only when useful. Catalogue and final pricing remain human-controlled.", 13, secondary));
+        root.addView(text("Take one photo or choose up to six images. Nova combines evidence across angles, checks active Morley catalogue matches, grades visible condition and can research current Australian pricing. Catalogue and final pricing remain human-controlled.", 13, secondary));
 
         hint = new EditText(this);
         hint.setHint("Optional hint — e.g. ‘customer says iPhone 15 Pro 256GB’");
@@ -166,6 +167,7 @@ public final class NovaVisionActivity extends Activity {
         gallery.setEnabled(false);
         valuation.setEnabled(false);
         lastAssessment = null;
+        lastCatalogueMatches = new JSONArray();
         result.setTextColor(Color.rgb(169, 185, 211));
         result.setText("Analysing " + uris.size() + " photo" + (uris.size() == 1 ? "" : "s") + " with Nova Vision…");
         String hintText = hint.getText().toString().trim();
@@ -175,9 +177,11 @@ public final class NovaVisionActivity extends Activity {
                 for (Uri uri : uris) images.put(NovaAndroidOperator.imageDataUrl(this, uri));
                 JSONObject payload = api.vision(images, hintText);
                 JSONObject assessment = payload.optJSONObject("result");
-                String formatted = NovaAndroidOperator.formatVision(payload);
+                JSONArray matches = assessment == null ? new JSONArray() : api.catalogueMatches(visualIdentityQuery(assessment));
+                String formatted = NovaAndroidOperator.formatVision(payload) + "\n\n" + formatCatalogueMatches(matches);
                 runOnUiThread(() -> {
                     lastAssessment = assessment;
+                    lastCatalogueMatches = matches;
                     result.setTextColor(Color.rgb(239, 244, 255));
                     result.setText(formatted);
                     camera.setEnabled(true);
@@ -201,7 +205,8 @@ public final class NovaVisionActivity extends Activity {
             return;
         }
         final JSONObject assessment = lastAssessment;
-        final String query = pricingQuery(assessment);
+        final JSONArray matches = lastCatalogueMatches;
+        final String query = pricingQuery(assessment, matches);
         valuation.setEnabled(false);
         valuation.setText("Researching…");
         result.setText(result.getText() + "\n\nChecking current Australian market evidence…");
@@ -210,9 +215,10 @@ public final class NovaVisionActivity extends Activity {
                 JSONObject market = api.marketSearch(query);
                 String formatted = formatValuation(assessment, market);
                 String visionSummary = NovaAndroidOperator.formatVision(new JSONObject().put("result", assessment));
+                String catalogueSummary = formatCatalogueMatches(matches);
                 runOnUiThread(() -> {
                     result.setTextColor(Color.rgb(239, 244, 255));
-                    result.setText(visionSummary + "\n\n" + formatted);
+                    result.setText(visionSummary + "\n\n" + catalogueSummary + "\n\n" + formatted);
                     valuation.setText("Research valuation");
                     valuation.setEnabled(true);
                 });
@@ -231,16 +237,58 @@ public final class NovaVisionActivity extends Activity {
         return !assessment.optString("model_number").isBlank() || !assessment.optString("likely_model").isBlank();
     }
 
-    private static String pricingQuery(JSONObject assessment) {
+    private static String visualIdentityQuery(JSONObject assessment) {
+        String modelNumber = assessment.optString("model_number").trim();
+        if (!modelNumber.isEmpty()) return modelNumber;
+        return pricingQuery(assessment, new JSONArray());
+    }
+
+    private static String pricingQuery(JSONObject assessment, JSONArray matches) {
         StringBuilder q = new StringBuilder();
-        for (String key : new String[]{"likely_brand", "likely_model", "model_number", "storage"}) {
-            String value = assessment.optString(key).trim();
-            if (!value.isEmpty()) {
-                if (q.length() > 0) q.append(' ');
-                q.append(value);
+        JSONObject match = matches == null ? null : matches.optJSONObject(0);
+        if (match != null) {
+            for (String key : new String[]{"brand", "model_name", "model_number"}) {
+                String value = match.optString(key).trim();
+                if (!value.isEmpty()) {
+                    if (q.length() > 0) q.append(' ');
+                    q.append(value);
+                }
+            }
+        } else {
+            for (String key : new String[]{"likely_brand", "likely_model", "model_number"}) {
+                String value = assessment.optString(key).trim();
+                if (!value.isEmpty()) {
+                    if (q.length() > 0) q.append(' ');
+                    q.append(value);
+                }
             }
         }
+        String storage = assessment.optString("storage").trim();
+        if (!storage.isEmpty()) {
+            if (q.length() > 0) q.append(' ');
+            q.append(storage);
+        }
         return q.toString().replaceAll("\\s+", " ").trim();
+    }
+
+    private static String formatCatalogueMatches(JSONArray matches) {
+        StringBuilder out = new StringBuilder("Morley catalogue verification\n");
+        if (matches == null || matches.length() == 0) return out.append("No active catalogue match found for the current visual identity.").toString();
+        int count = Math.min(matches.length(), 3);
+        out.append(matches.length()).append(" possible active match").append(matches.length() == 1 ? "" : "es").append("\n");
+        for (int i = 0; i < count; i++) {
+            JSONObject row = matches.optJSONObject(i);
+            if (row == null) continue;
+            String name = (row.optString("brand") + " " + row.optString("model_name")).trim();
+            out.append("• ").append(name.isEmpty() ? "Catalogue record" : name);
+            String model = row.optString("model_number").trim();
+            if (!model.isEmpty()) out.append(" • ").append(model);
+            JSONArray storage = row.optJSONArray("storage_options");
+            if (storage != null && storage.length() > 0) out.append(" • storage options verified");
+            out.append("\n");
+        }
+        out.append("Catalogue matches are evidence only; no record is modified from Vision.");
+        return out.toString();
     }
 
     private static String formatValuation(JSONObject assessment, JSONObject market) {
