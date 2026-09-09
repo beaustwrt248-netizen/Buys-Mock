@@ -331,6 +331,32 @@ async function restorePreview(userId: string, google: { token: string; permissio
   };
 }
 
+async function restoreValuationHistory(userId: string, restoredValuations: Record<string, unknown>[]) {
+  if (!restoredValuations.length) {
+    const { error } = await admin.from('valuation_history').delete().eq('user_id', userId);
+    if (error) throw new Error(`VALUATION_RESTORE_CLEAR_FAILED:${safeError(error)}`);
+    return;
+  }
+
+  const rows = restoredValuations.map((row) => {
+    const id = String(row?.id || '').trim();
+    if (!id) throw new Error('VALUATION_RESTORE_INVALID_ID');
+    return { ...row, id, user_id: userId };
+  });
+  const ids = [...new Set(rows.map(row => row.id))];
+  if (ids.length !== rows.length) throw new Error('VALUATION_RESTORE_DUPLICATE_ID');
+
+  const { error: upsertError } = await admin.from('valuation_history').upsert(rows, { onConflict: 'id' });
+  if (upsertError) throw new Error(`VALUATION_RESTORE_WRITE_FAILED:${safeError(upsertError)}`);
+
+  const quotedIds = ids.map(id => `"${id.replaceAll('"', '\\"')}"`).join(',');
+  const { error: pruneError } = await admin.from('valuation_history')
+    .delete()
+    .eq('user_id', userId)
+    .not('id', 'in', `(${quotedIds})`);
+  if (pruneError) throw new Error(`VALUATION_RESTORE_PRUNE_FAILED:${safeError(pruneError)}`);
+}
+
 async function restoreBackup(
   userId: string,
   google: { token: string; permissionId: string; email: string | null },
@@ -348,14 +374,10 @@ async function restoreBackup(
       if (error) throw new Error(`PROFILE_RESTORE_FAILED:${safeError(error)}`);
     }
 
-    const restoredValuations = Array.isArray(payload.data?.valuation_history) ? payload.data.valuation_history : [];
-    const { error: deleteError } = await admin.from('valuation_history').delete().eq('user_id', userId);
-    if (deleteError) throw new Error(`VALUATION_RESTORE_CLEAR_FAILED:${safeError(deleteError)}`);
-    if (restoredValuations.length) {
-      const rows = restoredValuations.map((row: Record<string, unknown>) => ({ ...row, user_id: userId }));
-      const { error: insertError } = await admin.from('valuation_history').insert(rows);
-      if (insertError) throw new Error(`VALUATION_RESTORE_WRITE_FAILED:${safeError(insertError)}`);
-    }
+    const restoredValuations = Array.isArray(payload.data?.valuation_history)
+      ? payload.data.valuation_history as Record<string, unknown>[]
+      : [];
+    await restoreValuationHistory(userId, restoredValuations);
 
     const restoredAt = new Date().toISOString();
     await admin.from('user_drive_backups').update({ status: 'ready', restored_at: restoredAt }).eq('id', backupId).eq('user_id', userId);
