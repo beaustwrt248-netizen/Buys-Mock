@@ -27,3 +27,5 @@ test('privacy contract masks identifier-like evidence instead of trusting prompt
   assert.match(fn,/full_serials_returned:false/);
   assert.match(fn,/label_identifiers:ids/);
 });
+
+// This contract intentionally runs against the exact reconciled PR head.
