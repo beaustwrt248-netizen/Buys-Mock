@@ -81,12 +81,12 @@ public final class NovaVisionActivity extends Activity {
         captureRow.setOrientation(LinearLayout.HORIZONTAL);
         camera = button("Take photo", true, primary, accent, surface, outline);
         gallery = button("Choose up to 6", false, primary, accent, surface, outline);
-        LinearLayout.LayoutParams left = new LinearLayout.LayoutParams(0, dp(52), 1f);
-        left.setMarginEnd(dp(5));
-        LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, dp(52), 1f);
-        right.setMarginStart(dp(5));
-        captureRow.addView(camera, left);
-        captureRow.addView(gallery, right);
+        LinearLayout.LayoutParams captureLeft = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        captureLeft.setMarginEnd(dp(5));
+        LinearLayout.LayoutParams captureRight = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        captureRight.setMarginStart(dp(5));
+        captureRow.addView(camera, captureLeft);
+        captureRow.addView(gallery, captureRight);
         LinearLayout.LayoutParams captureLp = full();
         captureLp.topMargin = dp(12);
         root.addView(captureRow, captureLp);
@@ -95,8 +95,12 @@ public final class NovaVisionActivity extends Activity {
         sessionRow.setOrientation(LinearLayout.HORIZONTAL);
         analyseSession = button("Analyse photos", true, primary, accent, surface, outline);
         clearSession = button("Clear photos", false, primary, accent, surface, outline);
-        sessionRow.addView(analyseSession, left);
-        sessionRow.addView(clearSession, right);
+        LinearLayout.LayoutParams sessionLeft = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        sessionLeft.setMarginEnd(dp(5));
+        LinearLayout.LayoutParams sessionRight = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        sessionRight.setMarginStart(dp(5));
+        sessionRow.addView(analyseSession, sessionLeft);
+        sessionRow.addView(clearSession, sessionRight);
         LinearLayout.LayoutParams sessionLp = full();
         sessionLp.topMargin = dp(8);
         root.addView(sessionRow, sessionLp);
@@ -168,16 +172,20 @@ public final class NovaVisionActivity extends Activity {
         }
         if (requestCode == NovaAndroidOperator.REQ_IMAGE && data != null) {
             ArrayList<Uri> selected = new ArrayList<>();
+            int remaining = NovaAndroidOperator.MAX_VISION_PHOTOS - sessionUris.size();
+            if (remaining <= 0) {
+                showError("This Vision assessment already has six photos. Analyse or clear the current evidence before adding more.");
+                return;
+            }
             ClipData clip = data.getClipData();
             if (clip != null) {
-                int count = Math.min(clip.getItemCount(), NovaAndroidOperator.MAX_VISION_PHOTOS);
+                int count = Math.min(clip.getItemCount(), remaining);
                 for (int i = 0; i < count; i++) {
                     Uri uri = clip.getItemAt(i).getUri();
-                    if (uri != null) selected.add(uri);
+                    if (uri != null && !sessionUris.contains(uri) && !selected.contains(uri)) selected.add(uri);
                 }
-            } else if (data.getData() != null) selected.add(data.getData());
+            } else if (data.getData() != null && !sessionUris.contains(data.getData())) selected.add(data.getData());
             if (!selected.isEmpty()) {
-                sessionUris.clear();
                 sessionUris.addAll(selected);
                 evidenceChanged();
             }
@@ -210,14 +218,15 @@ public final class NovaVisionActivity extends Activity {
             camera.setEnabled(count < NovaAndroidOperator.MAX_VISION_PHOTOS);
             camera.setText(count == 0 ? "Take photo" : "Add photo (" + count + "/" + NovaAndroidOperator.MAX_VISION_PHOTOS + ")");
         }
-        if (gallery != null) gallery.setEnabled(true);
+        if (gallery != null) gallery.setEnabled(count < NovaAndroidOperator.MAX_VISION_PHOTOS);
         if (analyseSession != null) analyseSession.setEnabled(count > 0);
         if (clearSession != null) clearSession.setEnabled(count > 0);
     }
 
     private void setCaptureControlsEnabled(boolean enabled) {
-        camera.setEnabled(enabled && sessionUris.size() < NovaAndroidOperator.MAX_VISION_PHOTOS);
-        gallery.setEnabled(enabled);
+        boolean room = sessionUris.size() < NovaAndroidOperator.MAX_VISION_PHOTOS;
+        camera.setEnabled(enabled && room);
+        gallery.setEnabled(enabled && room);
         analyseSession.setEnabled(enabled && !sessionUris.isEmpty());
         clearSession.setEnabled(enabled && !sessionUris.isEmpty());
     }
