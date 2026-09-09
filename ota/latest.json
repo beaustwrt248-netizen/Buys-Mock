@@ -1,7 +1,7 @@
 {
-  "versionCode": 124,
-  "versionName": "2.15.80",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.80/B-and-L-Morley-2.15.80.apk",
-  "sha256": "812692b24aaa3c1eeeba070586276038876fafccaee23e1ab0d1a1e2fb393592",
-  "notes": "Live catalogue sync and release regression fixes"
+  "versionCode": 125,
+  "versionName": "2.15.81",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.81/B-and-L-Morley-2.15.81.apk",
+  "sha256": "46519455697911c36a3094df575d5507ced5e44e23c991ff6d717bb157bd6ae3",
+  "notes": "Add protected main-app crash telemetry (#1222)"
 }
