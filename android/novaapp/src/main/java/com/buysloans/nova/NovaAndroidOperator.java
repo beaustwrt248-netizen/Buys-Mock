@@ -99,6 +99,7 @@ final class NovaAndroidOperator {
         appendArray(out, "Next useful photos", r.optJSONArray("next_photos"));
         appendArray(out, "Label identifiers", r.optJSONArray("label_identifiers"));
         appendArray(out, "Visible evidence", r.optJSONArray("evidence"));
+        appendEvidenceByPhoto(out, r.optJSONArray("evidence_by_photo"));
         appendArray(out, "Uncertainties", r.optJSONArray("uncertainties"));
         out.append("\nPhoto privacy: not stored by Nova Vision; full serial/IMEI values are not returned.");
         return out.toString();
@@ -168,6 +169,22 @@ final class NovaAndroidOperator {
         for (int i = 0; i < values.length(); i++) {
             String value = values.optString(i).trim();
             if (!value.isEmpty()) out.append("• ").append(value).append("\n");
+        }
+    }
+
+    private static void appendEvidenceByPhoto(StringBuilder out, JSONArray groups) {
+        if (groups == null || groups.length() == 0) return;
+        out.append("Evidence by photo:\n");
+        for (int i = 0; i < groups.length(); i++) {
+            JSONObject group = groups.optJSONObject(i);
+            if (group == null) continue;
+            int photo = group.optInt("photo_index", 0);
+            JSONArray evidence = group.optJSONArray("evidence");
+            if (photo < 1 || photo > MAX_VISION_PHOTOS || evidence == null || evidence.length() == 0) continue;
+            for (int j = 0; j < evidence.length(); j++) {
+                String value = evidence.optString(j).trim();
+                if (!value.isEmpty()) out.append("• Photo ").append(photo).append(": ").append(value).append("\n");
+            }
         }
     }
 }
