@@ -13,7 +13,7 @@ ok(api.normalizeRecord({status:'HEALTHY',checkedAt:'2026-09-09T01:00:00Z',maxAge
 ok(api.aggregate([{status:'HEALTHY'},{status:'DEGRADED'},{status:'UNKNOWN'}]).status==='degraded','worst verified state wins');
 ok(api.aggregate([]).status==='unknown','empty evidence is unknown');
 const guarded=api.normalizeRecord({id:'guardian',status:'ENFORCED',protected:true,nextAction:'Review only'});ok(guarded.protected===true,'protected boundary retained');ok(!('execute' in guarded),'record exposes no execution hook');
-ok(!!document.getElementById('novaObservability'),'unified observability card installed');ok(document.querySelectorAll('#novaObservability').length===1,'card installed once');
+ok(!!document.getElementById('novaObservability'),'unified observability card installed');api.boot();ok(document.querySelectorAll('#novaObservability').length===1,'late/repeated boot remains single-instance');
 const records=api.collect(),backup=records.find(x=>x.id==='backup');ok(backup&&backup.status==='unknown','missing backup evidence is unknown, never healthy');ok(records.find(x=>x.id==='catalogue')?.status==='healthy','catalogue checked evidence is consumed');ok(records.find(x=>x.id==='support')?.status==='healthy','support checked evidence is consumed');ok(records.find(x=>x.id==='memory')?.status==='healthy','memory checked evidence is consumed');
 const result=document.createElement('pre');result.id='testResult';result.textContent=failures.length?'FAIL\n'+failures.join('\n'):'PASS';document.body.appendChild(result);if(failures.length)throw new Error(result.textContent)});
 </script></body></html>
