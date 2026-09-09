@@ -1,8 +1,8 @@
 {
-  "versionCode": 25,
-  "versionName": "0.3.21",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.21/Nova-AI-0.3.21.apk",
-  "sha256": "52b4c23a82fa49e66b3301d5b57c0d6c8766ba7361e26a5779943323ee413593",
+  "versionCode": 26,
+  "versionName": "0.3.22",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.22/Nova-AI-0.3.22.apk",
+  "sha256": "91f9ba8455bd90033878db3941e0df69a912d8c1b5a6a83f9b51d5b48191d6cc",
   "mandatory": false,
-  "notes": "Nova AI 0.3.21 removes fabricated native Control Center progress and service-health claims, replacing them with authorised evidence checks and locally verifiable protection state while preserving Guardian and human approval boundaries."
+  "notes": "Nova AI 0.3.22 is available."
 }
