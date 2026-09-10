@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,25 +35,66 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 class UniversalBuySearchActivity : ComponentActivity() {
+    private var scanning by mutableStateOf(false)
+    private var scanNotice by mutableStateOf("")
+    private val googleCodeScanner by lazy { GmsBarcodeScanning.getClient(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MaterialTheme(colorScheme = MorleyColorScheme) {
-                UniversalBuySearchScreen(onBack = { finish() })
+                UniversalBuySearchScreen(
+                    scanning = scanning,
+                    scanNotice = scanNotice,
+                    onScan = ::scanForSearch,
+                    onBack = { finish() }
+                )
             }
         }
+    }
+
+    private fun scanForSearch(onResult: (String) -> Unit) {
+        if (scanning) return
+        scanning = true
+        scanNotice = "Opening Google scanner…"
+        googleCodeScanner.startScan()
+            .addOnSuccessListener { result ->
+                val value = result.rawValue.orEmpty().trim()
+                if (value.isBlank()) {
+                    scanNotice = "No searchable code was returned."
+                } else {
+                    onResult(value)
+                    scanNotice = "Scanned $value — searching Morley."
+                }
+                scanning = false
+            }
+            .addOnCanceledListener {
+                scanNotice = "Google scanner closed."
+                scanning = false
+            }
+            .addOnFailureListener { error ->
+                scanNotice = "Google scanner unavailable: ${error.message ?: "unknown error"}"
+                scanning = false
+            }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UniversalBuySearchScreen(onBack: () -> Unit) {
+private fun UniversalBuySearchScreen(
+    scanning: Boolean,
+    scanNotice: String,
+    onScan: ((String) -> Unit) -> Unit,
+    onBack: () -> Unit
+) {
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<UniversalBuySearchResult?>(null) }
     val results = remember(query) { if (query.isBlank()) emptyList() else UniversalBuySearch.search(query, 30) }
@@ -76,11 +118,52 @@ private fun UniversalBuySearchScreen(onBack: () -> Unit) {
             item {
                 OutlinedTextField(
                     value = query,
-                    onValueChange = { query = it },
+                    onValueChange = {
+                        query = it
+                        selected = null
+                    },
                     label = { Text("Search phones, laptops, consoles or any item") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+            item {
+                Button(
+                    onClick = {
+                        onScan { scannedValue ->
+                            query = scannedValue
+                            selected = null
+                        }
+                    },
+                    enabled = !scanning,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0878F9))
+                ) {
+                    Text(
+                        if (scanning) "Opening Google Scanner…" else "Scan Code with Google Camera",
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+            }
+            item {
+                Text(
+                    "Use the Google Play services camera shown in the barcode scanner to scan a barcode, QR code or encoded model/stock label. Google returns the code result and Morley uses it as the search text.",
+                    color = MorleyTextSecondary,
+                    fontSize = 12.sp
+                )
+            }
+            if (scanNotice.isNotBlank()) {
+                item {
+                    Surface(
+                        color = MorleyAccentSoft,
+                        border = BorderStroke(1.dp, MorleyBorder),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(scanNotice, Modifier.padding(12.dp), color = MorleyTextPrimary, fontSize = 12.sp)
+                    }
+                }
             }
             if (query.isBlank()) {
                 item {
@@ -92,7 +175,7 @@ private fun UniversalBuySearchScreen(onBack: () -> Unit) {
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("One search across Morley", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
-                            Text("Friendly names, storage, model numbers and hardware details are supported. Unpriced catalogue items stay searchable without authorising a buy.", color = MorleyTextSecondary)
+                            Text("Search by friendly name, storage, model number or a code returned by the Google scanner. Unpriced catalogue items stay searchable without authorising a buy.", color = MorleyTextSecondary)
                         }
                     }
                 }
