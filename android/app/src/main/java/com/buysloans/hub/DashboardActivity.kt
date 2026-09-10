@@ -182,7 +182,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
                         MorleyIcon(MorleyIcons.Menu, if (showMenu) "Close menu" else "Open menu", MorleyAccent, Modifier.size(26.dp))
                     }
                 },
-                title = { Text("B&L Morley", fontSize = 22.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary) },
+                title = { Text("MORLEY BUYS", fontSize = 22.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary) },
                 actions = {
                     Surface(color = MorleyAccentSoft, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(999.dp)) {
                         Text(AuthManager.accountLabel(context), Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MorleyTextPrimary)
@@ -220,10 +220,40 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
 
 @Composable
 private fun ParityHome(onGp: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        Card(
+            onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) },
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF073C6F)),
+            border = BorderStroke(1.dp, Color(0xFF0D70CE)),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Surface(
+                    color = Color(0xFF0878F9),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        MorleyIcon(MorleyIcons.Phone, "Scan device", Color.White, Modifier.size(28.dp))
+                    }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Scan Device", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text(
+                        "Take 2 photos • identify the model • circle visible cracks and damage • check live pricing",
+                        color = Color.White.copy(alpha = .82f),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+                }
+                Text("›", color = Color(0xFF58AAFF), fontSize = 27.sp, fontWeight = FontWeight.Black)
+            }
+        }
         SmartWorkspaceSection()
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatusTile("LIVE PRICING", "READY", Modifier.weight(1f))
@@ -253,6 +283,7 @@ private fun MoreHub(onSignOut: () -> Unit) {
     ) {
         Text("Menu", fontSize = 30.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
         MenuSection("Workspace") {
+            MenuRow("◉", "Device scan", "Take front and back photos for model, damage and condition analysis.") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
             MenuRow("▣", "Inventory", "Stock, costs and resale values.") { open("inventory") }
