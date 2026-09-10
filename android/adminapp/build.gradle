@@ -76,7 +76,8 @@ tasks.register('verifyReleaseSigning') {
     }
 }
 
-tasks.matching { it.name == 'preReleaseBuild' || it.name == 'preRecoveryBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
+tasks.matching { it.name == 'preRecoveryBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
