@@ -27,9 +27,12 @@ class AdminActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AdminTelemetry.installCrashHandler(applicationContext)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        // Match the Admin shell while WebView content is attaching/restoring so task switching
+        // never exposes the platform's default light/white backing surface.
+        window.decorView.setBackgroundColor(Color.rgb(4, 9, 18))
 
         webView = WebView(this).apply {
-            setBackgroundColor(Color.rgb(237, 243, 239))
+            setBackgroundColor(Color.rgb(4, 9, 18))
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -82,6 +85,13 @@ class AdminActivity : ComponentActivity() {
                     }
                     return true
                 }
+
+                override fun onPageFinished(view: WebView, url: String) {
+                    super.onPageFinished(view, url)
+                    if (BuildConfig.IS_RECOVERY_BUILD && AdminWebParityPolicy.isTrustedAdminUrl(url)) {
+                        injectRecoveryIdentity(view)
+                    }
+                }
             }
 
             setDownloadListener { url, _, _, _, _ -> openExternal(Uri.parse(url)) }
@@ -97,6 +107,33 @@ class AdminActivity : ComponentActivity() {
                 if (webView.canGoBack()) webView.goBack() else finish()
             }
         })
+    }
+
+    private fun injectRecoveryIdentity(view: WebView) {
+        // Presentation-only marker. It grants no capability and intentionally does not bridge
+        // Java/Kotlin objects into page JavaScript.
+        view.evaluateJavascript(
+            """
+            (() => {
+              document.documentElement.dataset.morleyAdminBuild = 'recovery';
+              document.title = 'Morley Admin Recovery';
+              if (document.getElementById('morleyAdminRecoveryIdentity')) return;
+              const badge = document.createElement('div');
+              badge.id = 'morleyAdminRecoveryIdentity';
+              badge.textContent = 'RECOVERY ADMIN';
+              badge.setAttribute('aria-label', 'Morley Admin Recovery build');
+              Object.assign(badge.style, {
+                position: 'fixed', top: 'max(8px, env(safe-area-inset-top))', right: '8px',
+                zIndex: '2147483647', pointerEvents: 'none', padding: '6px 9px',
+                borderRadius: '999px', background: '#7f1d1d', color: '#fff',
+                border: '1px solid rgba(255,255,255,.28)', font: '800 10px/1 system-ui,sans-serif',
+                letterSpacing: '.08em', boxShadow: '0 4px 14px rgba(0,0,0,.35)'
+              });
+              document.body.appendChild(badge);
+            })();
+            """.trimIndent(),
+            null
+        )
     }
 
     private fun openExternal(uri: Uri) {
