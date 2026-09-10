@@ -71,7 +71,7 @@ class UniversalBuySearchActivity : ComponentActivity() {
                     scanNotice = "No searchable code was returned."
                 } else {
                     onResult(value)
-                    scanNotice = "Scanned $value — searching Morley."
+                    scanNotice = "Code scanned — searching Morley."
                 }
                 scanning = false
             }
@@ -79,8 +79,8 @@ class UniversalBuySearchActivity : ComponentActivity() {
                 scanNotice = "Google scanner closed."
                 scanning = false
             }
-            .addOnFailureListener { error ->
-                scanNotice = "Google scanner unavailable: ${error.message ?: "unknown error"}"
+            .addOnFailureListener {
+                scanNotice = "Google scanner is unavailable right now. You can still search manually."
                 scanning = false
             }
     }
