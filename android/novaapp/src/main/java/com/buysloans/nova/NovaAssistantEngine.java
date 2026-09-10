@@ -23,6 +23,9 @@ final class NovaAssistantEngine {
 
         IntentRouter.Intent intent = IntentRouter.classify(q);
         if (intent == IntentRouter.Intent.UNKNOWN && isContextualFollowUp(q)) {
+            if (lastIntent == IntentRouter.Intent.UNKNOWN && !lastAnswer.isBlank()) {
+                return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, true));
+            }
             String followUp = contextualFollowUp(q);
             if (followUp != null) return remember(q, lastIntent, followUp);
         }
@@ -31,7 +34,7 @@ final class NovaAssistantEngine {
         if (intent == IntentRouter.Intent.SMALL_TALK) return remember(q, intent, smallTalk(q));
         if (intent == IntentRouter.Intent.CAPABILITIES) {
             return remember(q, intent,
-                    "I can chat normally, give you a daily Morley brief, surface what needs attention, summarise sales and profit, inspect inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I can keep follow-ups tied to the current topic too. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.");
+                    "I can chat normally, use guarded multi-model reasoning for open-ended questions, give you a daily Morley brief, surface what needs attention, summarise sales and profit, inspect inventory, catalogue quality, Guardian signals, support, releases, Nova knowledge and verified learning. I can keep follow-ups tied to the current topic too. Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries.");
         }
         if (intent == IntentRouter.Intent.UNKNOWN && IntentRouter.isFollowUp(q)) {
             if (lastIntent != IntentRouter.Intent.UNKNOWN) intent = lastIntent;
@@ -56,13 +59,17 @@ final class NovaAssistantEngine {
             lastIntent = intent;
             return remember(q, intent, summarise(intent));
         }
-        String knowledge = knowledgeAnswer(q);
-        if (knowledge != null) {
-            lastKnowledgeQuery = q;
-            lastIntent = IntentRouter.Intent.UNKNOWN;
-            return remember(q, IntentRouter.Intent.UNKNOWN, knowledge);
+        try {
+            String knowledge = knowledgeAnswer(q);
+            if (knowledge != null) {
+                lastKnowledgeQuery = q;
+                lastIntent = IntentRouter.Intent.UNKNOWN;
+                return remember(q, IntentRouter.Intent.UNKNOWN, knowledge);
+            }
+        } catch (Exception ignored) {
+            // Stored knowledge is a useful fast path, not a reason to disable general Nova reasoning.
         }
-        return remember(q, IntentRouter.Intent.UNKNOWN, conversationalFallback(q));
+        return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, false));
     }
 
     void resetContext() {
@@ -158,7 +165,7 @@ final class NovaAssistantEngine {
     }
 
     private String capabilityContinuation() {
-        return "Absolutely. I can go further than the quick actions on this screen. I can work through live Morley catalogue health, Guardian signals, support workload, inventory, sales/profit, release state, stored Nova knowledge and verified learning; keep follow-up questions attached to whichever of those we’re discussing; and explain what I found without silently crossing protected approval boundaries.\n\nFor example, you can say ‘show me the catalogue gaps’, then ‘show me more’, ‘why is that a problem?’, or ‘what about the Motorola ones?’ and I’ll keep the same thread instead of treating each message as a brand-new request.";
+        return "Absolutely. I can go further than the quick actions on this screen. I can work through live Morley catalogue health, Guardian signals, support workload, inventory, sales/profit, release state, stored Nova knowledge and verified learning; use guarded multi-model reasoning for open-ended questions; keep follow-up questions attached to whichever of those we’re discussing; and explain what I found without silently crossing protected approval boundaries.\n\nFor example, you can say ‘show me the catalogue gaps’, then ‘show me more’, ‘why is that a problem?’, or ask a completely open-ended question and I’ll keep the same thread instead of treating each message as a brand-new request.";
     }
 
     private String greeting() {
@@ -174,7 +181,7 @@ final class NovaAssistantEngine {
         if (x.contains("how was your day") || x.contains("how has your day been")) return "Pretty productive — mostly keeping an eye on Morley, learning from verified outcomes and waiting for you to give me the next thing to work through.";
         if (x.contains("thank") || x.equals("thanks") || x.equals("cheers")) return "Anytime. What do you want to work on next?";
         if (x.contains("who are you") || x.contains("what are you") || x.contains("your name") || x.contains("about yourself"))
-            return "I’m Nova AI — your standalone Morley intelligence companion. I can have a normal conversation, remember the current topic during this session, and work with the authorised Morley data and knowledge I’m connected to.";
+            return "I’m Nova AI — your standalone Morley intelligence companion. I can have a normal conversation, use guarded multi-model reasoning, remember the current topic during this session, and work with the authorised Morley data and knowledge I’m connected to.";
         if (x.contains("what are you doing")) return "Right now I’m here with you, keeping the current conversation context and standing by for whatever you want to check or work through.";
         if (x.contains("joke")) return "Here’s one: I tried to organise the device catalogue by intuition once. The model numbers filed a formal complaint.";
         if (x.contains("tired")) return "Sounds like you’ve had a long one. I can keep things simple and help you knock over the next task without making you dig through everything manually.";
@@ -185,19 +192,40 @@ final class NovaAssistantEngine {
         return "I’m here. Tell me what’s on your mind, or ask me anything you want to work through.";
     }
 
-    private String conversationalFallback(String q) throws Exception {
-        if (q.isBlank()) return "I’m here — ask me anything.";
+    private String multiModelAnswer(String q, boolean contextual) {
         String x = IntentRouter.normalise(q);
-        if (x.startsWith("can we ") || x.startsWith("could we ") || x.startsWith("should we ") || x.startsWith("do you think "))
-            return "Yes — we can talk it through. Give me a little more detail about what you want to change or decide, and I’ll help you work through it.";
-        if (x.startsWith("i think ") || x.startsWith("i feel ") || x.startsWith("i want ") || x.startsWith("i need "))
-            return "Got it. Tell me a bit more and I’ll stay with the thread instead of forcing it into a Morley data category.";
-        if (x.startsWith("help me decide") || x.startsWith("help me choose") || x.startsWith("compare "))
-            return "I can help with that. Give me the options or trade-offs you’re weighing and I’ll help you compare them clearly.";
-        if (!lastAnswer.isBlank()) {
-            return "I’m keeping the previous answer in context. Tell me which part you want me to expand or what you want to do with it, and I’ll continue from there.";
+        boolean ensemble = x.contains("ask all models")
+                || x.contains("use all models")
+                || x.contains("ensemble")
+                || x.contains("second opinion")
+                || x.contains("cross check with gpt")
+                || x.contains("cross check with gemini")
+                || x.contains("cross check with claude")
+                || x.contains("compare gpt")
+                || x.contains("compare gemini")
+                || x.contains("compare claude")
+                || x.contains("deep consensus");
+
+        String prompt = q;
+        if (contextual && !lastQuestion.isBlank() && !lastAnswer.isBlank()) {
+            String previousAnswer = lastAnswer.length() > 3500 ? lastAnswer.substring(0, 3500) + "…" : lastAnswer;
+            prompt = "Continue this Nova conversation naturally.\n\nPrevious user message:\n"
+                    + lastQuestion + "\n\nPrevious Nova answer:\n" + previousAnswer
+                    + "\n\nCurrent user message:\n" + q;
         }
-        return "I can chat about that normally, but I don’t yet have enough context to give you a useful answer. Tell me a little more about what you mean and I’ll follow the conversation from there.";
+
+        try {
+            JSONObject result = api.orchestrate(prompt, ensemble ? "ensemble" : "auto");
+            String answer = result.optString("answer", "").trim();
+            if (!answer.isBlank()) return answer;
+            return "Multi-model reasoning returned no usable answer. Please try that request again.";
+        } catch (Exception e) {
+            String detail = e.getMessage() == null ? "" : e.getMessage();
+            if (detail.contains("Multi-model provider is not configured") || detail.contains("OPENROUTER_API_KEY_MISSING")) {
+                return "Nova’s multi-model provider is not configured yet, so I can’t truthfully answer that through GPT, Gemini and Claude right now.";
+            }
+            return "Nova’s multi-model reasoning service is temporarily unavailable. I haven’t guessed an answer or claimed a model result I didn’t receive.";
+        }
     }
 
     String dailyBrief() throws Exception {
