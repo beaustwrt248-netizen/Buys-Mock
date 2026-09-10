@@ -32,41 +32,72 @@ jobs:
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Require exactly one OTA version advance
+      - name: Require a fresh, exactly-next OTA version
         if: steps.morley-change.outputs.changed == 'true'
         shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json
+          import os
           import re
+          import subprocess
           from pathlib import Path
 
-          gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
-          manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
-          code_match = re.search(r'\bversionCode\s+(\d+)', gradle)
-          name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", gradle)
-          if not code_match or not name_match:
-              raise SystemExit('Could not parse Android versionCode/versionName')
-
-          source_code = int(code_match.group(1))
-          source_name = name_match.group(1).strip()
-          published_code = int(manifest.get('versionCode', 0))
-          published_name = str(manifest.get('versionName', '')).strip()
+          def parse_gradle(text, label):
+              code_match = re.search(r'\bversionCode\s+(\d+)', text)
+              name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+              if not code_match or not name_match:
+                  raise SystemExit(f'Could not parse Android versionCode/versionName from {label}')
+              return int(code_match.group(1)), name_match.group(1).strip()
 
           def semver(value):
               match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:[-+].*)?', value)
               return tuple(map(int, match.groups())) if match else None
 
+          base_sha = os.environ['BASE_SHA'].strip()
+          head_gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
+          try:
+              base_gradle = subprocess.check_output(
+                  ['git', 'show', f'{base_sha}:android/app/build.gradle'],
+                  text=True,
+              )
+          except subprocess.CalledProcessError as exc:
+              raise SystemExit('Could not read base Android release identity') from exc
+
+          source_code, source_name = parse_gradle(head_gradle, 'PR head')
+          base_code, base_name = parse_gradle(base_gradle, 'PR base')
+          manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+          published_code = int(manifest.get('versionCode', 0))
+          published_name = str(manifest.get('versionName', '')).strip()
+
+          if source_code != base_code + 1:
+              raise SystemExit(
+                  f'Every Morley Android source change must mint a fresh release identity: '
+                  f'head versionCode {source_code} must be exactly one above PR base {base_code}. '
+                  'Do not reuse an already-built version for dependency or runtime changes.'
+              )
+          source_semver, base_semver = semver(source_name), semver(base_name)
+          if source_semver is None or base_semver is None or source_semver <= base_semver:
+              raise SystemExit(
+                  f'Morley Android versionName {source_name!r} must be newer than PR base {base_name!r}.'
+              )
+
           if source_code != published_code + 1:
               raise SystemExit(
                   f'Every Morley Android update must be OTA-ready: source versionCode {source_code} '
-                  f'must be exactly one above published OTA {published_code}.'
+                  f'must be exactly one above published OTA {published_code}. '
+                  'Publish the already-prepared predecessor before merging another Android change.'
               )
-          source_semver, published_semver = semver(source_name), semver(published_name)
-          if source_semver is None or published_semver is None or source_semver <= published_semver:
+          published_semver = semver(published_name)
+          if published_semver is None or source_semver <= published_semver:
               raise SystemExit(
-                  f'Morley Android versionName {source_name!r} must be a semantic version newer than OTA {published_name!r}.'
+                  f'Morley Android versionName {source_name!r} must be newer than OTA {published_name!r}.'
               )
-          print(f'OTA policy PASSED: {published_name} ({published_code}) -> {source_name} ({source_code})')
+          print(
+              f'OTA policy PASSED: base {base_name} ({base_code}) -> '
+              f'head {source_name} ({source_code}); published {published_name} ({published_code})'
+          )
           PY
