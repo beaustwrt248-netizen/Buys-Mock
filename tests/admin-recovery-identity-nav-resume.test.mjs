@@ -18,10 +18,13 @@ assert.match(activity, /BuildConfig\.IS_RECOVERY_BUILD/);
 assert.match(activity, /RECOVERY ADMIN/);
 assert.match(activity, /createRecoveryIdentityBadge/);
 assert.match(activity, /FrameLayout/);
-assert.match(activity, /WebSettings\.LOAD_NO_CACHE/);
+assert.match(activity, /cacheMode = WebSettings\.LOAD_DEFAULT/);
+assert.doesNotMatch(activity, /cacheMode = WebSettings\.LOAD_NO_CACHE/);
+assert.match(activity, /loadFreshAdminShell/);
+assert.match(activity, /mapOf\("Cache-Control" to "no-cache", "Pragma" to "no-cache"\)/);
 assert.match(activity, /setBackgroundColor\(Color\.rgb\(4, 9, 18\)\)/);
 assert.match(activity, /window\.decorView\.setBackgroundColor\(Color\.rgb\(4, 9, 18\)\)/);
-assert.match(activity, /if \(savedInstanceState == null\) webView\.loadUrl/);
+assert.match(activity, /if \(savedInstanceState == null\) loadFreshAdminShell\(\)/);
 
 assert.match(gate, /if \(BuildConfig\.IS_RECOVERY_BUILD\)/);
 assert.match(gate, /startActivity\(Intent\(this, AdminActivity::class\.java\)\)/);
@@ -40,4 +43,4 @@ assert.match(nav, /bottom:0!important/);
 assert.match(nav, /padding:7px 7px calc\(7px \+ var\(--admin-mobile-safe-bottom\)\)!important/);
 assert.match(nav, /padding-bottom:var\(--admin-mobile-bottom-clearance\)!important/);
 
-console.log('Admin recovery identity, live-sync, startup and mobile dock contracts verified.');
+console.log('Admin recovery identity, selective live-sync, startup and mobile dock contracts verified.');
