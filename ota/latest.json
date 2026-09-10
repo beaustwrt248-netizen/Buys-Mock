@@ -1,7 +1,7 @@
 {
-  "versionCode": 126,
-  "versionName": "2.15.82",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.82/B-and-L-Morley-2.15.82.apk",
-  "sha256": "f5d823f0a7a794c8df3d912ff3193c0cefb7ab6887d18aada376d3b955c40aef",
-  "notes": "Android auth: remove duplicate immediate profile verification (#1270)"
+  "versionCode": 127,
+  "versionName": "2.15.83",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.83/B-and-L-Morley-2.15.83.apk",
+  "sha256": "58c9887dee5f8bd2acbb255ec4ab5c9b7bb1e26bd14322ea483f98d4d4cc8dc4",
+  "notes": "Advance Morley Android source identity to 2.15.83 (#1287)"
 }
