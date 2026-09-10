@@ -23,7 +23,8 @@
         </provider>
         <activity
             android:name=".AdminActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".AdminUpdateGateActivity"
             android:exported="true">
