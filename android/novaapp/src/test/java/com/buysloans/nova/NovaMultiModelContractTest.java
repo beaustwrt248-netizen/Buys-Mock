@@ -1,0 +1,34 @@
+package com.buysloans.nova;
+
+import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.Assert.assertTrue;
+
+public class NovaMultiModelContractTest {
+    private static String readUtf8(String path) throws Exception {
+        return new String(Files.readAllBytes(Path.of(path)), StandardCharsets.UTF_8);
+    }
+
+    @Test public void nativeGeneralChatUsesGuardedOrchestrator() throws Exception {
+        String api = readUtf8("src/main/java/com/buysloans/nova/NovaApiClient.java");
+        String engine = readUtf8("src/main/java/com/buysloans/nova/NovaAssistantEngine.java");
+        String gradle = readUtf8("build.gradle");
+
+        assertTrue(api.contains("edge(\"nova-orchestrator\""));
+        assertTrue(api.contains("JSONObject orchestrate(String prompt, String mode)"));
+        assertTrue(engine.contains("multiModelAnswer(q, false)"));
+        assertTrue(engine.contains("multiModelAnswer(q, true)"));
+        assertTrue(engine.contains("ensemble ? \"ensemble\" : \"auto\""));
+        assertTrue(engine.contains("ask all models"));
+        assertTrue(engine.contains("cross check with gpt"));
+        assertTrue(engine.contains("Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries"));
+        assertTrue(engine.contains("I haven’t guessed an answer or claimed a model result I didn’t receive"));
+
+        assertTrue(gradle.contains("versionCode 28"));
+        assertTrue(gradle.contains("versionName '0.3.24'"));
+    }
+}

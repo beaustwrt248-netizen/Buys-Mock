@@ -109,6 +109,13 @@ final class NovaApiClient {
         return edge("nova-actions", body);
     }
 
+    JSONObject orchestrate(String prompt, String mode) throws Exception {
+        String clean = prompt == null ? "" : prompt.trim();
+        if (clean.isBlank()) throw new IllegalArgumentException("Nova needs a question before multi-model reasoning can run.");
+        String requestedMode = mode == null || mode.isBlank() ? "auto" : mode;
+        return edge("nova-orchestrator", new JSONObject().put("prompt", clean).put("mode", requestedMode));
+    }
+
     JSONObject edgeCall(String function, JSONObject body) throws Exception { return edge(function, body == null ? new JSONObject() : body); }
 
     private JSONArray get(String path) throws Exception {
