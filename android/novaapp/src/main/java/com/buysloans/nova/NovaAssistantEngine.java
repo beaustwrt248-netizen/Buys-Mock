@@ -23,7 +23,9 @@ final class NovaAssistantEngine {
 
         IntentRouter.Intent intent = IntentRouter.classify(q);
         if (intent == IntentRouter.Intent.UNKNOWN && isContextualFollowUp(q)) {
-            if (lastIntent == IntentRouter.Intent.UNKNOWN && !lastAnswer.isBlank()) {
+            if (lastIntent == IntentRouter.Intent.UNKNOWN
+                    && !lastAnswer.isBlank()
+                    && IntentRouter.classify(lastQuestion) != IntentRouter.Intent.GREETING) {
                 return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, true));
             }
             String followUp = contextualFollowUp(q);

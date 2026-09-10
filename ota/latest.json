@@ -1,7 +1,7 @@
 {
-  "versionCode": 128,
-  "versionName": "2.15.84",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.84/B-and-L-Morley-2.15.84.apk",
-  "sha256": "738a1622104b8eb2105c43f6684a002af66fe43ef449a013a6ef6502f119b7b0",
-  "notes": "Morley Buys: two-photo device inspection with damage circles (#1306)"
+  "versionCode": 127,
+  "versionName": "2.15.83",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.83/B-and-L-Morley-2.15.83.apk",
+  "sha256": "58c9887dee5f8bd2acbb255ec4ab5c9b7bb1e26bd14322ea483f98d4d4cc8dc4",
+  "notes": "Advance Morley Android source identity to 2.15.83 (#1287)"
 }
