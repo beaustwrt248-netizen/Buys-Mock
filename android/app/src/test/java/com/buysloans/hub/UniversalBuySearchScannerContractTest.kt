@@ -23,7 +23,7 @@ class UniversalBuySearchScannerContractTest {
 
         assertTrue(source.contains("Code scanned — searching Morley."))
         assertTrue(source.contains("Google scanner is unavailable right now. You can still search manually."))
-        assertFalse(source.contains("Scanned $value"))
+        assertFalse(source.contains("Scanned \$value"))
         assertFalse(source.contains("error.message"))
     }
 
