@@ -1,7 +1,7 @@
 {
-  "versionCode": 125,
-  "versionName": "2.15.81",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.81/B-and-L-Morley-2.15.81.apk",
-  "sha256": "46519455697911c36a3094df575d5507ced5e44e23c991ff6d717bb157bd6ae3",
-  "notes": "Add protected main-app crash telemetry (#1222)"
+  "versionCode": 126,
+  "versionName": "2.15.82",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.82/B-and-L-Morley-2.15.82.apk",
+  "sha256": "f5d823f0a7a794c8df3d912ff3193c0cefb7ab6887d18aada376d3b955c40aef",
+  "notes": "Android auth: remove duplicate immediate profile verification (#1270)"
 }
