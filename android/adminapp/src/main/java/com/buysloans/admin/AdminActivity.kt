@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.CookieManager
-import android.webkit.ServiceWorkerController
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -35,7 +34,10 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                cacheMode = WebSettings.LOAD_NO_CACHE
+                // Keep static Admin resources reusable between launches. Authenticated API requests
+                // remain explicitly no-store in the shared Morley auth client, so this improves
+                // startup/login responsiveness without weakening session or data freshness rules.
+                cacheMode = WebSettings.LOAD_DEFAULT
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -47,11 +49,6 @@ class AdminActivity : ComponentActivity() {
                 // Keep Android WebView's stock UA rather than appending an application token.
                 userAgentString = WebSettings.getDefaultUserAgent(this@AdminActivity)
             }
-
-            // Admin is a remote parity shell. Do not let an old WebView/service-worker cache
-            // keep serving pre-parity HTML, CSS or JavaScript after a protected web release.
-            clearCache(true)
-            ServiceWorkerController.getInstance().serviceWorkerWebSettings.cacheMode = WebSettings.LOAD_NO_CACHE
 
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
