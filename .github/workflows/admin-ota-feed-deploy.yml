@@ -1,0 +1,109 @@
+name: Admin OTA Feed Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'admin/admin-update.json'
+      - '.github/workflows/admin-ota-feed-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy-admin-ota-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout current main including Admin OTA metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate published Admin OTA metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          d=json.loads(Path('admin/admin-update.json').read_text(encoding='utf-8'))
+          assert isinstance(d.get('versionCode'),int) and d['versionCode'] > 0
+          assert str(d.get('versionName','')).strip()
+          assert str(d.get('apkUrl','')).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v')
+          assert re.fullmatch(r'[0-9a-f]{64}',str(d.get('sha256','')))
+          assert isinstance(d.get('required'),bool)
+          assert re.fullmatch(r'[0-9a-f]{40}',str(d.get('sourceSha','')))
+          PY
+      - name: Build static web bundle with Admin OTA feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/release_audit.py
+          rm -rf site
+          mkdir -p site
+          cp index.html site/
+          cp -v ./*.css site/
+          cp -v ./*.js site/
+          cp -R admin site/admin
+          if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
+          touch site/.nojekyll
+          test -f site/.nojekyll
+          test -s site/index.html
+          test -s site/admin/index.html
+          test -s site/admin/admin-update.json
+          test -s site/web-assets/morley_buys_login_bg_app.mp4
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        with:
+          enablement: true
+      - name: Upload web site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          name: github-pages-${{ github.run_attempt }}
+          path: site
+          include-hidden-files: true
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
+      - name: Verify live Admin OTA feed
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${PAGE_URL%/}"
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --location --max-time 30 --output "$RUNNER_TEMP/live-admin-update.json" "$BASE/admin/admin-update.json"; then
+              if python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          expected=json.loads(Path('admin/admin-update.json').read_text(encoding='utf-8'))
+          live=json.loads(Path(os.environ['RUNNER_TEMP'],'live-admin-update.json').read_text(encoding='utf-8'))
+          if live != expected:
+              raise SystemExit(1)
+          PY
+              then
+                echo 'Live Admin OTA metadata matches main.'
+                exit 0
+              fi
+            fi
+            echo "Waiting for Admin OTA feed propagation ($attempt/6)"
+            sleep 10
+          done
+          echo 'Live Admin OTA feed did not match the published metadata.' >&2
+          exit 1
