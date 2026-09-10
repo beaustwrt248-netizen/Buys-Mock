@@ -1,6 +1,7 @@
 package com.buysloans.admin
 
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,7 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,19 +41,29 @@ import kotlinx.coroutines.launch
 class AdminUpdateGateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.setBackgroundColor(AndroidColor.rgb(4, 9, 18))
+
+        // Recovery is a deliberately separate package/release channel. Do not present the
+        // canonical Admin OTA gate there because its APK cannot update the recovery package.
+        if (BuildConfig.IS_RECOVERY_BUILD) {
+            startActivity(Intent(this, AdminActivity::class.java))
+            finish()
+            return
+        }
+
         setContent {
             MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Color(0xFF0B6D54),
-                    onPrimary = Color.White,
-                    background = Color(0xFFF7FBF9),
-                    onBackground = Color(0xFF17231F),
-                    surface = Color.White,
-                    onSurface = Color(0xFF17231F),
-                    outline = Color(0xFFD7E1DC)
+                colorScheme = darkColorScheme(
+                    primary = Color(0xFF4CC9F0),
+                    onPrimary = Color(0xFF001018),
+                    background = Color(0xFF040912),
+                    onBackground = Color(0xFFF4F8FF),
+                    surface = Color(0xFF081426),
+                    onSurface = Color(0xFFF4F8FF),
+                    outline = Color(0xFF24476C)
                 )
             ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     var checking by remember { mutableStateOf(true) }
                     var release by remember { mutableStateOf<AdminUpdateRelease?>(null) }
                     var status by remember { mutableStateOf("Checking the signed Admin release channel…") }
