@@ -11,9 +11,10 @@ android {
         applicationId 'com.buysloans.admin'
         minSdk 26
         targetSdk 35
-        versionCode 30
-        versionName '0.1.29'
+        versionCode 31
+        versionName '0.1.30'
         manifestPlaceholders = [appLabel: 'Morley Admin']
+        buildConfigField 'boolean', 'IS_RECOVERY_BUILD', 'false'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
     }
@@ -59,6 +60,7 @@ android {
             applicationIdSuffix '.recovery'
             versionNameSuffix '-recovery'
             manifestPlaceholders = [appLabel: 'Morley Admin Recovery']
+            buildConfigField 'boolean', 'IS_RECOVERY_BUILD', 'true'
             matchingFallbacks = ['release']
             if (hasReleaseSigning) { signingConfig signingConfigs.release }
         }
