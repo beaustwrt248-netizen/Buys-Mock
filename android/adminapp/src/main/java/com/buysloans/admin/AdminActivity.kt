@@ -4,8 +4,11 @@ import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +19,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 
@@ -30,10 +35,11 @@ class AdminActivity : ComponentActivity() {
         // Match the Admin shell while WebView content is attaching/restoring so task switching
         // never exposes the platform's default light/white backing surface.
         window.decorView.setBackgroundColor(Color.rgb(4, 9, 18))
+        if (BuildConfig.IS_RECOVERY_BUILD) title = "Morley Admin Recovery"
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.rgb(4, 9, 18))
-            layoutParams = ViewGroup.LayoutParams(
+            layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -54,10 +60,9 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                // Keep static Admin resources reusable between launches. Authenticated API requests
-                // remain explicitly no-store in the shared Morley auth client, so this improves
-                // startup/login responsiveness without weakening session or data freshness rules.
-                cacheMode = WebSettings.LOAD_DEFAULT
+                // Admin and Recovery are separate Android packages. Bypass WebView's HTTP cache
+                // so they cannot drift onto different generations of the live Admin shell/assets.
+                cacheMode = WebSettings.LOAD_NO_CACHE
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -85,19 +90,18 @@ class AdminActivity : ComponentActivity() {
                     }
                     return true
                 }
-
-                override fun onPageFinished(view: WebView, url: String) {
-                    super.onPageFinished(view, url)
-                    if (BuildConfig.IS_RECOVERY_BUILD && AdminWebParityPolicy.isTrustedAdminUrl(url)) {
-                        injectRecoveryIdentity(view)
-                    }
-                }
             }
 
             setDownloadListener { url, _, _, _, _ -> openExternal(Uri.parse(url)) }
         }
 
-        setContentView(webView)
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(4, 9, 18))
+            addView(webView)
+            if (BuildConfig.IS_RECOVERY_BUILD) addView(createRecoveryIdentityBadge())
+        }
+        setContentView(root)
+
         webView.requestFocus(View.FOCUS_DOWN)
         webView.post { webView.requestFocusFromTouch() }
         if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
@@ -109,32 +113,39 @@ class AdminActivity : ComponentActivity() {
         })
     }
 
-    private fun injectRecoveryIdentity(view: WebView) {
-        // Presentation-only marker. It grants no capability and intentionally does not bridge
-        // Java/Kotlin objects into page JavaScript.
-        view.evaluateJavascript(
-            """
-            (() => {
-              document.documentElement.dataset.morleyAdminBuild = 'recovery';
-              document.title = 'Morley Admin Recovery';
-              if (document.getElementById('morleyAdminRecoveryIdentity')) return;
-              const badge = document.createElement('div');
-              badge.id = 'morleyAdminRecoveryIdentity';
-              badge.textContent = 'RECOVERY ADMIN';
-              badge.setAttribute('aria-label', 'Morley Admin Recovery build');
-              Object.assign(badge.style, {
-                position: 'fixed', top: 'max(8px, env(safe-area-inset-top))', right: '8px',
-                zIndex: '2147483647', pointerEvents: 'none', padding: '6px 9px',
-                borderRadius: '999px', background: '#7f1d1d', color: '#fff',
-                border: '1px solid rgba(255,255,255,.28)', font: '800 10px/1 system-ui,sans-serif',
-                letterSpacing: '.08em', boxShadow: '0 4px 14px rgba(0,0,0,.35)'
-              });
-              document.body.appendChild(badge);
-            })();
-            """.trimIndent(),
-            null
-        )
+    private fun createRecoveryIdentityBadge(): TextView {
+        val horizontal = dp(10)
+        val vertical = dp(7)
+        val background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(18).toFloat()
+            setColor(Color.rgb(127, 29, 29))
+            setStroke(dp(1), Color.argb(90, 255, 255, 255))
+        }
+        return TextView(this).apply {
+            text = "RECOVERY ADMIN"
+            contentDescription = "Morley Admin Recovery build"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(horizontal, vertical, horizontal, vertical)
+            this.background = background
+            isClickable = false
+            isFocusable = false
+            elevation = dp(8).toFloat()
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END
+            ).apply {
+                topMargin = dp(10)
+                marginEnd = dp(10)
+            }
+        }
     }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
 
     private fun openExternal(uri: Uri) {
         try {
