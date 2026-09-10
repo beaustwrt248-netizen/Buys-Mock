@@ -60,9 +60,10 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                // Admin and Recovery are separate Android packages. Bypass WebView's HTTP cache
-                // so they cannot drift onto different generations of the live Admin shell/assets.
-                cacheMode = WebSettings.LOAD_NO_CACHE
+                // Keep reusable, versioned CSS/JS assets cached for fast login/startup. The
+                // top-level Admin document is explicitly revalidated below so canonical and
+                // Recovery cannot remain on different cached shell generations.
+                cacheMode = WebSettings.LOAD_DEFAULT
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -104,13 +105,22 @@ class AdminActivity : ComponentActivity() {
 
         webView.requestFocus(View.FOCUS_DOWN)
         webView.post { webView.requestFocusFromTouch() }
-        if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
+        if (savedInstanceState == null) loadFreshAdminShell()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) webView.goBack() else finish()
             }
         })
+    }
+
+    private fun loadFreshAdminShell() {
+        // Revalidate only the HTML shell. Static assets retain normal WebView caching and their
+        // own cache-busting versions, avoiding the global LOAD_NO_CACHE startup regression.
+        webView.loadUrl(
+            AdminWebParityPolicy.HOME_URL,
+            mapOf("Cache-Control" to "no-cache", "Pragma" to "no-cache")
+        )
     }
 
     private fun createRecoveryIdentityBadge(): TextView {
