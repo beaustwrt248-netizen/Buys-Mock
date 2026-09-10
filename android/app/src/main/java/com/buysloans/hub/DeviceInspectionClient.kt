@@ -293,14 +293,12 @@ object DeviceInspectionClient {
     private fun parsePricing(root: JSONObject, inspection: DeviceInspection): LivePricingResult {
         val listings = buildList {
             addAll(root.optJSONObject("ebay")?.optJSONArray("items").toMarketListings("eBay AU"))
-            addAll(root.optJSONObject("gumtree")?.optJSONArray("items").toMarketListings("Gumtree"))
             addAll(root.optJSONObject("facebook")?.optJSONArray("items").toMarketListings("Facebook Marketplace"))
             addAll(root.optJSONObject("webRetail")?.optJSONArray("items").toMarketListings("Australian retailer"))
         }.filter { it.price > 0.0 }.distinctBy { "${it.source}|${it.title}|${it.price}" }
 
         val used = listings.filter {
             it.source.contains("eBay", true) ||
-                it.source.contains("Gumtree", true) ||
                 it.source.contains("Facebook", true)
         }.map { it.price }.sorted()
         val median = if (used.isEmpty()) null else {
