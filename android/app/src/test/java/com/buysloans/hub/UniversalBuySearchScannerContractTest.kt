@@ -15,4 +15,13 @@ class UniversalBuySearchScannerContractTest {
         assertTrue(source.contains("query = scannedValue"))
         assertTrue(source.contains("UniversalBuySearch.search(query, 30)"))
     }
+
+    @Test
+    fun scannerEnabledMorleySearchIsReachableFromWorkspaceMenu() {
+        val dashboard = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
+
+        assertTrue(dashboard.contains("\"Morley search\""))
+        assertTrue(dashboard.contains("Intent(context, UniversalBuySearchActivity::class.java)"))
+        assertTrue(dashboard.contains("scan a code with the Google camera"))
+    }
 }
