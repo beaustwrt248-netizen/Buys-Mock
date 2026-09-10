@@ -284,6 +284,7 @@ private fun MoreHub(onSignOut: () -> Unit) {
         Text("Menu", fontSize = 30.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
         MenuSection("Workspace") {
             MenuRow("◉", "Device scan", "Take front and back photos for model, damage and condition analysis.") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
+            MenuRow("⌕", "Morley search", "Search by name/model or scan a code with the Google camera.") { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
             MenuRow("▣", "Inventory", "Stock, costs and resale values.") { open("inventory") }
