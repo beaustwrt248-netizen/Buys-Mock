@@ -19,7 +19,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -1084,7 +1083,7 @@ private fun AnnotatedPhoto(file: File, regions: List<DamageRegion>, modifier: Mo
     DisposableEffect(bitmap) {
         onDispose { if (!bitmap.isRecycled) bitmap.recycle() }
     }
-    BoxWithConstraints(
+    Box(
         modifier.background(Color(0xFFE8EDF3), RoundedCornerShape(14.dp))
     ) {
         Image(
