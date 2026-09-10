@@ -35,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,12 +136,14 @@ private fun UniversalBuySearchScreen(
                     },
                     enabled = !scanning,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0878F9))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MorleyAccent,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text(
                         if (scanning) "Opening Google Scanner…" else "Scan Code with Google Camera",
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
