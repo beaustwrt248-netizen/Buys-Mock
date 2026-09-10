@@ -58,3 +58,7 @@ test("identified devices reuse catalogue, pricing and stock functionality", () =
   assert.match(activity, /Use Suggested Sell Price/);
   assert.match(activity, /View in Stock/);
 });
+
+test("device inspection pricing excludes Gumtree", () => {
+  assert.doesNotMatch(client, /gumtree/i);
+});
