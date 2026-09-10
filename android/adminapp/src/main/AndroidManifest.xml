@@ -10,7 +10,7 @@
         android:usesCleartextTraffic="false"
         android:icon="@drawable/ic_admin_launcher"
         android:roundIcon="@drawable/ic_admin_launcher"
-        android:label="Morley Admin"
+        android:label="${appLabel}"
         android:theme="@style/Theme.MorleyAdmin">
         <provider
             android:name="androidx.core.content.FileProvider"

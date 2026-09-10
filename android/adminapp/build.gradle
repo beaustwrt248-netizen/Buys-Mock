@@ -11,8 +11,9 @@ android {
         applicationId 'com.buysloans.admin'
         minSdk 26
         targetSdk 35
-        versionCode 27
-        versionName '0.1.26'
+        versionCode 28
+        versionName '0.1.27'
+        manifestPlaceholders = [appLabel: 'Morley Admin']
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
         buildConfigField 'String', 'SUPABASE_PUBLISHABLE_KEY', '"sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt"'
     }
@@ -43,9 +44,22 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            manifestPlaceholders = [appLabel: 'Morley Admin Debug']
+        }
         release {
             minifyEnabled false
             shrinkResources false
+            if (hasReleaseSigning) { signingConfig signingConfigs.release }
+        }
+        recovery {
+            initWith release
+            applicationIdSuffix '.recovery'
+            versionNameSuffix '-recovery'
+            manifestPlaceholders = [appLabel: 'Morley Admin Recovery']
+            matchingFallbacks = ['release']
             if (hasReleaseSigning) { signingConfig signingConfigs.release }
         }
     }
@@ -63,6 +77,7 @@ tasks.register('verifyReleaseSigning') {
 }
 
 tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
+tasks.matching { it.name == 'preRecoveryBuild' }.configureEach { dependsOn tasks.named('verifyReleaseSigning') }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'

@@ -1,0 +1,116 @@
+name: Admin Recovery APK
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/adminapp/**'
+      - '.github/workflows/admin-recovery-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Java 17
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Prepare stable Admin signing key
+        env:
+          KEYSTORE_BASE64_RAW: ${{ secrets.BL_KEYSTORE_BASE64 }}
+          STORE_PASSWORD_RAW: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+          KEY_ALIAS_RAW: ${{ secrets.BL_KEY_ALIAS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_BASE64="$(printf '%s' "$KEYSTORE_BASE64_RAW" | tr -d '\r\n')"
+          STORE_PASSWORD="$(printf '%s' "$STORE_PASSWORD_RAW" | tr -d '\r\n')"
+          KEY_ALIAS="$(printf '%s' "$KEY_ALIAS_RAW" | tr -d '\r\n')"
+          test -n "$KEYSTORE_BASE64" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS"
+          KEYSTORE_PATH="$RUNNER_TEMP/bl-morley-admin-recovery.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "B_AND_L_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "B_AND_L_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "B_AND_L_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+
+      - name: Test and build signed recovery APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :adminapp:testDebugUnitTest :adminapp:lintDebug :adminapp:assembleRecovery
+
+      - name: Resolve recovery release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+          name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not name or not name.group(1).strip():
+              raise SystemExit('Invalid Admin recovery versionName')
+          version=name.group(1).strip()
+          safe=re.sub(r'[^A-Za-z0-9._-]+','-',version).strip('-')
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as fh:
+              fh.write(f'ADMIN_RECOVERY_VERSION={version}\n')
+              fh.write(f'ADMIN_RECOVERY_TAG=admin-recovery-v{safe}\n')
+              fh.write(f'ADMIN_RECOVERY_FILE=Morley-Admin-Recovery-{safe}.apk\n')
+          PY
+
+      - name: Verify package, signer and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp android/adminapp/build/outputs/apk/recovery/adminapp-recovery.apk "dist/${ADMIN_RECOVERY_FILE}"
+          AAPT="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          BADGING="$("$AAPT" dump badging "dist/${ADMIN_RECOVERY_FILE}")"
+          printf '%s\n' "$BADGING" | grep -q "package: name='com.buysloans.admin.recovery'"
+          printf '%s\n' "$BADGING" | grep -q "application-label:'Morley Admin Recovery'"
+          EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b
+          APKSIGNER="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "dist/${ADMIN_RECOVERY_FILE}")"
+          ACTUAL_CERT_SHA256="$(printf '%s\n' "$SIGNATURE_OUTPUT" | sed -n -E 's/^(V2 Signer: |Signer #1 )?certificate SHA-256 digest: ([0-9a-fA-F]+)$/\2/p' | head -n 1 | tr '[:upper:]' '[:lower:]')"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+          sha256sum "dist/${ADMIN_RECOVERY_FILE}" | tee "dist/${ADMIN_RECOVERY_FILE}.sha256"
+
+      - name: Publish immutable recovery release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$ADMIN_RECOVERY_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Recovery release $ADMIN_RECOVERY_TAG already exists; refusing identity reuse." >&2
+            exit 1
+          fi
+          gh release create "$ADMIN_RECOVERY_TAG" \
+            "dist/${ADMIN_RECOVERY_FILE}" \
+            "dist/${ADMIN_RECOVERY_FILE}.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Morley Admin Recovery ${ADMIN_RECOVERY_VERSION}" \
+            --notes "Signed recovery build for devices where a legacy/debug Morley Admin package blocks the canonical installer. Package: com.buysloans.admin.recovery. This installs alongside the existing Admin app and does not alter the production OTA package identity." \
+            --latest=false
