@@ -17,3 +17,9 @@ test('Business Analytics does not claim unimplemented Nova effectiveness or infe
   assert.match(ui,/buy-pricing coverage/);
   assert.match(m,/No sales velocity, realised profit, CRM, Nova-effectiveness or inventory-lifecycle metric is inferred/);
 });
+
+test('Business Analytics keeps missing individual values explicitly unavailable',async()=>{
+  const ui=await centre();
+  assert.match(ui,/m\.value==null\?'Unavailable'/);
+  assert.match(ui,/No authoritative value loaded/);
+});
