@@ -28,7 +28,15 @@ public class NovaMultiModelContractTest {
         assertTrue(engine.contains("Protected approvals, repairs, pricing decisions and releases still stay behind their existing human boundaries"));
         assertTrue(engine.contains("I haven’t guessed an answer or claimed a model result I didn’t receive"));
 
-        assertTrue(gradle.contains("versionCode 28"));
-        assertTrue(gradle.contains("versionName '0.3.24'"));
+        // An explicit ensemble request must win before broad specialist keyword routing.
+        int explicitGuard = engine.indexOf("if (isExplicitMultiModelRequest(q))");
+        int classify = engine.indexOf("IntentRouter.Intent intent = IntentRouter.classify(q)");
+        assertTrue(explicitGuard >= 0);
+        assertTrue(classify >= 0);
+        assertTrue(explicitGuard < classify);
+        assertTrue(engine.contains("return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, false));"));
+
+        assertTrue(gradle.contains("versionCode 29"));
+        assertTrue(gradle.contains("versionName '0.3.25'"));
     }
 }

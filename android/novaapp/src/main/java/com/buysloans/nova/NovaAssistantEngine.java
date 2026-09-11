@@ -21,6 +21,10 @@ final class NovaAssistantEngine {
         String q = question == null ? "" : question.trim();
         if (q.isBlank()) return remember(q, IntentRouter.Intent.UNKNOWN, "I’m here — ask me anything.");
 
+        if (isExplicitMultiModelRequest(q)) {
+            return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, false));
+        }
+
         IntentRouter.Intent intent = IntentRouter.classify(q);
         if (intent == IntentRouter.Intent.UNKNOWN && isContextualFollowUp(q)) {
             if (lastIntent == IntentRouter.Intent.UNKNOWN
@@ -194,9 +198,9 @@ final class NovaAssistantEngine {
         return "I’m here. Tell me what’s on your mind, or ask me anything you want to work through.";
     }
 
-    private String multiModelAnswer(String q, boolean contextual) {
+    private static boolean isExplicitMultiModelRequest(String q) {
         String x = IntentRouter.normalise(q);
-        boolean ensemble = x.contains("ask all models")
+        return x.contains("ask all models")
                 || x.contains("use all models")
                 || x.contains("ensemble")
                 || x.contains("second opinion")
@@ -207,6 +211,10 @@ final class NovaAssistantEngine {
                 || x.contains("compare gemini")
                 || x.contains("compare claude")
                 || x.contains("deep consensus");
+    }
+
+    private String multiModelAnswer(String q, boolean contextual) {
+        boolean ensemble = isExplicitMultiModelRequest(q);
 
         String prompt = q;
         if (contextual && !lastQuestion.isBlank() && !lastAnswer.isBlank()) {
@@ -252,21 +260,21 @@ final class NovaAssistantEngine {
             JSONObject x=incidents.getJSONObject(i); String st=x.optString("state").toLowerCase(Locale.ROOT);
             if(isGuardianCurrent(st)){
                 if(x.optBoolean("requires_approval")) approvals++;
-                String r=x.optString("risk_level").toLowerCase(Locale.ROOT); if(r.equals("high")||r.equals("critical")) high++;
+                String r=x.optString("risk_level").toLowerCase(Locale.ROOT); if(r.equals("high")||r.equals("critical"))high++;
             }
         }
         for(int i=0;i<support.length();i++){
             JSONObject x=support.getJSONObject(i); String st=x.optString("status").toLowerCase(Locale.ROOT);
             if(!isSupportTerminal(st)){
-                String p=x.optString("priority").toLowerCase(Locale.ROOT); if(p.equals("high")||p.equals("urgent")) urgent++;
+                String p=x.optString("priority").toLowerCase(Locale.ROOT); if(p.equals("high")||p.equals("urgent"))urgent++;
                 String due=x.optString("sla_due_at"); if(!due.isBlank())try{if(java.time.Instant.parse(due).toEpochMilli()<now)overdue++;}catch(Exception ignored){}
             }
         }
         for(int i=0;i<catalogue.length();i++){
-            JSONObject x=catalogue.getJSONObject(i); if(x.optString("model_number").isBlank()) missingModel++;
-            JSONArray s=x.optJSONArray("storage_options"); if(categoryRequiresStorage(x.optString("category"))&&(s==null||s.length()==0)) missingStorage++;
+            JSONObject x=catalogue.getJSONObject(i); if(x.optString("model_number").isBlank())missingModel++;
+            JSONArray s=x.optJSONArray("storage_options"); if(categoryRequiresStorage(x.optString("category"))&&(s==null||s.length()==0))missingStorage++;
         }
-        if(approvals+high+urgent+overdue+missingModel+missingStorage==0) return "Nothing urgent is showing in the authorised live sources right now.";
+        if(approvals+high+urgent+overdue+missingModel+missingStorage==0)return "Nothing urgent is showing in the authorised live sources right now.";
         return "What needs attention\n\nGuardian: "+approvals+" awaiting approval, "+high+" high/critical open.\nSupport: "+urgent+" high/urgent, "+overdue+" SLA overdue.\nCatalogue: "+missingModel+" missing model numbers, "+missingStorage+" actionable storage gaps.\n\nNova can identify and explain these items, but protected actions remain human-approved.";
     }
 
@@ -307,7 +315,7 @@ final class NovaAssistantEngine {
             return "Device catalogue health\n\n"+rows.length()+" active devices.\nMissing model number: "+missingModel+"\nActionable storage gaps: "+missingStorage+"\nNon-Apple phone RAM gaps: "+missingRam+"\n\nCategories: "+categories;
         }
         if(intent==IntentRouter.Intent.LEARNING){
-            JSONObject live=api.learningSummary(); int count=live.optInt("count"), verified=live.optInt("verified_count");
+            JSONObject live=api.learningSummary(); int count=live.optInt("count"),verified=live.optInt("verified_count");
             JSONObject byDomain=live.optJSONObject("by_domain"); JSONObject knowledge=api.knowledgeSummary();
             return "Nova learning & knowledge\n\n"+verified+" verified learning experiences from "+count+" active experiences.\nKnowledge base: "+knowledge.optInt("active_count")+" active items.\nDomains: "+(byDomain==null?"{}":byDomain.toString())+"\n\nLearning improves context and diagnosis but never grants Nova extra authority.";
         }
@@ -316,7 +324,7 @@ final class NovaAssistantEngine {
             for(int i=0;i<rows.length();i++){JSONObject x=rows.getJSONObject(i);String key=x.optString("key");Object value=x.opt("value");String shown=releaseName(value);if("current_release".equals(key))current=shown;else if("minimum_supported_version".equals(key))minimum=shown;}
             return "Release state\n\nNova installed: "+BuildConfig.VERSION_NAME+"\nMorley current release: "+current+"\nMorley minimum supported: "+minimum+"\n\nNova’s signed OTA channel remains checksum/signature guarded.";
         }
-        JSONArray sales=api.sales(), valuations=api.valuations(), inventory=api.inventory();double total=0;int profitCount=0,wins=0;
+        JSONArray sales=api.sales(),valuations=api.valuations(),inventory=api.inventory();double total=0;int profitCount=0,wins=0;
         for(int i=0;i<sales.length();i++){JSONObject x=sales.getJSONObject(i);if(!x.isNull("realised_profit")){double p=x.optDouble("realised_profit",0);total+=p;profitCount++;if(p>0)wins++;}}
         int active=0;for(int i=0;i<inventory.length();i++){String st=inventory.getJSONObject(i).optString("status").toLowerCase(Locale.ROOT);if(!st.equals("sold")&&!st.equals("closed")&&!st.equals("disposed"))active++;}
         double accuracyTotal=0;int realised=0;for(int i=0;i<valuations.length();i++){JSONObject x=valuations.getJSONObject(i);if(!x.isNull("expected_profit")&&!x.isNull("actual_profit")){accuracyTotal+=Math.abs(x.optDouble("actual_profit")-x.optDouble("expected_profit"));realised++;}}
@@ -325,15 +333,15 @@ final class NovaAssistantEngine {
     }
 
     private String knowledgeAnswer(String q) throws Exception {
-        if(q.isBlank()) return null;
-        JSONObject result=api.knowledgeSearch(q); JSONArray items=result.optJSONArray("items");
-        if(items==null||items.length()==0) return null;
-        lastKnowledgeQuery = q;
+        if(q.isBlank())return null;
+        JSONObject result=api.knowledgeSearch(q);JSONArray items=result.optJSONArray("items");
+        if(items==null||items.length()==0)return null;
+        lastKnowledgeQuery=q;
         StringBuilder out=new StringBuilder("I found relevant Nova knowledge:\n\n");
         int limit=Math.min(items.length(),3);
         for(int i=0;i<limit;i++){
-            JSONObject item=items.getJSONObject(i); String title=item.optString("title","Knowledge item"); String trust=item.optString("trust_level","reference"); String snippet=item.optString("snippet").trim();
-            if(snippet.length()>320) snippet=snippet.substring(0,320)+"…";
+            JSONObject item=items.getJSONObject(i);String title=item.optString("title","Knowledge item");String trust=item.optString("trust_level","reference");String snippet=item.optString("snippet").trim();
+            if(snippet.length()>320)snippet=snippet.substring(0,320)+"…";
             out.append("• ").append(title).append(" [").append(trust).append("]\n").append(snippet).append(i+1<limit?"\n\n":"");
         }
         out.append("\n\nThis answer is grounded in stored Morley/Nova knowledge, not a protected action.");
