@@ -35,7 +35,6 @@ final class NovaOperatorUi {
     private static final int CONTROL_ID = 0x4e4f5641;
     private static final int MODEL_BAR_ID = 0x4e4f5642;
     private static final int MODEL_STATUS_ID = 0x4e4f5643;
-    private static final int VOICE_TAG = 0x4e4f5644;
     private static final int REQ_RECORD_AUDIO = 9190;
     private static final WeakHashMap<Activity, SpeechRecognizer> SPEECH = new WeakHashMap<>();
     private static final WeakHashMap<Activity, Boolean> LISTENING = new WeakHashMap<>();
@@ -159,8 +158,8 @@ final class NovaOperatorUi {
         }
 
         Button mic = findButtonByContentDescription(decor, "Voice");
-        if (mic != null && mic.getTag(VOICE_TAG) == null) {
-            mic.setTag(VOICE_TAG, Boolean.TRUE);
+        if (mic != null && !Boolean.TRUE.equals(mic.getTag())) {
+            mic.setTag(Boolean.TRUE);
             mic.setText("🎙");
             mic.setContentDescription("Voice input. Tap to speak; tap again to cancel.");
             mic.setOnClickListener(v -> toggleVoice(activity, mic, input));
@@ -187,10 +186,11 @@ final class NovaOperatorUi {
             api.setPreferredProvider(value);
             activity.getSharedPreferences("nova_ai", Activity.MODE_PRIVATE).edit().putString("provider", value).apply();
             View modelBar = activity.getWindow().getDecorView().findViewById(MODEL_BAR_ID);
-            if (modelBar instanceof ViewGroup) ((ViewGroup) modelBar).removeAllViews();
-            // Re-render on the next layout callback so selection styling is deterministic.
+            if (modelBar != null && modelBar.getParent() instanceof ViewGroup) {
+                ((ViewGroup) modelBar.getParent()).removeView(modelBar);
+            }
             View decor = activity.getWindow().getDecorView();
-            if (decor instanceof ViewGroup) decor.post(() -> install(activity));
+            decor.post(() -> install(activity));
         });
     }
 
