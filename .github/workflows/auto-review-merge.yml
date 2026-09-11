@@ -50,8 +50,6 @@ jobs:
               r'(^|/)\.env($|\.)|(^|/)(credentials?|private[-_]?keys?|keystore|signing[-_]?keys?)(/|$)|'
               r'\.(jks|keystore|p12|pfx|pem|key)$', re.I)
 
-          # These are intentionally narrow. Sensitive code is normally autonomous as long as
-          # existing repository checks pass. Only trust-breaking/destructive changes stop.
           critical_added=[
               r'\bdisable\s+row\s+level\s+security\b',
               r'\bgrant\s+all\b.*\b(to|role)\s+(anon|authenticated|public)\b',
@@ -109,9 +107,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          RISK_LEVEL: ${{ steps.risk.outputs.level }}
         shell: bash
         run: |
-          gh pr review "$PR" --approve --body "✅ Morley Autopilot policy review passed (${ { steps.risk.outputs.level } }). Required checks and branch protections remain authoritative."
+          gh pr review "$PR" --approve --body "✅ Morley Autopilot policy review passed (${RISK_LEVEL}). Required checks and branch protections remain authoritative."
 
       - name: Enable auto-merge for all non-critical changes
         if: steps.risk.outputs.level != 'critical'
