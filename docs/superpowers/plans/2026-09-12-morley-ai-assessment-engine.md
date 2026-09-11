@@ -50,7 +50,7 @@
 - Internal commercial fields stay staff/admin-only. Customer reuse is additive later and must not expose margin/risk/internal notes.
 
 - [x] Migration contract, RLS/table contract, security audit and schema CI verified on the isolated PR branch.
-- [ ] Apply approved migration to production only after the final branch validation is green.
+- [x] Approved migration applied successfully to production Supabase project `ghdhairijqjqivqriigi`; post-migration security advisor introduced no new assessment-table warning.
 
 ### Task 3: Device Lens/Admin assessment client
 
@@ -66,7 +66,7 @@
 
 - [x] Client contract written RED-first.
 - [x] Authenticated persistence client implemented.
-- [ ] Final CI verification on the current release-identity commit.
+- [x] Final AI core CI verified the authenticated persistence client and all prior assessment contracts together.
 
 ### Task 4: Guided capture and damage review
 
@@ -112,14 +112,15 @@
 
 ### Task 10: Release gates
 
-- [x] Repository Security Audit verified on prior feature commits.
-- [x] B&L Morley Quality Gate verified on prior feature commits.
-- [x] Morley Ultimate Parity Gate verified on prior feature commits.
-- [x] Admin Control Integration Audit verified on prior feature commits.
-- [x] Full Feature Contract Audit verified on prior feature commits.
+- [x] Repository Security Audit verified on feature commits.
+- [x] B&L Morley Quality Gate verified on feature commits.
+- [x] Morley Ultimate Parity Gate verified on feature commits.
+- [x] Admin Control Integration Audit verified on feature commits.
+- [x] Full Feature Contract Audit verified on feature commits.
 - [x] Android source changes detected by OTA policy as requiring a fresh identity.
-- [x] Exact next Android identity minted: `2.15.96` / `versionCode 140` from main `2.15.95` / `139`.
-- [ ] Wait for fresh required CI on the exact release commit.
-- [ ] Apply approved Supabase migration.
-- [ ] Mark PR ready and merge only after required checks are green.
-- [ ] Promote only a signed/checksummed APK and matching OTA metadata.
+- [x] Exact next Android identity minted: `2.15.96` / `versionCode 140`.
+- [x] Predecessor `2.15.95` / `versionCode 139` promoted to `ota/latest.json` through protected PR #1479 using the immutable release artifact digest `b95748540a00be1cc19825fc8149dca3c3b5dffff4073008d13aea6f36c8e527`.
+- [x] Approved Supabase migration applied.
+- [ ] Run fresh PR #1437 CI against `main` now advertising OTA versionCode 139.
+- [ ] Mark PR ready and merge only after all required checks are green.
+- [ ] Promote only a signed/checksummed 2.15.96 APK and matching OTA metadata.
