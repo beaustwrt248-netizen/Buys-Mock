@@ -108,12 +108,12 @@
     }
   });
 
-  // Current Morley web auth intentionally embeds v4 directly and therefore
-  // must boot immediately. Current Admin keeps its iframe at about:blank until
-  // credentials are ready, then adds load/retry. Only legacy v2 Admin embeds
-  // remain inert so the Samsung WebView first-parse freeze cannot return.
+  // Morley web auth v4/v5 embeds boot immediately. Admin still keeps its
+  // iframe at about:blank until credentials are ready, then adds load/retry.
+  // Legacy v2 Admin embeds remain inert for Samsung WebView freeze protection.
   const params=new URLSearchParams(window.location.search);
-  if(params.has('load')||params.has('retry')||params.get('v')==='4')loadApi();
+  const version=params.get('v');
+  if(params.has('load')||params.has('retry')||version==='4'||version==='5')loadApi();
   else{
     status.textContent='Enter your email and password first.';
     post('idle','');
