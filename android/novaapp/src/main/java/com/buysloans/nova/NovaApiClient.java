@@ -32,6 +32,8 @@ final class NovaApiClient {
     }
 
     private Session session;
+    private String preferredProvider = "auto";
+    private JSONObject lastOrchestratorResult;
 
     Session signIn(String email, String password, String captchaToken) throws Exception {
         if (captchaToken == null || captchaToken.isBlank()) throw new SecurityException("Complete the security check before signing in.");
@@ -57,9 +59,19 @@ final class NovaApiClient {
         return candidate;
     }
 
-    void signOut() { session = null; }
+    void signOut() { session = null; lastOrchestratorResult = null; }
     boolean isSignedIn() { return session != null; }
     String signedInEmail() { return session == null ? "" : session.email; }
+
+    void setPreferredProvider(String provider) {
+        String value = provider == null ? "auto" : provider.trim().toLowerCase();
+        preferredProvider = switch (value) {
+            case "gpt", "gemini", "claude", "consensus" -> value;
+            default -> "auto";
+        };
+    }
+    String preferredProvider() { return preferredProvider; }
+    JSONObject lastOrchestratorResult() { return lastOrchestratorResult; }
 
     JSONArray sales() throws Exception { return getAllPages("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc", 1000); }
     JSONArray inventory() throws Exception { return getAllPages("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc", 1000); }
@@ -85,9 +97,7 @@ final class NovaApiClient {
         for (int i = 0; i < imageDataUrls.length(); i++) {
             String image = imageDataUrls.optString(i, "");
             totalChars += image.length();
-            if (totalChars > MAX_VISION_TOTAL_DATA_URL_CHARS) {
-                throw new IllegalArgumentException("The combined Vision photos are too large. Use fewer or smaller photos, then try the assessment again.");
-            }
+            if (totalChars > MAX_VISION_TOTAL_DATA_URL_CHARS) throw new IllegalArgumentException("The combined Vision photos are too large. Use fewer or smaller photos, then try the assessment again.");
         }
         return edge("nova-vision", new JSONObject().put("image_data_urls", imageDataUrls).put("hint", hint == null ? "" : hint));
     }
@@ -112,11 +122,23 @@ final class NovaApiClient {
     }
 
     JSONObject orchestrate(String prompt, String mode) throws Exception {
+        return orchestrate(prompt, mode, preferredProvider);
+    }
+
+    JSONObject orchestrate(String prompt, String mode, String provider) throws Exception {
         String clean = prompt == null ? "" : prompt.trim();
         if (clean.isBlank()) throw new IllegalArgumentException("Nova needs a question before multi-model reasoning can run.");
         String requestedMode = mode == null || mode.isBlank() ? "auto" : mode;
-        return edge("nova-orchestrator", new JSONObject().put("prompt", clean).put("mode", requestedMode));
+        String requestedProvider = provider == null || provider.isBlank() ? "auto" : provider;
+        JSONObject result = edge("nova-orchestrator", new JSONObject()
+                .put("prompt", clean)
+                .put("mode", requestedMode)
+                .put("provider", requestedProvider));
+        lastOrchestratorResult = result;
+        return result;
     }
+
+    JSONObject aiMetrics() throws Exception { return edge("nova-ai-metrics", new JSONObject()); }
 
     JSONObject edgeCall(String function, JSONObject body) throws Exception { return edge(function, body == null ? new JSONObject() : body); }
 
@@ -162,9 +184,7 @@ final class NovaApiClient {
     }
 
     private static int readTimeoutFor(String path) {
-        return path != null && path.startsWith("/functions/v1/nova-orchestrator")
-                ? ORCHESTRATOR_READ_TIMEOUT_MS
-                : DEFAULT_READ_TIMEOUT_MS;
+        return path != null && path.startsWith("/functions/v1/nova-orchestrator") ? ORCHESTRATOR_READ_TIMEOUT_MS : DEFAULT_READ_TIMEOUT_MS;
     }
 
     private String requestOnce(String method, String path, String body, String bearer) throws Exception {

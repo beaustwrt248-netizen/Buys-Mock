@@ -4,9 +4,11 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:name=".NovaApplication"
@@ -34,6 +36,9 @@
             android:name=".NovaAlertWorker"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <activity
+            android:name=".NovaDamageReviewActivity"
+            android:exported="false" />
         <activity
             android:name=".NovaVisionActivity"
             android:exported="false" />
