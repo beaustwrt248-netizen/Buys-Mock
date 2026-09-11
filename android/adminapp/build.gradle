@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.admin'
         minSdk 26
         targetSdk 35
-        versionCode 33
-        versionName '0.1.32'
+        versionCode 34
+        versionName '0.1.33'
         manifestPlaceholders = [appLabel: 'Morley Admin']
         buildConfigField 'boolean', 'IS_RECOVERY_BUILD', 'false'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
@@ -37,12 +37,9 @@ android {
     }
 
     buildFeatures { compose true; buildConfig true }
-    // AGP 9 built-in Kotlin inherits JVM target from compileOptions.targetCompatibility.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 
-    lint {
-        disable 'NullSafeMutableLiveData'
-    }
+    lint { disable 'NullSafeMutableLiveData' }
 
     buildTypes {
         debug {
