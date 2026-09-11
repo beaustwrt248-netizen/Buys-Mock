@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
+// Live-flow contract: staff verification must remain actionable and fail closed before pricing/stock.
 const source = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt', 'utf8');
 const review = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt', 'utf8');
 const inspection = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/DeviceInspectionClient.kt', 'utf8');
