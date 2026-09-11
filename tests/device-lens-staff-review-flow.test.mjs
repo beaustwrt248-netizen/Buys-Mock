@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 const source = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt', 'utf8');
 const review = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt', 'utf8');
 const inspection = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/DeviceInspectionClient.kt', 'utf8');
+const policy = fs.readFileSync('android/app/src/main/java/com/buysloans/hub/MorleyVisionPolicy.kt', 'utf8');
 
 assert.match(source, /ANALYSING,\s*REVIEW,\s*RESULTS/, 'Device Lens must have a dedicated staff REVIEW step');
 assert.match(source, /reviewState\s+by\s+remember\s*\{\s*mutableStateOf<MorleyVisionReviewState\?>\(null\)\s*\}/, 'Device Lens must retain Morley Vision review state');
@@ -24,7 +25,7 @@ assert.match(review, /fun confirmStorage\([\s\S]*state\.inspection\.storage\s*=\
 assert.match(review, /canCompleteStaffReview[\s\S]*identityVerified\s*&&\s*storageVerified/, 'review must remain fail-closed until storage is verified');
 assert.match(inspection, /var storage:\s*String/, 'inspection storage must support session-local explicit staff verification');
 assert.match(inspection, /identityQuery[\s\S]*verifiedStorage/, 'live pricing identity must include the now staff-verified storage value');
-assert.match(inspection, /expectedStorage = canonicalStorage\(clean\(inspection\.storage\)\)/, 'market comparables must continue rejecting explicit storage mismatches');
-assert.doesNotMatch(source + review + inspection, /Gumtree/i, 'Device Lens staff review integration must not add Gumtree behavior');
+assert.match(policy, /expectedStorage = canonicalStorage\(clean\(inspection\.storage\)\)/, 'market comparables must continue rejecting explicit storage mismatches');
+assert.doesNotMatch(source + review + inspection + policy, /Gumtree/i, 'Device Lens staff review integration must not add Gumtree behavior');
 
 console.log('Device Lens staff-review and storage-verification integration contract passed.');
