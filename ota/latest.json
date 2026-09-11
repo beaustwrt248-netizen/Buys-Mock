@@ -1,7 +1,7 @@
 {
-  "versionCode": 138,
-  "versionName": "2.15.94",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.94/B-and-L-Morley-2.15.94.apk",
-  "sha256": "eee917054620f7ffacad64c7c895eb8c750ac93dfd48535e1e30e99f048d4e34",
-  "notes": "Update compact navigation regression expectations (#1397)"
+  "versionCode": 139,
+  "versionName": "2.15.95",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.95/B-and-L-Morley-2.15.95.apk",
+  "sha256": "b95748540a00be1cc19825fc8149dca3c3b5dffff4073008d13aea6f36c8e527",
+  "notes": "Fix scanner routing release regression test (#1429)"
 }
