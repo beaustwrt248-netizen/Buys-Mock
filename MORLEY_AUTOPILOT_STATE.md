@@ -1,7 +1,7 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-11 20:00 AWST
-Main SHA: `f6655f49191864c6eef928abd0f439752e107abf`
+Last reconciled: 2026-09-11 21:00 AWST
+Main SHA: `09a490a474a0986e88509354e0198e410306296a`
 
 This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gumtree is intentionally excluded.
 
@@ -10,7 +10,7 @@ This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gu
 - Morley Buys Android OTA remains published at `2.15.89` / versionCode `133` with the verified signed artifact/checksum already recorded in `ota/latest.json`.
 - PR #1354 is now on main and repairs the Admin Android/WebView login freeze by deferring Turnstile until credential-triggered authentication and preventing pre-auth retry loops.
 - Device Lens still has the core pricing-evidence gate from PR #1349 and reusable staff-review UI from PR #1342, but the live `DeviceLensActivity` still bypasses persistence of Confirm / Not Damage decisions.
-- Nova production-intelligence PR #1355 is open and green across current CI, but it includes protected Supabase schema/RLS work and also expands Gumtree evidence into pricing analysis. It must not merge under current autopilot policy without resolving both blockers.
+- Nova production-intelligence PR #1355 remains open. Its experimental market-search/pricing-confidence changes were reverted to current main, so it no longer expands Gumtree functionality. It still includes protected `nova_ai_runs` schema/RLS work and therefore remains approval-gated.
 
 ## Live production-first health triage
 
@@ -64,7 +64,7 @@ Performance advisor currently reports unused-index candidates only. No index was
 |---|---|---:|---:|---|---|
 | 1 | Morley Vision / Device Lens | 10 | 4 | Review UI/policy exists but live DeviceLensActivity bypasses durable staff damage decisions | Wire Confirm / Not Damage into live flow on a narrow current-main branch with regression/accessibility/degraded-state coverage |
 | 2 | Backup/recovery readiness | 10 | 6 | Global backup cron is healthy; separate user-encrypted backup is stale because freshness depends on user-authorised Google Drive flow | Verify/refresh via existing authorised app flow; no server-side token bypass, destructive restore or key mutation |
-| 3 | Nova production intelligence | 9 | 8 | PR #1355 CI is green but schema/RLS approval and Gumtree-exclusion blockers remain | Hold merge; remove Gumtree expansion or obtain explicit re-enable, and obtain explicit approval for schema/RLS |
+| 3 | Nova production intelligence | 9 | 8 | PR #1355 no longer expands Gumtree; protected schema/RLS telemetry remains | Hold merge pending explicit approval for `nova_ai_runs` schema/RLS; continue validating non-protected Nova routing/voice/Vision changes |
 | 4 | Supabase security drift | 9 | 8 | Advisor warnings require intent review | Prepare evidence/consumer map; auth/RLS/SECURITY DEFINER/leaked-password changes require explicit approval |
 | 5 | Catalogue/data quality | 9 | 4 | Strong identity/source coverage; 6 image gaps, 59 storage gaps, 16 model-number collision groups | Manufacturer-first evidence review; never guess or destructively collapse regional variants |
 | 6 | Guardian incident hygiene | 9 | 8 | 14 unresolved; 5 waiting approval | Read-only triage/correlation only; Guardian code-changing repairs and decisions remain human gated |
@@ -97,6 +97,7 @@ Performance advisor currently reports unused-index candidates only. No index was
 
 ## Failure-pattern record
 
+- 2026-09-11 — Nova scope reconciliation: PR #1355 mixed unrelated Nova improvements with experimental market-search/pricing-confidence changes that expanded Gumtree processing. Safe correction: restore `market-search-v2` and its Brave contract to current main, remove the market-analysis regression assertions, and keep the protected schema/RLS blocker explicit.
 - 2026-09-11 — Admin WebView login freeze: Turnstile initialized/retried before credential submission. Fix in PR #1354: defer Turnstile until credential-triggered auth and prevent pre-auth retry loops.
 - 2026-09-11 — Backup triage: global daily backup cron is active/succeeding, while the user-encrypted Drive backup is independently stale. The per-user flow requires a live Google access token and must not be misdiagnosed as a cron outage or bypassed server-side.
 - 2026-09-11 — Bot-authored OTA PR #1351 had Actions in `action_required`. Safe recovery: replace with current-main owner PR for the exact generated metadata, let normal checks run, close blocked bot PR as superseded, never bypass protections.
@@ -106,8 +107,8 @@ Performance advisor currently reports unused-index candidates only. No index was
 
 ## Current blockers / approvals
 
-- PR #1355 is not eligible for autonomous merge despite green CI because `supabase/migrations/20260911185000_nova_ai_runs.sql` changes a protected schema/RLS boundary. Explicit Beau approval is required.
-- PR #1355 also expands Gumtree pricing evidence through `usedEvidence`/IQR confidence analysis. Current instruction excludes ALL Gumtree work; that expansion must be removed unless Beau explicitly re-enables Gumtree.
+- PR #1355 is not eligible for autonomous merge because `supabase/migrations/20260911185000_nova_ai_runs.sql` changes a protected schema/RLS boundary. Explicit Beau approval is required.
+- The Gumtree expansion previously present in #1355 has been removed; `market-search-v2` and its contract are restored to current main and the PR no longer expands Gumtree functionality.
 - Supabase advisor security changes are approval-gated; this ledger records evidence only.
 - Per-user encrypted Drive backup freshness is not green. Global backup scheduler is healthy; refreshing the user backup requires the existing authorised Google Drive flow.
 - Device Lens staff-review integration is still not Done.
@@ -115,7 +116,7 @@ Performance advisor currently reports unused-index candidates only. No index was
 ## Next autonomous checkpoint
 
 1. Continue Device Lens live staff-review integration as the highest-value non-protected implementation lane.
-2. Hold PR #1355 until its Gumtree scope is removed/re-enabled and protected schema/RLS approval is explicit.
+2. Hold PR #1355 pending explicit protected schema/RLS approval while validating the remaining non-Gumtree Nova changes.
 3. Re-check user-encrypted backup freshness and recovery evidence; never substitute credentials or bypass Google authorization.
 4. Review the 6 image gaps, 59 storage gaps and 16 model-number collision groups manufacturer-first; do not guess or merge variants.
 5. Correlate unresolved Guardian incidents against recent merges/deployments without applying protected repairs.
