@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-<main><div><div id="challenge"></div><div id="status">Security check loading…</div></div></main>
+<main><div><div id="challenge"></div><div id="status">Enter your email and password first.</div></div></main>
 <script>
 (function(){
   const sitekey='0x4AAAAAAEZul-Qo6dqMim2U';
@@ -20,8 +20,10 @@
   const parentOrigin=window.location.origin;
   const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*';
   let rendered=false;
+  let started=false;
+  let loading=false;
   window.__morleyTurnstileToken='';
-  window.__morleyTurnstileState='loading';
+  window.__morleyTurnstileState='idle';
 
   function post(type,value){
     try{
@@ -45,12 +47,14 @@
   }
 
   function fail(message,code){
+    loading=false;
     status.textContent=message||'Security check unavailable. Tap here to retry.';
     window.__morleyTurnstileState='error';
     post('bootstrap-error',code||'api_unavailable');
   }
 
   function renderChallenge(){
+    loading=false;
     if(rendered||!window.turnstile)return;
     rendered=true;
     window.__morleyTurnstileState='ready';
@@ -73,6 +77,11 @@
   }
 
   function loadApi(){
+    if(loading||rendered)return;
+    started=true;
+    loading=true;
+    window.__morleyTurnstileState='loading';
+    status.textContent='Security check loading…';
     const old=document.getElementById('morleyTurnstileApi');
     if(old)old.remove();
     const script=document.createElement('script');
@@ -85,16 +94,25 @@
     document.head.appendChild(script);
   }
 
+  window.addEventListener('message',function(event){
+    if(event.source!==window.parent)return;
+    if(parentOrigin!=='null'&&event.origin!==parentOrigin)return;
+    const payload=event.data;
+    if(!payload||payload.source!=='morley-admin-login')return;
+    if(payload.type==='start')loadApi();
+  });
+
   status.addEventListener('click',function(){
     if(window.__morleyTurnstileState==='error'){
       rendered=false;
-      window.__morleyTurnstileState='loading';
-      status.textContent='Retrying security check…';
+      started=false;
       loadApi();
     }
   });
 
-  loadApi();
+  // Deliberately do not load Cloudflare here. The parent starts the challenge only
+  // after credentials are present so the Android WebView remains responsive for typing.
+  post('idle','');
 })();
 </script>
 </body>
