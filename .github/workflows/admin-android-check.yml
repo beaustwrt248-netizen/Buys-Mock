@@ -50,8 +50,9 @@ jobs:
           # The Admin app may use the legacy native surface or the canonical
           # web Admin surface. When web parity is active, fail closed unless the
           # privileged WebView is pinned to HTTPS buyshub.me/admin and disables
-          # mixed, file and content access.
-          if grep -q 'AdminWebParityPolicy.HOME_URL' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
+          # mixed, file and content access. A cache-busted freshHomeUrl is the
+          # preferred entry point because it prevents stale blank shell restores.
+          if grep -Eq 'AdminWebParityPolicy\.(HOME_URL|freshHomeUrl)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
             grep -q 'const val HOME_URL = "https://buyshub.me/admin/"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'private const val ADMIN_HOST = "buyshub.me"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'uri.scheme.equals("https"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
@@ -62,6 +63,11 @@ jobs:
             grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'javaScriptCanOpenWindowsAutomatically = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             ! grep -REq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java
+            if grep -q 'AdminWebParityPolicy.freshHomeUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
+              grep -q 'cacheMode = WebSettings.LOAD_NO_CACHE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'adminApp=' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            fi
           else
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           fi
