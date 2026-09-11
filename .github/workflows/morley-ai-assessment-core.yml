@@ -5,10 +5,12 @@ on:
     branches: [ main ]
     paths:
       - 'morley-ai-assessment-core.js'
+      - 'morley-ai-assessment-client.js'
       - 'android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyAssessmentBridge.kt'
       - 'tests/morley-ai-assessment-core.test.mjs'
+      - 'tests/morley-ai-assessment-client.test.mjs'
       - 'tests/morley-ai-device-lens-integration.test.mjs'
       - 'tests/morley-ai-damage-review-contract.test.mjs'
       - 'tests/morley-ai-diagnostics-condition.test.mjs'
@@ -32,6 +34,8 @@ jobs:
           persist-credentials: false
       - name: Run assessment core contract
         run: node --test tests/morley-ai-assessment-core.test.mjs
+      - name: Run authenticated assessment persistence client contract
+        run: node --test tests/morley-ai-assessment-client.test.mjs
       - name: Run Device Lens assessment integration contract
         run: node --test tests/morley-ai-device-lens-integration.test.mjs
       - name: Run AI damage review contract
