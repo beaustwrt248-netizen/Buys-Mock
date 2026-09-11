@@ -12,8 +12,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -34,8 +40,9 @@ internal data class VisionDamageReviewItem(
 )
 
 internal data class MorleyVisionReviewState(
+    val inspection: DeviceInspection,
+    val storageVerifiedState: MutableState<Boolean>,
     val identityVerified: Boolean,
-    val storageVerified: Boolean,
     val qualityWarnings: List<String>,
     val consistencyWarnings: List<String>,
     val componentFindings: List<String>,
@@ -43,6 +50,9 @@ internal data class MorleyVisionReviewState(
     val suggestedPricingAllowed: Boolean,
     val pricingBlockedReason: String?
 ) {
+    val storageVerified: Boolean
+        get() = storageVerifiedState.value && inspection.verifiedStorage.isNotBlank()
+
     val hasBlockingEvidenceGap: Boolean
         get() = !identityVerified || qualityWarnings.isNotEmpty() || consistencyWarnings.isNotEmpty()
 
@@ -54,6 +64,8 @@ internal data class MorleyVisionReviewState(
 }
 
 internal object MorleyVisionReviewPolicy {
+    private val staffStoragePattern = Regex("^(\\d{1,4})\\s*(GB|TB)$", RegexOption.IGNORE_CASE)
+
     fun from(inspection: DeviceInspection, pricing: LivePricingResult?): MorleyVisionReviewState {
         val storageVerified = inspection.verifiedStorage.isNotBlank()
         val damageReviews = inspection.damageRegions.mapIndexed { index, region ->
@@ -66,6 +78,7 @@ internal object MorleyVisionReviewPolicy {
         }
         val pricingReason = when {
             !inspection.identityVerified -> "Verify the exact device identity before using a suggested price."
+            !storageVerified -> "Confirm the device storage before using a suggested price."
             inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a suggested price."
             inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a suggested price."
             pricing?.recommendationBlockedReason != null -> pricing.recommendationBlockedReason
@@ -73,8 +86,9 @@ internal object MorleyVisionReviewPolicy {
             else -> "Not enough verified market evidence to suggest a price."
         }
         return MorleyVisionReviewState(
+            inspection = inspection,
+            storageVerifiedState = mutableStateOf(storageVerified),
             identityVerified = inspection.identityVerified,
-            storageVerified = storageVerified,
             qualityWarnings = inspection.qualityWarnings.distinct(),
             consistencyWarnings = inspection.consistencyWarnings.distinct(),
             componentFindings = inspection.componentFindings.distinct(),
@@ -93,6 +107,23 @@ internal object MorleyVisionReviewPolicy {
             if (it.regionIndex == regionIndex) it.copy(decision = decision) else it
         }
     )
+
+    fun confirmStorage(state: MorleyVisionReviewState, rawStorage: String): Boolean {
+        val cleaned = MorleyVisionPolicy.clean(rawStorage)
+        if (cleaned.isBlank()) return false
+
+        val catalogueOptions = state.inspection.catalogueMatch?.storageOptions.orEmpty()
+            .map(MorleyVisionPolicy::clean)
+            .filter { it.isNotBlank() }
+        val catalogueMatch = catalogueOptions.firstOrNull { it.equals(cleaned, ignoreCase = true) }
+        val verified = catalogueMatch ?: staffStoragePattern.matchEntire(cleaned)?.let { match ->
+            "${match.groupValues[1]} ${match.groupValues[2].uppercase()}"
+        } ?: return false
+
+        state.inspection.storage = verified
+        state.storageVerifiedState.value = true
+        return true
+    }
 }
 
 @Composable
@@ -101,16 +132,83 @@ internal fun MorleyVisionReviewPanel(
     onDamageDecision: (Int, VisionStaffDecision) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var storageInput by remember(state.inspection) { mutableStateOf("") }
+    var storageError by remember(state.inspection) { mutableStateOf("") }
+
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         ReviewStatusCard(
             title = if (state.identityVerified) "Device identity verified" else "Device identity not verified",
             body = if (state.identityVerified) {
-                if (state.storageVerified) "Model identity and storage are verified for review." else "Model identity is verified. Storage still needs staff confirmation."
+                if (state.storageVerified) {
+                    "Model identity and ${state.inspection.verifiedStorage} storage are verified for review."
+                } else {
+                    "Model identity is verified. Staff must confirm the storage shown on the device or its label."
+                }
             } else {
                 "Do not rely on model, storage or pricing until staff verify the exact device."
             },
-            warning = !state.identityVerified
+            warning = !state.identityVerified || !state.storageVerified
         )
+
+        if (state.identityVerified && !state.storageVerified) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFD8E2EE))
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Confirm storage", fontWeight = FontWeight.Black)
+                    Text("Only confirm a value you can verify from the device, settings screen or physical label. Do not guess.")
+
+                    state.inspection.catalogueMatch?.storageOptions.orEmpty()
+                        .map(MorleyVisionPolicy::clean)
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .forEach { option ->
+                            OutlinedButton(
+                                onClick = {
+                                    if (MorleyVisionReviewPolicy.confirmStorage(state, option)) {
+                                        storageInput = option
+                                        storageError = ""
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Confirm $option")
+                            }
+                        }
+
+                    OutlinedTextField(
+                        value = storageInput,
+                        onValueChange = {
+                            storageInput = it.take(12)
+                            storageError = ""
+                        },
+                        label = { Text("Verified storage") },
+                        placeholder = { Text("e.g. 128 GB") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(
+                        onClick = {
+                            storageError = if (MorleyVisionReviewPolicy.confirmStorage(state, storageInput)) {
+                                ""
+                            } else {
+                                "Enter a verified storage value such as 128 GB or 1 TB."
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0878F9))
+                    ) {
+                        Text("Confirm Verified Storage")
+                    }
+                    if (storageError.isNotBlank()) {
+                        Text(storageError, color = Color(0xFF8E211F), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
 
         ReviewWarnings("Photo quality", state.qualityWarnings)
         ReviewWarnings("Cross-photo consistency", state.consistencyWarnings)

@@ -46,7 +46,7 @@ data class DeviceInspection(
     val model: String,
     val modelNumber: String,
     val colour: String,
-    val storage: String,
+    var storage: String,
     val conditionGrade: String,
     val conditionSummary: String,
     val confidence: Double,
