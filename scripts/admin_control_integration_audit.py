@@ -103,9 +103,11 @@ if web_parity_shell:
     require("domStorageEnabled = true" in admin_activity, "Android Admin parity shell must enable DOM storage for web authentication state")
     require("setAcceptCookie(true)" in admin_activity, "Android Admin parity shell must enable required authentication cookies")
     if "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
-        require("LOAD_NO_CACHE" in admin_activity, "Android Admin fresh-shell recovery must bypass stale WebView document cache")
-        require("clearCache(true)" in admin_activity, "Android Admin fresh-shell recovery must clear stale WebView document cache")
+        require("LOAD_DEFAULT" in admin_activity, "Android Admin must allow normal static-resource caching instead of forcing every navigation cold")
+        require("clearCache(true)" not in admin_activity, "Android Admin must not purge the full WebView cache on every launch")
         require("freshHomeUrl" in admin_web_policy and "adminApp=" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
+        require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
+        require("attempt < 50" in admin_activity, "Android Admin native session handoff must use a bounded Supabase readiness retry")
 else:
     for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
         require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")

@@ -59,9 +59,11 @@ jobs:
             grep -q 'javaScriptCanOpenWindowsAutomatically = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             ! grep -Eq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             if grep -q 'AdminWebParityPolicy.freshHomeUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
-              grep -q 'cacheMode = WebSettings.LOAD_NO_CACHE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-              grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'cacheMode = WebSettings.LOAD_DEFAULT' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              ! grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
               grep -q 'adminApp=' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+              grep -q 'nativeSessionInjectionStarted' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'attempt < 50' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             fi
           else
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt

@@ -26,6 +26,7 @@ class AdminActivity : ComponentActivity() {
     private lateinit var webView: WebView
     private var accessToken = ""
     private var refreshToken = ""
+    private var nativeSessionInjectionStarted = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +46,7 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                cacheMode = WebSettings.LOAD_NO_CACHE
+                cacheMode = WebSettings.LOAD_DEFAULT
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -75,7 +76,10 @@ class AdminActivity : ComponentActivity() {
 
                 override fun onPageFinished(view: WebView, url: String) {
                     super.onPageFinished(view, url)
-                    if (AdminWebParityPolicy.isTrustedAdminUrl(url)) injectNativeSession(view)
+                    if (AdminWebParityPolicy.isTrustedAdminUrl(url) && !nativeSessionInjectionStarted) {
+                        nativeSessionInjectionStarted = true
+                        injectNativeSession(view)
+                    }
                 }
             }
 
@@ -83,7 +87,6 @@ class AdminActivity : ComponentActivity() {
         }
 
         setContentView(webView)
-        webView.clearCache(true)
         webView.loadUrl(AdminWebParityPolicy.freshHomeUrl(BuildConfig.VERSION_CODE) + "&nativeAuth=1")
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -99,14 +102,21 @@ class AdminActivity : ComponentActivity() {
         val logoutUrl = JSONObject.quote("https://buyshub.me$NATIVE_LOGOUT_PATH")
         val script = """
             (function(){
-              if(!window.sb || !window.sb.auth) return;
               var exitToNative=function(){ window.location.replace($logoutUrl); };
-              window.sb.auth.setSession({access_token:$access,refresh_token:$refresh}).then(function(result){
-                if(result && result.error){ exitToNative(); return; }
-                var logout=document.getElementById('logoutBtn');
-                if(logout){ logout.onclick=function(){ window.sb.auth.signOut().finally(exitToNative); }; }
-                if(typeof window.loadSession==='function') window.loadSession();
-              }).catch(exitToNative);
+              var begin=function(attempt){
+                if(!window.sb || !window.sb.auth){
+                  if(attempt < 50){ setTimeout(function(){ begin(attempt + 1); }, 100); }
+                  else { exitToNative(); }
+                  return;
+                }
+                window.sb.auth.setSession({access_token:$access,refresh_token:$refresh}).then(function(result){
+                  if(result && result.error){ exitToNative(); return; }
+                  var logout=document.getElementById('logoutBtn');
+                  if(logout){ logout.onclick=function(){ window.sb.auth.signOut().finally(exitToNative); }; }
+                  if(typeof window.loadSession==='function') window.loadSession();
+                }).catch(exitToNative);
+              };
+              begin(0);
             })();
         """.trimIndent()
         view.evaluateJavascript(script, null)
@@ -117,6 +127,7 @@ class AdminActivity : ComponentActivity() {
             webView.stopLoading()
             webView.clearHistory()
         }
+        nativeSessionInjectionStarted = false
         accessToken = ""
         refreshToken = ""
         startActivity(Intent(this, AdminLoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
