@@ -272,9 +272,10 @@ internal fun MorleyAssessmentStatusCard(assessment: MorleyAssessmentSnapshot) {
     }
     val body = assessment.valuationBlockedReason
         ?: "Evidence is verified. AI recommendations remain advisory until staff confirmation."
+    val damageSummary = "Damage: ${assessment.confirmedDamageCount} confirmed · ${assessment.dismissedDamageCount} dismissed · ${assessment.pendingDamageCount} pending."
     ReviewStatusCard(
         title = title,
-        body = "$body Confidence ${(assessment.confidence * 100).toInt()}% · advisory only.",
+        body = "$body $damageSummary Confidence ${(assessment.confidence * 100).toInt()}% · advisory only.",
         warning = blocked || assessment.reviewRequired
     )
 }
