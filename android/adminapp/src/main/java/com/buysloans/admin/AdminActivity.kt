@@ -6,10 +6,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
-import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -18,45 +14,38 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import org.json.JSONObject
 
 class AdminActivity : ComponentActivity() {
-    private lateinit var webView: WebView
+    companion object {
+        const val EXTRA_ACCESS_TOKEN = "admin_access_token"
+        const val EXTRA_REFRESH_TOKEN = "admin_refresh_token"
+        private const val NATIVE_LOGOUT_PATH = "/admin/native-logout"
+    }
 
-    @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
+    private lateinit var webView: WebView
+    private var accessToken = ""
+    private var refreshToken = ""
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AdminTelemetry.installCrashHandler(applicationContext)
         if (BuildConfig.IS_RECOVERY_BUILD) title = "Morley Admin Recovery"
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+
+        accessToken = intent.getStringExtra(EXTRA_ACCESS_TOKEN).orEmpty()
+        refreshToken = intent.getStringExtra(EXTRA_REFRESH_TOKEN).orEmpty()
+        if (accessToken.isBlank() || refreshToken.isBlank()) {
+            returnToNativeLogin()
+            return
+        }
 
         webView = WebView(this).apply {
-            setBackgroundColor(Color.rgb(237, 243, 239))
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-
-            // Samsung WebView may leave a programmatically-created WebView without touch focus.
-            // The page still renders and Turnstile can animate, but HTML email/password controls
-            // cannot acquire the IME. Restore the proven focus handoff without consuming taps.
-            isFocusable = true
-            isFocusableInTouchMode = true
-            setOnTouchListener { view, event ->
-                if (event.action == MotionEvent.ACTION_DOWN && !view.hasFocus()) {
-                    view.requestFocusFromTouch()
-                }
-                false
-            }
-
+            setBackgroundColor(Color.rgb(4, 9, 18))
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-
-                // Admin is a live control surface. LOAD_DEFAULT plus WebView state restoration can
-                // resurrect an old /admin/ shell after a deployment and leave only the page
-                // background visible. Always request the current document instead.
                 cacheMode = WebSettings.LOAD_NO_CACHE
-
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -74,13 +63,19 @@ class AdminActivity : ComponentActivity() {
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     if (!request.isForMainFrame) return false
+                    if (request.url.path == NATIVE_LOGOUT_PATH) {
+                        returnToNativeLogin()
+                        return true
+                    }
                     val target = request.url.toString()
                     if (AdminWebParityPolicy.isTrustedAdminUrl(target)) return false
-
-                    if (AdminWebParityPolicy.isExternallyRoutableScheme(request.url.scheme)) {
-                        openExternal(request.url)
-                    }
+                    if (AdminWebParityPolicy.isExternallyRoutableScheme(request.url.scheme)) openExternal(request.url)
                     return true
+                }
+
+                override fun onPageFinished(view: WebView, url: String) {
+                    super.onPageFinished(view, url)
+                    if (AdminWebParityPolicy.isTrustedAdminUrl(url)) injectNativeSession(view)
                 }
             }
 
@@ -88,14 +83,8 @@ class AdminActivity : ComponentActivity() {
         }
 
         setContentView(webView)
-        webView.requestFocus(View.FOCUS_DOWN)
-        webView.post { webView.requestFocusFromTouch() }
-
-        // Do not restore a previously saved WebView document here. That state can contain the
-        // exact stale/blank Admin shell we are recovering from. Cookies and DOM storage still
-        // preserve the signed-in session; only the document itself is forced fresh.
         webView.clearCache(true)
-        webView.loadUrl(AdminWebParityPolicy.freshHomeUrl(BuildConfig.VERSION_CODE))
+        webView.loadUrl(AdminWebParityPolicy.freshHomeUrl(BuildConfig.VERSION_CODE) + "&nativeAuth=1")
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -104,21 +93,53 @@ class AdminActivity : ComponentActivity() {
         })
     }
 
+    private fun injectNativeSession(view: WebView) {
+        val access = JSONObject.quote(accessToken)
+        val refresh = JSONObject.quote(refreshToken)
+        val logoutUrl = JSONObject.quote("https://buyshub.me$NATIVE_LOGOUT_PATH")
+        val script = """
+            (function(){
+              if(!window.sb || !window.sb.auth) return;
+              var exitToNative=function(){ window.location.replace($logoutUrl); };
+              window.sb.auth.setSession({access_token:$access,refresh_token:$refresh}).then(function(result){
+                if(result && result.error){ exitToNative(); return; }
+                var logout=document.getElementById('logoutBtn');
+                if(logout){ logout.onclick=function(){ window.sb.auth.signOut().finally(exitToNative); }; }
+                if(typeof window.loadSession==='function') window.loadSession();
+              }).catch(exitToNative);
+            })();
+        """.trimIndent()
+        view.evaluateJavascript(script, null)
+    }
+
+    private fun returnToNativeLogin() {
+        if (::webView.isInitialized) {
+            webView.stopLoading()
+            webView.clearHistory()
+        }
+        accessToken = ""
+        refreshToken = ""
+        startActivity(Intent(this, AdminLoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+        finish()
+    }
+
     private fun openExternal(uri: Uri) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         } catch (_: ActivityNotFoundException) {
-            // Fail closed: unsupported external links never get loaded inside the privileged Admin WebView.
+            // Unsupported external links never enter the privileged Admin WebView.
         }
     }
 
     override fun onDestroy() {
-        webView.apply {
-            stopLoading()
-            loadUrl("about:blank")
-            clearHistory()
-            removeAllViews()
-            destroy()
+        if (::webView.isInitialized) {
+            webView.apply {
+                stopLoading()
+                loadUrl("about:blank")
+                clearHistory()
+                removeAllViews()
+                destroy()
+            }
         }
         super.onDestroy()
     }

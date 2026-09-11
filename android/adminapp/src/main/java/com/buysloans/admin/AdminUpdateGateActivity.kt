@@ -31,22 +31,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-/**
- * Launcher gate for the dedicated Admin OTA channel.
- *
- * Update discovery fails open so an unavailable metadata host never blocks Admin access.
- * APK installation remains an explicit Android package-installer action and the downloaded
- * package is SHA-256 verified before that handoff.
- */
+/** Launcher gate for the dedicated Admin OTA channel. */
 class AdminUpdateGateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.decorView.setBackgroundColor(AndroidColor.rgb(4, 9, 18))
 
-        // Recovery is a deliberately separate package/release channel. Do not present the
-        // canonical Admin OTA gate there because its APK cannot update the recovery package.
+        // Recovery skips the canonical OTA channel but still uses the same native authentication
+        // boundary before entering the privileged Admin web workspace.
         if (BuildConfig.IS_RECOVERY_BUILD) {
-            startActivity(Intent(this, AdminActivity::class.java))
+            startActivity(Intent(this, AdminLoginActivity::class.java))
             finish()
             return
         }
@@ -70,8 +64,8 @@ class AdminUpdateGateActivity : ComponentActivity() {
                     var installing by remember { mutableStateOf(false) }
                     val scope = rememberCoroutineScope()
 
-                    fun continueToAdmin() {
-                        startActivity(Intent(this@AdminUpdateGateActivity, AdminActivity::class.java))
+                    fun continueToAdminLogin() {
+                        startActivity(Intent(this@AdminUpdateGateActivity, AdminLoginActivity::class.java))
                         finish()
                     }
 
@@ -83,12 +77,12 @@ class AdminUpdateGateActivity : ComponentActivity() {
                                     status = "Admin ${candidate.versionName} is ready."
                                     checking = false
                                 } else {
-                                    continueToAdmin()
+                                    continueToAdminLogin()
                                 }
                             }
                             .onFailure {
                                 // OTA availability must never lock administrators out of the app.
-                                continueToAdmin()
+                                continueToAdminLogin()
                             }
                     }
 
@@ -136,7 +130,7 @@ class AdminUpdateGateActivity : ComponentActivity() {
                             ) { Text(if (installing) "Verifying…" else "Update now", fontWeight = FontWeight.Black) }
                             if (!candidate.required) {
                                 Spacer(Modifier.height(8.dp))
-                                OutlinedButton(onClick = { continueToAdmin() }, enabled = !installing, modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { continueToAdminLogin() }, enabled = !installing, modifier = Modifier.fillMaxWidth()) {
                                     Text("Not now")
                                 }
                             }

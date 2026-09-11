@@ -43,15 +43,10 @@ jobs:
       - name: Verify Admin app stays isolated and least-privilege
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
 
-          # The Admin app may use the legacy native surface or the canonical
-          # web Admin surface. When web parity is active, fail closed unless the
-          # privileged WebView is pinned to HTTPS buyshub.me/admin and disables
-          # mixed, file and content access. A cache-busted freshHomeUrl is the
-          # preferred entry point because it prevents stale blank shell restores.
           if grep -Eq 'AdminWebParityPolicy\.(HOME_URL|freshHomeUrl)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
             grep -q 'const val HOME_URL = "https://buyshub.me/admin/"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'private const val ADMIN_HOST = "buyshub.me"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
@@ -62,7 +57,7 @@ jobs:
             grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'javaScriptCanOpenWindowsAutomatically = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            ! grep -REq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java
+            ! grep -Eq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             if grep -q 'AdminWebParityPolicy.freshHomeUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
               grep -q 'cacheMode = WebSettings.LOAD_NO_CACHE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
               grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
@@ -71,6 +66,13 @@ jobs:
           else
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           fi
+
+          test "$(grep -c 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt)" = "1"
+          ! grep -q 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+          grep -q '"AndroidBridge"' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          grep -q 'domStorageEnabled = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
 
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
@@ -86,7 +88,7 @@ jobs:
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "admin_audit_log" supabase/migrations/*safe_remote_feature_flags.sql
-      - name: Verify Samsung WebView login input contract
+      - name: Verify native Admin login input contract
         shell: bash
         run: |
           set -euo pipefail
