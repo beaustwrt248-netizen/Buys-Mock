@@ -81,9 +81,13 @@ require("target_installation_id" in targeted_notifications or "notifTarget" in t
 # a hardened path/origin boundary. The latter intentionally makes web Admin the
 # single functional implementation so filters, permissions and Guardian changes
 # cannot drift between browser and APK releases.
+admin_entry_navigation = (
+    "AdminWebParityPolicy.HOME_URL" in admin_activity
+    or "AdminWebParityPolicy.freshHomeUrl" in admin_activity
+)
 web_parity_shell = (
     "WebView" in admin_activity
-    and "AdminWebParityPolicy.HOME_URL" in admin_activity
+    and admin_entry_navigation
     and "AdminWebParityPolicy.isTrustedAdminUrl" in admin_activity
     and 'HOME_URL = "https://buyshub.me/admin/"' in admin_web_policy
     and 'private const val ADMIN_HOST = "buyshub.me"' in admin_web_policy
@@ -98,6 +102,10 @@ if web_parity_shell:
     require("javaScriptEnabled = true" in admin_activity, "Android Admin parity shell must enable the canonical Admin JavaScript application")
     require("domStorageEnabled = true" in admin_activity, "Android Admin parity shell must enable DOM storage for web authentication state")
     require("setAcceptCookie(true)" in admin_activity, "Android Admin parity shell must enable required authentication cookies")
+    if "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
+        require("LOAD_NO_CACHE" in admin_activity, "Android Admin fresh-shell recovery must bypass stale WebView document cache")
+        require("clearCache(true)" in admin_activity, "Android Admin fresh-shell recovery must clear stale WebView document cache")
+        require("freshHomeUrl" in admin_web_policy and "adminApp=" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
 else:
     for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
         require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")
