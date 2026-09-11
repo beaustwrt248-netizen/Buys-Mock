@@ -1,18 +1,18 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-11 17:12 AWST
-Main SHA: `292317277bec5d607787de4971012adae0b8eca4`
+Last reconciled: 2026-09-11 18:05 AWST
+Main SHA: `78adf2dbb81e163827e6461a8601fb9869b3f373`
 
-This file is a non-sensitive continuity ledger for autonomous Morley maintenance. It records verified repository state, active work lanes, blockers and next safe actions. It must be reconciled against live GitHub/project evidence before each update. Gumtree is intentionally excluded.
+This file is a non-sensitive continuity ledger for autonomous Morley maintenance. It records verified repository state, active work lanes, blockers and the next safe actions. It must be reconciled against live GitHub/project evidence before each update. Gumtree is intentionally excluded.
 
 ## Production / release snapshot
 
-- Published Morley Buys Android OTA remains `2.15.88` / versionCode `132`; metadata points to release `v2.15.88` with its recorded SHA-256.
-- PR #1349 merged the Device Lens core pricing-evidence safeguard into `main`: unresolved photo-quality or cross-photo consistency warnings now block live market pricing before research begins.
-- Because #1349 merged before its attempted release-identity follow-up commit landed, `main` still identified as `2.15.88` / `132` immediately after that merge. A clean current-main release-identity repair is therefore active to advance source to `2.15.89` / `133` while published OTA remains `132`.
-- Morley Vision reusable staff-review UI remains merged from PR #1342; full live Device Lens wiring of its Confirm / Not Damage decisions remains unfinished.
+- Morley Buys Android OTA is now published at `2.15.89` / versionCode `133`; `ota/latest.json` points to release `v2.15.89` and records SHA-256 `b4b9058122a0c32f402ca028d846f67e76dd129a43567df0d0811594a79aca22`.
+- PR #1352 merged the exact verified 2.15.89 OTA metadata from current main after bot-authored PR #1351 was blocked by GitHub `action_required`; #1351 was closed as superseded rather than bypassing protections.
+- PR #1349 remains the Device Lens core pricing-evidence safeguard on main: unresolved photo-quality or cross-photo consistency warnings block live market pricing before research begins.
+- Morley Vision reusable staff-review UI remains merged from PR #1342; full live Device Lens wiring of Confirm / Not Damage review decisions is still unfinished.
 - Nova OpenRouter completion-parameter/diagnostic compatibility fix remains merged from PR #1343.
-- Admin release evidence is being treated conservatively: repository history contains newer Admin release tags/branches than the previously recorded 0.1.33 baseline, but the authoritative live Admin OTA/feed location has not yet been re-verified in this run, so no newer Admin production version is claimed here.
+- Morley Admin live OTA metadata is verified at `0.1.34` / versionCode `35` with SHA-256 `9e336299e146609dfd889f7c2cc1fa0e85744901d2b939de37b3a3a4c5fe4997` and source SHA `b2d996fc83875843176c95010f7e8d3d98a67012`.
 
 ## Active workstreams and impact/risk ranking
 
@@ -20,14 +20,14 @@ Scoring is relative and evidence-led: impact/release/security/data-quality benef
 
 | Rank | Lane | Impact | Risk | Current state | Next safe action |
 |---|---|---:|---:|---|---|
-| 1 | Release/integration stabilisation | 10 | 3 | Clean current-main repair advances Morley Android source from 2.15.88/132 to 2.15.89/133 after #1349 merge race | Run OTA/version, Android, security, quality, parity and artifact checks; merge only when normal protections permit; verify exact signed artifact before OTA promotion |
-| 2 | Morley Vision / Device Lens | 10 | 4 | Core pricing bypass closed on main by #1349; reusable staff review panel still not rendered/persisted by live Device Lens results flow | After release identity is stable, wire Confirm / Not Damage review state into Device Lens on a separate narrow branch with regression coverage |
+| 1 | Morley Vision / Device Lens | 10 | 4 | Core pricing evidence gate is live and 2.15.89 release chain is reconciled; reusable staff review panel is not yet wired into the live results/damage flow | Integrate Confirm / Not Damage review state into live Device Lens on a narrow branch with regression, accessibility and degraded-state coverage |
+| 2 | Release/integration stabilisation | 10 | 3 | 2.15.89/133 OTA metadata is published and verified on main | Re-check current-main build/security/parity/release health after new Android changes; preserve exact signed artifact/checksum and version monotonicity |
 | 3 | Nova multi-model quality/reliability | 9 | 4 | Bounded orchestrator and current completion parameter merged | Add provider/routing evaluation fixtures, latency/fallback diagnostics and non-sensitive cost/quality scorecard |
-| 4 | Admin reliability / parity | 9 | 5 | Authoritative live release feed needs re-verification before ledger claims a newest production version | Reconcile read-only Admin OTA/release evidence, then compare app/web/Admin feature contracts |
-| 5 | Catalogue/live-sync/data integrity | 9 | 5 | ongoing | Build/read current invariants and scorecard for duplicates, identifiers, image coverage and app/web/Admin/Nova divergence; do not destructively reconcile ambiguous production data |
+| 4 | Admin reliability / parity | 9 | 5 | Admin 0.1.34/35 OTA feed verified; Samsung WebView focus repair merged and published | Compare app/web/Admin feature contracts and prioritise read-only parity gaps/regression tests; auth/security changes remain approval-gated |
+| 5 | Catalogue/live-sync/data integrity | 9 | 5 | Existing side-effect-free catalogue integrity gate checks categories, carrier-as-brand, model identifiers, storage, 3G-only records and duplicate variants | Extend read-only scorecard/coverage for image completeness, conflicting identifiers and cross-surface divergence without destructive reconciliation |
 | 6 | Valuation 3.0 / Test & Buy / inventory lifecycle | 8 | 5 | active programme | Audit contract/test coverage, invalid lifecycle transitions and pricing evidence boundaries before new behavior |
 | 7 | Backup/recovery readiness | 8 | 6 | evidence required | Verify freshness/coverage and perform only isolated non-destructive restore-readiness checks where supported |
-| 8 | Technical debt / branch hygiene | 5 | 2 | repository contains many historical branches | Identify only clearly obsolete merged/superseded branches; never delete ambiguous branches automatically |
+| 8 | Technical debt / branch hygiene | 5 | 2 | stale bot OTA PR #1351 closed as superseded; historical branches remain | Identify only clearly obsolete merged/superseded branches; never delete ambiguous branches automatically |
 
 ## Dependency / protected-boundary map
 
@@ -53,7 +53,8 @@ Scoring is relative and evidence-led: impact/release/security/data-quality benef
 
 ## Failure-pattern record
 
-- 2026-09-11 — Release identity merge race after PR #1349. The Vision pricing safeguard merged to main while source still reported 2.15.88/132; an attempted version bump landed on the already-merged feature branch instead of main. Correct recovery: create a fresh branch from the actual post-merge main and advance only the release identity to exactly 2.15.89/133, then re-run release gates. Regression lesson: once a PR merges, never assume later head commits belong to that merged state; re-read main and restage release identity from current main.
+- 2026-09-11 — Bot-authored OTA PR #1351 had all Actions in `action_required`. Proven recovery: create a current-main repository-owner PR containing the exact already-generated release metadata, allow normal checks to run, close the blocked bot PR as superseded, and merge only after all required gates pass. Do not bypass or manually override protections.
+- 2026-09-11 — Release identity merge race after PR #1349. The Vision pricing safeguard merged to main while source still reported 2.15.88/132; a later version bump landed on the already-merged feature branch rather than main. Proven recovery: branch from actual post-merge main, advance only release identity to exactly 2.15.89/133, validate, then publish the exact signed artifact metadata.
 - 2026-09-11 — Device Lens audit found the reusable staff-review policy blocked quality/consistency evidence in UI state while core `MorleyVisionPolicy.pricingBlockReason` only blocked weak identity. PR #1349 moved photo-quality/cross-photo blocks into the core gate and added regression coverage. Full staff-review UI wiring remains separate follow-up work.
 - 2026-09-11 — Morley Vision PR #1342 compile failure. Symptom: Kotlin `VisionDamageReview` redeclaration plus unresolved properties. Root cause: duplicate review model name across policy and UI layers. Proven fix: remove the duplicate UI data class and reuse the canonical policy model with `VisionReviewState`.
 - 2026-09-11 — OTA integration audit blocked when Android source version was two releases ahead of published OTA. Proven fix: publish the exact prior green release metadata before advancing another candidate; treat source/OTA distance greater than one as a release-chain fault.
@@ -65,14 +66,13 @@ A lane is not marked Done merely because code merged. Applicable CI/security/par
 
 ## Current blockers / approvals
 
-- Morley 2.15.89/133 is a release candidate only until required checks and exact signed-artifact evidence complete; do not claim OTA publication or production rollout before that evidence exists.
 - Full live Device Lens staff-review integration is not Done: the reusable review panel exists on main but current `DeviceLensActivity` results/damage flow does not yet render it or persist staff damage decisions.
 - Protected changes (auth/RLS/secrets/destructive production data/privileged roles/workflow security/signing/Guardian approval policy) must be prepared and validated but not autonomously merged/deployed.
 
 ## Next autonomous checkpoint
 
-1. Validate the clean 2.15.89/133 current-main release-identity repair through all applicable checks.
-2. Verify build/signature/artifact identity before any OTA metadata promotion.
-3. Reconcile authoritative Admin OTA/release feed location and newest verified live Admin version.
-4. Start the separate Device Lens live staff-review integration only after release identity is stable.
-5. Continue independent read-only catalogue/parity/evaluation work while CI is running.
+1. Start the separate Device Lens live staff-review integration from current main with no pricing-authority expansion.
+2. Add regression coverage proving every detected damage region requires explicit Confirm / Not Damage review before staff completion.
+3. Reconcile current-main Android release identity after that behavior change before any subsequent OTA promotion.
+4. Continue independent read-only catalogue/parity/Nova evaluation work while Android CI is running.
+5. Re-check Admin 0.1.34 focus/recovery health and backup-readiness evidence without weakening auth/security boundaries.
