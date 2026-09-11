@@ -14,6 +14,7 @@ on:
       - 'tests/morley-ai-diagnostics-condition.test.mjs'
       - 'tests/morley-ai-valuation-repair.test.mjs'
       - 'tests/morley-ai-risk-passport.test.mjs'
+      - 'tests/morley-ai-orchestration-nova.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -41,3 +42,5 @@ jobs:
         run: node --test tests/morley-ai-valuation-repair.test.mjs
       - name: Run deal-risk and Device Passport contract
         run: node --test tests/morley-ai-risk-passport.test.mjs
+      - name: Run stock orchestration customer-safe and Nova command contracts
+        run: node --test tests/morley-ai-orchestration-nova.test.mjs
