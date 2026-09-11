@@ -32,6 +32,8 @@ final class NovaApiClient {
     }
 
     private Session session;
+    private String preferredProvider = "auto";
+    private JSONObject lastOrchestratorResult;
 
     Session signIn(String email, String password, String captchaToken) throws Exception {
         if (captchaToken == null || captchaToken.isBlank()) throw new SecurityException("Complete the security check before signing in.");
@@ -57,9 +59,19 @@ final class NovaApiClient {
         return candidate;
     }
 
-    void signOut() { session = null; }
+    void signOut() { session = null; lastOrchestratorResult = null; }
     boolean isSignedIn() { return session != null; }
     String signedInEmail() { return session == null ? "" : session.email; }
+
+    void setPreferredProvider(String provider) {
+        String value = provider == null ? "auto" : provider.trim().toLowerCase();
+        preferredProvider = switch (value) {
+            case "gpt", "gemini", "claude", "consensus" -> value;
+            default -> "auto";
+        };
+    }
+    String preferredProvider() { return preferredProvider; }
+    JSONObject lastOrchestratorResult() { return lastOrchestratorResult; }
 
     JSONArray sales() throws Exception { return getAllPages("/rest/v1/sales_records?select=id,acquired_cost,sold_price,fees,other_costs,realised_profit,sold_at&order=sold_at.desc", 1000); }
     JSONArray inventory() throws Exception { return getAllPages("/rest/v1/inventory_items?select=id,status,acquired_price,expected_sale_price,acquired_at&order=acquired_at.desc", 1000); }
@@ -110,7 +122,7 @@ final class NovaApiClient {
     }
 
     JSONObject orchestrate(String prompt, String mode) throws Exception {
-        return orchestrate(prompt, mode, "auto");
+        return orchestrate(prompt, mode, preferredProvider);
     }
 
     JSONObject orchestrate(String prompt, String mode, String provider) throws Exception {
@@ -118,10 +130,12 @@ final class NovaApiClient {
         if (clean.isBlank()) throw new IllegalArgumentException("Nova needs a question before multi-model reasoning can run.");
         String requestedMode = mode == null || mode.isBlank() ? "auto" : mode;
         String requestedProvider = provider == null || provider.isBlank() ? "auto" : provider;
-        return edge("nova-orchestrator", new JSONObject()
+        JSONObject result = edge("nova-orchestrator", new JSONObject()
                 .put("prompt", clean)
                 .put("mode", requestedMode)
                 .put("provider", requestedProvider));
+        lastOrchestratorResult = result;
+        return result;
     }
 
     JSONObject aiMetrics() throws Exception { return edge("nova-ai-metrics", new JSONObject()); }
