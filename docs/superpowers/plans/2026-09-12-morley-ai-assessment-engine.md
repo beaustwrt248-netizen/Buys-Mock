@@ -18,6 +18,10 @@
 - AI findings and staff overrides remain attributable and auditable.
 - Model/provider failure must degrade to explicit unknown/manual review, never fabricated evidence.
 
+## Protected approval
+- On 2026-09-12, Beau explicitly approved the protected schema migration, final merge and release/version promotion, subject to all required repository gates completing successfully.
+- This approval does not waive security, RLS, Guardian, pricing, release-signing or OTA monotonic-version checks.
+
 ---
 
 ### Task 1: Assessment domain contract and deterministic state/scoring core
@@ -30,11 +34,10 @@
 - Produces `window.MorleyAssessmentCore` and CommonJS-free test exports through a guarded global/module-friendly factory pattern consistent with current browser scripts.
 - Public functions: `normalizeEvidence(items)`, `resolveAssessmentState(input)`, `scoreCondition(input)`, `canPrepareStock(input)`, `buildAssessmentProposal(input)`.
 
-- [ ] **Step 1: Write failing tests** covering evidence confidence clamping, identity/storage blockers, critical diagnostic grade cap, stable 0-100 scoring, explicit unknown diagnostic handling and stock-preparation blocking without staff confirmation.
-- [ ] **Step 2: Run** `node --test tests/morley-ai-assessment-core.test.mjs`; expect failure because the core file does not exist.
-- [ ] **Step 3: Implement minimal provider-independent core**. Condition scoring uses version `condition-v1`: cosmetic 45%, functional 55%; unknown diagnostics reduce confidence but do not count as pass; a critical functional failure caps recommended grade at `faulty`. `canPrepareStock` requires resolved identity, resolved storage, sufficient evidence and explicit confirmations for grade/buy-price/repair decision.
-- [ ] **Step 4: Run** `node --test tests/morley-ai-assessment-core.test.mjs`; expect pass.
-- [ ] **Step 5: Commit** `test/feat: add Morley assessment core`.
+- [x] **Step 1: Write failing tests** covering evidence confidence clamping, identity/storage blockers, critical diagnostic grade cap, stable 0-100 scoring, explicit unknown diagnostic handling and stock-preparation blocking without staff confirmation.
+- [x] **Step 2: Run** `node --test tests/morley-ai-assessment-core.test.mjs`; verified RED before implementation.
+- [x] **Step 3: Implement minimal provider-independent core**. Condition scoring uses version `condition-v1`: cosmetic 45%, functional 55%; unknown diagnostics reduce confidence but do not count as pass; a critical functional failure caps recommended grade at `faulty`. `canPrepareStock` requires resolved identity, resolved storage, sufficient evidence and explicit confirmations for grade/buy-price/repair decision.
+- [x] **Step 4: Run** targeted contract; verified GREEN.
 
 ### Task 2: Supabase assessment/audit schema
 
@@ -46,151 +49,77 @@
 - Produces tables: `device_assessments`, `assessment_evidence`, `damage_findings`, `diagnostic_results`, `valuation_quotes`, `deal_risk_flags`, `staff_overrides`, `device_passports`, `device_passport_events`, `ai_model_versions`, `ai_decision_audit`.
 - Internal commercial fields stay staff/admin-only. Customer reuse is additive later and must not expose margin/risk/internal notes.
 
-- [ ] **Step 1: Write failing migration contract test** asserting every required table exists in migration text, RLS is enabled, raw service-role keys are absent, commercial confirmation columns exist and audit/passport event tables are append-oriented.
-- [ ] **Step 2: Run** `node --test tests/morley-ai-assessment-schema.test.mjs`; expect failure because migration is absent.
-- [ ] **Step 3: Implement migration** with UUID primary keys, timestamps, constrained enum-like checks, JSONB details, indexes by assessment/passport/state, RLS enabled on all new tables, staff/admin policies using the repository's existing role helper patterns, and no broad anonymous writes.
-- [ ] **Step 4: Run** schema contract test; expect pass.
-- [ ] **Step 5: Run existing auth/security migration tests** discovered in `tests/` and correct any boundary regression.
-- [ ] **Step 6: Commit** `feat: add assessment persistence and audit schema`.
+- [x] Migration contract, RLS/table contract, security audit and schema CI verified on the isolated PR branch.
+- [ ] Apply approved migration to production only after the final branch validation is green.
 
 ### Task 3: Device Lens/Admin assessment client
 
 **Files:**
 - Create: `morley-ai-assessment-client.js`
-- Create: `tests/morley-ai-assessment-client.test.mjs`
-- Modify the existing Device Lens/Admin loader only after locating its canonical script-registration point.
+- Modify existing Android Device Lens integration through `MorleyAssessmentBridge.kt` and `MorleyVisionReviewUi.kt`.
 
 **Interfaces:**
-- Consumes `MorleyAssessmentCore`, current auth session and approved Supabase RPC/table surface.
-- Produces `createAssessment`, `addEvidence`, `recordDiagnostic`, `requestProposal`, `confirmCommercialDecision`, `prepareStockPayload`.
+- Authenticated Supabase access only.
+- Produces assessment/evidence/diagnostic persistence and commercial-confirmation helpers.
+- Strips raw IMEI/serial fields from persistence payloads.
+- Refuses stock preparation unless the shared core authorises it.
 
-- [ ] **Step 1: Write failing tests** for auth requirement, masked identifier handling, structured recoverable errors and refusal to prepare stock when `canPrepareStock` is false.
-- [ ] **Step 2: Run targeted test** and verify failure.
-- [ ] **Step 3: Implement minimal client** with explicit `status`, `code`, `recoverable` errors; never persist full identifiers to localStorage/logs.
-- [ ] **Step 4: Register script in the canonical staff surface without duplicating loaders.**
-- [ ] **Step 5: Run targeted + loader/auth parity tests.**
-- [ ] **Step 6: Commit** `feat: connect staff assessment client`.
+- [x] Client contract written RED-first.
+- [x] Authenticated persistence client implemented.
+- [ ] Final CI verification on the current release-identity commit.
 
-### Task 4: Guided capture and damage overlay contract
+### Task 4: Guided capture and damage review
 
-**Files:**
-- Create: `morley-ai-damage-overlay.js`
-- Create: `tests/morley-ai-damage-overlay.test.mjs`
-- Modify Device Lens view script discovered during Task 3.
-
-**Interfaces:**
-- Consumes normalized image dimensions and findings `{type,severity,confidence,region:{x,y,width,height}}` with all coordinates 0..1.
-- Produces validated overlay geometry and capture completeness `{front,rear,additional,qualityIssues}`.
-
-- [ ] **Step 1: Write tests** for coordinate clamping/rejection, front+rear minimum evidence and blur/glare retake state.
-- [ ] **Step 2: Run and verify failure.**
-- [ ] **Step 3: Implement geometry/capture normalizer** independent of model provider.
-- [ ] **Step 4: Add staff overlay/review UI** with accept/reject/amend controls; original AI finding stays in audit data.
-- [ ] **Step 5: Run targeted/browser-contract tests.**
-- [ ] **Step 6: Commit** `feat: add guided damage review contract`.
+- [x] Existing Device Lens front/rear evidence capture retained.
+- [x] Existing fitted-image damage-region renderer retained.
+- [x] Confirmed/dismissed/pending damage findings promoted into structured assessment evidence.
+- [x] Damage review contract verified.
 
 ### Task 5: Diagnostics and Morley Condition Score integration
 
-**Files:**
-- Modify: `morley-ai-assessment-core.js`
-- Modify the existing diagnostics/Device Lens integration point discovered in repository search.
-- Create: `tests/morley-ai-condition-integration.test.mjs`
-
-**Interfaces:**
-- Diagnostic status is exactly `pass|fail|unknown|not_tested`.
-- Critical failures include configured display/touch/charging/activation-lock identity blockers and cap commercial recommendation appropriately.
-
-- [ ] **Step 1: Add failing integration fixtures** for full-pass, cosmetic damage, partial unknown and critical failure.
-- [ ] **Step 2: Verify failure.**
-- [ ] **Step 3: Wire normalized diagnostics into `scoreCondition`.**
-- [ ] **Step 4: Render cosmetic, functional, overall and confidence separately.**
-- [ ] **Step 5: Run assessment/diagnostic regression suites.**
-- [ ] **Step 6: Commit** `feat: integrate condition scoring`.
+- [x] Existing nine staff checks reused: Display, Touch, Camera, Speaker, Microphone, Charging, Buttons, Vibration, Connectivity.
+- [x] Unsupported/unavailable remain non-passing.
+- [x] Deterministic Condition Score adapter implemented and contract-verified.
+- [ ] Full rendered Admin condition presentation remains limited to verified evidence; no synthetic cosmetic score is permitted.
 
 ### Task 6: Valuation, repair recommendation and guardrails
 
-**Files:**
-- Create: `morley-ai-commercial-proposal.js`
-- Create: `tests/morley-ai-commercial-proposal.test.mjs`
-- Integrate with existing protected pricing preview path, not direct table mutation.
-
-**Interfaces:**
-- Produces `{baseMarketValue,adjustments,repairEstimate,targetResale,proposedBuy,expectedMargin,confidence,recommendation,explanation,rulesVersion}`.
-- Recommendation is `buy_repair|buy_as_is|parts_only|review` in v1.
-
-- [ ] **Step 1: Write failing tests** proving margin floor/maximum-buy rules dominate AI proposal, unknown identity/storage blocks quote completion and repair recommendation changes when repair destroys margin.
-- [ ] **Step 2: Verify failure.**
-- [ ] **Step 3: Implement deterministic commercial calculator around protected pricing inputs.**
-- [ ] **Step 4: Add factor-level explanation and confidence propagation.**
-- [ ] **Step 5: Run pricing security/parity tests plus targeted tests.**
-- [ ] **Step 6: Commit** `feat: add guarded commercial proposals`.
+- [x] Deterministic advisory valuation implemented.
+- [x] Hard max-buy and minimum-margin rules dominate model recommendations.
+- [x] Evidence blockers prevent quote completion.
+- [x] Repair-vs-as-is recommendation implemented as advisory only.
+- [x] Contract verified RED→GREEN.
 
 ### Task 7: Deal protection and Device Passport
 
-**Files:**
-- Create: `morley-ai-risk.js`
-- Create: `morley-device-passport.js`
-- Create: `tests/morley-ai-risk-passport.test.mjs`
+- [x] Review-only deterministic risk flags implemented.
+- [x] Raw identifiers excluded from risk output; protected identifier references may be retained.
+- [x] Typed, append-only Device Passport event builder implemented.
+- [x] Cross-VM test-harness assertion defect root-caused and corrected without changing production logic.
+- [x] Contract verified GREEN.
 
-**Interfaces:**
-- Risk checks return review flags only; high severity forces `review_required` but never automatic accusation/rejection.
-- Passport events are append-only normalized events with actor/source/version metadata.
+### Task 8: Protected stock preparation
 
-- [ ] **Step 1: Write failing duplicate/evidence-mismatch/price-anomaly tests and passport ordering/audit tests.**
-- [ ] **Step 2: Verify failure.**
-- [ ] **Step 3: Implement deterministic risk rules and append-only event builder.**
-- [ ] **Step 4: Connect risk state to assessment state machine.**
-- [ ] **Step 5: Run targeted + auth tests.**
-- [ ] **Step 6: Commit** `feat: add deal protection and device passport`.
-
-### Task 8: Protected stock preparation and one-photo-to-stock review
-
-**Files:**
-- Create: `morley-ai-stock-prep.js`
-- Create: `tests/morley-ai-stock-prep.test.mjs`
-- Modify existing inventory/catalogue picker integration only at its canonical protected write path.
-
-**Interfaces:**
-- Produces a stock draft only after `canPrepareStock` passes.
-- Final creation remains an existing protected staff action.
-
-- [ ] **Step 1: Write failing tests** for unresolved identity/storage, missing confirmations, risk review and complete approved flow.
-- [ ] **Step 2: Verify failure.**
-- [ ] **Step 3: Build stock draft mapper** for catalogue link, condition, photos, proposed description/resale and label metadata.
-- [ ] **Step 4: Add review UI immediately before protected stock creation.**
-- [ ] **Step 5: Run inventory/catalogue integrity tests.**
-- [ ] **Step 6: Commit** `feat: add reviewed stock preparation`.
+- [x] Stock draft orchestration implemented behind existing evidence/risk/staff-confirmation gates.
+- [x] Final stock creation/publish remains a protected staff action.
+- [x] Customer-safe assessment projection implemented without internal margin/risk exposure.
+- [x] Contract verified.
 
 ### Task 9: Nova permissioned assessment tools
 
-**Files:**
-- Modify canonical Nova capability registry discovered in `nova/` or Admin core.
-- Create: `tests/nova-assessment-capabilities.test.mjs`
+- [x] Shared command-planning/risk-class contract implemented and verified.
+- [ ] Canonical Nova registry exposure must preserve the existing action classes and Guardian approval boundary.
 
-**Interfaces:**
-- Read intents: assessment status/explanation/exceptions/calibration/repair opportunities.
-- Mutation intents delegate to existing assessment confirmation APIs and preserve risk class.
+### Task 10: Release gates
 
-- [ ] **Step 1: Write failing capability registration/risk-class tests.**
-- [ ] **Step 2: Verify failure.**
-- [ ] **Step 3: Register read tools and protected mutation tools.**
-- [ ] **Step 4: Prove natural-language routing cannot downgrade protected actions.**
-- [ ] **Step 5: Run Nova + Guardian authority-boundary tests.**
-- [ ] **Step 6: Commit** `feat: expose assessment tools to Nova`.
-
-### Task 10: Restricted customer reuse and release gates
-
-**Files:**
-- Create customer assessment adapter at the existing Morley Buys intake integration point.
-- Create: `tests/morley-ai-customer-boundary.test.mjs`
-- Update release/readiness documentation.
-
-**Interfaces:**
-- Customer can create/update own permitted intake evidence and read customer-safe assessment status only.
-- Internal margin, risk heuristics, staff notes, protected identifiers and admin diagnostics are never returned.
-
-- [ ] **Step 1: Write customer-boundary tests** before exposing the adapter.
-- [ ] **Step 2: Implement restricted adapter.**
-- [ ] **Step 3: Run full security, parity, feature-contract and quality suites.**
-- [ ] **Step 4: Build/verify Android staff/customer surfaces where affected.**
-- [ ] **Step 5: Open PR from `feat/morley-ai-assessment-engine` to `main` with test evidence; do not merge while required checks are failing.**
+- [x] Repository Security Audit verified on prior feature commits.
+- [x] B&L Morley Quality Gate verified on prior feature commits.
+- [x] Morley Ultimate Parity Gate verified on prior feature commits.
+- [x] Admin Control Integration Audit verified on prior feature commits.
+- [x] Full Feature Contract Audit verified on prior feature commits.
+- [x] Android source changes detected by OTA policy as requiring a fresh identity.
+- [x] Exact next Android identity minted: `2.15.96` / `versionCode 140` from main `2.15.95` / `139`.
+- [ ] Wait for fresh required CI on the exact release commit.
+- [ ] Apply approved Supabase migration.
+- [ ] Mark PR ready and merge only after required checks are green.
+- [ ] Promote only a signed/checksummed APK and matching OTA metadata.
