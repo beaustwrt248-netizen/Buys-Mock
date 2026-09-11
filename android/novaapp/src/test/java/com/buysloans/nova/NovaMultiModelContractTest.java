@@ -39,7 +39,7 @@ public class NovaMultiModelContractTest {
         assertTrue(explicitGuard < classify);
         assertTrue(engine.contains("return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, false));"));
 
-        assertTrue(gradle.contains("versionCode 30"));
-        assertTrue(gradle.contains("versionName '0.3.26'"));
+        assertTrue(gradle.contains("versionCode 31"));
+        assertTrue(gradle.contains("versionName '0.3.27'"));
     }
 }
