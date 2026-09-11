@@ -51,7 +51,9 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                cacheMode = WebSettings.LOAD_DEFAULT
+                // Admin is a privileged hosted shell. Always revalidate it instead of allowing
+                // an installed WebView to keep an old login/navigation bundle after deployment.
+                cacheMode = WebSettings.LOAD_NO_CACHE
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -85,7 +87,12 @@ class AdminActivity : ComponentActivity() {
         setContentView(webView)
         webView.requestFocus(View.FOCUS_DOWN)
         webView.post { webView.requestFocusFromTouch() }
-        if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
+        if (savedInstanceState == null) {
+            // Clear legacy cached Admin HTML/CSS/JS once at fresh activity bootstrap so the APK
+            // and browser cannot diverge after a production web deployment.
+            webView.clearCache(true)
+            webView.loadUrl(AdminWebParityPolicy.HOME_URL)
+        }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
