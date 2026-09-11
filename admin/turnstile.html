@@ -12,7 +12,7 @@
   </style>
 </head>
 <body>
-<main><div><div id="challenge"></div><div id="status">Enter your email and password first.</div></div></main>
+<main><div><div id="challenge"></div><div id="status">Security check loading…</div></div></main>
 <script>
 (function(){
   const sitekey='0x4AAAAAAEZul-Qo6dqMim2U';
@@ -108,11 +108,16 @@
     }
   });
 
-  // Existing cached Admin HTML may still point at turnstile.html?v=2. Keep that
-  // initial iframe inert. Only credential-triggered URLs carry load/retry flags.
+  // Current Morley web auth intentionally embeds v4 directly and therefore
+  // must boot immediately. Current Admin keeps its iframe at about:blank until
+  // credentials are ready, then adds load/retry. Only legacy v2 Admin embeds
+  // remain inert so the Samsung WebView first-parse freeze cannot return.
   const params=new URLSearchParams(window.location.search);
-  if(params.has('load')||params.has('retry'))loadApi();
-  else post('idle','');
+  if(params.has('load')||params.has('retry')||params.get('v')==='4')loadApi();
+  else{
+    status.textContent='Enter your email and password first.';
+    post('idle','');
+  }
 })();
 </script>
 </body>

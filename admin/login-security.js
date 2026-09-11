@@ -7,6 +7,12 @@
   const passwordInput=document.getElementById('password');
   if(!frame||!loginBtn||!loginStatus||!challengeStatus||!emailInput||!passwordInput)return;
 
+  const challengeShell=frame.parentElement;
+  const loginView=document.getElementById('loginView');
+  const mobileStyle=document.createElement('style');
+  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}}';
+  document.head.appendChild(mobileStyle);
+
   let captchaToken='';
   let busy=false;
   let challengeLoaded=false;
@@ -14,11 +20,16 @@
   function credentialsReady(){return emailInput.value.trim().length>0&&emailInput.checkValidity()&&passwordInput.value.length>0;}
   function syncLoginEnabled(){loginBtn.disabled=busy||!captchaToken||!credentialsReady();}
   function setChallengeState(text,ok){challengeStatus.textContent=text;challengeStatus.style.color=ok?'#25d991':'#8fa6c6';}
+  function setChallengeVisible(visible){
+    if(challengeShell)challengeShell.style.display=visible?'block':'none';
+    frame.style.display=visible?'block':'none';
+  }
 
   function loadChallenge(reason){
     if(challengeLoaded&&frame.src&&frame.src!=='about:blank')return;
     challengeLoaded=true;
     captchaToken='';
+    setChallengeVisible(true);
     syncLoginEnabled();
     setChallengeState(reason||'Security check loading…',false);
     frame.src='turnstile.html?v=4&load='+Date.now();
@@ -31,17 +42,19 @@
 
   function resetChallenge(reason){
     captchaToken='';
-    syncLoginEnabled();
     challengeLoaded=true;
+    setChallengeVisible(true);
+    syncLoginEnabled();
     setChallengeState(reason||'Reloading security check…',false);
     frame.src='turnstile.html?v=4&retry='+Date.now();
   }
 
-  // Keep Cloudflare completely out of the WebView while the user is entering credentials.
-  // On affected Samsung WebViews the eagerly-started challenge can monopolise the renderer,
-  // making the email/password fields appear frozen. Load it only after credentials exist.
+  // Keep Cloudflare completely out of the WebView while credentials are being
+  // entered, but do not leave an empty black challenge box on screen.
   try{frame.src='about:blank';}catch(_){}
+  setChallengeVisible(false);
   setChallengeState('Enter your email and password first.',false);
+  if(loginView)loginView.style.scrollMarginTop='12px';
 
   emailInput.addEventListener('input',maybeLoadChallenge);
   passwordInput.addEventListener('input',maybeLoadChallenge);
@@ -49,6 +62,7 @@
   passwordInput.addEventListener('change',maybeLoadChallenge);
   challengeStatus.addEventListener('click',function(){
     if(!credentialsReady()){
+      setChallengeVisible(false);
       setChallengeState('Enter your email and password first.',false);
       return;
     }
@@ -64,6 +78,7 @@
     const payload=event.data;
     if(!payload||payload.source!=='morley-turnstile')return;
     if(payload.type==='ready'){
+      setChallengeVisible(true);
       if(!captchaToken)setChallengeState('Complete the security check to sign in.',false);
     }else if(payload.type==='token'&&payload.value){
       captchaToken=String(payload.value);
@@ -81,12 +96,15 @@
   });
 
   frame.addEventListener('load',function(){
-    if(challengeLoaded&&!captchaToken)setChallengeState('Security check loading…',false);
+    if(challengeLoaded){
+      setChallengeVisible(true);
+      if(!captchaToken)setChallengeState('Security check loading…',false);
+    }
     syncLoginEnabled();
   });
 
   // Browser/password-manager autofill may not emit input immediately.
-  setTimeout(maybeLoadChallenge,750);
+  setTimeout(maybeLoadChallenge,350);
 
   loginBtn.onclick=async function(){
     const email=emailInput.value.trim();
