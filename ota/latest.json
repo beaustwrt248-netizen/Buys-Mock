@@ -1,7 +1,7 @@
 {
-  "versionCode": 129,
-  "versionName": "2.15.85",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.85/B-and-L-Morley-2.15.85.apk",
-  "sha256": "f4333fcea264280614babac21c6772672106b093414ec93587b879cca7a731bf",
-  "notes": "Morley search: add Google camera code scanning (#1321)"
+  "versionCode": 130,
+  "versionName": "2.15.86",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.86/B-and-L-Morley-2.15.86.apk",
+  "sha256": "f22b97a83afee0df54053f69d1d902d3a50da1c0b7620143a3151658cc0d0059",
+  "notes": "Match Morley device scan layout to approved reference (#1328)"
 }
