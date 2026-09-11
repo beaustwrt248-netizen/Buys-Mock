@@ -9,6 +9,7 @@
     html,body{margin:0;background:#111;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     main{min-height:86px;display:flex;align-items:center;justify-content:center;padding:8px}
     #status{font-size:13px;color:#aaa;text-align:center;margin-top:6px}
+    #status:empty{display:none;margin:0}
   </style>
 </head>
 <body>
@@ -66,7 +67,10 @@
         theme:'dark',
         size:'flexible',
         action:'blmorley_auth',
-        callback:function(token){status.textContent='Security check complete.';send('onToken',token);},
+        // The parent login surface already renders the completed state. Keep
+        // the embedded challenge visually compact after success instead of
+        // repeating the same message below Cloudflare's success indicator.
+        callback:function(token){status.textContent='';send('onToken',token);},
         'expired-callback':function(){status.textContent='Security check expired.';send('onExpired','');},
         'error-callback':function(code){status.textContent='Security check unavailable. Tap here to retry.';send('onError',String(code||''));return false;}
       });
