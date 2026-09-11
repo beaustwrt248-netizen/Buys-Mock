@@ -4,6 +4,7 @@ import java.net.URI
 
 object AdminWebParityPolicy {
     const val HOME_URL = "https://buyshub.me/admin/"
+    const val NATIVE_SESSION_BOOTSTRAP_URL = "https://buyshub.me/admin/native-session-bootstrap.html"
     private const val ADMIN_HOST = "buyshub.me"
     private const val NATIVE_SESSION_BOOTSTRAP_PATH = "/admin/native-session-bootstrap.html"
 
@@ -20,7 +21,7 @@ object AdminWebParityPolicy {
      * its logged-out web view before the Android session was available.
      */
     fun nativeSessionBootstrapUrl(versionCode: Int): String =
-        "https://$ADMIN_HOST$NATIVE_SESSION_BOOTSTRAP_PATH?adminApp=$versionCode"
+        "$NATIVE_SESSION_BOOTSTRAP_URL?adminApp=$versionCode"
 
     fun isNativeSessionBootstrapUrl(rawUrl: String): Boolean = runCatching {
         val uri = URI(rawUrl)
