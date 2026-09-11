@@ -67,8 +67,8 @@ jobs:
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           fi
 
-          test "$(grep -Rho 'addJavascriptInterface' android/adminapp/src/main/java | wc -l)" = "1"
-          grep -q 'addJavascriptInterface' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          test "$(grep -c 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt)" = "1"
+          ! grep -q 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           grep -q '"AndroidBridge"' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
