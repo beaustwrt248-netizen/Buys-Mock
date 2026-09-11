@@ -17,14 +17,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
+
+private val ReferenceNavy = Color(0xFF032A4F)
+private val ReferenceBlue = Color(0xFF0878F9)
+private val ReferencePaleBlue = Color(0xFFEAF4FF)
 
 class DashboardActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -66,7 +72,18 @@ private fun RootApp(showUpdatedInitially: Boolean) {
     MaterialTheme(colorScheme = MorleyColorScheme) { DashboardApp(showUpdatedInitially) }
 }
 
+// Compact phone navigation follows the approved mobile reference.
 private enum class BottomDestination(val label: String, val icon: ImageVector) {
+    HOME("Home", MorleyIcons.Home),
+    STOCK("Stock", MorleyIcons.Categories),
+    SCAN("Scan", MorleyIcons.Phone),
+    TRADE("Trade", MorleyIcons.Money),
+    MORE("More", MorleyIcons.More)
+}
+
+// Larger screens keep the established Categories and General Buys routes instead of
+// losing functionality just because the compact phone navigation is scan-first.
+private enum class ExpandedDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
     CATEGORIES("Categories", MorleyIcons.Categories),
     GP("General Buys", MorleyIcons.Money),
@@ -75,24 +92,25 @@ private enum class BottomDestination(val label: String, val icon: ImageVector) {
 
 @Composable
 private fun CompactDashboardNavigation(page: Page, showMenu: Boolean, onSelect: (BottomDestination) -> Unit) {
-    NavigationBar(containerColor = MorleySurface, tonalElevation = 0.dp, modifier = Modifier.fillMaxWidth()) {
+    NavigationBar(containerColor = Color.White, tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
         BottomDestination.entries.forEach { destination ->
             val selected = when (destination) {
                 BottomDestination.HOME -> !showMenu && page == Page.Home
-                BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-                BottomDestination.GP -> !showMenu && page == Page.GP
+                BottomDestination.STOCK -> false
+                BottomDestination.SCAN -> false
+                BottomDestination.TRADE -> !showMenu && page == Page.GP
                 BottomDestination.MORE -> showMenu
             }
             NavigationBarItem(
                 selected = selected,
                 onClick = { onSelect(destination) },
-                icon = { MorleyIcon(destination.icon, destination.label, if (selected) MorleyAccent else MorleyTextSecondary, Modifier.size(21.dp)) },
+                icon = { MorleyIcon(destination.icon, destination.label, if (selected) ReferenceBlue else MorleyTextSecondary, Modifier.size(21.dp)) },
                 label = { Text(destination.label, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                 alwaysShowLabel = true,
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MorleyAccentSoft,
-                    selectedIconColor = MorleyAccent,
-                    selectedTextColor = MorleyAccent,
+                    indicatorColor = ReferencePaleBlue,
+                    selectedIconColor = ReferenceBlue,
+                    selectedTextColor = ReferenceBlue,
                     unselectedIconColor = MorleyTextSecondary,
                     unselectedTextColor = MorleyTextSecondary
                 )
@@ -125,9 +143,25 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     fun selectDestination(destination: BottomDestination) {
         when (destination) {
             BottomDestination.HOME -> { showMenu = false; page = Page.Home }
-            BottomDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
-            BottomDestination.GP -> { showMenu = false; page = Page.GP }
+            BottomDestination.STOCK -> {
+                showMenu = false
+                context.startActivity(Intent(context, MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE, "inventory"))
+            }
+            BottomDestination.SCAN -> {
+                showMenu = false
+                context.startActivity(Intent(context, DeviceLensActivity::class.java))
+            }
+            BottomDestination.TRADE -> { showMenu = false; page = Page.GP }
             BottomDestination.MORE -> openMenu()
+        }
+    }
+
+    fun selectExpandedDestination(destination: ExpandedDestination) {
+        when (destination) {
+            ExpandedDestination.HOME -> { showMenu = false; page = Page.Home }
+            ExpandedDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
+            ExpandedDestination.GP -> { showMenu = false; page = Page.GP }
+            ExpandedDestination.MORE -> openMenu()
         }
     }
 
@@ -162,32 +196,37 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
         )
     }
 
-    val adaptiveNavItems = BottomDestination.entries.map { destination ->
+    val adaptiveNavItems = ExpandedDestination.entries.map { destination ->
         val selected = when (destination) {
-            BottomDestination.HOME -> !showMenu && page == Page.Home
-            BottomDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-            BottomDestination.GP -> !showMenu && page == Page.GP
-            BottomDestination.MORE -> showMenu
+            ExpandedDestination.HOME -> !showMenu && page == Page.Home
+            ExpandedDestination.CATEGORIES -> !showMenu && page == Page.Laptop
+            ExpandedDestination.GP -> !showMenu && page == Page.GP
+            ExpandedDestination.MORE -> showMenu
         }
-        AdaptiveNavItem(destination.label, destination.icon, selected) { selectDestination(destination) }
+        AdaptiveNavItem(destination.label, destination.icon, selected) { selectExpandedDestination(destination) }
     }
 
     Scaffold(
         containerColor = MorleyBackground,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MorleyBackground.copy(alpha = .98f), titleContentColor = MorleyTextPrimary),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = ReferenceNavy, titleContentColor = Color.White),
                 navigationIcon = {
                     IconButton(onClick = { if (showMenu) closeMenu() else openMenu() }) {
-                        MorleyIcon(MorleyIcons.Menu, if (showMenu) "Close menu" else "Open menu", MorleyAccent, Modifier.size(26.dp))
+                        MorleyIcon(MorleyIcons.Menu, if (showMenu) "Close menu" else "Open menu", Color.White, Modifier.size(26.dp))
                     }
                 },
-                title = { Text("MORLEY BUYS", fontSize = 22.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary) },
-                actions = {
-                    Surface(color = MorleyAccentSoft, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(999.dp)) {
-                        Text(AuthManager.accountLabel(context), Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MorleyTextPrimary)
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        Text("MORLEY BUYS", fontSize = 21.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        Text("Buy  •  Sell  •  Trade", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = .70f))
                     }
-                    Spacer(Modifier.width(10.dp))
+                },
+                actions = {
+                    Surface(color = Color.White.copy(alpha = .12f), border = BorderStroke(1.dp, Color.White.copy(alpha = .22f)), shape = RoundedCornerShape(999.dp)) {
+                        Text(AuthManager.accountLabel(context), Modifier.padding(horizontal = 10.dp, vertical = 7.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Spacer(Modifier.width(8.dp))
                 }
             )
         },
@@ -221,46 +260,143 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
 @Composable
 private fun ParityHome(onGp: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    fun openFeature(feature: String) {
+        context.startActivity(Intent(context, MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE, feature))
+    }
+
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Card(
-            onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) },
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF073C6F)),
-            border = BorderStroke(1.dp, Color(0xFF0D70CE)),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth()
+        Surface(
+            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },
+            color = Color.White,
+            border = BorderStroke(1.dp, LensHomeBorder),
+            shape = RoundedCornerShape(999.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp)
         ) {
-            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Surface(
-                    color = Color(0xFF0878F9),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.size(52.dp)
-                ) {
-                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        MorleyIcon(MorleyIcons.Phone, "Scan device", Color.White, Modifier.size(28.dp))
-                    }
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Scan Device", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text(
-                        "Take 2 photos • identify the model • circle visible cracks and damage • check live pricing",
-                        color = Color.White.copy(alpha = .82f),
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp
-                    )
-                }
-                Text("›", color = Color(0xFF58AAFF), fontSize = 27.sp, fontWeight = FontWeight.Black)
+            Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("⌕", color = ReferenceBlue, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.width(10.dp))
+                Text("Search devices, stock or scan...", color = MorleyTextSecondary, fontSize = 14.sp)
             }
         }
-        SmartWorkspaceSection()
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatusTile("LIVE PRICING", "READY", Modifier.weight(1f))
-            StatusTile("ONLINE STATUS", "ONLINE", Modifier.weight(1f))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            ReferenceQuickTile(
+                icon = "▣",
+                title = "Scan Device",
+                subtitle = "2-photo AI check",
+                modifier = Modifier.weight(1f),
+                onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
+            )
+            ReferenceQuickTile(
+                icon = "⌕",
+                title = "Manual Search",
+                subtitle = "Find by model",
+                modifier = Modifier.weight(1f),
+                onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
+            )
         }
-        NavCard(MorleyIcons.Money, "General Buys / GP", "A / B / C / Luxury buying targets", onGp)
-        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            ReferenceQuickTile(
+                icon = "+",
+                title = "Add to Catalogue",
+                subtitle = "Scan then add",
+                modifier = Modifier.weight(1f),
+                onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
+            )
+            ReferenceQuickTile(
+                icon = "$",
+                title = "Price Check",
+                subtitle = "Compare prices",
+                modifier = Modifier.weight(1f),
+                onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            ReferenceQuickTile(
+                icon = "▦",
+                title = "View Stock",
+                subtitle = "Current inventory",
+                modifier = Modifier.weight(1f),
+                onClick = { openFeature("inventory") }
+            )
+            ReferenceQuickTile(
+                icon = "⚙",
+                title = "Settings",
+                subtitle = "App preferences",
+                modifier = Modifier.weight(1f),
+                onClick = { openFeature("display") }
+            )
+        }
+
+        Card(
+            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, LensHomeBorder),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = RoundedCornerShape(12.dp), color = ReferencePaleBlue, modifier = Modifier.size(46.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Text("G", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 21.sp) }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Google camera search", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 15.sp)
+                    Text("Scan a barcode, QR code or encoded model/stock label", color = MorleyTextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+                Text("›", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 24.sp)
+            }
+        }
+
+        Surface(color = ReferencePaleBlue, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "Device Scan uses Morley Vision for the two-photo model, condition and damage assessment. Google Play services is used separately for code scanning in Morley Search.",
+                Modifier.padding(11.dp),
+                color = Color(0xFF28577E),
+                fontSize = 10.sp,
+                lineHeight = 14.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        TextButton(onClick = onGp, modifier = Modifier.fillMaxWidth()) {
+            Text("General Buys / GP • Trade-in tools", color = ReferenceBlue, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(2.dp))
+    }
+}
+
+private val LensHomeBorder = Color(0xFFD8E2EE)
+
+@Composable
+private fun ReferenceQuickTile(
+    icon: String,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, LensHomeBorder),
+        shape = RoundedCornerShape(14.dp),
+        modifier = modifier.height(106.dp)
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(icon, color = ReferenceBlue, fontSize = 27.sp, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(3.dp))
+            Text(title, color = MorleyTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+            Text(subtitle, color = MorleyTextSecondary, fontSize = 10.sp, textAlign = TextAlign.Center)
+        }
     }
 }
 
