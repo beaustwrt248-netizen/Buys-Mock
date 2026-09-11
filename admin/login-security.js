@@ -10,7 +10,7 @@
   const challengeShell=frame.parentElement;
   const loginView=document.getElementById('loginView');
   const mobileStyle=document.createElement('style');
-  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}}';
+  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}#email,#password{pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;-webkit-text-fill-color:#1d2b26!important;caret-color:#0d8463!important;opacity:1!important}}';
   document.head.appendChild(mobileStyle);
 
   let captchaToken='';
@@ -25,6 +25,39 @@
     frame.style.display=visible?'block':'none';
   }
 
+  function restoreEditable(input){
+    input.readOnly=false;
+    input.disabled=false;
+    input.removeAttribute('readonly');
+    input.removeAttribute('disabled');
+    input.style.pointerEvents='auto';
+    input.style.userSelect='text';
+    input.style.webkitUserSelect='text';
+  }
+
+  function installMobileInputRecovery(input){
+    restoreEditable(input);
+    input.addEventListener('focus',function(){restoreEditable(input);});
+    input.addEventListener('touchstart',function(){restoreEditable(input);},{passive:true});
+    input.addEventListener('beforeinput',function(event){
+      if(event.isComposing||event.inputType!=='insertText'||typeof event.data!=='string'||!event.data)return;
+      const before=input.value;
+      const start=typeof input.selectionStart==='number'?input.selectionStart:before.length;
+      const end=typeof input.selectionEnd==='number'?input.selectionEnd:start;
+      const text=event.data;
+      queueMicrotask(function(){
+        if(input.value!==before)return;
+        input.value=before.slice(0,start)+text+before.slice(end);
+        const caret=start+text.length;
+        try{input.setSelectionRange(caret,caret);}catch(_){}
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+      });
+    },true);
+  }
+
+  installMobileInputRecovery(emailInput);
+  installMobileInputRecovery(passwordInput);
+
   function loadChallenge(reason){
     if(challengeLoaded&&frame.src&&frame.src!=='about:blank')return;
     challengeLoaded=true;
@@ -36,6 +69,8 @@
   }
 
   function maybeLoadChallenge(){
+    restoreEditable(emailInput);
+    restoreEditable(passwordInput);
     syncLoginEnabled();
     if(credentialsReady()&&!challengeLoaded)loadChallenge('Security check loading…');
   }
