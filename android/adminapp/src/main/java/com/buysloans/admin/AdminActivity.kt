@@ -51,7 +51,12 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                cacheMode = WebSettings.LOAD_DEFAULT
+
+                // Admin is a live control surface. LOAD_DEFAULT plus WebView state restoration can
+                // resurrect an old /admin/ shell after a deployment and leave only the page
+                // background visible. Always request the current document instead.
+                cacheMode = WebSettings.LOAD_NO_CACHE
+
                 loadWithOverviewMode = true
                 useWideViewPort = true
                 allowFileAccess = false
@@ -85,7 +90,12 @@ class AdminActivity : ComponentActivity() {
         setContentView(webView)
         webView.requestFocus(View.FOCUS_DOWN)
         webView.post { webView.requestFocusFromTouch() }
-        if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
+
+        // Do not restore a previously saved WebView document here. That state can contain the
+        // exact stale/blank Admin shell we are recovering from. Cookies and DOM storage still
+        // preserve the signed-in session; only the document itself is forced fresh.
+        webView.clearCache(true)
+        webView.loadUrl(AdminWebParityPolicy.freshHomeUrl(BuildConfig.VERSION_CODE))
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -100,16 +110,6 @@ class AdminActivity : ComponentActivity() {
         } catch (_: ActivityNotFoundException) {
             // Fail closed: unsupported external links never get loaded inside the privileged Admin WebView.
         }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        webView.saveState(outState)
-        super.onSaveInstanceState(outState)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        webView.restoreState(savedInstanceState)
     }
 
     override fun onDestroy() {
