@@ -18,18 +18,23 @@ test('Guardian delegates intelligence to Nova and keeps policy ownership', () =>
 
 test('Nova Guardian intelligence is internal and cannot authorize repairs', () => {
   assert.match(nova, /token===SERVICE_ROLE/);
-  assert.match(nova, /x-guardian-source/);
-  assert.match(nova, /never authorize a repair/i);
+  assert.match(nova, /guardian-worker/);
+  assert.match(nova, /guardian-repair-worker/);
+  assert.match(nova, /Never authorize a repair/i);
   assert.match(nova, /sensitive_change_likely/);
   assert.match(nova, /service_role\/database grants/);
+  assert.match(nova, /repair_candidate/);
+  assert.match(nova, /Never edit an applied migration/i);
 });
 
-test('repair generator includes Edge Functions but isolates migrations', () => {
+test('repair generator delegates proposals to Nova and includes Edge Functions', () => {
+  assert.match(repair, /functions\/v1\/nova-guardian-intelligence/);
+  assert.match(repair, /x-guardian-source":"guardian-repair-worker/);
   assert.match(repair, /p\.startsWith\("supabase\/functions\/"\)/);
-  assert.match(repair, /supabase\\\/migrations/);
-  assert.match(repair, /never edit an existing migration/i);
+  assert.match(repair, /isMigrationPath/);
   assert.match(repair, /No code, Edge Function or migration has been written or deployed/);
   assert.match(repair, /requires_approval:true/);
+  assert.doesNotMatch(repair, /api\.openai\.com\/v1\/responses/);
 });
 
 test('executor rechecks real approval before any GitHub write', () => {
