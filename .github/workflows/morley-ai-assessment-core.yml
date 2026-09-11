@@ -13,6 +13,7 @@ on:
       - 'tests/morley-ai-damage-review-contract.test.mjs'
       - 'tests/morley-ai-diagnostics-condition.test.mjs'
       - 'tests/morley-ai-valuation-repair.test.mjs'
+      - 'tests/morley-ai-risk-passport.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -38,3 +39,5 @@ jobs:
         run: node --test tests/morley-ai-diagnostics-condition.test.mjs
       - name: Run valuation and repair decision contract
         run: node --test tests/morley-ai-valuation-repair.test.mjs
+      - name: Run deal-risk and Device Passport contract
+        run: node --test tests/morley-ai-risk-passport.test.mjs
