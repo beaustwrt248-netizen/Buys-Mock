@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -21,6 +20,7 @@ class AdminActivity : ComponentActivity() {
     companion object {
         const val EXTRA_ACCESS_TOKEN = "admin_access_token"
         const val EXTRA_REFRESH_TOKEN = "admin_refresh_token"
+        private const val NATIVE_LOGOUT_PATH = "/admin/native-logout"
     }
 
     private lateinit var webView: WebView
@@ -58,12 +58,15 @@ class AdminActivity : ComponentActivity() {
 
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-            addJavascriptInterface(NativeAuthBridge(), "AndroidAdminAuth")
 
             webChromeClient = WebChromeClient()
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     if (!request.isForMainFrame) return false
+                    if (request.url.path == NATIVE_LOGOUT_PATH) {
+                        returnToNativeLogin()
+                        return true
+                    }
                     val target = request.url.toString()
                     if (AdminWebParityPolicy.isTrustedAdminUrl(target)) return false
                     if (AdminWebParityPolicy.isExternallyRoutableScheme(request.url.scheme)) openExternal(request.url)
@@ -93,33 +96,20 @@ class AdminActivity : ComponentActivity() {
     private fun injectNativeSession(view: WebView) {
         val access = JSONObject.quote(accessToken)
         val refresh = JSONObject.quote(refreshToken)
+        val logoutUrl = JSONObject.quote("https://buyshub.me$NATIVE_LOGOUT_PATH")
         val script = """
             (function(){
               if(!window.sb || !window.sb.auth) return;
+              var exitToNative=function(){ window.location.replace($logoutUrl); };
               window.sb.auth.setSession({access_token:$access,refresh_token:$refresh}).then(function(result){
-                if(result && result.error){ AndroidAdminAuth.sessionError(String(result.error.message||'Session handoff failed.')); return; }
+                if(result && result.error){ exitToNative(); return; }
                 var logout=document.getElementById('logoutBtn');
-                if(logout){ logout.onclick=function(){ window.sb.auth.signOut().finally(function(){ AndroidAdminAuth.logout(); }); }; }
+                if(logout){ logout.onclick=function(){ window.sb.auth.signOut().finally(exitToNative); }; }
                 if(typeof window.loadSession==='function') window.loadSession();
-              }).catch(function(error){ AndroidAdminAuth.sessionError(String(error&&error.message||'Session handoff failed.')); });
+              }).catch(exitToNative);
             })();
         """.trimIndent()
         view.evaluateJavascript(script, null)
-    }
-
-    private inner class NativeAuthBridge {
-        @JavascriptInterface
-        fun logout() {
-            runOnUiThread { returnToNativeLogin() }
-        }
-
-        @JavascriptInterface
-        fun sessionError(message: String) {
-            runOnUiThread {
-                AdminTelemetry.record(applicationContext, "NativeSessionHandoff", IllegalStateException(message))
-                returnToNativeLogin()
-            }
-        }
     }
 
     private fun returnToNativeLogin() {
@@ -145,7 +135,6 @@ class AdminActivity : ComponentActivity() {
         if (::webView.isInitialized) {
             webView.apply {
                 stopLoading()
-                removeJavascriptInterface("AndroidAdminAuth")
                 loadUrl("about:blank")
                 clearHistory()
                 removeAllViews()
