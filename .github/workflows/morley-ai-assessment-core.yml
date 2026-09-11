@@ -5,7 +5,11 @@ on:
     branches: [ main ]
     paths:
       - 'morley-ai-assessment-core.js'
+      - 'android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyAssessmentBridge.kt'
       - 'tests/morley-ai-assessment-core.test.mjs'
+      - 'tests/morley-ai-device-lens-integration.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -23,3 +27,5 @@ jobs:
           persist-credentials: false
       - name: Run assessment core contract
         run: node --test tests/morley-ai-assessment-core.test.mjs
+      - name: Run Device Lens assessment integration contract
+        run: node --test tests/morley-ai-device-lens-integration.test.mjs
