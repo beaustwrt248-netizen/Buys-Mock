@@ -1,8 +1,8 @@
 {
-  "versionCode": 30,
-  "versionName": "0.3.26",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.26/Nova-AI-0.3.26.apk",
-  "sha256": "ed74bff37bb1aab2817bb412dbdb4fb833dce43dc48d5c29e1dcf47f87a63c54",
+  "versionCode": 31,
+  "versionName": "0.3.27",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v0.3.27/Nova-AI-0.3.27.apk",
+  "sha256": "695f59696145ce7da0c52a20301b61d258f1684e1b13138debc8476a10f75388",
   "mandatory": false,
-  "notes": "Nova AI 0.3.26 is available."
+  "notes": "Nova AI 0.3.27 adds AI model modes, native voice input, provider telemetry, guarded retries/cost controls and two-photo Vision damage review."
 }
