@@ -7,20 +7,6 @@
   const passwordInput=document.getElementById('password');
   if(!frame||!loginBtn||!loginStatus||!challengeStatus||!emailInput||!passwordInput)return;
 
-  const challengeShell=frame.parentElement;
-  const loginView=document.getElementById('loginView');
-  const mobileStyle=document.createElement('style');
-  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}#email,#password{position:relative!important;z-index:2!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:text!important;-webkit-user-select:text!important;-webkit-text-fill-color:#f5f8ff!important;caret-color:#12c9ff!important;opacity:1!important}}';
-  document.head.appendChild(mobileStyle);
-
-  const challengePlaceholder=document.createElement('div');
-  challengePlaceholder.id='adminSecurityPlaceholder';
-  challengePlaceholder.setAttribute('role','status');
-  challengePlaceholder.setAttribute('aria-live','polite');
-  challengePlaceholder.style.cssText='min-height:74px;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px;color:#d5dfec;background:#111;font-size:14px;line-height:1.35';
-  challengePlaceholder.innerHTML='<strong style="color:#fff;font-size:15px">Cloudflare security check</strong><span>Enter your email and password to begin.</span>';
-  if(challengeShell)challengeShell.insertBefore(challengePlaceholder,frame);
-
   let captchaToken='';
   let busy=false;
   let challengeLoaded=false;
@@ -28,97 +14,39 @@
   function credentialsReady(){return emailInput.value.trim().length>0&&emailInput.checkValidity()&&passwordInput.value.length>0;}
   function syncLoginEnabled(){loginBtn.disabled=busy||!captchaToken||!credentialsReady();}
   function setChallengeState(text,ok){challengeStatus.textContent=text;challengeStatus.style.color=ok?'#25d991':'#8fa6c6';}
-  function setChallengeVisible(visible){
-    if(challengeShell)challengeShell.style.display='block';
-    frame.style.display=visible?'block':'none';
-    challengePlaceholder.style.display=visible?'none':'flex';
-  }
 
-  function restoreEditable(input){
-    input.readOnly=false;
-    input.disabled=false;
-    input.removeAttribute('readonly');
-    input.removeAttribute('disabled');
-    input.style.pointerEvents='auto';
-    input.style.touchAction='manipulation';
-    input.style.userSelect='text';
-    input.style.webkitUserSelect='text';
-  }
-
-  function focusEditable(input){
-    restoreEditable(input);
-    try{input.focus({preventScroll:true});}catch(_){try{input.focus();}catch(__){}}
-  }
-
-  function installMobileInputRecovery(input){
-    restoreEditable(input);
-    input.addEventListener('focus',function(){restoreEditable(input);});
-    input.addEventListener('pointerup',function(){focusEditable(input);});
-    input.addEventListener('touchend',function(){focusEditable(input);},{passive:true});
-    input.addEventListener('click',function(){focusEditable(input);});
-    input.addEventListener('beforeinput',function(event){
-      if(event.isComposing||event.inputType!=='insertText'||typeof event.data!=='string'||!event.data)return;
-      const before=input.value;
-      const start=typeof input.selectionStart==='number'?input.selectionStart:before.length;
-      const end=typeof input.selectionEnd==='number'?input.selectionEnd:start;
-      const text=event.data;
-      queueMicrotask(function(){
-        if(input.value!==before)return;
-        input.value=before.slice(0,start)+text+before.slice(end);
-        const caret=start+text.length;
-        try{input.setSelectionRange(caret,caret);}catch(_){}
-        input.dispatchEvent(new Event('input',{bubbles:true}));
-      });
-    },true);
-  }
-
-  installMobileInputRecovery(emailInput);
-  installMobileInputRecovery(passwordInput);
-
-  function loadChallenge(reason){
-    if(challengeLoaded&&frame.src&&frame.src!=='about:blank')return;
+  function loadChallenge(reason,force){
+    if(challengeLoaded&&!force)return;
     challengeLoaded=true;
     captchaToken='';
-    setChallengeVisible(true);
+    frame.style.display='block';
     syncLoginEnabled();
     setChallengeState(reason||'Security check loading…',false);
-    frame.src='turnstile.html?v=5&load='+Date.now();
-  }
-
-  function maybeLoadChallenge(){
-    restoreEditable(emailInput);
-    restoreEditable(passwordInput);
-    syncLoginEnabled();
-    if(credentialsReady()&&!challengeLoaded)loadChallenge('Security check loading…');
+    frame.src='turnstile.html?v=6&load='+Date.now();
   }
 
   function resetChallenge(reason){
     captchaToken='';
-    challengeLoaded=true;
-    setChallengeVisible(true);
     syncLoginEnabled();
     setChallengeState(reason||'Reloading security check…',false);
-    frame.src='turnstile.html?v=5&retry='+Date.now();
+    frame.style.display='block';
+    frame.src='turnstile.html?v=6&retry='+Date.now();
   }
 
-  try{frame.src='about:blank';}catch(_){}
-  setChallengeVisible(false);
-  setChallengeState('Enter your email and password first.',false);
-  if(loginView)loginView.style.scrollMarginTop='12px';
+  emailInput.readOnly=false;
+  emailInput.disabled=false;
+  passwordInput.readOnly=false;
+  passwordInput.disabled=false;
+  emailInput.style.pointerEvents='auto';
+  passwordInput.style.pointerEvents='auto';
 
-  emailInput.addEventListener('input',maybeLoadChallenge);
-  passwordInput.addEventListener('input',maybeLoadChallenge);
-  emailInput.addEventListener('change',maybeLoadChallenge);
-  passwordInput.addEventListener('change',maybeLoadChallenge);
+  emailInput.addEventListener('input',syncLoginEnabled);
+  passwordInput.addEventListener('input',syncLoginEnabled);
+  emailInput.addEventListener('change',syncLoginEnabled);
+  passwordInput.addEventListener('change',syncLoginEnabled);
   challengeStatus.addEventListener('click',function(){
-    if(!credentialsReady()){
-      setChallengeVisible(false);
-      setChallengeState('Enter your email and password first.',false);
-      return;
-    }
     if(!captchaToken)resetChallenge('Retrying security check…');
   });
-  syncLoginEnabled();
 
   window.addEventListener('message',function(event){
     const sameSource=event.source===frame.contentWindow;
@@ -128,7 +56,6 @@
     const payload=event.data;
     if(!payload||payload.source!=='morley-turnstile')return;
     if(payload.type==='ready'){
-      setChallengeVisible(true);
       if(!captchaToken)setChallengeState('Complete the security check to sign in.',false);
     }else if(payload.type==='token'&&payload.value){
       captchaToken=String(payload.value);
@@ -146,25 +73,18 @@
   });
 
   frame.addEventListener('load',function(){
-    if(challengeLoaded){
-      setChallengeVisible(true);
-      if(!captchaToken)setChallengeState('Security check loading…',false);
-    }
+    if(challengeLoaded&&!captchaToken)setChallengeState('Security check loading…',false);
     syncLoginEnabled();
   });
 
-  setTimeout(maybeLoadChallenge,350);
+  syncLoginEnabled();
+  loadChallenge('Security check loading…');
 
   loginBtn.onclick=async function(){
     const email=emailInput.value.trim();
     const password=passwordInput.value;
     if(!credentialsReady()){loginStatus.textContent='Enter a valid email and password.';syncLoginEnabled();return;}
-    if(!captchaToken){
-      loginStatus.textContent='Complete the security check first.';
-      if(!challengeLoaded)loadChallenge('Security check loading…');
-      syncLoginEnabled();
-      return;
-    }
+    if(!captchaToken){loginStatus.textContent='Complete the security check first.';resetChallenge('Complete the security check to sign in.');return;}
     const token=captchaToken;
     busy=true;
     syncLoginEnabled();
