@@ -72,13 +72,12 @@ private fun RootApp(showUpdatedInitially: Boolean) {
     MaterialTheme(colorScheme = MorleyColorScheme) { DashboardApp(showUpdatedInitially) }
 }
 
-// Compact phone navigation follows the approved mobile reference.
+// Compact phone navigation keeps the four highest-frequency destinations visible.
 private enum class BottomDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
-    STOCK("Stock", MorleyIcons.Categories),
+    CATALOGUE("Catalogue", MorleyIcons.Categories),
     SCAN("Scan", MorleyIcons.Phone),
-    TRADE("Trade", MorleyIcons.Money),
-    MORE("More", MorleyIcons.More)
+    TRADE("Trade", MorleyIcons.Money)
 }
 
 // Larger screens keep the established Categories and General Buys routes instead of
@@ -96,10 +95,9 @@ private fun CompactDashboardNavigation(page: Page, showMenu: Boolean, onSelect: 
         BottomDestination.entries.forEach { destination ->
             val selected = when (destination) {
                 BottomDestination.HOME -> !showMenu && page == Page.Home
-                BottomDestination.STOCK -> false
+                BottomDestination.CATALOGUE -> !showMenu && page == Page.Laptop
                 BottomDestination.SCAN -> false
                 BottomDestination.TRADE -> !showMenu && page == Page.GP
-                BottomDestination.MORE -> showMenu
             }
             NavigationBarItem(
                 selected = selected,
@@ -143,16 +141,12 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     fun selectDestination(destination: BottomDestination) {
         when (destination) {
             BottomDestination.HOME -> { showMenu = false; page = Page.Home }
-            BottomDestination.STOCK -> {
-                showMenu = false
-                context.startActivity(Intent(context, MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE, "inventory"))
-            }
+            BottomDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }
             BottomDestination.SCAN -> {
                 showMenu = false
                 context.startActivity(Intent(context, DeviceLensActivity::class.java))
             }
             BottomDestination.TRADE -> { showMenu = false; page = Page.GP }
-            BottomDestination.MORE -> openMenu()
         }
     }
 
@@ -423,7 +417,7 @@ private fun MoreHub(onSignOut: () -> Unit) {
             MenuRow("⌕", "Morley search", "Search by name/model or scan a code with the Google camera.") { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
-            MenuRow("▣", "Inventory", "Stock, costs and resale values.") { open("inventory") }
+            MenuRow("▣", "Stock", "Current inventory, costs and resale values.") { open("inventory") }
             MenuRow("↗", "Sales history", "Revenue and realised profit.") { open("sales") }
             MenuRow("⌗", "Barcode scanner", "Find or add stock quickly.") { open("scanner") }
         }
