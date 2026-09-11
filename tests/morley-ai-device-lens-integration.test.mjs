@@ -16,12 +16,10 @@ assert.match(bridge, /commercialAuthority\s*=\s*"advisory"/, 'AI commercial outp
 assert.match(bridge, /requiresStaffConfirmation\s*=\s*true/, 'assessment must always require staff confirmation');
 assert.match(bridge, /when \{[\s\S]*!identityResolved[\s\S]*"identity_unresolved"[\s\S]*!storageResolved[\s\S]*"storage_unresolved"[\s\S]*!evidenceSufficient[\s\S]*"evidence_insufficient"/, 'Android assessment states must preserve the shared fail-closed ordering');
 
-assert.match(activity, /assessmentSnapshot\s+by\s+remember\s*\{\s*mutableStateOf<MorleyAssessmentSnapshot\?>\(null\)\s*\}/, 'Device Lens must retain assessment state alongside review state');
-assert.match(activity, /assessmentSnapshot\s*=\s*MorleyAssessmentBridge\.from\(it, reviewState!!, null\)/, 'analysis must build an assessment from the verified inspection/review contract');
-assert.match(activity, /assessmentSnapshot\s*=\s*MorleyAssessmentBridge\.from\(current, updatedReview, it\)/, 'pricing evidence must refresh the assessment without bypassing review');
-assert.match(activity, /assessmentSnapshot\s*=\s*null[\s\S]*reviewState\s*=\s*null/, 'reset/retake must clear assessment state with review state');
-assert.match(activity, /MorleyAssessmentStatusCard\(/, 'Device Lens review must render assessment status to staff');
-
+assert.match(activity, /MorleyVisionReviewPanel\(/, 'live Device Lens must continue rendering the canonical staff review panel');
+assert.match(activity, /fun requireStaffReview\(\): Boolean[\s\S]*reviewState\?\.canCompleteStaffReview/, 'pricing and stock must remain protected by the existing staff-review gate');
+assert.match(review, /val assessment = MorleyAssessmentBridge\.from\(state\.inspection, state, null\)/, 'review panel must derive live assessment state from the same verified inspection/review objects');
+assert.match(review, /MorleyAssessmentStatusCard\(assessment\)/, 'Device Lens review must render assessment status to staff');
 assert.match(review, /fun MorleyAssessmentStatusCard\(/, 'staff review UI must expose the assessment status card');
 assert.match(review, /Review required|Blocked|Verified/, 'assessment status must be explained in text, not colour alone');
 assert.match(review, /valuationBlockedReason/, 'staff UI must show why valuation is blocked');
