@@ -14,9 +14,11 @@ const ORIGINS = new Set([
   "https://www.buyshub.me",
   "https://beaustwrt248-netizen.github.io",
 ]);
-const REQUIRED_IMAGES = 2;
+const MIN_IMAGES = 2;
+const MAX_IMAGES = 8;
 const MAX_SINGLE_DATA_URL = 8_000_000;
-const MAX_TOTAL_DATA_URL = 20_000_000;
+const MAX_TOTAL_DATA_URL = 30_000_000;
+const DEFAULT_CAPTURE_ORDER = ["front", "back"];
 
 const clean = (value: unknown, max = 500) =>
   String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
@@ -57,7 +59,8 @@ async function authorise(req: Request) {
 function collectImages(body: any) {
   const supplied = Array.isArray(body?.image_data_urls) ? body.image_data_urls : [];
   const images = supplied.map((value: unknown) => String(value || "")).filter(Boolean);
-  if (images.length !== REQUIRED_IMAGES) throw new Error("TWO_IMAGES_REQUIRED");
+  if (images.length < MIN_IMAGES || images.length > MAX_IMAGES) throw new Error("IMAGE_COUNT");
+
   let total = 0;
   for (const image of images) {
     if (!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) throw new Error("IMAGE_TYPE");
@@ -65,7 +68,15 @@ function collectImages(body: any) {
     total += image.length;
   }
   if (total > MAX_TOTAL_DATA_URL) throw new Error("IMAGE_TOTAL_SIZE");
-  return images;
+
+  const suppliedOrder = Array.isArray(body?.capture_order) ? body.capture_order : [];
+  const captureOrder = images.map((_: string, index: number) =>
+    clean(suppliedOrder[index], 80) || DEFAULT_CAPTURE_ORDER[index] || `additional ${index - 1}`
+  );
+  if (new Set(captureOrder.map((value: string) => value.toLowerCase())).size !== captureOrder.length) {
+    throw new Error("DUPLICATE_ANGLE");
+  }
+  return { images, captureOrder };
 }
 
 function responseText(data: any) {
@@ -116,32 +127,33 @@ function normaliseGrade(value: unknown) {
   return ["A", "B", "C", "D", "PARTS"].includes(grade) ? grade : null;
 }
 
-function normaliseDamageRegions(value: any) {
+function normaliseDamageRegions(value: any, imageCount: number) {
   if (!Array.isArray(value)) return [];
   const regions: any[] = [];
   for (const item of value) {
     const photoIndex = Number(item?.photo_index);
-    if (!Number.isInteger(photoIndex) || photoIndex < 1 || photoIndex > REQUIRED_IMAGES) continue;
+    if (!Number.isInteger(photoIndex) || photoIndex < 1 || photoIndex > imageCount) continue;
 
     const x = clamp01(item?.x);
     const y = clamp01(item?.y);
     const width = Math.max(0.02, clamp01(item?.width));
     const height = Math.max(0.02, clamp01(item?.height));
-    if (x >= 1 || y >= 1) continue;
+    const confidence = clamp01(item?.confidence);
+    if (x >= 1 || y >= 1 || confidence < 0.55) continue;
 
     regions.push({
       photo_index: photoIndex,
       label: clean(item?.label, 100) || "Visible damage",
-      severity: ["minor", "moderate", "major"].includes(clean(item?.severity, 20).toLowerCase())
+      severity: ["minor", "moderate", "major", "critical"].includes(clean(item?.severity, 20).toLowerCase())
         ? clean(item?.severity, 20).toLowerCase()
         : "minor",
-      confidence: clamp01(item?.confidence),
+      confidence,
       x,
       y,
       width: Math.min(width, 1 - x),
       height: Math.min(height, 1 - y),
     });
-    if (regions.length >= 12) break;
+    if (regions.length >= 24) break;
   }
   return regions;
 }
@@ -178,6 +190,21 @@ async function catalogueMatch(parsed: any) {
   return null;
 }
 
+function categoryGuidance(category: string) {
+  switch (category.toLowerCase()) {
+    case "tablet":
+      return "Inspect display/glass, back, frame/edges, cameras and ports.";
+    case "watch":
+      return "Inspect display/glass, case, crown/buttons, sensor back and band mounts.";
+    case "laptop":
+      return "Inspect display, keyboard/trackpad, lid/base, hinges, ports and corners.";
+    case "console":
+      return "Inspect case, ports, vents, optical/cartridge areas and visible controller/accessory condition.";
+    default:
+      return "Inspect display/glass, back glass/panel, frame/edges, cameras, buttons and ports.";
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const h = headers(req);
   const reply = (body: unknown, status = 200) =>
@@ -199,32 +226,42 @@ Deno.serve(async (req: Request) => {
     }
 
     let images: string[];
+    let captureOrder: string[];
     try {
-      images = collectImages(body);
+      ({ images, captureOrder } = collectImages(body));
     } catch (error) {
       const message = String(error instanceof Error ? error.message : error);
-      if (message === "TWO_IMAGES_REQUIRED") {
-        return reply({ error: "Take exactly two photos: front first, then back." }, 400);
-      }
+      if (message === "IMAGE_COUNT") return reply({ error: "Take between 2 and 8 inspection photos." }, 400);
+      if (message === "DUPLICATE_ANGLE") return reply({ error: "Each inspection photo angle must be unique." }, 400);
       if (message === "IMAGE_TYPE") return reply({ error: "JPEG, PNG or WebP images are required." }, 400);
       if (message === "IMAGE_SIZE") return reply({ error: "Each image must be under about 6 MB." }, 413);
       return reply({ error: "Combined image payload is too large." }, 413);
     }
 
-    const prompt = `You are Morley Buys Device Inspection in Australia. Inspect EXACTLY TWO photos of the same trade-in device. Photo 1 is the FRONT. Photo 2 is the BACK. Identify the device conservatively and assess visible physical condition only.
+    const orderDescription = captureOrder.map((angle, index) => `Photo ${index + 1}: ${angle}`).join("; ");
+    const prompt = `You are Morley Vision, the conservative visual-inspection system for Morley Buys in Australia. Inspect ${images.length} photos that are claimed to show ONE trade-in device. Capture order: ${orderDescription}.
 
-Critical damage-location task: when you can clearly see a crack, deep scratch, chip, dent, broken glass, missing physical piece, bent area, or other visible damage, return one damage_regions object for each distinct area. Coordinates MUST be normalized 0..1 relative to the full displayed photo: x and y are the top-left of a tight bounding ellipse/box, width and height are its size. Only mark a region when the visible evidence is strong enough that a red circle over that region would help a staff member find the actual damage. Do not create a region for reflections, glare, fingerprints, shadows, dust, screen content, wallpaper, or uncertain marks. If the location is uncertain, mention it only in uncertainties, not damage_regions.
+IDENTITY: Identify manufacturer/family/model/colour only when visually supported. Model number and storage must be returned only when directly visible in a label, settings/packaging photo, or otherwise strongly evidenced. If not supported, return null and explain what is needed in uncertainties/next_photos. Never guess.
 
-Never invent storage, model number, damage, serial, IMEI, accessories, or hidden functionality. Never return full serial/IMEI values. Condition grade is advisory only: A = excellent/minimal visible wear; B = good/light wear; C = fair/clear cosmetic wear; D = poor/significant visible damage; PARTS = appears unsuitable except for parts. Do not infer whether cameras, buttons, charging, battery, screen touch, speakers, biometrics, ports, water resistance or radios work from photos.
+CONSISTENCY: Check whether all photos plausibly show the same physical device. Flag screenshots, catalogue/promotional images, conflicting colour/camera/layout/model cues, duplicate/reused images, or other evidence that the set may not represent one device in consistency_warnings. Do not accuse staff or customers of fraud; describe only the visual inconsistency.
+
+IMAGE QUALITY: Report problems such as severe blur, darkness, glare, obstruction, cropping, reflections hiding the surface, or insufficient framing in quality_warnings. Request a targeted replacement/extra angle in next_photos when it would materially improve confidence.
+
+DAMAGE: Mark clearly visible cracks, shattered glass, deep scratches, chips, dents, bent frame/case, camera-lens damage, screen/display defects visible in the photo, back-panel damage, corrosion/liquid residue, broken/missing exterior pieces, damaged ports and category-appropriate defects. For each confident finding return a damage_regions object. Coordinates are normalized 0..1 relative to the FULL photo: x/y top-left and width/height of a tight bounding ellipse/box. Do not mark reflections, glare, fingerprints, dust, wallpaper, shadows, normal seams or uncertain marks. Put uncertain marks only in uncertainties. Severity: minor, moderate, major or critical. Confidence is 0..1.
+
+COMPONENTS: In component_findings, describe only visibly inspectable components and their observed physical state. ${categoryGuidance(clean(body?.category_hint, 40) || "phone")} Never infer hidden functionality (battery health, charging, touch, speakers, biometrics, radios, water resistance, etc.) from a photo.
+
+CONDITION: Advisory grade only: A excellent/minimal visible wear; B good/light wear; C fair/clear cosmetic wear; D poor/significant visible damage; PARTS appears unsuitable except for parts. Include concise condition_summary.
+
+PRIVACY: Never return a full IMEI, serial number, account name, phone number, email, password, unlock code or other private identifier. A model identifier such as A3523/SM-Sxxx is allowed when relevant.
 
 Return JSON only with these keys:
 likely_brand, likely_family, likely_model, model_number, colour, storage,
 condition_grade, condition_summary, confidence,
 damage_flags (string array),
-damage_regions (array of objects: photo_index, label, severity minor|moderate|major, confidence, x, y, width, height),
-evidence (string array), uncertainties (string array), next_photos (string array), catalogue_search_terms (string array).
-
-Photo 1 is FRONT; Photo 2 is BACK.`;
+damage_regions (array: photo_index, label, severity minor|moderate|major|critical, confidence, x, y, width, height),
+evidence (string array), uncertainties (string array), next_photos (string array), catalogue_search_terms (string array),
+quality_warnings (string array), consistency_warnings (string array), component_findings (string array).`;
 
     const content: any[] = [
       { type: "input_text", text: prompt },
@@ -233,7 +270,7 @@ Photo 1 is FRONT; Photo 2 is BACK.`;
     const payload = {
       model: MODEL,
       reasoning: { effort: "medium" },
-      max_output_tokens: 2400,
+      max_output_tokens: 3200,
       input: [{ role: "user", content }],
     };
 
@@ -264,20 +301,23 @@ Photo 1 is FRONT; Photo 2 is BACK.`;
       condition_grade: normaliseGrade(parsed.condition_grade),
       condition_summary: clean(parsed.condition_summary, 320) || null,
       confidence: clamp01(parsed.confidence),
-      damage_flags: textArray(parsed.damage_flags, 12, 180),
-      damage_regions: normaliseDamageRegions(parsed.damage_regions),
-      evidence: evidenceArray(parsed.evidence, 16, 240),
-      uncertainties: textArray(parsed.uncertainties, 16, 240),
-      next_photos: textArray(parsed.next_photos, 6, 180),
+      damage_flags: textArray(parsed.damage_flags, 20, 180),
+      damage_regions: normaliseDamageRegions(parsed.damage_regions, images.length),
+      evidence: evidenceArray(parsed.evidence, 20, 240),
+      uncertainties: textArray(parsed.uncertainties, 20, 240),
+      next_photos: textArray(parsed.next_photos, 8, 180),
       catalogue_search_terms: textArray(parsed.catalogue_search_terms, 8, 140),
+      quality_warnings: textArray(parsed.quality_warnings, 12, 220),
+      consistency_warnings: textArray(parsed.consistency_warnings, 12, 220),
+      component_findings: textArray(parsed.component_findings, 20, 220),
     };
 
     return reply({
       ok: true,
       checked_at: new Date().toISOString(),
       model: MODEL,
-      photo_count: REQUIRED_IMAGES,
-      capture_order: ["front", "back"],
+      photo_count: images.length,
+      capture_order: captureOrder,
       privacy: {
         stored: false,
         full_serials_returned: false,

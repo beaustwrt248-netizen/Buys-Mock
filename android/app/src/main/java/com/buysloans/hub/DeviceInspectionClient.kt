@@ -55,21 +55,47 @@ data class DeviceInspection(
     val evidence: List<String>,
     val uncertainties: List<String>,
     val nextPhotos: List<String>,
-    val catalogueMatch: CatalogueMatch?
+    val catalogueMatch: CatalogueMatch?,
+    val qualityWarnings: List<String> = emptyList(),
+    val consistencyWarnings: List<String> = emptyList(),
+    val componentFindings: List<String> = emptyList()
 ) {
     val displayName: String
-        get() = catalogueMatch?.let { "${it.brand} ${it.modelName}".trim() }
-            ?.takeIf { it.isNotBlank() }
-            ?: listOf(brand, model).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Identified device" }
+        get() = catalogueMatch?.let { match ->
+            listOf(MorleyVisionPolicy.clean(match.brand), MorleyVisionPolicy.clean(match.modelName))
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+        }?.takeIf { it.isNotBlank() }
+            ?: listOf(MorleyVisionPolicy.clean(brand), MorleyVisionPolicy.clean(model))
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+                .ifBlank { "Device not verified" }
+
+    val verifiedStorage: String
+        get() = MorleyVisionPolicy.clean(storage)
+
+    val identityVerified: Boolean
+        get() = MorleyVisionPolicy.isIdentityVerified(this)
 
     val identityQuery: String
-        get() = listOf(
-            catalogueMatch?.brand.orEmpty().ifBlank { brand },
-            catalogueMatch?.modelName.orEmpty().ifBlank { model },
-            catalogueMatch?.modelNumber.orEmpty().ifBlank { modelNumber },
-            storage
-        ).filter { it.isNotBlank() }.distinct().joinToString(" ")
+        get() {
+            if (!identityVerified) return ""
+            return listOf(
+                MorleyVisionPolicy.clean(catalogueMatch?.brand).ifBlank { MorleyVisionPolicy.clean(brand) },
+                MorleyVisionPolicy.clean(catalogueMatch?.modelName).ifBlank { MorleyVisionPolicy.clean(model) },
+                MorleyVisionPolicy.clean(catalogueMatch?.modelNumber).ifBlank { MorleyVisionPolicy.clean(modelNumber) },
+                verifiedStorage
+            ).filter { it.isNotBlank() }.distinct().joinToString(" ")
+        }
+
+    val inspectionProfile: VisionInspectionProfile
+        get() = MorleyVisionPolicy.inspectionProfile(catalogueMatch?.category)
 }
+
+data class VisionCapture(
+    val angle: String,
+    val file: File
+)
 
 data class MarketListing(
     val source: String,
@@ -81,8 +107,14 @@ data class MarketListing(
 data class LivePricingResult(
     val listings: List<MarketListing>,
     val usedMedian: Double?,
-    val conditionAdjustedResale: Double?
-)
+    val conditionAdjustedResale: Double?,
+    val rejectedListingCount: Int = 0,
+    val verifiedComparableCount: Int = listings.size,
+    val recommendationBlockedReason: String? = null
+) {
+    val canUseSuggestedPrice: Boolean
+        get() = recommendationBlockedReason == null && conditionAdjustedResale != null
+}
 
 object DeviceInspectionClient {
     const val REQUIRED_PHOTOS = 2
@@ -90,27 +122,53 @@ object DeviceInspectionClient {
     private const val LONG_EDGE = 2560
     private const val FALLBACK_LONG_EDGE = 2048
 
-    suspend fun inspect(context: Context, frontPhoto: File, backPhoto: File): DeviceInspection {
-        require(frontPhoto.exists() && backPhoto.exists()) { "Take both front and back photos before analysis." }
+    suspend fun inspect(context: Context, frontPhoto: File, backPhoto: File): DeviceInspection =
+        inspect(
+            context,
+            listOf(
+                VisionCapture("front", frontPhoto),
+                VisionCapture("back", backPhoto)
+            )
+        )
+
+    /**
+     * Multi-angle entry point used by guided Morley Vision capture. Two photos remain the fast path,
+     * while additional edge/camera/label shots can be supplied without changing the API contract.
+     */
+    suspend fun inspect(context: Context, captures: List<VisionCapture>): DeviceInspection {
+        require(captures.size >= REQUIRED_PHOTOS) { "Take at least front and back photos before analysis." }
+        require(captures.all { it.file.exists() }) { "One or more inspection photos are missing." }
+        require(captures.map { it.angle.lowercase() }.toSet().size == captures.size) { "Each inspection angle must be unique." }
         val token = AuthManager.validAccessToken(context)
         return withContext(Dispatchers.IO) {
             val images = JSONArray()
-                .put(imageDataUrl(frontPhoto))
-                .put(imageDataUrl(backPhoto))
+            val order = JSONArray()
+            captures.forEach { capture ->
+                images.put(imageDataUrl(capture.file))
+                order.put(MorleyVisionPolicy.clean(capture.angle).ifBlank { "additional" })
+            }
             val response = edge(
                 token,
                 "device-inspection",
                 JSONObject()
                     .put("image_data_urls", images)
-                    .put("capture_order", JSONArray().put("front").put("back"))
+                    .put("capture_order", order)
             )
             parseInspection(response)
         }
     }
 
     suspend fun livePricing(context: Context, inspection: DeviceInspection): LivePricingResult {
+        MorleyVisionPolicy.pricingBlockReason(inspection)?.let { reason ->
+            return LivePricingResult(
+                listings = emptyList(),
+                usedMedian = null,
+                conditionAdjustedResale = null,
+                recommendationBlockedReason = reason
+            )
+        }
         val query = inspection.identityQuery.trim()
-        require(query.isNotBlank()) { "A reliable device identity is required before live price research." }
+        require(query.isNotBlank()) { "A verified device identity is required before live price research." }
         val token = AuthManager.validAccessToken(context)
         return withContext(Dispatchers.IO) {
             val response = edge(token, "market-search-v2", JSONObject().put("query", query).put("limit", 30))
@@ -118,8 +176,7 @@ object DeviceInspectionClient {
         }
     }
 
-    fun decodeDisplayBitmap(file: File, maxEdge: Int = 1800): Bitmap =
-        decodeOriented(file, maxEdge)
+    fun decodeDisplayBitmap(file: File, maxEdge: Int = 1800): Bitmap = decodeOriented(file, maxEdge)
 
     private fun imageDataUrl(file: File): String {
         var bitmap = decodeOriented(file, LONG_EDGE)
@@ -259,52 +316,64 @@ object DeviceInspectionClient {
     private fun parseInspection(root: JSONObject): DeviceInspection {
         val result = root.optJSONObject("result") ?: error("No device inspection result was returned.")
         val regions = result.optJSONArray("damage_regions").toDamageRegions()
+            .filter { it.confidence >= MorleyVisionPolicy.MIN_DAMAGE_CONFIDENCE }
         return DeviceInspection(
-            brand = result.optString("likely_brand"),
-            family = result.optString("likely_family"),
-            model = result.optString("likely_model"),
-            modelNumber = result.optString("model_number"),
-            colour = result.optString("colour"),
-            storage = result.optString("storage"),
-            conditionGrade = result.optString("condition_grade").ifBlank { "C" },
-            conditionSummary = result.optString("condition_summary"),
+            brand = MorleyVisionPolicy.clean(result.optString("likely_brand")),
+            family = MorleyVisionPolicy.clean(result.optString("likely_family")),
+            model = MorleyVisionPolicy.clean(result.optString("likely_model")),
+            modelNumber = MorleyVisionPolicy.clean(result.optString("model_number")),
+            colour = MorleyVisionPolicy.clean(result.optString("colour")),
+            storage = MorleyVisionPolicy.clean(result.optString("storage")),
+            conditionGrade = MorleyVisionPolicy.clean(result.optString("condition_grade")).ifBlank { "C" },
+            conditionSummary = MorleyVisionPolicy.clean(result.optString("condition_summary")),
             confidence = result.optDouble("confidence", 0.0).coerceIn(0.0, 1.0),
             damageFlags = result.optJSONArray("damage_flags").toStrings(),
             damageRegions = regions,
             evidence = result.optJSONArray("evidence").toStrings(),
             uncertainties = result.optJSONArray("uncertainties").toStrings(),
             nextPhotos = result.optJSONArray("next_photos").toStrings(),
-            catalogueMatch = root.optJSONObject("catalogue_match")?.let(::parseCatalogueMatch)
+            catalogueMatch = root.optJSONObject("catalogue_match")?.let(::parseCatalogueMatch),
+            qualityWarnings = result.optJSONArray("quality_warnings").toStrings(),
+            consistencyWarnings = result.optJSONArray("consistency_warnings").toStrings(),
+            componentFindings = result.optJSONArray("component_findings").toStrings()
         )
     }
 
     private fun parseCatalogueMatch(value: JSONObject): CatalogueMatch = CatalogueMatch(
-        id = value.optString("id"),
-        category = value.optString("category"),
-        brand = value.optString("brand"),
-        family = value.optString("family"),
-        modelName = value.optString("model_name"),
-        modelNumber = value.optString("model_number"),
+        id = MorleyVisionPolicy.clean(value.optString("id")),
+        category = MorleyVisionPolicy.clean(value.optString("category")),
+        brand = MorleyVisionPolicy.clean(value.optString("brand")),
+        family = MorleyVisionPolicy.clean(value.optString("family")),
+        modelName = MorleyVisionPolicy.clean(value.optString("model_name")),
+        modelNumber = MorleyVisionPolicy.clean(value.optString("model_number")),
         releaseYear = value.optInt("release_year").takeIf { it > 0 },
         storageOptions = value.optJSONArray("storage_options").toStrings(),
-        imageReferenceUrl = value.optString("image_reference_url").takeIf { it.isNotBlank() }
+        imageReferenceUrl = MorleyVisionPolicy.clean(value.optString("image_reference_url")).takeIf { it.isNotBlank() }
     )
 
     private fun parsePricing(root: JSONObject, inspection: DeviceInspection): LivePricingResult {
-        val listings = buildList {
+        val allUsed = buildList {
             addAll(root.optJSONObject("ebay")?.optJSONArray("items").toMarketListings("eBay AU"))
             addAll(root.optJSONObject("facebook")?.optJSONArray("items").toMarketListings("Facebook Marketplace"))
-            addAll(root.optJSONObject("webRetail")?.optJSONArray("items").toMarketListings("Australian retailer"))
-        }.filter { it.price > 0.0 }.distinctBy { "${it.source}|${it.title}|${it.price}" }
+        }.filter { it.price > 0.0 }
+            .distinctBy { "${it.source.lowercase()}|${it.title.lowercase()}|${it.price}" }
 
-        val used = listings.filter {
-            it.source.contains("eBay", true) ||
-                it.source.contains("Facebook", true)
-        }.map { it.price }.sorted()
-        val median = if (used.isEmpty()) null else {
-            val mid = used.size / 2
-            if (used.size % 2 == 0) (used[mid - 1] + used[mid]) / 2.0 else used[mid]
+        val identityMatched = allUsed.filter { MorleyVisionPolicy.titleMatchesIdentity(it.title, inspection) }
+        val comparables = MorleyVisionPolicy.robustComparableSet(identityMatched)
+        val rejected = allUsed.size - comparables.size
+
+        if (comparables.size < MorleyVisionPolicy.MIN_COMPARABLES_FOR_PRICE) {
+            return LivePricingResult(
+                listings = comparables.sortedBy { it.price }.take(12),
+                usedMedian = null,
+                conditionAdjustedResale = null,
+                rejectedListingCount = rejected,
+                verifiedComparableCount = comparables.size,
+                recommendationBlockedReason = "Not enough verified market data to suggest a price."
+            )
         }
+
+        val median = MorleyVisionPolicy.median(comparables.map { it.price })
         val adjustment = ConditionAdjustment.assess(
             ConditionEvidence(
                 observedCondition = gradeToCondition(inspection.conditionGrade),
@@ -313,9 +382,11 @@ object DeviceInspectionClient {
             )
         )
         return LivePricingResult(
-            listings = listings.sortedBy { it.price }.take(12),
+            listings = comparables.sortedBy { it.price }.take(12),
             usedMedian = median,
-            conditionAdjustedResale = median?.times(adjustment.multiplier)
+            conditionAdjustedResale = median.times(adjustment.multiplier),
+            rejectedListingCount = rejected,
+            verifiedComparableCount = comparables.size
         )
     }
 
@@ -331,7 +402,9 @@ object DeviceInspectionClient {
     private fun JSONArray?.toStrings(): List<String> {
         if (this == null) return emptyList()
         return buildList {
-            for (i in 0 until length()) optString(i).trim().takeIf { it.isNotBlank() }?.let(::add)
+            for (i in 0 until length()) {
+                MorleyVisionPolicy.clean(optString(i)).takeIf { it.isNotBlank() }?.let(::add)
+            }
         }
     }
 
@@ -341,12 +414,12 @@ object DeviceInspectionClient {
             for (i in 0 until length()) {
                 val item = optJSONObject(i) ?: continue
                 val photoIndex = item.optInt("photo_index")
-                if (photoIndex !in 1..REQUIRED_PHOTOS) continue
+                if (photoIndex < 1) continue
                 add(
                     DamageRegion(
                         photoIndex = photoIndex,
-                        label = item.optString("label").ifBlank { "Visible damage" },
-                        severity = item.optString("severity").ifBlank { "minor" },
+                        label = MorleyVisionPolicy.clean(item.optString("label")).ifBlank { "Visible damage" },
+                        severity = MorleyVisionPolicy.clean(item.optString("severity")).ifBlank { "minor" },
                         confidence = item.optDouble("confidence", 0.0).coerceIn(0.0, 1.0),
                         x = item.optDouble("x", 0.0).toFloat().coerceIn(0f, 1f),
                         y = item.optDouble("y", 0.0).toFloat().coerceIn(0f, 1f),
@@ -364,13 +437,14 @@ object DeviceInspectionClient {
             for (i in 0 until length()) {
                 val item = optJSONObject(i) ?: continue
                 val price = item.optDouble("deliveredPrice", item.optDouble("price", 0.0))
-                if (price <= 0.0) continue
+                val title = MorleyVisionPolicy.clean(item.optString("title"))
+                if (price <= 0.0 || title.isBlank()) continue
                 add(
                     MarketListing(
-                        source = item.optString("source").ifBlank { fallbackSource },
-                        title = item.optString("title"),
+                        source = MorleyVisionPolicy.clean(item.optString("source")).ifBlank { fallbackSource },
+                        title = title,
                         price = price,
-                        condition = item.optString("condition")
+                        condition = MorleyVisionPolicy.clean(item.optString("condition"))
                     )
                 )
             }
