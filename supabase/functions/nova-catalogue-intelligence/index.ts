@@ -39,7 +39,7 @@ Deno.serve(async req => {
     if (!user) return reply({ error: 'Admin access required' }, 403);
 
     const [catalogueResult, queueResult, findingResult] = await Promise.all([
-      admin.from('device_catalog').select('id,brand,category,model_number,storage_options,ram_options,market_region,image_url').eq('active', true).limit(5000),
+      admin.from('device_catalog').select('id,brand,category,model_number,storage_options,ram_options,market_region,image_reference_url').eq('active', true).limit(5000),
       admin.from('nova_catalog_audit_queue').select('id,status,priority,device_id').limit(5000),
       admin.from('nova_catalog_audit_findings').select('id,status,severity,field_name,requires_approval,device_id').limit(5000)
     ]);
@@ -60,7 +60,7 @@ Deno.serve(async req => {
       if (!clean(row.model_number, 120)) missingModel++;
       if (requiresStorage.has(category) && (!Array.isArray(row.storage_options) || row.storage_options.length === 0)) missingStorage++;
       if (category === 'mobile_phone' && brand.toLowerCase() !== 'apple' && (!Array.isArray(row.ram_options) || row.ram_options.length === 0)) missingRam++;
-      if (!clean(row.image_url, 500)) imageGaps++;
+      if (!clean(row.image_reference_url, 500)) imageGaps++;
       if (!clean(row.market_region, 80)) marketRegionGaps++;
     }
 
