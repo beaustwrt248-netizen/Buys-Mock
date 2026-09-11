@@ -1,8 +1,8 @@
 {
-  "versionCode": 32,
-  "versionName": "0.1.31",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v0.1.31/Morley-Admin-0.1.31.apk",
-  "sha256": "862cbcf053c23476dc385d9f57015ccf4e4bfc87c65ac629c6ecb958bddc3169",
+  "versionCode": 33,
+  "versionName": "0.1.32",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v0.1.32/Morley-Admin-0.1.32.apk",
+  "sha256": "68829f28332cd08de6d84787d49ef3cc1b60e3037d18779512e5e6d272501fc7",
   "required": false,
-  "sourceSha": "018953f6b755363e1d879afd179aab909e1397b6"
+  "sourceSha": "d891d27bd086ffa1fa665f3fa9c1c34a681c5bcc"
 }
