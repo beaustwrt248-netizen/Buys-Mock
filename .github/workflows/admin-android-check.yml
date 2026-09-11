@@ -75,7 +75,7 @@ jobs:
           grep -q '"AndroidBridge"' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
-          grep -q 'settings.domStorageEnabled = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          grep -q 'domStorageEnabled = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
 
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
