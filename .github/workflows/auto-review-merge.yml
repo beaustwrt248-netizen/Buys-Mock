@@ -86,40 +86,44 @@ jobs:
         if: steps.risk.outputs.level == 'critical'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr comment "$PR" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically. All ordinary and guarded-sensitive changes remain autonomous.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
+          gh pr comment "$PR" --repo "$REPO" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically. All ordinary and guarded-sensitive changes remain autonomous.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
           exit 1
 
       - name: Record guarded autonomous review
         if: steps.risk.outputs.level == 'guarded'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr comment "$PR" --body "🛡️ **Guarded autonomous change.** Sensitive paths are present, but no destructive/trust-breaking pattern was detected. Existing security, Guardian, parity, release and branch checks remain authoritative; auto-merge is armed only behind those checks."
+          gh pr comment "$PR" --repo "$REPO" --body "🛡️ **Guarded autonomous change.** Sensitive paths are present, but no destructive/trust-breaking pattern was detected. Existing security, Guardian, parity, release and branch checks remain authoritative; auto-merge is armed only behind those checks."
 
       - name: Automatic approval when repository permits bot approval
         if: steps.risk.outputs.level != 'critical'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           RISK_LEVEL: ${{ steps.risk.outputs.level }}
         shell: bash
         run: |
-          gh pr review "$PR" --approve --body "✅ Morley Autopilot policy review passed (${RISK_LEVEL}). Required checks and branch protections remain authoritative."
+          gh pr review "$PR" --repo "$REPO" --approve --body "✅ Morley Autopilot policy review passed (${RISK_LEVEL}). Required checks and branch protections remain authoritative."
 
       - name: Enable auto-merge for all non-critical changes
         if: steps.risk.outputs.level != 'critical'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr merge "$PR" --auto --squash
+          gh pr merge "$PR" --repo "$REPO" --auto --squash
 
       - name: Summary
         shell: bash
