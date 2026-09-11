@@ -27,7 +27,7 @@ test('native Admin session is established before the privileged workspace loads'
 });
 
 test('Admin Android loads the session bootstrap before loading the workspace', () => {
-  assert.match(adminActivity, /NATIVE_SESSION_BOOTSTRAP_URL/);
+  assert.match(adminActivity, /AdminWebParityPolicy\.nativeSessionBootstrapUrl/);
   assert.match(adminActivity, /window\.installNativeAdminSession/);
   assert.doesNotMatch(adminActivity, /window\.sb\.auth\.setSession/);
   assert.doesNotMatch(adminActivity, /typeof window\.loadSession==='function'/);
