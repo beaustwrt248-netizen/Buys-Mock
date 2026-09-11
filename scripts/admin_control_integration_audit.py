@@ -31,6 +31,7 @@ def semantic_version(value: str) -> tuple[int, int, int] | None:
 admin_html = read("admin/index.html")
 admin_app = read("admin/app.js")
 login_security = read("admin/login-security.js")
+native_session_bootstrap = read("admin/native-session-bootstrap.html")
 release_control = read("admin/release-control.js")
 support_tickets = read("admin/support-tickets.js")
 targeted_notifications = read("admin/targeted-notifications.js")
@@ -84,6 +85,7 @@ require("target_installation_id" in targeted_notifications or "notifTarget" in t
 admin_entry_navigation = (
     "AdminWebParityPolicy.HOME_URL" in admin_activity
     or "AdminWebParityPolicy.freshHomeUrl" in admin_activity
+    or "AdminWebParityPolicy.nativeSessionBootstrapUrl" in admin_activity
 )
 web_parity_shell = (
     "WebView" in admin_activity
@@ -102,15 +104,30 @@ if web_parity_shell:
     require("javaScriptEnabled = true" in admin_activity, "Android Admin parity shell must enable the canonical Admin JavaScript application")
     require("domStorageEnabled = true" in admin_activity, "Android Admin parity shell must enable DOM storage for web authentication state")
     require("setAcceptCookie(true)" in admin_activity, "Android Admin parity shell must enable required authentication cookies")
-    if "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
-        require("LOAD_DEFAULT" in admin_activity, "Android Admin must allow normal static-resource caching instead of forcing every navigation cold")
-        require("clearCache(true)" not in admin_activity, "Android Admin must not purge the full WebView cache on every launch")
-        require("freshHomeUrl" in admin_web_policy and "adminApp=" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
-        require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
-        require("maxAttempts=120" in admin_activity, "Android Admin native session handoff must use a bounded Supabase readiness retry")
-        require("setTimeout(install,100)" in admin_activity, "Android Admin native session handoff must retry Supabase readiness")
-        require("typeof window.loadSession==='function'" in admin_activity, "Android Admin native session handoff must wait for the Admin session loader")
-        require("setTimeout(finish,100)" in admin_activity, "Android Admin native session handoff must retry until the Admin session loader is ready")
+    require("LOAD_DEFAULT" in admin_activity, "Android Admin must allow normal static-resource caching instead of forcing every navigation cold")
+    require("clearCache(true)" not in admin_activity, "Android Admin must not purge the full WebView cache on every launch")
+    require("adminApp=" in admin_web_policy, "Android Admin shell URL must vary by native build")
+    require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
+
+    if "AdminWebParityPolicy.nativeSessionBootstrapUrl" in admin_activity:
+        require("NATIVE_SESSION_BOOTSTRAP_URL" in admin_web_policy, "Android Admin native session bootstrap must use the trusted Admin origin")
+        require("isNativeSessionBootstrapUrl" in admin_web_policy, "Android Admin native session bootstrap URL must be origin/path validated")
+        require("window.installNativeAdminSession" in admin_activity, "Android Admin must delegate session installation to the bootstrap contract")
+        require("maxAttempts=3" in admin_activity, "Android Admin bootstrap handoff must use a bounded retry")
+        require("setTimeout(install,500)" in admin_activity, "Android Admin bootstrap handoff must retry bounded bootstrap readiness")
+        require("window.sb.auth.setSession" not in admin_activity, "Privileged Admin WebView must not install Supabase state after workspace render")
+        require("typeof window.loadSession==='function'" not in admin_activity, "Privileged Admin WebView must not race the workspace session loader")
+        require("installNativeAdminSession" in native_session_bootstrap, "Native Admin bootstrap page must expose the session installation contract")
+        require("auth.setSession" in native_session_bootstrap, "Native Admin bootstrap page must install the Supabase session")
+        require("auth.getSession" in native_session_bootstrap, "Native Admin bootstrap page must verify the Supabase session")
+        require("location.replace" in native_session_bootstrap and "nativeAuth=1" in native_session_bootstrap, "Native Admin bootstrap page must navigate to native-auth workspace only after verification")
+        require("nativeAuthMode" in login_security, "Native Admin workspace must suppress duplicate web Turnstile startup")
+    elif "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
+        require("freshHomeUrl" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
+        require("maxAttempts=120" in admin_activity, "Legacy Android Admin native session handoff must use a bounded Supabase readiness retry")
+        require("setTimeout(install,100)" in admin_activity, "Legacy Android Admin native session handoff must retry Supabase readiness")
+        require("typeof window.loadSession==='function'" in admin_activity, "Legacy Android Admin native session handoff must wait for the Admin session loader")
+        require("setTimeout(finish,100)" in admin_activity, "Legacy Android Admin native session handoff must retry until the Admin session loader is ready")
 else:
     for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
         require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")
