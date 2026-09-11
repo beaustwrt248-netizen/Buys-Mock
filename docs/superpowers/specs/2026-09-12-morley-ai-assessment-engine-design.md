@@ -117,3 +117,6 @@ Only explicitly selected low-risk actions may move from staff-confirmed to auto-
 7. Restricted customer-facing intake reuse.
 
 Each slice must pass existing security, parity, feature-contract and quality gates before merge.
+
+## Protected approval
+On 2026-09-12, Beau explicitly approved the production assessment-schema migration, final merge, and Android release/version promotion. That approval is conditional on required CI, security, parity, signing, checksum and OTA monotonic-version gates remaining satisfied; it does not waive any of those controls.
