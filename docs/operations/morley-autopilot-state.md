@@ -1,7 +1,7 @@
 # Morley Ecosystem Autopilot State
 
 Last reconciled: 2026-09-12 04:00 AWST
-Source of truth for this entry: live GitHub state from `main` and open pull requests.
+Source of truth for this entry: live GitHub and connected Google Drive evidence.
 
 ## Current main
 
@@ -16,6 +16,8 @@ Source of truth for this entry: live GitHub state from `main` and open pull requ
 - PR #1444 is mergeable and its currently observed repository security, quality, parity, Admin integration, release-safety, distribution-readiness and feature-contract checks are green. Nova PR Guard is skipped as non-applicable.
 - Release publication remains a protected boundary. Do not merge/deploy #1444 autonomously.
 - Morley AI assessment engine remains draft in PR #1437 because it contains protected Supabase migration/workflow changes.
+- Android catalogue push Realtime PR #1422 is three current-main commits behind. Its Catalogue Live Sync contract is green, but Android validation stops at regression tests and OTA policy explicitly fails the exactly-next-version requirement because the branch changes app source while still declaring 2.15.95/versionCode 139. Do not guess a replacement release identity while #1444/#1432 release ordering is unresolved.
+- Google Drive `Morley Backups` contains a latest observed backup `morley-backup-2026-09-10T19-00-07-760Z.json` (352,981 bytes). No `morley-backup-2026-09-11*` file was found. At this reconciliation point the latest observed backup is about 25 hours old, so backup freshness is degraded and requires diagnosis; no restore or destructive action has been attempted.
 - No Gumtree work is in scope.
 
 ## Active workstreams and scores
@@ -24,17 +26,19 @@ Scoring scale: impact and confidence 1-5 (higher is better); risk, effort and de
 
 | Workstream | Evidence / identifier | Impact | Risk | Effort | Confidence | Dependency risk | Priority | Current safe action |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| Backup freshness / recovery readiness | Google Drive Morley Backups | 5 | 4 | 2 | 5 | 4 | Highest diagnostic | Diagnose missing latest backup non-destructively; do not perform production restore/credential changes without approval. |
 | Morley 2.15.95 OTA metadata recovery | PR #1444 | 5 | 4 | 1 | 5 | 4 | Highest, protected | Keep checks green; require explicit release approval before merge/deploy. |
 | Morley AI assessment engine | PR #1437 | 5 | 5 | 4 | 4 | 5 | High, protected | Keep draft; validate core/contracts; no migration/workflow merge without approval. |
-| Android catalogue push realtime | PR #1422 | 5 | 3 | 3 | 4 | 4 | High | Reconcile with current main/release sequencing, run contract/build/security checks, avoid duplicate sync work. |
+| Android catalogue push realtime | PR #1422 | 5 | 3 | 3 | 5 | 4 | High, currently blocked | Preserve work; reconcile onto current main only after release identity sequencing is clear. |
 | Unified scanner release identity 2.15.96 | PR #1432 | 4 | 4 | 1 | 4 | 4 | High, release-gated | Rebase/recreate only after release ordering is unambiguous; do not publish ahead of 2.15.95. |
 | Admin 0.1.37 OTA metadata | PR #1416 | 4 | 4 | 1 | 4 | 4 | High, release-gated | Reconcile with #1417 and current Admin release identity before any publication action. |
-| Durable continuity / triage ledger | this file | 4 | 1 | 1 | 5 | 1 | Immediate safe maintenance | Keep reconciled every run; never treat stale entries as authoritative over live state. |
+| Durable continuity / triage ledger | PR #1445 / this file | 4 | 1 | 1 | 5 | 1 | Immediate safe maintenance | Keep reconciled every run; never treat stale entries as authoritative over live state. |
 
 ## Protected blockers / approval requirements
 
 - Release publication, signing/checksum identity, and deployment promotion are approval-gated.
 - Auth/authorization/RLS, secrets, privileged roles, destructive production data work, Guardian repair authority, GitHub workflow/repository security and protected pricing policy are approval-gated.
+- Production restore/overwrite and backup credential changes are approval-gated.
 - PR #1437 specifically includes Supabase migration/workflow changes and must remain draft/unmerged until explicitly approved.
 - Guardian code-changing repair PRs remain human-approval gated.
 - Same-owner actions are not independent approval.
@@ -48,7 +52,7 @@ Scoring scale: impact and confidence 1-5 (higher is better); risk, effort and de
 - **Guardian** -> runtime diagnostics, Nova diagnostic context, repository repair proposals and human approval boundary for code-changing repair.
 - **Supabase** -> schemas, RLS, auth, catalogue state/revisions, realtime publication and storage/data relationships.
 - **Release infrastructure** -> Android/Admin version monotonicity, OTA manifests, signed artifact identity, checksums, release assets and CI gates.
-- **Backup/recovery** -> production data coverage, retention/integrity evidence and isolated restore readiness.
+- **Backup/recovery** -> production data coverage, Google Drive backup delivery, retention/integrity evidence and isolated restore readiness.
 
 ## Data-integrity invariants
 
@@ -62,6 +66,7 @@ The automation must detect and report before destructive repair when any of thes
 - Inventory lifecycle transitions and stock identifiers must remain internally consistent.
 - Pricing/valuation relationships must not become impossible or cross protected approval policy.
 - OTA/release version, checksum, artifact URL and release notes must describe the same signed artifact.
+- Backup freshness must not silently regress; missing expected backup windows require diagnosis before restore claims are made.
 - Production records/images must not be auto-deleted, merged or destructively rewritten when ambiguity remains.
 
 ## Definition-of-done checkpoint
@@ -70,8 +75,9 @@ A work item is not Done until applicable implementation, tests, security/permiss
 
 ## Next safe actions
 
-1. Keep #1444 release checks reconciled but do not cross the protected release boundary.
-2. Validate/reconcile #1422 against current main and current Supabase/catalogue contracts while release work is gated.
-3. Keep #1437 draft while continuing non-protected assessment-core/evaluation work only.
-4. Reconcile #1432 and #1416 release ordering against current main before deciding whether either is stale or must be recreated.
-5. Expand this ledger with synthetic-production, backup/readiness, data-quality and performance baselines only from measured evidence; never invent telemetry.
+1. Diagnose the missing latest Google Drive backup using read-only evidence and determine whether generation, upload or scheduling failed.
+2. Keep #1444 release checks reconciled but do not cross the protected release boundary.
+3. Preserve #1422 while its release version is blocked; avoid creating another conflicting release identity.
+4. Keep #1437 draft while continuing non-protected assessment-core/evaluation work only.
+5. Reconcile #1432 and #1416 release ordering against current main before deciding whether either is stale or must be recreated.
+6. Expand this ledger with synthetic-production, data-quality and performance baselines only from measured evidence; never invent telemetry.
