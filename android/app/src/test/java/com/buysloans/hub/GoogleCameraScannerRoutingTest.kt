@@ -7,6 +7,7 @@ import java.io.File
 class GoogleCameraScannerRoutingTest {
     @Test
     fun scanDeviceAndGoogleCameraUseSameSearchCamera() {
+        // All user-facing scan entry points must share the Google Play services scanner.
         val source = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
         assertTrue(source.contains("title = \"Scan Device\""))
         assertTrue(source.contains("subtitle = \"Google camera scan\""))
