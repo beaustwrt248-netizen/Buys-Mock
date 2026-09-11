@@ -25,7 +25,7 @@ internal enum class VisionStaffDecision {
     NOT_DAMAGE
 }
 
-internal data class VisionDamageReview(
+internal data class VisionDamageReviewItem(
     val regionIndex: Int,
     val label: String,
     val severity: String,
@@ -39,7 +39,7 @@ internal data class MorleyVisionReviewState(
     val qualityWarnings: List<String>,
     val consistencyWarnings: List<String>,
     val componentFindings: List<String>,
-    val damageReviews: List<VisionDamageReview>,
+    val damageReviews: List<VisionDamageReviewItem>,
     val suggestedPricingAllowed: Boolean,
     val pricingBlockedReason: String?
 ) {
@@ -57,7 +57,7 @@ internal object MorleyVisionReviewPolicy {
     fun from(inspection: DeviceInspection, pricing: LivePricingResult?): MorleyVisionReviewState {
         val storageVerified = inspection.verifiedStorage.isNotBlank()
         val damageReviews = inspection.damageRegions.mapIndexed { index, region ->
-            VisionDamageReview(
+            VisionDamageReviewItem(
                 regionIndex = index,
                 label = region.label,
                 severity = region.severity,
