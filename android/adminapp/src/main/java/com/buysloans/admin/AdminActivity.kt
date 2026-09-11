@@ -76,7 +76,7 @@ class AdminActivity : ComponentActivity() {
 
                 override fun onPageFinished(view: WebView, url: String) {
                     super.onPageFinished(view, url)
-                    if (AdminWebParityPolicy.isTrustedAdminUrl(url) && !nativeSessionInjectionStarted) {
+                    if (AdminWebParityPolicy.isNativeSessionBootstrapUrl(url) && !nativeSessionInjectionStarted) {
                         nativeSessionInjectionStarted = true
                         injectNativeSession(view)
                     }
@@ -87,7 +87,7 @@ class AdminActivity : ComponentActivity() {
         }
 
         setContentView(webView)
-        webView.loadUrl(AdminWebParityPolicy.freshHomeUrl(BuildConfig.VERSION_CODE) + "&nativeAuth=1")
+        webView.loadUrl(AdminWebParityPolicy.nativeSessionBootstrapUrl(BuildConfig.VERSION_CODE))
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -105,36 +105,22 @@ class AdminActivity : ComponentActivity() {
               if(window.__morleyNativeSessionInstalling)return;
               window.__morleyNativeSessionInstalling=true;
               var attempts=0;
-              var maxAttempts=120;
+              var maxAttempts=3;
               var exitToNative=function(){ window.location.replace($logoutUrl); };
-              var bindLogout=function(){
-                var logout=document.getElementById('logoutBtn');
-                if(logout){
-                  logout.onclick=function(){
-                    Promise.resolve(window.sb && window.sb.auth ? window.sb.auth.signOut() : null).finally(exitToNative);
-                  };
-                }
-              };
-              var finish=function(){
-                bindLogout();
-                if(typeof window.loadSession==='function'){
-                  Promise.resolve(window.loadSession()).catch(exitToNative);
-                  return;
-                }
-                if(++attempts>=maxAttempts){exitToNative();return;}
-                setTimeout(finish,100);
-              };
               var install=function(){
-                if(!window.sb||!window.sb.auth||typeof window.sb.auth.setSession!=='function'){
+                if(typeof window.installNativeAdminSession!=='function'){
                   if(++attempts>=maxAttempts){exitToNative();return;}
-                  setTimeout(install,100);
+                  setTimeout(install,500);
                   return;
                 }
-                window.sb.auth.setSession({access_token:$access,refresh_token:$refresh}).then(function(result){
-                  if(result&&result.error){exitToNative();return;}
-                  attempts=0;
-                  finish();
-                }).catch(exitToNative);
+                Promise.resolve(window.installNativeAdminSession($access,$refresh)).then(function(ok){
+                  if(ok===true)return;
+                  if(++attempts>=maxAttempts){exitToNative();return;}
+                  setTimeout(install,500);
+                }).catch(function(){
+                  if(++attempts>=maxAttempts){exitToNative();return;}
+                  setTimeout(install,500);
+                });
               };
               install();
             })();
