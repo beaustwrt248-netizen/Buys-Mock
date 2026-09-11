@@ -8,6 +8,7 @@ assert(source.includes("url.searchParams.set('v','5')"), 'Turnstile must use the
 assert(source.includes("url.searchParams.set('load','1')"), 'Turnstile challenge must explicitly request challenge loading');
 assert(source.includes("turnstileFrame.src='about:blank'"), 'Turnstile iframe must stay inert until credentials are ready');
 assert(source.includes('.wa-security{display:none'), 'security challenge container must remain hidden before it is needed');
+assert(source.includes('primary.disabled=busy||!requiredReady()||!captchaToken'), 'primary auth action must remain disabled until credentials and Turnstile token are ready');
 assert(source.includes('${SITE_BASE}web-assets/morley_buys_login_bg_app.mp4?v=2'), 'login background must use the active site base');
 assert(source.includes('gotrue_meta_security:{captcha_token:captchaToken}'), 'CAPTCHA token submission must remain enforced');
 console.log('Buyshub web auth origin checks passed');
