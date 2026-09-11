@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+// Staff review completion must stay fail-closed while any required Vision evidence is unresolved.
 class MorleyVisionReviewPolicyTest {
     private fun inspection(
         identityVerified: Boolean = true,
