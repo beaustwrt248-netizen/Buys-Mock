@@ -10,15 +10,13 @@ class AdaptiveDashboardNavigationTest {
         val source = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
 
         assertTrue(source.contains("BottomDestination.entries.forEach"))
-        assertTrue(source.contains("CATALOGUE(\"Catalogue\", MorleyIcons.Categories)"))
+        assertTrue(source.contains("STOCK(\"Stock\", MorleyIcons.Categories)"))
         assertTrue(source.contains("SCAN(\"Scan\", MorleyIcons.Phone)"))
         assertTrue(source.contains("TRADE(\"Trade\", MorleyIcons.Money)"))
-        assertTrue(source.contains("BottomDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }"))
+        assertTrue(source.contains("BottomDestination.STOCK ->"))
         assertTrue(source.contains("Intent(context, DeviceLensActivity::class.java)"))
         assertTrue(source.contains("BottomDestination.TRADE -> { showMenu = false; page = Page.GP }"))
-        assertTrue(!source.contains("BottomDestination.MORE"))
-        assertTrue(!source.contains("BottomDestination.STOCK"))
-        assertTrue(source.contains("MenuRow(\"▣\", \"Stock\", \"Current inventory, costs and resale values.\") { open(\"inventory\") }"))
+        assertTrue(source.contains("BottomDestination.MORE -> openMenu()"))
     }
 
     @Test
