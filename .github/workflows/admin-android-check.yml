@@ -43,7 +43,7 @@ jobs:
       - name: Verify Admin app stays isolated and least-privilege
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
 
@@ -67,9 +67,6 @@ jobs:
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           fi
 
-          # A JavaScript bridge is permitted only inside the isolated Turnstile challenge WebView,
-          # matching the proven Morley Buys native-auth pattern. The privileged workspace WebView
-          # above must never expose a bridge.
           test "$(grep -Rho 'addJavascriptInterface' android/adminapp/src/main/java | wc -l)" = "1"
           grep -q 'addJavascriptInterface' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q '"AndroidBridge"' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
