@@ -1,7 +1,7 @@
 {
-  "versionCode": 135,
-  "versionName": "2.15.91",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.91/B-and-L-Morley-2.15.91.apk",
-  "sha256": "905eec7fdc5dcb2fc1c695110406288655f806a0b6158d483837e721769e8e93",
-  "notes": "Morley 2.15.91: wire staff verification into live Device Lens (#1363)"
+  "versionCode": 136,
+  "versionName": "2.15.92",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.92/B-and-L-Morley-2.15.92.apk",
+  "sha256": "df5ee0c4e7068a0c5ed37a831e2a3582e46696d018a975d6910a1bb3c6cd36f2",
+  "notes": "Morley 2.15.92: let staff verify storage in Device Lens (#1370)"
 }
