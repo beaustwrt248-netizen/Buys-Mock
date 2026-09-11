@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -26,14 +27,13 @@ import androidx.activity.OnBackPressedCallback
 
 class AdminActivity : ComponentActivity() {
     private lateinit var webView: WebView
+    private var rendererGone = false
 
     @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AdminTelemetry.installCrashHandler(applicationContext)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        // Match the Admin shell while WebView content is attaching/restoring so task switching
-        // never exposes the platform's default light/white backing surface.
         window.decorView.setBackgroundColor(Color.rgb(4, 9, 18))
         if (BuildConfig.IS_RECOVERY_BUILD) title = "Morley Admin Recovery"
 
@@ -43,11 +43,6 @@ class AdminActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-
-            // Samsung/Android WebView can leave a programmatically-created WebView without
-            // touch focus. The page remains tappable (including Turnstile), but HTML text
-            // controls cannot acquire the IME. Explicitly make the WebView a touch-focus
-            // target and hand focus to it on ACTION_DOWN without consuming the event.
             isFocusable = true
             isFocusableInTouchMode = true
             setOnTouchListener { view, event ->
@@ -60,9 +55,6 @@ class AdminActivity : ComponentActivity() {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                // Keep reusable, versioned CSS/JS assets cached for fast login/startup. The
-                // top-level Admin document is explicitly revalidated below so canonical and
-                // Recovery cannot remain on different cached shell generations.
                 cacheMode = WebSettings.LOAD_DEFAULT
                 loadWithOverviewMode = true
                 useWideViewPort = true
@@ -71,8 +63,6 @@ class AdminActivity : ComponentActivity() {
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 javaScriptCanOpenWindowsAutomatically = false
                 setSupportMultipleWindows(false)
-                // Turnstile relies on stable, standard browser characteristics in native WebViews.
-                // Keep Android WebView's stock UA rather than appending an application token.
                 userAgentString = WebSettings.getDefaultUserAgent(this@AdminActivity)
             }
 
@@ -85,9 +75,20 @@ class AdminActivity : ComponentActivity() {
                     if (!request.isForMainFrame) return false
                     val target = request.url.toString()
                     if (AdminWebParityPolicy.isTrustedAdminUrl(target)) return false
-
                     if (AdminWebParityPolicy.isExternallyRoutableScheme(request.url.scheme)) {
                         openExternal(request.url)
+                    }
+                    return true
+                }
+
+                override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                    rendererGone = true
+                    runCatching {
+                        (view.parent as? ViewGroup)?.removeView(view)
+                        view.destroy()
+                    }
+                    window.decorView.post {
+                        if (!isFinishing && !isDestroyed) recreate()
                     }
                     return true
                 }
@@ -105,22 +106,13 @@ class AdminActivity : ComponentActivity() {
 
         webView.requestFocus(View.FOCUS_DOWN)
         webView.post { webView.requestFocusFromTouch() }
-        if (savedInstanceState == null) loadFreshAdminShell()
+        if (savedInstanceState == null) webView.loadUrl(AdminWebParityPolicy.HOME_URL)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) webView.goBack() else finish()
             }
         })
-    }
-
-    private fun loadFreshAdminShell() {
-        // Revalidate only the HTML shell. Static assets retain normal WebView caching and their
-        // own cache-busting versions, avoiding the global LOAD_NO_CACHE startup regression.
-        webView.loadUrl(
-            AdminWebParityPolicy.HOME_URL,
-            mapOf("Cache-Control" to "no-cache", "Pragma" to "no-cache")
-        )
     }
 
     private fun createRecoveryIdentityBadge(): TextView {
@@ -166,22 +158,24 @@ class AdminActivity : ComponentActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        webView.saveState(outState)
+        if (!rendererGone) webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
-        webView.restoreState(savedInstanceState)
+        if (!rendererGone) webView.restoreState(savedInstanceState)
     }
 
     override fun onDestroy() {
-        webView.apply {
-            stopLoading()
-            loadUrl("about:blank")
-            clearHistory()
-            removeAllViews()
-            destroy()
+        if (!rendererGone) {
+            webView.apply {
+                stopLoading()
+                loadUrl("about:blank")
+                clearHistory()
+                removeAllViews()
+                destroy()
+            }
         }
         super.onDestroy()
     }
