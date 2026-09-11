@@ -12,6 +12,7 @@ on:
       - 'tests/morley-ai-device-lens-integration.test.mjs'
       - 'tests/morley-ai-damage-review-contract.test.mjs'
       - 'tests/morley-ai-diagnostics-condition.test.mjs'
+      - 'tests/morley-ai-valuation-repair.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -35,3 +36,5 @@ jobs:
         run: node --test tests/morley-ai-damage-review-contract.test.mjs
       - name: Run staff diagnostics and Condition Score contract
         run: node --test tests/morley-ai-diagnostics-condition.test.mjs
+      - name: Run valuation and repair decision contract
+        run: node --test tests/morley-ai-valuation-repair.test.mjs
