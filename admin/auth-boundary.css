@@ -1,0 +1,21 @@
+/* Admin authentication boundary: privileged navigation and workspace content fail closed. */
+html:not(.admin-authenticated) #appView,
+html:not(.admin-authenticated) #adminMoreMenu,
+html:not(.admin-authenticated) .admin-more-menu,
+html:not(.admin-authenticated) .admin-nova-brand,
+html:not(.admin-authenticated) [data-admin-privileged-nav] {
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* The mobile More menu must never escape the authenticated workspace, including
+   while legacy/cached scripts are still constructing the enhanced navigation. */
+body:has(#loginView:not(.hidden)) #adminMoreMenu,
+body:has(#loginView:not(.hidden)) .admin-more-menu {
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+html.admin-authenticated #loginView { display:none!important; }
