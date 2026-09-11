@@ -108,17 +108,19 @@
     }
   });
 
-  // Native Morley Buys injects AndroidBridge before loading this page, so it
-  // must bootstrap immediately. Browser web auth v4/v5 also boots immediately.
-  // Admin remains deferred/about:blank until its login controller explicitly
-  // starts the challenge, preserving the Samsung WebView freeze protection.
+  // Any real navigation to this page must start the challenge immediately.
+  // Current Morley Admin keeps the iframe on about:blank until credentials are
+  // ready, then navigates here with v=5&load. The native Morley Buys WebView
+  // also navigates here directly, but its JavaScript bridge is not guaranteed
+  // to be visible during the page's first synchronous script evaluation.
+  // Default-on bootstrap therefore prevents native login from becoming inert
+  // without weakening CAPTCHA: sign-in still requires a returned token.
   const params=new URLSearchParams(window.location.search);
-  const version=params.get('v');
-  const nativeAndroid=!!window.AndroidBridge;
-  if(nativeAndroid||params.has('load')||params.has('retry')||version==='4'||version==='5')loadApi();
-  else{
+  if(params.get('defer')==='1'){
     status.textContent='Enter your email and password first.';
     post('idle','');
+  }else{
+    loadApi();
   }
 })();
 </script>
