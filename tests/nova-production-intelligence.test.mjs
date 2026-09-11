@@ -5,6 +5,7 @@ import test from 'node:test';
 const orchestrator = fs.readFileSync('supabase/functions/nova-orchestrator/index.ts', 'utf8');
 const metrics = fs.readFileSync('supabase/functions/nova-ai-metrics/index.ts', 'utf8');
 const vision = fs.readFileSync('supabase/functions/nova-vision/index.ts', 'utf8');
+const market = fs.readFileSync('supabase/functions/market-search-v2/index.ts', 'utf8');
 const migration = fs.readFileSync('supabase/migrations/20260911185000_nova_ai_runs.sql', 'utf8');
 const apiClient = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaApiClient.java', 'utf8');
 const operatorUi = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaOperatorUi.java', 'utf8');
@@ -98,4 +99,15 @@ test('native Vision damage review circles regions without changing pricing autho
   assert.match(functionalityGate, /Review highlighted damage/);
   assert.match(functionalityGate, /manual pricing/i);
   assert.match(functionalityGate, /human final approval/i);
+});
+
+test('Australian pricing intelligence removes statistical outliers before valuation evidence is returned', () => {
+  assert.match(market, /analyseUsedMarket/);
+  assert.match(market, /q1 - 1\.5 \* iqr/);
+  assert.match(market, /q3 \+ 1\.5 \* iqr/);
+  assert.match(market, /applyUsedBounds/);
+  assert.match(market, /pricingAnalysis/);
+  assert.match(market, /confidenceLabel/);
+  assert.match(market, /retailExcludedFromUsedMedian: true/);
+  assert.match(market, /retailIsReferenceOnly: true/);
 });
