@@ -28,6 +28,17 @@ test('orchestrator bounds spend and handles transient provider failures', () => 
   assert.match(orchestrator, /openUntil: shouldOpen \? Date\.now\(\) \+ 60_000/);
 });
 
+test('consensus checks measured candidate spend before starting the fusion call', () => {
+  const candidateUsage = orchestrator.indexOf('const candidateUsage = usageTotals(successes)');
+  const budgetCheck = orchestrator.indexOf('candidateUsage.cost_usd >= MAX_REQUEST_COST_USD');
+  const budgetFallback = orchestrator.indexOf("mode: 'ensemble-unfused-budget'");
+  const fusionCall = orchestrator.indexOf('const final = await fuse(prompt, successes)');
+  assert.ok(candidateUsage >= 0, 'candidate usage accounting must remain present');
+  assert.ok(budgetCheck > candidateUsage, 'measured candidate cost must be checked after accounting');
+  assert.ok(budgetFallback > budgetCheck, 'over-budget consensus must preserve the unfused fallback');
+  assert.ok(fusionCall > budgetFallback, 'fusion must not start until after the measured-cost guardrail');
+});
+
 test('telemetry stores operational metadata but not prompts or model responses', () => {
   assert.match(orchestrator, /admin\.from\('nova_ai_runs'\)\.insert/);
   assert.match(migration, /create table if not exists public\.nova_ai_runs/);
