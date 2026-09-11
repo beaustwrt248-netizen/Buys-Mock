@@ -144,7 +144,7 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
             BottomDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }
             BottomDestination.SCAN -> {
                 showMenu = false
-                context.startActivity(Intent(context, DeviceLensActivity::class.java))
+                context.startActivity(Intent(context, UniversalBuySearchActivity::class.java))
             }
             BottomDestination.TRADE -> { showMenu = false; page = Page.GP }
         }
@@ -281,9 +281,9 @@ private fun ParityHome(onGp: () -> Unit) {
             ReferenceQuickTile(
                 icon = "▣",
                 title = "Scan Device",
-                subtitle = "2-photo AI check",
+                subtitle = "Google camera scan",
                 modifier = Modifier.weight(1f),
-                onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
+                onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
             )
             ReferenceQuickTile(
                 icon = "⌕",
@@ -348,7 +348,7 @@ private fun ParityHome(onGp: () -> Unit) {
 
         Surface(color = ReferencePaleBlue, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
             Text(
-                "Device Scan uses Morley Vision for the two-photo model, condition and damage assessment. Google Play services is used separately for code scanning in Morley Search.",
+                "Scan Device and Google camera search now use the same Google Play services camera scanner for barcodes, QR codes and encoded model/stock labels.",
                 Modifier.padding(11.dp),
                 color = Color(0xFF28577E),
                 fontSize = 10.sp,
@@ -413,7 +413,7 @@ private fun MoreHub(onSignOut: () -> Unit) {
     ) {
         Text("More", fontSize = 30.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
         MenuSection("Workspace") {
-            MenuRow("◉", "Device scan", "Take front and back photos for model, damage and condition analysis.") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
+            MenuRow("◉", "Device scan", "Use the same Google camera scanner as Morley search.") { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
             MenuRow("⌕", "Morley search", "Search by name/model or scan a code with the Google camera.") { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
