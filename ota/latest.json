@@ -1,7 +1,7 @@
 {
-  "versionCode": 137,
-  "versionName": "2.15.93",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.93/B-and-L-Morley-2.15.93.apk",
-  "sha256": "e5e12ab3b895c8b29b84b516e18f6f67a6cbac9daa8d45a827052bcae4540eb6",
-  "notes": "Advance Morley Android to 2.15.93"
+  "versionCode": 138,
+  "versionName": "2.15.94",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.94/B-and-L-Morley-2.15.94.apk",
+  "sha256": "eee917054620f7ffacad64c7c895eb8c750ac93dfd48535e1e30e99f048d4e34",
+  "notes": "Update compact navigation regression expectations (#1397)"
 }
