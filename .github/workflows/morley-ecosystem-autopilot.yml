@@ -1,0 +1,178 @@
+name: Morley Ecosystem Autopilot
+
+on:
+  workflow_run:
+    workflows:
+      - Guarded Auto Review & Merge
+      - B&L Morley Quality Gate
+      - Repository Security Audit
+      - Morley Ultimate Parity Gate
+      - Morley Email Contract
+      - Full Feature Contract Audit
+      - Build B&L Morley APK
+      - Auto Publish Morley OTA
+      - Admin APK Build
+      - Admin Android Least-Privilege Gate
+      - Admin OTA Release Safety
+      - Admin OTA Feed Deploy
+      - Admin Control Integration Audit
+      - Nova APK Build
+      - Nova PR Guard
+      - Nova OTA Metadata Contract
+      - Guardian Platform Check
+      - Web Release Smoke Checks
+      - Deploy B&L Morley Web
+      - Web Bootstrap Live Contract
+      - Web Desktop Live Contract
+      - Morley UI Consistency
+      - Catalogue Live Sync
+      - Private Distribution Readiness
+    types: [completed]
+  schedule:
+    - cron: '15 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+concurrency:
+  group: morley-ecosystem-autopilot-${{ github.event_name }}-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  retry-transient-failure:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      contains(fromJSON('["failure","timed_out"]'), github.event.workflow_run.conclusion) &&
+      github.event.workflow_run.run_attempt < 2
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Retry failed jobs once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Retrying failed jobs for workflow run $RUN_ID once."
+          gh run rerun "$RUN_ID" --failed --repo "$GITHUB_REPOSITORY"
+
+  escalate-persistent-failure:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      ((contains(fromJSON('["failure","timed_out"]'), github.event.workflow_run.conclusion) && github.event.workflow_run.run_attempt >= 2) ||
+       contains(fromJSON('["cancelled","action_required"]'), github.event.workflow_run.conclusion))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Open or update one actionable incident
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TITLE="Autopilot failure: ${WORKFLOW_NAME}"
+          BODY="$(cat <<EOF
+          Morley ecosystem automation detected a workflow that still needs attention.
+
+          - Workflow: **${WORKFLOW_NAME}**
+          - Conclusion: **${CONCLUSION}**
+          - Attempt: **${ATTEMPT}**
+          - Commit: \`${HEAD_SHA}\`
+          - Run: ${RUN_URL}
+
+          Automatic retry is limited to one attempt for ordinary failures/timeouts. Protected boundaries remain unchanged: do not bypass authentication/RLS, Guardian approval, signing, release-version monotonicity, pricing authority, secrets, or destructive-data safeguards to clear this incident.
+          EOF
+          )"
+
+          ISSUE="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "${TITLE} in:title" --json number,title --jq '.[0].number // empty')"
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+            echo "Updated existing incident #$ISSUE."
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+          fi
+
+  close-recovered-incident:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close matching open incident after recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TITLE="Autopilot failure: ${WORKFLOW_NAME}"
+          ISSUE="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "${TITLE} in:title" --json number,title --jq '.[0].number // empty')"
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "✅ Recovery detected. The latest monitored **${WORKFLOW_NAME}** run succeeded: ${RUN_URL}"
+            gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
+          else
+            echo "No open incident exists for ${WORKFLOW_NAME}."
+          fi
+
+  scheduled-health-sweep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dispatch non-release validation lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflows=(
+            security-audit.yml
+            quality-gate.yml
+            ultimate-parity.yml
+            resend-email-contract.yml
+            full-feature-contract.yml
+            guardian-platform-check.yml
+            web-smoke.yml
+            web-bootstrap-live-contract.yml
+            web-desktop-live-contract.yml
+            ui-consistency.yml
+            admin-android-check.yml
+            admin-release-check.yml
+            private-distribution-readiness.yml
+            nova-ota-metadata-contract.yml
+          )
+
+          for workflow in "${workflows[@]}"; do
+            echo "Dispatching $workflow"
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main
+          done
+
+      - name: Record protected release lanes
+        shell: bash
+        run: |
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ### Morley ecosystem sweep dispatched
+
+          Automated validation was queued for security, quality, parity, email, full-feature contracts, Guardian, live/static web, UI consistency, Admin safety, private-distribution readiness and Nova OTA metadata.
+
+          Release/deployment-capable lanes are intentionally **event-driven rather than blindly scheduled**:
+          - Morley APK build and automatic OTA publication
+          - Admin APK/OTA publication and feed deployment
+          - Nova APK/OTA publication
+          - production web deployment
+
+          Their successful source changes already trigger the relevant pipelines, and this orchestrator monitors those runs, retries ordinary transient failures once, and opens a single incident for persistent failures.
+
+          Authentication/RLS, Guardian approvals, signing credentials, release monotonicity, protected pricing policy and destructive production-data changes remain fail-closed.
+          EOF
