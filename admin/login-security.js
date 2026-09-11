@@ -10,7 +10,7 @@
   const challengeShell=frame.parentElement;
   const loginView=document.getElementById('loginView');
   const mobileStyle=document.createElement('style');
-  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}#email,#password{pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;-webkit-text-fill-color:#1d2b26!important;caret-color:#0d8463!important;opacity:1!important}}';
+  mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}#email,#password{position:relative!important;z-index:2!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:text!important;-webkit-user-select:text!important;-webkit-text-fill-color:#f5f8ff!important;caret-color:#12c9ff!important;opacity:1!important}}';
   document.head.appendChild(mobileStyle);
 
   const challengePlaceholder=document.createElement('div');
@@ -40,14 +40,22 @@
     input.removeAttribute('readonly');
     input.removeAttribute('disabled');
     input.style.pointerEvents='auto';
+    input.style.touchAction='manipulation';
     input.style.userSelect='text';
     input.style.webkitUserSelect='text';
+  }
+
+  function focusEditable(input){
+    restoreEditable(input);
+    try{input.focus({preventScroll:true});}catch(_){try{input.focus();}catch(__){}}
   }
 
   function installMobileInputRecovery(input){
     restoreEditable(input);
     input.addEventListener('focus',function(){restoreEditable(input);});
-    input.addEventListener('touchstart',function(){restoreEditable(input);},{passive:true});
+    input.addEventListener('pointerup',function(){focusEditable(input);});
+    input.addEventListener('touchend',function(){focusEditable(input);},{passive:true});
+    input.addEventListener('click',function(){focusEditable(input);});
     input.addEventListener('beforeinput',function(event){
       if(event.isComposing||event.inputType!=='insertText'||typeof event.data!=='string'||!event.data)return;
       const before=input.value;
@@ -93,9 +101,6 @@
     frame.src='turnstile.html?v=5&retry='+Date.now();
   }
 
-  // Keep the Admin security area visible so users can see that Cloudflare protection is present,
-  // but defer loading the actual Turnstile WebView until credentials are ready. This preserves
-  // the Samsung anti-freeze protection without making the security control appear to be missing.
   try{frame.src='about:blank';}catch(_){}
   setChallengeVisible(false);
   setChallengeState('Enter your email and password first.',false);
@@ -148,7 +153,6 @@
     syncLoginEnabled();
   });
 
-  // Browser/password-manager autofill may not emit input immediately.
   setTimeout(maybeLoadChallenge,350);
 
   loginBtn.onclick=async function(){
