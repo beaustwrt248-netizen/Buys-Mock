@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+// Regression coverage for the Samsung browser/Admin WebView input failure.
 const login = fs.readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const index = fs.readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
 
