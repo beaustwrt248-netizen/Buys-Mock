@@ -29,6 +29,8 @@ object MorleyVisionPolicy {
 
     fun pricingBlockReason(inspection: DeviceInspection): String? = when {
         !isIdentityVerified(inspection) -> "Device identity is not verified strongly enough for a price recommendation."
+        inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a price recommendation."
+        inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a price recommendation."
         else -> null
     }
 

@@ -53,6 +53,29 @@ class MorleyVisionReviewPolicyTest {
     }
 
     @Test
+    fun corePricingGateBlocksPhotoQualityWarningBeforeMarketResearch() {
+        val reason = MorleyVisionPolicy.pricingBlockReason(
+            inspection(qualityWarnings = listOf("Front photo is blurred"))
+        )
+
+        assertTrue(reason!!.contains("Retake", ignoreCase = true))
+    }
+
+    @Test
+    fun corePricingGateBlocksCrossPhotoInconsistencyBeforeMarketResearch() {
+        val reason = MorleyVisionPolicy.pricingBlockReason(
+            inspection(consistencyWarnings = listOf("Photos may show different devices"))
+        )
+
+        assertTrue(reason!!.contains("cross-photo", ignoreCase = true))
+    }
+
+    @Test
+    fun corePricingGateAllowsCleanVerifiedEvidence() {
+        assertEquals(null, MorleyVisionPolicy.pricingBlockReason(inspection()))
+    }
+
+    @Test
     fun photoQualityWarningBlocksSuggestedPricing() {
         val state = MorleyVisionReviewPolicy.from(
             inspection(qualityWarnings = listOf("Front photo is blurred")),
