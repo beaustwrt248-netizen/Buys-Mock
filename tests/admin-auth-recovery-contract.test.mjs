@@ -19,6 +19,11 @@ test('native Admin web mode waits for the verified native session instead of sho
   assert.match(webApp, /if\s*\(!nativeAuthMode\)\s*loadSession\(\)/);
 });
 
+test('native Admin web mode does not start a second web Turnstile challenge', () => {
+  assert.match(webSecurity, /nativeAuthMode/);
+  assert.match(webSecurity, /if\s*\(nativeAuthMode\)\s*return/);
+});
+
 test('Admin Android delegates session installation to the web native-session contract', () => {
   assert.match(adminActivity, /window\.installNativeAdminSession/);
   assert.doesNotMatch(adminActivity, /window\.sb\.auth\.setSession/);
