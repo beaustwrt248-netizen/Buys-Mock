@@ -1,105 +1,104 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-12 AWST
-Main SHA at live-health baseline: `c15c836bfbdcfcffd0bd950c09d1e85adf3fb775`
+Last reconciled: 2026-09-12 02:02 AWST
+Main SHA at reconciliation: `1274393d2aeb5c36d36a9f4caf08cf0dfb587768`
 
 This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gumtree is intentionally excluded.
 
 ## Production / release snapshot
 
-- Morley Buys Android release `2.15.92` is published from merge commit `b89e77a033f46b53c2f6429f0f0bde10c3bf04ee` with asset `B-and-L-Morley-2.15.92.apk` and SHA-256 `df5ee0c4e7068a0c5ed37a831e2a3582e46696d018a975d6910a1bb3c6cd36f2`.
-- `ota/latest.json` advertises the same `2.15.92` / versionCode `136`, APK URL and SHA-256. No OTA identity/checksum contradiction was found.
-- PR #1370 is merged and closes the Device Lens storage-verification dead-end with validated staff-confirmed storage and explicit no-guess guidance while preserving the fail-closed pricing evidence gate.
-- PR #1374 is merged and repairs the browser/mobile-web security-challenge lifecycle. Turnstile is deferred until required credentials are ready, refreshes when credentials change, and remains mandatory before sign-in.
-- PR #1377 is merged on current main and fixes the native Morley Buys Android challenge bootstrap by detecting the native `AndroidBridge`; native Turnstile now starts immediately while Admin remains deferred. The CAPTCHA token boundary remains mandatory.
-- Nova production-intelligence PR #1355 is merged. Multi-model routing, bounded retry/circuit-breaking, cost metadata, native mode selection, speech input, Vision damage regions and operational telemetry are on main; Gumtree expansion was removed before merge.
-- PR #1375 reconciled this ledger and merged after Repository Security Audit, B&L Morley Quality Gate, Morley Email Contract and Morley Ultimate Parity Gate passed.
-- PR #1369 remains open but stale/diverged. Its Android WebView freshness work is already represented on current main (`LOAD_NO_CACHE`, cache clearing and versioned fresh home URL), while the separate pre-auth mobile More-menu containment defect still needs a fresh protected candidate. Authentication/security-boundary changes remain explicit-approval gated.
+- Morley Buys Android source and OTA are aligned at `2.15.94`, versionCode `138`.
+- `ota/latest.json` points to `B-and-L-Morley-2.15.94.apk` with SHA-256 `eee917054620f7ffacad64c7c895eb8c750ac93dfd48535e1e30e99f048d4e34`.
+- Morley Admin source/release handoff advanced to `0.1.36`, versionCode `37`; PR #1402 merged the exact signed OTA metadata from source SHA `f3b0ed11320766cd07bb5a75c79dd9852a96f8d5`.
+- PR #1376 is merged. The Admin mobile More menu is now mounted inside `#appView`, marked privileged, and backed by fail-closed auth-boundary CSS/JS. The prior stale #1369 containment concern is therefore resolved on current main.
+- PR #1374 remains the browser/mobile-web challenge lifecycle repair; PR #1377 remains the native Morley Buys challenge-bootstrap repair.
+- Nova production-intelligence work from #1355 remains on main with multi-model routing, bounded retry/circuit-breaking, cost metadata, mode selection, Vision damage regions and operational telemetry contracts.
+- Main now also includes guarded automatic low-risk PR review/auto-merge from #1403. Sensitive workflow/security/auth/RLS/Guardian boundaries remain human-gated by Morley policy and must not be treated as independently approved by the repository-owner identity.
 
-## Live production-first health triage
+## Production-first health triage
+
+### Repository / deployment
+
+- Current main: `1274393d2aeb5c36d36a9f4caf08cf0dfb587768` (`ci: add guarded automatic PR review and auto-merge (#1403)`).
+- No open pull requests were present at reconciliation.
+- GitHub Pages deployment for current main completed successfully.
+- The current-main live desktop navigation check completed successfully.
+- Other current-main checks were still running when reconciled; do not infer completion until their exact-head results are available.
+
+### Admin APK / OTA release chain
+
+- The Admin APK build for source SHA `f3b0ed11320766cd07bb5a75c79dd9852a96f8d5` passed unit tests, lint, stable signing verification and checksum verification.
+- Its workflow run reported failure in the metadata-publication job even though generated PR #1402 subsequently received owner approval and merged as `113136486349a8ae95f6115f2067c19fc787e3f0`.
+- Therefore Admin 0.1.36 metadata is on main; the historical workflow failure is a release-automation reliability signal, not evidence that the signed 0.1.36 artifact or merged metadata failed verification.
+- Do not change GitHub workflow security or release permissions autonomously. Any workflow repair remains protected and requires explicit approval before merge/deploy.
 
 ### Authentication / UI
 
-- Current main includes the #1374 web challenge repair and #1377 native Android challenge-bootstrap repair.
-- Current Admin source still constructs the enhanced mobile `#adminMoreMenu` outside `#appView`, so the structural pre-auth navigation-containment defect reported by #1369 remains relevant even though that PR is stale.
-- Current Admin Android already forces a fresh privileged hosted shell and does not rely on the stale WebView behavior from the old PR base.
-- No auth/RLS/role/secret bypass is authorised by this ledger.
+- Current Admin source mounts `#adminMoreMenu` inside authenticated `#appView` and tags it `data-admin-privileged-nav=true`.
+- `admin/auth-boundary.css` fail-closes `#appView`, the mobile More menu and privileged navigation while unauthenticated.
+- The earlier ledger statement that pre-auth body-mounted More navigation still required a fresh candidate is obsolete and must not be used for task selection.
 
-### Catalogue / sync — freshly verified
+### Catalogue / sync — last verified service evidence
 
-Read-only production audit on 2026-09-12:
+Read-only production audit carried forward from the latest verified service pass:
 - `device_catalog`: 1,873 total rows; 1,756 active.
 - Active rows missing brand/model/source URL: 0.
 - Active rows missing image reference: 6.
 - Active rows with no storage options: 59.
-- Duplicate active model-number groups: 16; these require evidence review because legitimate regional/hardware variants must not be collapsed automatically.
-- Canonical duplicate-group count was not reasserted in this pass because the combined read-only query was not accepted by the tool; do not treat the older count as freshly verified.
-- `catalog_sync_state`: revision 258. Latest observed event is an `INSERT` on `device_catalog` at `2026-09-11 16:31:46 UTC`.
-- Compared with the prior verified baseline, total and active catalogue counts each increased by four while the image/storage gap counts and model-number collision-group count stayed unchanged. This is correlation evidence only, not proof that the four inserted rows caused every count change.
+- Duplicate active model-number groups: 16; preserve legitimate regional/hardware variants and do not collapse automatically.
+- `catalog_sync_state`: revision 258; latest observed event was a `device_catalog` INSERT at `2026-09-11 16:31:46 UTC`.
 
-### Inventory integrity — freshly verified
+### Inventory integrity — last verified service evidence
 
-Read-only invariants pass:
 - orphan inventory -> catalogue references: 0.
 - negative acquired/expected-sale prices: 0.
 - retired timestamps with incompatible lifecycle status: 0.
 
-### Guardian — freshly verified
+### Guardian — last verified service evidence
 
-- 14 incidents are not yet in resolved/closed/verified state: 2 high, 11 medium, 1 low.
-- 5 unresolved incidents require approval and have no `approved_at` evidence.
-- Guardian repair/decision authority remains human-approval protected; no autonomous repair/approval action was taken.
+- 14 incidents were not yet resolved/closed/verified: 2 high, 11 medium, 1 low.
+- 5 unresolved incidents required approval and had no `approved_at` evidence.
+- Guardian repair/decision authority remains human-approval protected; no autonomous repair/approval action is authorised.
 
-### Backup / recovery — freshly verified
+### Backup / recovery — last verified service evidence
 
-- Latest recorded user-encrypted Google Drive backup remains `ready`, format v1, AES-256-GCM, 701 bytes, created `2026-09-07 13:47:28 UTC`.
-- `restored_at` is still null. No restore-readiness success can be claimed from this record.
-- The backup remains stale relative to the current date and still requires the existing authorised user Google Drive flow for a safe refresh/verification.
+- Latest recorded user-encrypted Google Drive backup remained `ready`, format v1, AES-256-GCM, 701 bytes, created `2026-09-07 13:47:28 UTC`.
+- `restored_at` remained null; restore readiness cannot be claimed green.
 - No server-side token substitution, key mutation, credential change, destructive restore or authorization bypass is permitted.
 
-### Nova quality / cost evidence — freshly verified
+### Nova quality / cost evidence — last verified service evidence
 
 - `nova_ai_runs` exists with provider/mode/model, latency, token, cost, success/degraded and failure metadata fields.
-- It currently contains zero rows: no first/last run, no measured production latency, no production fallback/degraded sample and no recorded spend.
-- Therefore provider quality/cost/safety drift cannot yet be judged from production telemetry. Continue static/contract/evaluation coverage and treat telemetry-derived conclusions as unavailable until real approved traffic is recorded.
+- Latest verified query contained zero production rows, so production latency/cost/fallback drift cannot be inferred.
+- Continue static/evaluation coverage and record telemetry conclusions only from real approved evidence.
 
-### Supabase security drift — freshly verified, evidence only
+### Supabase protected drift evidence
 
-Security advisors currently report:
-- 12 `RLS enabled, no policy` informational findings, including `nova_ai_runs`, Nova catalogue/knowledge tables, buy-price tables and backup-key tables. Some may intentionally be service-only; consumer/privilege intent must be mapped before any change.
-- 13 warnings for `SECURITY DEFINER` functions executable by authenticated users, including Admin invite/inventory RPCs and Guardian decision/control/report RPCs.
-- leaked-password protection disabled warning.
+- Latest advisor evidence included 12 `RLS enabled, no policy` informational findings, 13 authenticated-user `SECURITY DEFINER` warnings, and leaked-password protection disabled.
+- These touch protected auth/RLS/privilege boundaries. No autonomous schema, policy, function privilege or Auth configuration change is authorised.
+- Latest performance evidence included 45 unused-index notices and one duplicate Nova index warning; index removal is a protected production-schema change and is not authorised autonomously.
 
-These findings touch protected auth/RLS/privilege boundaries. No autonomous schema, policy, function privilege or Auth configuration change is authorised.
-
-### Supabase performance drift — freshly verified, evidence only
-
-- 45 indexes are currently reported as unused. No indexes were removed because low-volume/recent workloads can make usage evidence misleading.
-- `public.nova_ai_runs` has one duplicate-index warning for `nova_ai_runs_user_created_idx` and `nova_ai_runs_user_id_idx`.
-- Index removal is a production schema change and is not authorised autonomously; additionally, `nova_ai_runs` currently has zero rows, so there is no urgent measured production cost from the duplication.
-
-## Active workstreams and impact/risk ranking
+## Impact / risk ranking
 
 | Rank | Lane | Impact | Risk | Current state | Next safe action |
 |---|---|---:|---:|---|---|
-| 1 | Admin auth / Android parity | 10 | 8 | Old #1369 is stale; Android freshness already landed elsewhere; pre-auth body-mounted More menu remains structurally exposed | Prepare a narrow fresh current-main web-containment candidate and regression evidence; do not merge/deploy without explicit approval |
-| 2 | Production login verification | 10 | 5 | #1374 web and #1377 native bootstrap repairs are merged | Verify live browser/native challenge behavior with read-only/synthetic evidence where supported; only patch demonstrated regressions |
-| 3 | Backup/recovery readiness | 10 | 6 | Latest user-encrypted backup is still the 2026-09-07 ready record; no restore recorded | Re-check/refresh only through existing authorised user flow; no token/key bypass or destructive restore |
-| 4 | Nova multi-model quality | 9 | 5 | #1355 merged but `nova_ai_runs` has zero telemetry rows | Strengthen static/evaluation coverage and verify routing/fallback/cost guardrails without inventing production metrics |
-| 5 | Catalogue/data quality | 9 | 4 | 1,873 total / 1,756 active; 6 image gaps, 59 storage gaps, 16 model-number collision groups | Manufacturer-first evidence review; never guess or destructively collapse regional variants |
-| 6 | Guardian incident hygiene | 9 | 8 | 14 unresolved; 5 approval-gated | Read-only correlation/triage only; Guardian code-changing repairs and decisions remain human gated |
-| 7 | Supabase security drift | 9 | 8 | 12 no-policy INFO, 13 authenticated SECURITY DEFINER WARN, leaked-password warning | Build consumer/intent evidence map; any RLS/auth/privilege change requires explicit approval |
-| 8 | Release/integration stabilisation | 8 | 3 | Android 2.15.92 metadata/release checksum match; main has native auth code newer than that release | Determine whether post-2.15.92 native source requires a new release identity before any APK promotion; preserve monotonicity/signing evidence |
-| 9 | Valuation/Test & Buy/inventory lifecycle | 8 | 5 | Core inventory invariants freshly clean; Device Lens storage verification is released | Continue contract/regression audit and preserve pricing-authority boundaries |
-| 10 | Technical debt / capacity | 5 | 3 | 45 unused-index notices + one duplicate Nova index; large historical branch set remains ambiguous | Prefer evidence-backed simplification; no index/branch deletion without clear safety and relevance evidence |
+| 1 | Production/release stabilisation | 10 | 4 | Buys OTA is aligned at 2.15.94; Admin 0.1.36 metadata merged, but its publisher workflow reported failure before the PR completed | Correlate exact failure mode with current workflow behavior; prepare protected workflow repair only if still reproducible |
+| 2 | Production login verification | 10 | 5 | Web/native challenge repairs and Admin containment are on main | Verify live read-only/synthetic behavior where supported; patch only demonstrated regressions |
+| 3 | Backup/recovery readiness | 10 | 6 | Last verified user-encrypted backup is stale and no restore is recorded | Re-check only through existing authorised user flow; no token/key bypass or destructive restore |
+| 4 | Nova multi-model quality | 9 | 5 | Multi-model contracts merged; production telemetry still lacked samples at last verification | Strengthen static/evaluation coverage and guardrails without inventing production metrics |
+| 5 | Catalogue/data quality | 9 | 4 | 6 image gaps, 59 storage gaps, 16 model-number collision groups at last verified pass | Manufacturer-first evidence review; never guess or destructively collapse variants |
+| 6 | Guardian incident hygiene | 9 | 8 | 14 unresolved at last verified pass; 5 approval-gated | Read-only correlation/triage only; repairs/decisions remain human gated |
+| 7 | Supabase security drift | 9 | 8 | Protected advisor findings remain evidence-only | Build consumer/intent evidence map; explicit approval required for RLS/Auth/privilege changes |
+| 8 | Valuation/Test & Buy/inventory lifecycle | 8 | 5 | Latest inventory invariants were clean | Continue contract/regression audit and preserve pricing-authority boundaries |
+| 9 | Technical debt / capacity | 5 | 3 | Historical branches/check volume remain large; schema/index cleanup is ambiguous | Prefer narrow evidence-backed cleanup; no ambiguous branch/index deletion |
 
 ## Dependency / protected-boundary map
 
 - Web, Android and Admin share catalogue, pricing and session semantics.
-- Device Lens pricing depends on complete identity/photo/storage evidence and existing guarded pricing authority; staff verification supplies evidence but does not grant pricing authority.
+- Device Lens pricing depends on complete identity/photo/storage evidence and guarded pricing authority; staff verification supplies evidence but does not grant pricing authority.
 - Nova depends on catalogue/search/market contracts and approved external AI providers; output remains advisory.
 - Supabase schema/RLS/auth, secrets, privileged functions/roles, production-destructive operations, signing credentials, GitHub workflow security, protected pricing policy and Guardian approval policy require explicit human approval.
-- User encrypted Drive backup requires valid user Google authorization; autonomous server-side token substitution/bypass is forbidden.
+- User-encrypted Drive backup requires valid user Google authorization; autonomous token substitution/bypass is forbidden.
 - OTA metadata must remain version-monotonic and match the exact signed artifact/checksum.
 
 ## Critical invariants
@@ -113,39 +112,36 @@ These findings touch protected auth/RLS/privilege boundaries. No autonomous sche
 7. App/web/Admin/Nova contracts must not silently diverge.
 8. Auth/RLS/Guardian approval boundaries must not be weakened autonomously.
 9. Ambiguous production data is never auto-deleted/merged/destructively rewritten.
-10. Backup health is not considered green without freshness, integrity and restore-readiness evidence.
-11. Gumtree work remains excluded unless Beau explicitly re-enables it.
-12. Nova provider changes must not expose prompts, secrets or sensitive production data and must remain within approved provider/security boundaries.
+10. Backup health is not green without freshness, integrity and restore-readiness evidence.
+11. Gumtree remains excluded unless Beau explicitly re-enables it.
+12. Nova provider changes must not expose prompts, secrets or sensitive production data.
 13. Advisor warnings are evidence, not permission for automatic security/schema changes.
+14. Repository-owner actions do not count as independent human approval for protected automation/Guardian decisions.
 
 ## Failure-pattern / change-correlation record
 
-- 2026-09-12 — Continuity drift: stale ledger state understated Android/Nova progress. Corrective action: reconcile ledger against live GitHub and service evidence before task selection.
-- 2026-09-12 — Web/mobile auth regression: large inert challenge iframe before credentials. #1374 defers the browser challenge until credential readiness while preserving mandatory Turnstile.
-- 2026-09-12 — Native Android auth regression: the shared Turnstile page treated the native URL as a legacy inert Admin embed. #1377 detects `AndroidBridge` and starts native Turnstile immediately while preserving Admin deferred startup and the CAPTCHA boundary.
-- 2026-09-12 — Admin auth candidate drift: #1369 diverged from main while newer Admin Android freshness fixes landed independently. Treat its web containment concept separately from superseded Android/release parts; never stale-merge.
-- 2026-09-12 — Catalogue baseline moved from 1,869/1,752 to 1,873/1,756 with sync revision 258 and latest observed `device_catalog` INSERT. Quality-gap counts remained stable; no destructive reconciliation was attempted.
-- 2026-09-12 — Nova operational telemetry has zero rows after the multi-model merge. Do not invent latency/cost/reliability conclusions; rely on tests/evaluations until real approved traffic produces evidence.
-- 2026-09-11 — Device Lens storage dead-end fixed/released in #1370 / 2.15.92 with staff-confirmed storage and explicit no-guess behavior.
-- 2026-09-11 — Nova #1355 removed experimental Gumtree-expanding market-search/pricing-confidence changes before merge.
-- 2026-09-11 — Backup triage proved global scheduler health and stale user-encrypted backup are separate conditions; never bypass user authorization to refresh it.
-- 2026-09-11 — Release identity races are handled by branching from actual post-merge main, advancing exactly one identity, validating, and publishing exact signed-artifact metadata.
+- 2026-09-12 — Continuity drift: the ledger lagged 23 commits behind main and incorrectly still described Admin pre-auth More containment as unresolved. #1376 had already landed the fail-closed containment. Corrective action: reconcile ledger against current main before selecting work.
+- 2026-09-12 — Release-state drift: the ledger still described Buys 2.15.92 while current source/OTA were aligned at 2.15.94/versionCode 138. Corrective action: verify build.gradle and OTA identity together before release task selection.
+- 2026-09-12 — Admin 0.1.36 publisher run: APK build/sign/checksum passed; metadata-publication job reported failure, but generated PR #1402 later received owner approval and merged. Treat as automation reliability evidence, not artifact-integrity failure.
+- 2026-09-12 — Web/mobile auth regression history: #1374 deferred browser Turnstile until credentials were ready while preserving the mandatory challenge.
+- 2026-09-12 — Native Android auth regression history: #1377 detects `AndroidBridge` and starts native Turnstile immediately while preserving Admin deferred startup and the CAPTCHA boundary.
+- 2026-09-12 — Nova operational telemetry had zero rows at last verified service pass; do not invent latency/cost/reliability conclusions.
 
 ## Current blockers / approvals
 
-- A fresh Admin pre-auth navigation-containment repair will require explicit approval before merge/deployment because it changes an authentication/security boundary.
+- GitHub workflow/repository-security changes are approval-gated.
 - Supabase RLS/Auth/`SECURITY DEFINER` privilege changes are approval-gated.
 - Guardian repairs/decisions remain approval-gated.
-- Per-user encrypted Drive backup freshness still needs fresh authorised-flow evidence before recovery readiness can be claimed green.
-- Any destructive catalogue reconciliation remains approval-gated when evidence is ambiguous.
-- Nova telemetry currently lacks production samples; this is an evidence limitation, not permission to fabricate benchmark conclusions.
+- User-encrypted Drive backup freshness still needs authorised-flow evidence before recovery readiness can be claimed green.
+- Destructive catalogue reconciliation remains approval-gated when evidence is ambiguous.
+- Nova telemetry lacks production samples at last verification; this is an evidence limitation, not permission to fabricate conclusions.
 
 ## Next autonomous checkpoint
 
-1. Prepare and validate a fresh current-main Admin pre-auth navigation-containment candidate, keeping it unmerged pending explicit approval.
-2. Verify release identity requirements after #1377 because native Android source on main is newer than published 2.15.92; do not promote without exact signed artifact/checksum evidence.
-3. Audit Nova provider/routing static contracts and evaluation coverage while telemetry is empty; add only evidence-backed non-protected regression coverage.
-4. Verify current production/mobile login behavior using non-destructive/synthetic evidence where supported.
-5. Continue manufacturer-first catalogue evidence review for the six image gaps, 59 storage gaps and 16 model-number collision groups.
+1. Reconcile current-main checks after they settle and confirm production/OTA/deployment status on the exact head.
+2. Diagnose whether the Admin metadata publisher failure remains reproducible after #1403; do not alter workflow security autonomously.
+3. Audit Nova provider/routing static contracts and evaluation coverage while production telemetry is absent.
+4. Verify live login/challenge behavior using non-destructive/synthetic evidence where supported.
+5. Continue manufacturer-first catalogue evidence review for the six image gaps, 59 storage gaps and 16 model-number collision groups from the last verified service pass.
 6. Correlate unresolved Guardian incidents against recent merges/deployments without applying protected repairs.
 7. Re-check authorised user-backup freshness when the approved Google Drive flow produces new evidence.
