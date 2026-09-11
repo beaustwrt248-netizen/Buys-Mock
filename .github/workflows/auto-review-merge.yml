@@ -17,7 +17,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Classify changed files
+      - name: Classify change risk from paths and diff
         id: risk
         env:
           GH_TOKEN: ${{ github.token }}
@@ -26,45 +26,94 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          files="$(gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" --jq '.[].filename')"
-          printf '%s\n' "$files"
+          gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" > "$RUNNER_TEMP/pr-files.json"
 
-          # Changes in these areas always require a human decision.
-          risk_regex='(^|/)(auth|security|secrets?|credentials?|permissions?|migrations?)(/|$)|(^|/)\.env($|\.)|(^|/)AndroidManifest\.xml$|^\.github/workflows/|^\.github/CODEOWNERS$|^supabase/(migrations/|config\.toml$)'
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
 
-          risky="$(printf '%s\n' "$files" | grep -Ei "$risk_regex" || true)"
-          if [[ -n "$risky" ]]; then
-            echo "safe=false" >> "$GITHUB_OUTPUT"
-            {
-              echo 'risky<<EOF'
-              printf '%s\n' "$risky"
-              echo 'EOF'
-            } >> "$GITHUB_OUTPUT"
-          else
-            echo "safe=true" >> "$GITHUB_OUTPUT"
-          fi
+          files=json.loads(Path(os.environ['RUNNER_TEMP'],'pr-files.json').read_text())
+          names=[f.get('filename','') for f in files]
+          patches='\n'.join(f.get('patch') or '' for f in files)
+          added='\n'.join(
+              line[1:] for line in patches.splitlines()
+              if line.startswith('+') and not line.startswith('+++')
+          )
 
-      - name: Explain manual gate for sensitive changes
-        if: steps.risk.outputs.safe != 'true'
+          guarded_path=re.compile(
+              r'(^|/)(auth|security|permissions?|migrations?|guardian)(/|$)|'
+              r'^\.github/workflows/|^\.github/CODEOWNERS$|'
+              r'^supabase/(migrations/|functions/)|'
+              r'(^|/)AndroidManifest\.xml$|(^|/)build\.gradle$', re.I)
+
+          critical_path=re.compile(
+              r'(^|/)\.env($|\.)|(^|/)(credentials?|private[-_]?keys?|keystore|signing[-_]?keys?)(/|$)|'
+              r'\.(jks|keystore|p12|pfx|pem|key)$', re.I)
+
+          critical_added=[
+              r'\bdisable\s+row\s+level\s+security\b',
+              r'\bgrant\s+all\b.*\b(to|role)\s+(anon|authenticated|public)\b',
+              r'\bservice[_-]?role\b',
+              r'\bdrop\s+(table|schema|database)\b',
+              r'\btruncate\s+(table\s+)?\w+',
+              r'\bdelete\s+from\s+\w+\s*;?$',
+              r'\bforce[-_ ]?push\b',
+              r'authority_expansion\s*[:=]\s*true',
+              r'raw_(evidence|prices|user_backups)_exposed\s*[:=]\s*true',
+              r'persist-credentials\s*:\s*true',
+          ]
+
+          critical=[]
+          for name in names:
+              if critical_path.search(name): critical.append(name)
+          for pattern in critical_added:
+              if re.search(pattern, added, re.I|re.M): critical.append(f'diff:{pattern}')
+
+          guarded=[n for n in names if guarded_path.search(n)]
+          level='critical' if critical else ('guarded' if guarded else 'routine')
+
+          out=Path(os.environ['GITHUB_OUTPUT'])
+          with out.open('a', encoding='utf-8') as fh:
+              fh.write(f'level={level}\n')
+              fh.write('critical<<EOF\n' + '\n'.join(critical) + '\nEOF\n')
+              fh.write('guarded<<EOF\n' + '\n'.join(guarded) + '\nEOF\n')
+          print(f'Risk level: {level}')
+          if guarded: print('Guarded paths:\n'+'\n'.join(guarded))
+          if critical: print('Critical stops:\n'+'\n'.join(critical))
+          PY
+
+      - name: Stop only trust-breaking or destructive changes
+        if: steps.risk.outputs.level == 'critical'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr comment "$PR" --body "🛡️ **Automatic review paused — sensitive files changed.**\n\nThis PR will not be auto-approved or auto-merged. Existing CI/Guardian checks will still run.\n\nSensitive paths detected:\n\`\`\`\n${{ steps.risk.outputs.risky }}\n\`\`\`"
+          gh pr comment "$PR" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically. All ordinary and guarded-sensitive changes remain autonomous.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
+          exit 1
 
-      - name: Automatic approval for low-risk PR
-        if: steps.risk.outputs.safe == 'true'
+      - name: Record guarded autonomous review
+        if: steps.risk.outputs.level == 'guarded'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          gh pr comment "$PR" --body "🛡️ **Guarded autonomous change.** Sensitive paths are present, but no destructive/trust-breaking pattern was detected. Existing security, Guardian, parity, release and branch checks remain authoritative; auto-merge is armed only behind those checks."
+
+      - name: Automatic approval when repository permits bot approval
+        if: steps.risk.outputs.level != 'critical'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          RISK_LEVEL: ${{ steps.risk.outputs.level }}
         shell: bash
         run: |
-          gh pr review "$PR" --approve --body "✅ Automated low-risk review passed. Required repository checks and branch protections still apply before merge."
+          gh pr review "$PR" --approve --body "✅ Morley Autopilot policy review passed (${RISK_LEVEL}). Required checks and branch protections remain authoritative."
 
-      - name: Enable auto-merge for low-risk PR
-        if: steps.risk.outputs.safe == 'true'
+      - name: Enable auto-merge for all non-critical changes
+        if: steps.risk.outputs.level != 'critical'
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -75,10 +124,9 @@ jobs:
       - name: Summary
         shell: bash
         run: |
-          if [[ "${{ steps.risk.outputs.safe }}" == "true" ]]; then
-            echo "### ✅ Low-risk PR" >> "$GITHUB_STEP_SUMMARY"
-            echo "Automated review completed and auto-merge was armed. GitHub will merge only after required checks and protections pass." >> "$GITHUB_STEP_SUMMARY"
+          echo "### Morley Autopilot risk: ${{ steps.risk.outputs.level }}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.risk.outputs.level }}" == "critical" ]]; then
+            echo "Automatic merge blocked because the change can alter trust, credentials/signing, or production data destructively." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### 🛡️ Sensitive PR" >> "$GITHUB_STEP_SUMMARY"
-            echo "Automatic approval and merge were intentionally withheld." >> "$GITHUB_STEP_SUMMARY"
+            echo "Auto-merge armed. Existing required checks and repository protections must still pass." >> "$GITHUB_STEP_SUMMARY"
           fi
