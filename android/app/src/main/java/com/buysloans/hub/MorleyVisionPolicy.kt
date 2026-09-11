@@ -1,7 +1,5 @@
 package com.buysloans.hub
 
-import kotlin.math.abs
-
 /**
  * Safety policy for Morley Vision. Visual inference is evidence, never a fact by default.
  * Unknown values remain explicitly unverified rather than being guessed or rendered as "null".
