@@ -6,6 +6,8 @@ const orchestrator = fs.readFileSync('supabase/functions/nova-orchestrator/index
 const metrics = fs.readFileSync('supabase/functions/nova-ai-metrics/index.ts', 'utf8');
 const migration = fs.readFileSync('supabase/migrations/20260911185000_nova_ai_runs.sql', 'utf8');
 const apiClient = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaApiClient.java', 'utf8');
+const operatorUi = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaOperatorUi.java', 'utf8');
+const manifest = fs.readFileSync('android/novaapp/src/main/AndroidManifest.xml', 'utf8');
 
 test('orchestrator supports explicit provider routing and consensus', () => {
   for (const provider of ['gpt', 'gemini', 'claude', 'consensus']) {
@@ -48,9 +50,29 @@ test('protected Nova authority remains advisory and human gated', () => {
   assert.match(orchestrator, /never claim you executed catalogue writes, pricing changes, Guardian decisions\/repairs, deployments, releases, OTA actions, role\/user changes, destructive deletes, support sends, or GitHub merges\/releases/);
 });
 
-test('native client can choose providers and read AI metrics', () => {
+test('native client can choose providers, retain last run metadata and read AI metrics', () => {
   assert.match(apiClient, /JSONObject orchestrate\(String prompt, String mode, String provider\)/);
   assert.match(apiClient, /\.put\("provider", requestedProvider\)/);
+  assert.match(apiClient, /setPreferredProvider\(String provider\)/);
+  assert.match(apiClient, /lastOrchestratorResult = result/);
   assert.match(apiClient, /JSONObject aiMetrics\(\)/);
   assert.match(apiClient, /edge\("nova-ai-metrics"/);
+});
+
+test('native chat exposes selectable AI modes and safe run metadata', () => {
+  for (const label of ['Auto', 'GPT', 'Gemini', 'Claude', 'Consensus']) assert.match(operatorUi, new RegExp(`\"${label}\"`));
+  assert.match(operatorUi, /getSharedPreferences\("nova_ai"/);
+  assert.match(operatorUi, /Last AI run:/);
+  assert.match(operatorUi, /latency_ms/);
+  assert.match(operatorUi, /cost_usd/);
+  assert.match(operatorUi, /fallback/);
+});
+
+test('voice input uses runtime microphone permission, speech recognition and hands-free send', () => {
+  assert.match(manifest, /android\.permission\.RECORD_AUDIO/);
+  assert.match(operatorUi, /SpeechRecognizer\.createSpeechRecognizer/);
+  assert.match(operatorUi, /RecognizerIntent\.ACTION_RECOGNIZE_SPEECH/);
+  assert.match(operatorUi, /partialResults/);
+  assert.match(operatorUi, /sendVoiceResult/);
+  assert.match(operatorUi, /getDeclaredMethod\("sendQuestion"/);
 });
