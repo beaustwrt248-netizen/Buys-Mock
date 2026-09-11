@@ -1,7 +1,7 @@
 {
-  "versionCode": 130,
-  "versionName": "2.15.86",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.86/B-and-L-Morley-2.15.86.apk",
-  "sha256": "f22b97a83afee0df54053f69d1d902d3a50da1c0b7620143a3151658cc0d0059",
-  "notes": "Match Morley device scan layout to approved reference (#1328)"
+  "versionCode": 131,
+  "versionName": "2.15.87",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.87/B-and-L-Morley-2.15.87.apk",
+  "sha256": "c60bb9ce67cd134d81ec5a7a5ba1934179c7c395d8a9d6e07c5b41fb555f30fc",
+  "notes": "Morley Vision 2: verified identity, multi-angle inspection and pricing safety (#1338)"
 }
