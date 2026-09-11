@@ -116,6 +116,36 @@ class MorleyVisionReviewPolicyTest {
     }
 
     @Test
+    fun unverifiedStorageKeepsStaffReviewIncomplete() {
+        val state = MorleyVisionReviewPolicy.from(inspection(storage = ""), null)
+
+        assertFalse(state.storageVerified)
+        assertFalse(state.canCompleteStaffReview)
+    }
+
+    @Test
+    fun photoQualityWarningKeepsStaffReviewIncomplete() {
+        val state = MorleyVisionReviewPolicy.from(
+            inspection(qualityWarnings = listOf("Front photo is blurred")),
+            null
+        )
+
+        assertTrue(state.hasBlockingEvidenceGap)
+        assertFalse(state.canCompleteStaffReview)
+    }
+
+    @Test
+    fun crossPhotoInconsistencyKeepsStaffReviewIncomplete() {
+        val state = MorleyVisionReviewPolicy.from(
+            inspection(consistencyWarnings = listOf("Photos may show different devices")),
+            null
+        )
+
+        assertTrue(state.hasBlockingEvidenceGap)
+        assertFalse(state.canCompleteStaffReview)
+    }
+
+    @Test
     fun allDamageRegionsRequireExplicitStaffDecision() {
         val damage = DamageRegion(
             photoIndex = 1,
