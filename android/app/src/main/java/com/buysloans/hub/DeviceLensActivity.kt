@@ -119,6 +119,7 @@ private enum class LensStep {
     CAPTURE_FRONT,
     CAPTURE_BACK,
     ANALYSING,
+    REVIEW,
     RESULTS,
     DAMAGE,
     DETAILS,
@@ -170,6 +171,7 @@ private fun DeviceLensFlow(
     var frontPhoto by remember { mutableStateOf<File?>(null) }
     var backPhoto by remember { mutableStateOf<File?>(null) }
     var inspection by remember { mutableStateOf<DeviceInspection?>(null) }
+    var reviewState by remember { mutableStateOf<MorleyVisionReviewState?>(null) }
     var pricing by remember { mutableStateOf<LivePricingResult?>(null) }
     var pricingBusy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -189,6 +191,7 @@ private fun DeviceLensFlow(
     fun reset() {
         clearPhotos()
         inspection = null
+        reviewState = null
         pricing = null
         pricingBusy = false
         error = ""
@@ -198,6 +201,13 @@ private fun DeviceLensFlow(
         confirmedCondition = ""
         analysisAttempt = 0
         step = LensStep.CAPTURE_FRONT
+    }
+
+    fun requireStaffReview(): Boolean {
+        if (reviewState?.canCompleteStaffReview == true) return true
+        error = "Complete staff verification before continuing to pricing or stock entry."
+        step = LensStep.REVIEW
+        return false
     }
 
     DisposableEffect(Unit) {
@@ -213,8 +223,9 @@ private fun DeviceLensFlow(
             runCatching { DeviceInspectionClient.inspect(context, frontPhoto!!, backPhoto!!) }
                 .onSuccess {
                     inspection = it
+                    reviewState = MorleyVisionReviewPolicy.from(it, null)
                     confirmedCondition = gradeLabel(it.conditionGrade)
-                    step = LensStep.RESULTS
+                    step = LensStep.REVIEW
                 }
                 .onFailure {
                     error = it.message ?: "The two photos could not be analysed."
@@ -224,6 +235,7 @@ private fun DeviceLensFlow(
 
     fun openPricing() {
         val current = inspection ?: return
+        if (!requireStaffReview()) return
         step = LensStep.PRICING
         if (pricing != null || pricingBusy) return
         pricingBusy = true
@@ -232,6 +244,9 @@ private fun DeviceLensFlow(
             runCatching { DeviceInspectionClient.livePricing(context, current) }
                 .onSuccess {
                     pricing = it
+                    reviewState = MorleyVisionReviewPolicy.from(current, it).copy(
+                        damageReviews = reviewState?.damageReviews ?: MorleyVisionReviewPolicy.from(current, it).damageReviews
+                    )
                     it.conditionAdjustedResale?.let { value ->
                         if (sellPrice.isBlank()) sellPrice = roundToFive(value).toInt().toString()
                     }
@@ -291,6 +306,40 @@ private fun DeviceLensFlow(
             cancel = close
         )
 
+        LensStep.REVIEW -> inspection?.let { result ->
+            val state = reviewState ?: MorleyVisionReviewPolicy.from(result, pricing).also { reviewState = it }
+            VisionReviewScreen(
+                inspection = result,
+                state = state,
+                frontPhoto = frontPhoto!!,
+                backPhoto = backPhoto!!,
+                error = error,
+                onDamageDecision = { regionIndex, decision ->
+                    reviewState = MorleyVisionReviewPolicy.decideDamage(
+                        reviewState ?: MorleyVisionReviewPolicy.from(result, pricing),
+                        regionIndex,
+                        decision
+                    )
+                    error = ""
+                },
+                continueToResults = {
+                    if (reviewState?.canCompleteStaffReview == true) {
+                        error = ""
+                        step = LensStep.RESULTS
+                    }
+                },
+                retake = {
+                    clearPhotos()
+                    inspection = null
+                    reviewState = null
+                    pricing = null
+                    error = ""
+                    step = LensStep.CAPTURE_FRONT
+                },
+                close = close
+            )
+        } ?: reset()
+
         LensStep.RESULTS -> inspection?.let { result ->
             ResultsScreen(
                 inspection = result,
@@ -300,10 +349,11 @@ private fun DeviceLensFlow(
                 deviceDetails = { step = LensStep.DETAILS },
                 condition = { step = LensStep.CONDITION },
                 pricing = ::openPricing,
-                addStock = { step = LensStep.ADD_STOCK },
+                addStock = { if (requireStaffReview()) step = LensStep.ADD_STOCK },
                 retake = {
                     clearPhotos()
                     inspection = null
+                    reviewState = null
                     pricing = null
                     step = LensStep.CAPTURE_FRONT
                 },
@@ -316,7 +366,7 @@ private fun DeviceLensFlow(
         } ?: reset()
 
         LensStep.DETAILS -> inspection?.let { result ->
-            DeviceDetailsScreen(result, pricing = ::openPricing, addStock = { step = LensStep.ADD_STOCK }) {
+            DeviceDetailsScreen(result, pricing = ::openPricing, addStock = { if (requireStaffReview()) step = LensStep.ADD_STOCK }) {
                 step = LensStep.RESULTS
             }
         } ?: reset()
@@ -334,6 +384,7 @@ private fun DeviceLensFlow(
                 loading = pricingBusy,
                 error = error,
                 useSuggested = {
+                    if (!requireStaffReview()) return@PricingScreen
                     pricing?.conditionAdjustedResale?.let { value ->
                         sellPrice = roundToFive(value).toInt().toString()
                     }
@@ -360,6 +411,7 @@ private fun DeviceLensFlow(
                 stockNumber = stockNumber,
                 onStockNumberChange = { stockNumber = it.take(80) },
                 submit = {
+                    if (!requireStaffReview()) return@AddStockScreen
                     error = ""
                     runCatching {
                         WorkspaceStore.addInventory(
@@ -728,6 +780,53 @@ private fun AnalyseScreen(
                 OutlinedButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }
                 TextButton(onClick = cancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
+        }
+    }
+}
+
+@Composable
+private fun VisionReviewScreen(
+    inspection: DeviceInspection,
+    state: MorleyVisionReviewState,
+    frontPhoto: File,
+    backPhoto: File,
+    error: String,
+    onDamageDecision: (Int, VisionStaffDecision) -> Unit,
+    continueToResults: () -> Unit,
+    retake: () -> Unit,
+    close: () -> Unit
+) {
+    ScanScaffold("Staff Verification", close) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AnnotatedPhoto(frontPhoto, inspection.damageRegions.filter { it.photoIndex == 1 }, Modifier.weight(1f).aspectRatio(.78f))
+                AnnotatedPhoto(backPhoto, inspection.damageRegions.filter { it.photoIndex == 2 }, Modifier.weight(1f).aspectRatio(.78f))
+            }
+            MorleyVisionReviewPanel(
+                state = state,
+                onDamageDecision = onDamageDecision,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (!state.canCompleteStaffReview) {
+                InfoCard(
+                    "Verification required",
+                    "Resolve every damage decision and retake photos when identity, storage, photo quality or cross-photo consistency is not verified. Pricing and stock entry remain locked until this review is complete."
+                )
+            }
+            if (error.isNotBlank()) ErrorCard(error)
+            Button(
+                onClick = continueToResults,
+                enabled = state.canCompleteStaffReview,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = LensBlue)
+            ) {
+                Text("Continue to Results", fontWeight = FontWeight.Black)
+            }
+            OutlinedButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }
+            AiBoundary()
         }
     }
 }
