@@ -1,6 +1,5 @@
 package com.buysloans.hub
 
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -15,6 +14,8 @@ class GoogleCameraScannerRoutingTest {
         assertTrue(source.contains("BottomDestination.SCAN ->"))
         assertTrue(source.contains("Device scan\", \"Use the same Google camera scanner as Morley search."))
         assertTrue(source.split("Intent(context, UniversalBuySearchActivity::class.java)").size >= 4)
-        assertFalse(source.contains("Intent(context, DeviceLensActivity::class.java)"))
+        // Add to Catalogue still intentionally uses DeviceLensActivity for its two-photo add flow.
+        assertTrue(source.contains("title = \"Add to Catalogue\""))
+        assertTrue(source.contains("onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }"))
     }
 }
