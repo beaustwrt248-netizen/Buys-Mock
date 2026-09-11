@@ -116,7 +116,7 @@ class AdminActivity : ComponentActivity() {
         @JavascriptInterface
         fun sessionError(message: String) {
             runOnUiThread {
-                AdminTelemetry.recordNonFatal(applicationContext, "native_session_handoff", message)
+                AdminTelemetry.record(applicationContext, "NativeSessionHandoff", IllegalStateException(message))
                 returnToNativeLogin()
             }
         }
