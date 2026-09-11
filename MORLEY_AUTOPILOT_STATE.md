@@ -1,145 +1,139 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-12 01:34 AWST
-Main SHA observed during reconciliation: `08a6feeab009517b1b11945732edb6cfe9001cd8`
+Last reconciled: 2026-09-12 01:36 AWST
+Main SHA observed during reconciliation: `53130f9ffbb59118e2754d86664fb99f94d1ef1f`
 
 This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gumtree is intentionally excluded.
 
-## Production / release snapshot
+## Release / production snapshot
 
-- PR #1387 merged as `fb71285772483a2fa155e3ffe7a11e534393248d`, advancing Android source identity to `2.15.93` / versionCode `137` after the native Turnstile repairs.
-- GitHub Release `v2.15.93` is now published from that tested source. The APK `B-and-L-Morley-2.15.93.apk` has SHA-256 `e5e12ab3b895c8b29b84b516e18f6f67a6cbac9daa8d45a827052bcae4540eb6`.
-- The automated publisher verified the exact signed APK artifact before publishing the release.
-- `ota/latest.json` on main still advertises `2.15.92` / versionCode `136` with SHA-256 `df5ee0c4e7068a0c5ed37a831e2a3582e46696d018a975d6910a1bb3c6cd36f2` at this reconciliation point.
-- PR #1390 is the protected automated OTA metadata handoff for 2.15.93. It remains open; do not call 2.15.93 OTA-live until that PR is approved/merged and the main manifest is read back with the exact release URL/checksum.
-- Nova production intelligence from #1355 and measured-cost regression coverage from #1384 are on main.
+- Morley Buys Android `2.15.93` / versionCode `137` is released and OTA-live.
+- GitHub Release `v2.15.93` was published from tested source commit `fb71285772483a2fa155e3ffe7a11e534393248d`.
+- APK: `B-and-L-Morley-2.15.93.apk`.
+- Verified SHA-256: `e5e12ab3b895c8b29b84b516e18f6f67a6cbac9daa8d45a827052bcae4540eb6`.
+- Auto Publish Morley OTA workflow run `34628154639` completed successfully after verifying the exact signed artifact.
+- PR #1390 merged as `d23ac27b11fefd01a0f54d4e3459c09b4d6bff27` and main `ota/latest.json` was read back as versionCode `137`, versionName `2.15.93`, the exact release URL, and the same SHA-256 above.
+- PR #1391 then merged as `53130f9ffbb59118e2754d86664fb99f94d1ef1f`, adding the Samsung/Admin mobile text-entry and deferred Cloudflare-startup repair.
 
-## Protected-boundary reconciliation
+## Protected-boundary record
 
-- Beau explicitly approved **#1376 and #1386** in chat on 2026-09-12 before their merges were executed in this workflow.
-- Admin auth-containment PR #1376 then merged as `eb1a8385fe157c3de065a26ec4b0a99d698a1780`.
-- Guardian/service-role privilege PR #1386 then merged as `7c27b9dfe2c721f73c2b9b4f865f5d9bd047c6d9`.
-- These approvals are specific to #1376 and #1386 only. They do not authorize future auth/RLS/privilege/Guardian/release/signing changes.
-- A separate Guardian audit discrepancy remains worth monitoring: one historical approval-required incident was marked applied/resolved without an `approved_at` timestamp. Do not treat that record as precedent for bypassing approval.
+- Beau explicitly approved #1376 and #1386 in chat before this workflow merged them.
+- #1376 merged as `eb1a8385fe157c3de065a26ec4b0a99d698a1780`.
+- #1386 merged as `7c27b9dfe2c721f73c2b9b4f865f5d9bd047c6d9`.
+- #1390 (OTA promotion) and #1391 (Admin authentication-entry behavior) subsequently merged concurrently while this workflow was deliberately holding them for explicit protected approval. This workflow did not perform those merges. Preserve this as governance evidence; do not auto-revert a live release/auth repair without explicit direction and rollback validation.
+- One historical Guardian approval-required incident also has `applied_at` without an `approved_at` timestamp. Continue monitoring approval provenance.
+- No concurrent protected merge creates standing authority for later protected changes.
 
-## Live production-first health triage
+## Production-first health
 
-### Authentication / UI
+### Authentication / Admin
 
-- #1376 is on main, providing fail-closed pre-auth privileged Admin navigation containment.
-- Current main also includes later Admin/Cloudflare presentation fixes.
-- PR #1391 addresses a separate physical Samsung WebView regression where Admin login renders but taps do not reliably focus email/password fields, preventing intentionally deferred Cloudflare startup.
-- #1391 preserves mandatory Turnstile and keeps Sign in disabled until a genuine token exists. Because it changes authentication-entry behavior, merge remains Beau-approval-gated.
-- #1391's UI gate failure was traced to missing required PR-template checklist markers, not a runtime/test failure. The PR body was corrected and the failed checklist job rerun.
+- #1376 fail-closed pre-auth Admin navigation containment is on main.
+- #1391 is now on main. It adds pointer/touch/click focus recovery for Admin email/password controls while keeping Cloudflare/Turnstile deferred until credentials are ready and keeping Sign in gated on a genuine token.
+- #1391's earlier UI gate failure was PR-metadata-only; required checklist markers were added and the rerun passed before the concurrent merge.
+- Physical-device verification remains the decisive post-merge signal for the original Samsung login symptom.
 
-### Catalogue / sync — freshly verified
+### Guardian
+
+- Current production query returned zero incidents outside resolved/closed/verified/ignored states.
+- Recent `user-sync-state` and `user-security-center` HTTP-500 families were traced to missing service-role object privileges.
+- Required minimum grants and sequence usage were restored and read back; `user_sync_compare_and_set` service-role EXECUTE remains present.
+- RLS remains enabled on `user_sync_state`, `user_sync_events`, `user_session_devices` and `user_security_events`, with policies present.
+- #1386 records the approved privilege repair in repository migrations.
+- New PR #1392 proposes routing Guardian diagnosis/candidate generation through Nova, widening candidate scope to `supabase/functions/**`, and allowing a single new timestamped migration candidate. It does not itself deploy/apply those candidates, but it materially changes Guardian's protected repair authority and must remain human approval-gated.
+
+### Catalogue / sync
 
 - `device_catalog`: 1,876 total / 1,759 active.
-- Active rows with blank/null `image_reference_url`: 0.
-- Active rows with no storage options: 56.
-- All active mobile-phone storage gaps identified in the latest pass were resolved from evidence-backed sources.
-- `catalog_sync_state` is revision 263.
-- Remaining storage gaps must be classified as truly missing versus not-applicable before any update; never invent capacities merely to improve the score.
-- Catalogue identity must preserve legitimate regional/hardware variants; never collapse model-number collisions automatically.
+- Active missing image references: 0.
+- Active missing storage options: 56.
+- Latest verified catalogue sync revision: 263.
+- All active mobile-phone storage gaps found in the last pass were resolved with evidence-backed values.
+- Remaining gaps must be classified as truly missing versus not-applicable before updates. Never invent storage simply to improve a score.
+- Preserve legitimate regional/hardware variants; never auto-collapse model-number collisions.
 
-### Inventory integrity
+### Inventory
 
 - Last verified invariants: orphan inventory-to-catalogue references 0; negative acquired/expected-sale prices 0; incompatible retired lifecycle timestamps 0.
 - No destructive inventory repair was performed.
 
-### Guardian / sync-security incident state — freshly verified
-
-- Current query returned **zero incidents** outside resolved/closed/verified/ignored states.
-- The recent high `user-security-center` and `user-sync-state` HTTP-500 families were traced to missing `service_role` table/identity-sequence privileges.
-- Minimum required production grants were restored and independently read back; `user_sync_compare_and_set` service-role EXECUTE remains present.
-- RLS remains enabled on `user_sync_state`, `user_sync_events`, `user_session_devices` and `user_security_events`, with policies present.
-- Approved PR #1386 is merged so repository migrations now record the production privilege repair.
-- Guardian repairs/decisions remain human approval-gated despite the current zero-unresolved snapshot.
-
 ### Backup / recovery
 
-- `morley-google-drive-backup-daily` remains active; recent observed scheduler runs succeeded.
-- `morley-recovery-health-hourly` remains active; recent observed hourly runs succeeded.
-- A separate `stale_backup` warning for the user-encrypted Google Drive backup remains open, occurrence count 65, last seen `2026-09-11 17:17:00 UTC`.
-- Scheduler success does not prove per-user backup freshness or restore-readiness. Refresh must use the authorised Google flow; no token substitution or destructive restore.
+- Daily Google Drive backup scheduler is active and recent observed scheduler runs succeeded.
+- Hourly recovery-health scheduler is active and recent observed runs succeeded.
+- Separate user-encrypted backup freshness warning remains open: `stale_backup`, occurrence count 65, last seen `2026-09-11 17:17:00 UTC`.
+- Scheduler success is not proof of per-user backup freshness or restore-readiness. Refresh only through the authorised Google flow; never substitute tokens or perform destructive restore tests.
 
-### Nova quality / cost evidence
+### Nova
 
-- `nova_ai_runs` still contains 0 production rows, so no production latency/cost/fallback trend can be claimed.
-- Nova multi-model routing and telemetry contracts remain on main.
-- PR #1384 merged regression coverage preserving the actual measured-cost behavior: ensemble candidate usage is measured before deciding whether to make an additional fusion call. This is not a hard pre-spend cap on initial ensemble calls.
-- Continue evidence-backed evaluations until real approved traffic creates telemetry.
+- `nova_ai_runs` remains at 0 production rows, so no real production latency/cost/fallback trend can be claimed.
+- Multi-model routing/telemetry contracts remain on main.
+- #1384 regression-protects the existing measured-cost behavior: ensemble candidate usage is measured before deciding whether to make an additional fusion call. It is not a hard pre-spend cap on the initial ensemble calls.
 
-### Supabase security / performance drift — evidence only
+## Active workstreams — impact / risk
 
-- Existing advisor findings remain evidence-only pending consumer/intent review.
-- No further auth/RLS/function-privilege/index change is authorised autonomously.
-
-## Active workstreams and impact/risk ranking
-
-| Rank | Lane | Impact | Risk | Current state | Next safe action |
+| Rank | Lane | Impact | Risk | State | Next safe action |
 |---|---|---:|---:|---|---|
-| 1 | Morley 2.15.93 OTA promotion | 10 | 8 | Signed GitHub release published; OTA main manifest still 2.15.92; PR #1390 open | Verify required checks/approval; merge only with explicit Beau approval; then read back main manifest/checksum |
-| 2 | Admin mobile login text entry | 10 | 8 | PR #1391 open; broad security/integration checks green; UI metadata gate corrected/rerun | Finish CI evidence; hold runtime merge for Beau approval |
-| 3 | Production login verification | 10 | 5 | Latest native/web fixes on main; Admin focus repair not merged | After approved merge/publication, verify physical-device behavior and patch only demonstrated regressions |
-| 4 | Backup/recovery readiness | 10 | 6 | Global jobs healthy; per-user backup stale | Refresh only through authorised user flow; gather isolated non-destructive restore evidence when safely available |
-| 5 | Nova multi-model quality | 9 | 5 | Routing/cost guardrails merged; production telemetry empty | Continue evidence-backed evaluations/contract checks; compare real telemetry only when samples exist |
-| 6 | Catalogue/data quality | 9 | 4 | 1,876 total / 1,759 active; 0 image-reference gaps; 56 storage gaps; revision 263 | Manufacturer-first verification; distinguish not-applicable storage from true missing data |
-| 7 | Guardian incident hygiene | 9 | 7 | No currently unresolved incidents; approved privilege repair formalized | Monitor recurrence and approval-ledger integrity; any new repair remains human gated |
-| 8 | Supabase security drift | 9 | 8 | Protected advisor findings remain | Build consumer/intent map; no additional RLS/Auth/privilege changes without approval |
-| 9 | Valuation/Test & Buy/inventory lifecycle | 8 | 5 | Core invariants clean; Device Lens storage verification released previously | Continue regression/contract audit; preserve protected pricing authority |
-| 10 | Technical debt / capacity | 5 | 3 | Large historical branch set and known advisor cleanup candidates | Prefer narrow evidence-backed cleanup; no ambiguous deletion or broad rewrite |
+| 1 | Physical login verification | 10 | 5 | #1391 on main; original Samsung symptom needs real-device confirmation | Observe physical-device behavior; patch only demonstrated regressions |
+| 2 | Guardian + Nova repair pipeline | 10 | 9 | PR #1392 open; materially widens protected candidate scope | Complete read-only security review/checks; explicit Beau approval required before merge |
+| 3 | Backup/recovery readiness | 10 | 6 | Scheduler healthy; per-user encrypted backup stale | Refresh only via authorised user flow; gather isolated non-destructive restore evidence |
+| 4 | Catalogue/data quality | 9 | 4 | 1,876 total / 1,759 active; 0 image gaps; 56 storage gaps; revision 263 | Manufacturer-first verification; distinguish N/A from missing |
+| 5 | Nova quality/cost | 9 | 5 | Guardrails merged; production telemetry empty | Continue contract/evaluation coverage; wait for real approved traffic before trend claims |
+| 6 | Guardian incident hygiene | 9 | 7 | Zero currently unresolved | Read-only recurrence watch; preserve approval provenance |
+| 7 | Supabase security drift | 9 | 8 | Protected advisor findings remain | Build consumer/intent map; no RLS/Auth/privilege changes without approval |
+| 8 | Valuation/Test & Buy/inventory | 8 | 5 | Core invariants clean | Continue regression/contract audit; preserve protected pricing authority |
+| 9 | Release safety | 8 | 4 | 2.15.93 exact release/OTA chain verified | Watch rollout/incident evidence; next material Android source change must mint next identity |
+| 10 | Technical debt/capacity | 5 | 3 | Narrow cleanup candidates remain | Prefer reversible, evidence-backed cleanup; no broad rewrite or ambiguous deletion |
 
 ## Dependency / protected-boundary map
 
 - Web, Android and Admin share catalogue, pricing and session/auth semantics.
 - Device Lens pricing requires complete identity/photo/storage evidence and guarded pricing authority; staff verification adds evidence only.
-- Nova depends on catalogue/search/model-provider contracts and remains advisory.
-- Supabase schema/RLS/auth, privileged functions/roles, secrets, production-destructive operations, protected pricing policy, signing/release credentials, GitHub workflow security and Guardian approval policy require explicit human approval.
+- Nova remains advisory; Guardian owns incident evidence, risk policy and approval state.
+- Supabase schema/RLS/auth, privileged roles/functions, secrets, production-destructive operations, protected pricing policy, signing/release credentials, GitHub workflow security and Guardian approval policy require explicit human approval.
 - User Drive backup freshness depends on valid user Google authorization.
-- OTA metadata must remain version-monotonic and match the exact signed release artifact/checksum.
+- OTA metadata must remain monotonic and exactly match the signed release artifact/checksum.
 
 ## Critical invariants
 
-1. OTA `versionCode` is monotonic and metadata matches the exact signed artifact/checksum.
+1. OTA versionCode is monotonic and metadata matches the exact signed artifact/checksum.
 2. Material Android source changes mint the next release identity before promotion.
-3. A source/version merge or GitHub Release alone is not proof that OTA metadata is live.
+3. A source/version merge or GitHub Release alone is not proof of OTA-live status; main manifest read-back is required.
 4. Catalogue identity never silently collapses legitimate regional/hardware variants.
-5. Device facts/specifications remain evidence-backed; unknown means unverified, never guessed.
+5. Device facts remain evidence-backed; unknown means unverified, never guessed.
 6. Pricing/valuation remains blocked when required evidence is unresolved.
 7. Inventory lifecycle transitions remain valid and traceable.
 8. App/web/Admin/Nova contracts must not silently diverge.
-9. Auth/RLS/Guardian/security approval boundaries must not be weakened or bypassed autonomously.
-10. Approval is specific to the explicitly approved protected change and does not create standing authority for later changes.
+9. Auth/RLS/Guardian/security approval boundaries must not be weakened autonomously.
+10. Approval applies only to the specific protected change explicitly approved.
 11. Ambiguous production data is never auto-deleted/merged/destructively rewritten.
 12. Backup health is not green without freshness, integrity and restore-readiness evidence.
 13. Gumtree remains excluded unless Beau explicitly re-enables it.
 
-## Failure-pattern / change-correlation record
+## Change / failure correlation
 
-- 2026-09-12 — Protected changes #1376 and #1386 were explicitly approved by Beau in chat and then merged; future protected changes still require separate approval.
-- 2026-09-12 — 2.15.93 signed release: exact tested artifact was verified and GitHub Release v2.15.93 published; protected OTA manifest handoff remains separate in #1390.
-- 2026-09-12 — Guardian high-500 root cause: service-role privileges were missing for user sync/security backing objects; production grants were restored, read back, and migration #1386 merged after approval. Current unresolved Guardian count is zero.
-- 2026-09-12 — Guardian audit discrepancy: one historical approval-required incident was marked applied/resolved without an approval timestamp. Continue monitoring this boundary.
-- 2026-09-12 — Admin Samsung login focus regression: #1391 isolates unreliable mobile text-entry/focus while retaining deferred Turnstile and token gating; UI-gate failure was metadata-only and its PR checklist was corrected.
-- 2026-09-12 — Catalogue scorecard advanced to 1,876 total / 1,759 active, revision 263, 0 image-reference gaps and 56 storage gaps.
-- 2026-09-12 — Nova telemetry remains empty; measured-cost guardrail semantics are regression-protected without inventing cost/latency claims.
+- 2026-09-12 — 2.15.93 release chain verified end-to-end: signed artifact verified, GitHub Release published, OTA PR #1390 merged concurrently, and main manifest read back with exact 2.15.93 URL/checksum.
+- 2026-09-12 — #1391 Admin mobile input/Turnstile repair merged concurrently after its corrected UI checklist rerun passed. This workflow did not perform the protected merge.
+- 2026-09-12 — #1376 and #1386 were explicitly approved by Beau and merged by this workflow.
+- 2026-09-12 — Guardian high-500 root cause was missing service-role privileges; current unresolved incident count is zero after repair.
+- 2026-09-12 — Guardian approval provenance discrepancy remains for one historical incident with applied_at but no approved_at.
+- 2026-09-12 — Catalogue scorecard: 1,876 total / 1,759 active, revision 263, 0 image-reference gaps, 56 storage gaps.
+- 2026-09-12 — Nova telemetry remains empty; do not invent production cost/latency trends.
 
 ## Current blockers / approvals
 
-- **PR #1390 requires Beau's explicit approval** before OTA metadata promotion can be merged. The signed 2.15.93 GitHub release exists, but main OTA still points to 2.15.92 until that handoff is safely completed.
-- **PR #1391 requires Beau's explicit approval** before merge because it changes Admin authentication-entry behavior. Complete CI evidence first.
-- Any further Supabase RLS/Auth/`SECURITY DEFINER`/role privilege changes are approval-gated.
-- Guardian repairs/decisions remain approval-gated.
+- **PR #1392 requires explicit Beau approval before merge** because it changes Guardian's protected repair pipeline and expands candidate scope to Edge Functions/new migrations.
+- Any new Supabase RLS/Auth/service-role/`SECURITY DEFINER`/schema privilege change remains approval-gated.
+- Any new Guardian repair/decision execution remains approval-gated.
 - Per-user encrypted Drive backup freshness still needs the authorised Google flow.
 - Destructive/ambiguous catalogue reconciliation remains approval-gated.
 
 ## Next autonomous checkpoint
 
-1. Complete #1391 checklist/parity CI after the metadata-only PR-body correction; do not merge without approval.
-2. Inspect #1390 action-required checks and preserve protected OTA approval; after any approved merge, read back `ota/latest.json` and verify exact v2.15.93 URL/checksum.
-3. Merge this docs-only ledger refresh once its exact-head checks are green.
-4. Continue catalogue manufacturer-first cleanup only where missing values are truly applicable and evidence-backed.
-5. Monitor Guardian for recurrence and the approval-ledger discrepancy without changing protected policy.
-6. Continue Nova evaluation coverage while production telemetry remains empty.
-7. Re-check user Drive backup freshness/recovery evidence through the authorised flow.
+1. Complete read-only review and CI evidence for #1392; do not merge without explicit approval.
+2. Merge this docs-only ledger refresh once exact-head checks are green and it remains conflict-free.
+3. Monitor Guardian for recurrence and approval-provenance drift.
+4. Continue manufacturer-first catalogue cleanup only where values are truly applicable and evidence-backed.
+5. Continue Nova evaluation coverage while production telemetry remains empty.
+6. Re-check user Drive backup freshness/recovery evidence through the authorised flow.
+7. Watch 2.15.93 rollout/login evidence; if a new Android code change is needed, mint the next monotonic release identity before promotion.
