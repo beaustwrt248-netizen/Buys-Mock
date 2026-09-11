@@ -2,6 +2,8 @@
   'use strict';
 
   const CONDITION_RULES_VERSION = 'condition-v1';
+  const VALUATION_RULES_VERSION = 'valuation-v1';
+  const REPAIR_RULES_VERSION = 'repair-v1';
   const VALID_DIAGNOSTIC_STATUSES = new Set(['pass', 'fail', 'unknown', 'not_tested']);
   const SEVERITY_WEIGHTS = Object.freeze({ critical: 4, high: 3, medium: 2, low: 1 });
   const STAFF_DIAGNOSTIC_SEVERITY = Object.freeze({
@@ -20,6 +22,19 @@
     const number = Number(value);
     if (!Number.isFinite(number)) return min;
     return Math.min(max, Math.max(min, number));
+  }
+
+  function finiteNumber(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function nonNegative(value, fallback = 0) {
+    return Math.max(0, finiteNumber(value, fallback));
+  }
+
+  function money(value) {
+    return Math.round(finiteNumber(value, 0) * 100) / 100;
   }
 
   function normalizeEvidence(items) {
@@ -143,6 +158,147 @@
     });
   }
 
+  function valuationEvidenceBlockers(value) {
+    const blockers = [];
+    if (value.identityResolved !== true) blockers.push('identity_unresolved');
+    if (value.storageResolved !== true) blockers.push('storage_unresolved');
+    if (value.evidenceSufficient !== true) blockers.push('evidence_insufficient');
+    if (value.policyBlocked === true) blockers.push('policy_blocked');
+    return blockers;
+  }
+
+  function buildValuationQuote(input) {
+    const value = input && typeof input === 'object' ? input : {};
+    const blockers = valuationEvidenceBlockers(value);
+    const confidence = clamp(value.evidenceConfidence, 0, 1);
+    const marketResale = nonNegative(value.marketResale);
+    const conditionAdjustment = finiteNumber(value.conditionAdjustment, 0);
+    const stockAdjustment = finiteNumber(value.stockAdjustment, 0);
+    const demandAdjustment = finiteNumber(value.demandAdjustment, 0);
+    const repairCost = nonNegative(value.repairCost);
+    const targetMargin = nonNegative(value.targetMargin);
+    const minMargin = nonNegative(value.minMargin, targetMargin);
+    const maxBuy = value.maxBuy == null ? Number.POSITIVE_INFINITY : nonNegative(value.maxBuy);
+    const targetResale = money(Math.max(0, marketResale + conditionAdjustment + stockAdjustment + demandAdjustment));
+    const explanation = Object.freeze([
+      `Verified market resale baseline: $${money(marketResale).toFixed(2)}.`,
+      `Condition adjustment: $${money(conditionAdjustment).toFixed(2)}.`,
+      `Stock adjustment: $${money(stockAdjustment).toFixed(2)}.`,
+      `Demand adjustment: $${money(demandAdjustment).toFixed(2)}.`,
+      `Estimated repair cost: $${money(repairCost).toFixed(2)}.`,
+      `Target margin: $${money(targetMargin).toFixed(2)}; hard minimum margin: $${money(minMargin).toFixed(2)}.`,
+    ]);
+
+    const inputs = Object.freeze({
+      marketResale: money(marketResale),
+      conditionAdjustment: money(conditionAdjustment),
+      stockAdjustment: money(stockAdjustment),
+      demandAdjustment: money(demandAdjustment),
+      repairCost: money(repairCost),
+      targetMargin: money(targetMargin),
+      minMargin: money(minMargin),
+      maxBuy: Number.isFinite(maxBuy) ? money(maxBuy) : null,
+    });
+
+    const base = {
+      targetResale,
+      confidence,
+      inputs,
+      explanation,
+      rulesVersion: VALUATION_RULES_VERSION,
+      commercialAuthority: 'advisory',
+      requiresStaffConfirmation: true,
+    };
+
+    if (blockers.length) {
+      return Object.freeze({
+        ...base,
+        state: 'blocked',
+        buyOffer: null,
+        expectedMargin: null,
+        blockers: Object.freeze(blockers),
+        constraints: Object.freeze({ maxBuyApplied: false, minMargin: money(minMargin) }),
+      });
+    }
+
+    const hardMarginBuyCeiling = targetResale - repairCost - minMargin;
+    if (marketResale <= 0 || hardMarginBuyCeiling < 0) {
+      return Object.freeze({
+        ...base,
+        state: 'review_required',
+        buyOffer: null,
+        expectedMargin: null,
+        blockers: Object.freeze(['minimum_margin_unachievable']),
+        constraints: Object.freeze({ maxBuyApplied: false, minMargin: money(minMargin) }),
+      });
+    }
+
+    const targetBuy = Math.max(0, targetResale - repairCost - targetMargin);
+    const constrainedBuy = Math.min(targetBuy, hardMarginBuyCeiling, maxBuy);
+    const buyOffer = money(constrainedBuy);
+    const expectedMargin = money(targetResale - repairCost - buyOffer);
+    const maxBuyApplied = Number.isFinite(maxBuy) && maxBuy < Math.min(targetBuy, hardMarginBuyCeiling);
+
+    if (expectedMargin < minMargin) {
+      return Object.freeze({
+        ...base,
+        state: 'review_required',
+        buyOffer: null,
+        expectedMargin,
+        blockers: Object.freeze(['minimum_margin_unachievable']),
+        constraints: Object.freeze({ maxBuyApplied, minMargin: money(minMargin) }),
+      });
+    }
+
+    return Object.freeze({
+      ...base,
+      state: 'proposed',
+      buyOffer,
+      expectedMargin,
+      blockers: Object.freeze([]),
+      constraints: Object.freeze({ maxBuyApplied, minMargin: money(minMargin) }),
+    });
+  }
+
+  function decideRepairStrategy(input) {
+    const value = input && typeof input === 'object' ? input : {};
+    const buyCost = nonNegative(value.buyCost);
+    const resaleAsIs = nonNegative(value.resaleAsIs);
+    const resaleAfterRepair = nonNegative(value.resaleAfterRepair);
+    const repairCost = nonNegative(value.repairCost);
+    const minMargin = nonNegative(value.minMargin);
+    const repairDays = nonNegative(value.repairDays);
+    const sellThroughDaysAsIs = nonNegative(value.sellThroughDaysAsIs);
+    const sellThroughDaysAfterRepair = nonNegative(value.sellThroughDaysAfterRepair);
+    const asIsMargin = money(resaleAsIs - buyCost);
+    const repairedMargin = money(resaleAfterRepair - buyCost - repairCost);
+
+    let recommendation = 'review_required';
+    let reason = 'Neither option clears the required margin; staff review is required.';
+
+    if (repairedMargin >= minMargin && repairedMargin > asIsMargin) {
+      recommendation = 'buy_and_repair';
+      reason = 'Repair produces the stronger margin while clearing the required minimum.';
+    } else if (asIsMargin >= minMargin) {
+      recommendation = 'buy_as_is';
+      reason = 'Selling as-is clears the required margin without repair cost or delay.';
+    }
+
+    return Object.freeze({
+      recommendation,
+      reason,
+      asIsMargin,
+      repairedMargin,
+      repairCost: money(repairCost),
+      repairDays,
+      sellThroughDaysAsIs,
+      sellThroughDaysAfterRepair,
+      rulesVersion: REPAIR_RULES_VERSION,
+      commercialAuthority: 'advisory',
+      requiresStaffConfirmation: true,
+    });
+  }
+
   function canPrepareStock(input) {
     const value = input && typeof input === 'object' ? input : {};
     const confirmations = value.confirmations && typeof value.confirmations === 'object'
@@ -180,13 +336,17 @@
   }
 
   const api = Object.freeze({
-    version: '1.1.0',
+    version: '1.2.0',
     CONDITION_RULES_VERSION,
+    VALUATION_RULES_VERSION,
+    REPAIR_RULES_VERSION,
     normalizeEvidence,
     normalizeStaffDiagnostics,
     resolveAssessmentState,
     scoreCondition,
     scoreStaffCondition,
+    buildValuationQuote,
+    decideRepairStrategy,
     canPrepareStock,
     buildAssessmentProposal,
   });
