@@ -1,7 +1,7 @@
 # Morley Ecosystem Autopilot State
 
 Last reconciled: 2026-09-11 20:00 AWST
-Main SHA: `c9be261ca6d130cfafb7d705669edc2fa4cde676`
+Main SHA: `f6655f49191864c6eef928abd0f439752e107abf`
 
 This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gumtree is intentionally excluded.
 
@@ -10,7 +10,7 @@ This is the non-sensitive continuity ledger for Morley ecosystem maintenance. Gu
 - Morley Buys Android OTA remains published at `2.15.89` / versionCode `133` with the verified signed artifact/checksum already recorded in `ota/latest.json`.
 - PR #1354 is now on main and repairs the Admin Android/WebView login freeze by deferring Turnstile until credential-triggered authentication and preventing pre-auth retry loops.
 - Device Lens still has the core pricing-evidence gate from PR #1349 and reusable staff-review UI from PR #1342, but the live `DeviceLensActivity` still bypasses persistence of Confirm / Not Damage decisions.
-- Nova production-intelligence PR #1355 is open and green across current CI, but it includes Supabase migration/RLS work and therefore remains explicit-human-approval gated under autopilot policy.
+- Nova production-intelligence PR #1355 is open and green across current CI, but it includes protected Supabase schema/RLS work and also expands Gumtree evidence into pricing analysis. It must not merge under current autopilot policy without resolving both blockers.
 
 ## Live production-first health triage
 
@@ -40,10 +40,13 @@ Read-only invariants currently pass:
 
 ### Backup / recovery
 
-- Recovery health currently contains one open warning: encrypted Google Drive backup is stale.
-- The warning has been observed repeatedly and was last observed at 2026-09-11 11:17 UTC.
-- `user_drive_backups` contains one recorded backup, created 2026-09-07 13:47 UTC, status `ready`, format v1, AES-256-GCM, 701 bytes, with no recorded restore.
-- Backup creation, destructive restore, credential/key changes, or production overwrite remain approval-gated. The next safe recovery action is diagnosis/readiness verification, not destructive repair.
+The backup warning has now been isolated rather than treated as a generic scheduler outage:
+- Global `morley-google-drive-backup-daily` cron is active on `0 19 * * *` and its latest observed run (2026-09-10 19:00 UTC) succeeded.
+- `morley-recovery-health-hourly` is active on minute 17 and continues to succeed while correctly reporting the separate stale user-encrypted backup finding.
+- The open finding is `stale_backup`: encrypted Google Drive backup is stale; threshold 36 hours; last user backup 2026-09-07 13:47 UTC; first warning 2026-09-09 02:17 UTC.
+- `user_drive_backups` contains one ready backup, format v1, AES-256-GCM, 701 bytes. Exactly one `backup_created` event, one wrapped backup key and one master key are recorded; no restore is recorded.
+- The active `user-google-drive-backup` Edge Function requires both the Morley user JWT and a live `X-Google-Access-Token`, verifies the Google identity, encrypts locally, uploads to Drive appDataFolder and verifies the uploaded envelope before marking ready. This design means the per-user backup cannot be refreshed by the server cron without an approved user Google authorization/token flow.
+- Therefore the current stale warning is not evidence that the global cron is broken. The next safe action is to restore/verify user backup freshness through the existing authorised app flow; no key mutation, credential change, destructive restore or bypass is permitted.
 
 ### Supabase security drift
 
@@ -59,9 +62,9 @@ Performance advisor currently reports unused-index candidates only. No index was
 
 | Rank | Lane | Impact | Risk | Current state | Next safe action |
 |---|---|---:|---:|---|---|
-| 1 | Backup/recovery readiness | 10 | 6 | Live stale-backup warning; last recorded backup 2026-09-07; no restore evidence | Read-only diagnosis of backup event/key/health flow and isolate why freshness is not advancing; no destructive restore or key mutation |
-| 2 | Morley Vision / Device Lens | 10 | 4 | Review UI/policy exists but live DeviceLensActivity bypasses durable staff damage decisions | Wire Confirm / Not Damage into live flow on a narrow current-main branch with regression/accessibility/degraded-state coverage |
-| 3 | Nova production intelligence | 9 | 7 | PR #1355 CI is green; includes schema/RLS migration and deployed-compatible backend changes | Hold merge pending Beau's explicit approval; do not treat repository-owner self-approval as independent approval |
+| 1 | Morley Vision / Device Lens | 10 | 4 | Review UI/policy exists but live DeviceLensActivity bypasses durable staff damage decisions | Wire Confirm / Not Damage into live flow on a narrow current-main branch with regression/accessibility/degraded-state coverage |
+| 2 | Backup/recovery readiness | 10 | 6 | Global backup cron is healthy; separate user-encrypted backup is stale because freshness depends on user-authorised Google Drive flow | Verify/refresh via existing authorised app flow; no server-side token bypass, destructive restore or key mutation |
+| 3 | Nova production intelligence | 9 | 8 | PR #1355 CI is green but schema/RLS approval and Gumtree-exclusion blockers remain | Hold merge; remove Gumtree expansion or obtain explicit re-enable, and obtain explicit approval for schema/RLS |
 | 4 | Supabase security drift | 9 | 8 | Advisor warnings require intent review | Prepare evidence/consumer map; auth/RLS/SECURITY DEFINER/leaked-password changes require explicit approval |
 | 5 | Catalogue/data quality | 9 | 4 | Strong identity/source coverage; 6 image gaps, 59 storage gaps, 16 model-number collision groups | Manufacturer-first evidence review; never guess or destructively collapse regional variants |
 | 6 | Guardian incident hygiene | 9 | 8 | 14 unresolved; 5 waiting approval | Read-only triage/correlation only; Guardian code-changing repairs and decisions remain human gated |
@@ -75,6 +78,7 @@ Performance advisor currently reports unused-index candidates only. No index was
 - Device Lens pricing depends on `MorleyVisionPolicy.pricingBlockReason` via `DeviceInspectionClient.livePricing`; review state may gate usage but never grants pricing authority.
 - Nova depends on catalogue/search/market contracts and external AI providers; output remains advisory.
 - Supabase schema/RLS/auth, secrets, privileged functions/roles, production-destructive operations, signing credentials, GitHub workflow security, protected pricing policy and Guardian approval policy require explicit human approval.
+- User encrypted Drive backup requires a valid user Google authorization; autonomous server-side token substitution/bypass is forbidden.
 - OTA metadata must remain version-monotonic and match the exact signed artifact/checksum.
 
 ## Critical invariants
@@ -89,10 +93,12 @@ Performance advisor currently reports unused-index candidates only. No index was
 8. Auth/RLS/Guardian approval boundaries must not be weakened autonomously.
 9. Ambiguous production data is never auto-deleted/merged/destructively rewritten.
 10. Backup health is not considered green without freshness, integrity and restore-readiness evidence.
+11. Gumtree work remains excluded unless Beau explicitly re-enables it; existing references are not permission to expand Gumtree functionality.
 
 ## Failure-pattern record
 
 - 2026-09-11 — Admin WebView login freeze: Turnstile initialized/retried before credential submission. Fix in PR #1354: defer Turnstile until credential-triggered auth and prevent pre-auth retry loops.
+- 2026-09-11 — Backup triage: global daily backup cron is active/succeeding, while the user-encrypted Drive backup is independently stale. The per-user flow requires a live Google access token and must not be misdiagnosed as a cron outage or bypassed server-side.
 - 2026-09-11 — Bot-authored OTA PR #1351 had Actions in `action_required`. Safe recovery: replace with current-main owner PR for the exact generated metadata, let normal checks run, close blocked bot PR as superseded, never bypass protections.
 - 2026-09-11 — Release identity merge race after PR #1349. Safe recovery: branch from actual post-merge main, advance exactly one release identity, validate, then publish matching signed artifact metadata.
 - 2026-09-11 — Morley Vision PR #1342 Kotlin redeclaration. Fix: remove duplicate review model and reuse canonical policy model.
@@ -101,14 +107,15 @@ Performance advisor currently reports unused-index candidates only. No index was
 ## Current blockers / approvals
 
 - PR #1355 is not eligible for autonomous merge despite green CI because `supabase/migrations/20260911185000_nova_ai_runs.sql` changes a protected schema/RLS boundary. Explicit Beau approval is required.
+- PR #1355 also expands Gumtree pricing evidence through `usedEvidence`/IQR confidence analysis. Current instruction excludes ALL Gumtree work; that expansion must be removed unless Beau explicitly re-enables Gumtree.
 - Supabase advisor security changes are approval-gated; this ledger records evidence only.
-- Backup freshness is currently not healthy; cause is not yet proven and no destructive repair should be attempted.
+- Per-user encrypted Drive backup freshness is not green. Global backup scheduler is healthy; refreshing the user backup requires the existing authorised Google Drive flow.
 - Device Lens staff-review integration is still not Done.
 
 ## Next autonomous checkpoint
 
-1. Continue read-only backup/recovery diagnosis and verify event/freshness flow without changing keys, credentials or production data.
-2. Continue Device Lens live staff-review integration as the highest-value non-protected implementation lane.
-3. Hold PR #1355 until explicit approval while preserving its verified green checks.
+1. Continue Device Lens live staff-review integration as the highest-value non-protected implementation lane.
+2. Hold PR #1355 until its Gumtree scope is removed/re-enabled and protected schema/RLS approval is explicit.
+3. Re-check user-encrypted backup freshness and recovery evidence; never substitute credentials or bypass Google authorization.
 4. Review the 6 image gaps, 59 storage gaps and 16 model-number collision groups manufacturer-first; do not guess or merge variants.
 5. Correlate unresolved Guardian incidents against recent merges/deployments without applying protected repairs.
