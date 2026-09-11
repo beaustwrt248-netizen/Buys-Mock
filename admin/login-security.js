@@ -32,7 +32,7 @@
     setChallengeVisible(true);
     syncLoginEnabled();
     setChallengeState(reason||'Security check loading…',false);
-    frame.src='turnstile.html?v=4&load='+Date.now();
+    frame.src='turnstile.html?v=5&load='+Date.now();
   }
 
   function maybeLoadChallenge(){
@@ -46,7 +46,7 @@
     setChallengeVisible(true);
     syncLoginEnabled();
     setChallengeState(reason||'Reloading security check…',false);
-    frame.src='turnstile.html?v=4&retry='+Date.now();
+    frame.src='turnstile.html?v=5&retry='+Date.now();
   }
 
   // Keep Cloudflare completely out of the WebView while credentials are being
