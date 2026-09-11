@@ -1,5 +1,6 @@
 package com.buysloans.nova;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.Editable;
@@ -37,6 +38,7 @@ final class NovaVisionFunctionalityGate {
                     String value = String.valueOf(s);
                     if (value.startsWith("Analysing ")) {
                         state.latestPricingResult = null;
+                        NovaVisionReviewBridge.clear();
                         reset(activity);
                     } else if (value.contains("Australian pricing intelligence")) {
                         state.latestPricingResult = withoutGateMarker(value);
@@ -44,11 +46,13 @@ final class NovaVisionFunctionalityGate {
                     } else {
                         state.latestPricingResult = null;
                     }
+                    refreshDamageReview(activity, state);
                 }
             });
         }
         if (decor.findViewWithTag("nova-vision-functionality-gate") != null) {
             render(state);
+            refreshDamageReview(activity, state);
             return;
         }
         LinearLayout root = findVisionRoot(decor);
@@ -81,6 +85,21 @@ final class NovaVisionFunctionalityGate {
         boundary.setTextSize(12);
         card.addView(boundary);
 
+        Button damageReview = new Button(activity);
+        damageReview.setAllCaps(false);
+        damageReview.setTag("nova-damage-review");
+        damageReview.setText("Review highlighted damage");
+        damageReview.setTextColor(Color.rgb(239,244,255));
+        damageReview.setVisibility(View.GONE);
+        damageReview.setOnClickListener(v -> {
+            int count = NovaVisionReviewBridge.capture(activity);
+            if (count > 0) activity.startActivity(new Intent(activity, NovaDamageReviewActivity.class));
+        });
+        LinearLayout.LayoutParams damageLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity,48));
+        damageLp.topMargin = dp(activity,10);
+        card.addView(damageReview, damageLp);
+        state.damageReview = damageReview;
+
         for (int i=0;i<IDS.length;i++) {
             final String id=IDS[i];
             LinearLayout row = new LinearLayout(activity);
@@ -105,6 +124,7 @@ final class NovaVisionFunctionalityGate {
         card.addView(status);
         render(state);
         applyPricingGate(state);
+        refreshDamageReview(activity, state);
     }
 
     static void reset(NovaVisionActivity activity) {
@@ -114,7 +134,21 @@ final class NovaVisionFunctionalityGate {
         render(state);
     }
 
-    static void clear(NovaVisionActivity activity) { STATES.remove(activity); }
+    static void clear(NovaVisionActivity activity) {
+        STATES.remove(activity);
+        NovaVisionReviewBridge.clear();
+    }
+
+    private static void refreshDamageReview(NovaVisionActivity activity, GateState state) {
+        if (state.damageReview == null) {
+            View found = activity.getWindow().getDecorView().findViewWithTag("nova-damage-review");
+            if (found instanceof Button) state.damageReview = (Button) found;
+        }
+        if (state.damageReview == null) return;
+        int count = NovaVisionReviewBridge.capture(activity);
+        state.damageReview.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+        state.damageReview.setText(count > 0 ? "Review highlighted damage (" + count + ")" : "Review highlighted damage");
+    }
 
     private static void cycle(GateState state,String id) {
         Status current=state.values.get(id);
@@ -146,25 +180,20 @@ final class NovaVisionFunctionalityGate {
 
     private static void applyPricingGate(GateState state) {
         TextView result=state.result;
-        if (result==null) return;
+        if(result==null)return;
         String text=String.valueOf(result.getText());
-        if (state.latestPricingResult==null || !text.contains("Australian pricing intelligence")) return;
+        if(state.latestPricingResult==null||!text.contains("Australian pricing intelligence"))return;
         int failed=count(state,Status.FAIL),pending=count(state,Status.PENDING);
         String next=state.latestPricingResult;
-        if (failed>0) next=next.replaceAll("Suggested maximum buy: \\$[^\\n]+","Suggested maximum buy: manual pricing required because functionality failed");
+        if(failed>0)next=next.replaceAll("Suggested maximum buy: \\$[^\\n]+","Suggested maximum buy: manual pricing required because functionality failed");
         String marker="\nFunctionality gate: ";
-        if(failed>0) next+=marker+failed+" failed check"+(failed==1?"":"s")+" • automatic max-buy suppressed.";
-        else if(pending>0) next+=marker+pending+" check"+(pending==1?"":"s")+" still untested • final offer not ready.";
+        if(failed>0)next+=marker+failed+" failed check"+(failed==1?"":"s")+" • automatic max-buy suppressed.";
+        else if(pending>0)next+=marker+pending+" check"+(pending==1?"":"s")+" still untested • final offer not ready.";
         else next+=marker+"all 8 manual checks passed • human final approval still required.";
-        if(!next.equals(text)) { state.rewriting=true; result.setText(next); state.rewriting=false; }
+        if(!next.equals(text)){state.rewriting=true;result.setText(next);state.rewriting=false;}
     }
 
-    private static String withoutGateMarker(String text) {
-        String marker="\nFunctionality gate: ";
-        int markerAt=text.indexOf(marker);
-        return markerAt>=0?text.substring(0,markerAt):text;
-    }
-
+    private static String withoutGateMarker(String text){String marker="\nFunctionality gate: ";int markerAt=text.indexOf(marker);return markerAt>=0?text.substring(0,markerAt):text;}
     private static int count(GateState state,Status status){int n=0;for(Status value:state.values.values())if(value==status)n++;return n;}
 
     private static TextView findResultText(View root) {
@@ -188,6 +217,7 @@ final class NovaVisionFunctionalityGate {
     private static final class GateState {
         final Map<String,Status> values=new LinkedHashMap<>();
         TextView result;
+        Button damageReview;
         String latestPricingResult;
         boolean rewriting;
         GateState(){for(String id:IDS)values.put(id,Status.PENDING);}
