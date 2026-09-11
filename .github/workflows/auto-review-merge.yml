@@ -1,0 +1,84 @@
+name: Guarded Auto Review & Merge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: auto-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review-and-arm-automerge:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify changed files
+        id: risk
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$(gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" --jq '.[].filename')"
+          printf '%s\n' "$files"
+
+          # Changes in these areas always require a human decision.
+          risk_regex='(^|/)(auth|security|secrets?|credentials?|permissions?|migrations?)(/|$)|(^|/)\.env($|\.)|(^|/)AndroidManifest\.xml$|^\.github/workflows/|^\.github/CODEOWNERS$|^supabase/(migrations/|config\.toml$)'
+
+          risky="$(printf '%s\n' "$files" | grep -Ei "$risk_regex" || true)"
+          if [[ -n "$risky" ]]; then
+            echo "safe=false" >> "$GITHUB_OUTPUT"
+            {
+              echo 'risky<<EOF'
+              printf '%s\n' "$risky"
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "safe=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Explain manual gate for sensitive changes
+        if: steps.risk.outputs.safe != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          gh pr comment "$PR" --body "🛡️ **Automatic review paused — sensitive files changed.**\n\nThis PR will not be auto-approved or auto-merged. Existing CI/Guardian checks will still run.\n\nSensitive paths detected:\n\`\`\`\n${{ steps.risk.outputs.risky }}\n\`\`\`"
+
+      - name: Automatic approval for low-risk PR
+        if: steps.risk.outputs.safe == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          gh pr review "$PR" --approve --body "✅ Automated low-risk review passed. Required repository checks and branch protections still apply before merge."
+
+      - name: Enable auto-merge for low-risk PR
+        if: steps.risk.outputs.safe == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          gh pr merge "$PR" --auto --squash
+
+      - name: Summary
+        shell: bash
+        run: |
+          if [[ "${{ steps.risk.outputs.safe }}" == "true" ]]; then
+            echo "### ✅ Low-risk PR" >> "$GITHUB_STEP_SUMMARY"
+            echo "Automated review completed and auto-merge was armed. GitHub will merge only after required checks and protections pass." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### 🛡️ Sensitive PR" >> "$GITHUB_STEP_SUMMARY"
+            echo "Automatic approval and merge were intentionally withheld." >> "$GITHUB_STEP_SUMMARY"
+          fi
