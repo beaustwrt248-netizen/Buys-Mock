@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 
 final class NovaApiClient {
     private static final int MAX_VISION_TOTAL_DATA_URL_CHARS = 20_000_000;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 15_000;
+    private static final int ORCHESTRATOR_READ_TIMEOUT_MS = 105_000;
 
     static final class Session {
         final String accessToken;
@@ -159,13 +161,19 @@ final class NovaApiClient {
         }
     }
 
+    private static int readTimeoutFor(String path) {
+        return path != null && path.startsWith("/functions/v1/nova-orchestrator")
+                ? ORCHESTRATOR_READ_TIMEOUT_MS
+                : DEFAULT_READ_TIMEOUT_MS;
+    }
+
     private String requestOnce(String method, String path, String body, String bearer) throws Exception {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(BuildConfig.SUPABASE_URL + path).openConnection();
             connection.setRequestMethod(method);
             connection.setConnectTimeout(10000);
-            connection.setReadTimeout(15000);
+            connection.setReadTimeout(readTimeoutFor(path));
             connection.setUseCaches(false);
             connection.setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY);
             connection.setRequestProperty("Accept", "application/json");

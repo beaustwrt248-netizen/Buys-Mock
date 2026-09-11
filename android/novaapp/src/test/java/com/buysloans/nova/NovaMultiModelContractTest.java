@@ -20,6 +20,9 @@ public class NovaMultiModelContractTest {
 
         assertTrue(api.contains("edge(\"nova-orchestrator\""));
         assertTrue(api.contains("JSONObject orchestrate(String prompt, String mode)"));
+        assertTrue(api.contains("ORCHESTRATOR_READ_TIMEOUT_MS = 105_000"));
+        assertTrue(api.contains("path.startsWith(\"/functions/v1/nova-orchestrator\")"));
+        assertTrue(api.contains("connection.setReadTimeout(readTimeoutFor(path))"));
         assertTrue(engine.contains("multiModelAnswer(q, false)"));
         assertTrue(engine.contains("multiModelAnswer(q, true)"));
         assertTrue(engine.contains("ensemble ? \"ensemble\" : \"auto\""));
@@ -36,7 +39,7 @@ public class NovaMultiModelContractTest {
         assertTrue(explicitGuard < classify);
         assertTrue(engine.contains("return remember(q, IntentRouter.Intent.UNKNOWN, multiModelAnswer(q, false));"));
 
-        assertTrue(gradle.contains("versionCode 29"));
-        assertTrue(gradle.contains("versionName '0.3.25'"));
+        assertTrue(gradle.contains("versionCode 30"));
+        assertTrue(gradle.contains("versionName '0.3.26'"));
     }
 }

@@ -55,6 +55,19 @@ function shouldEnsemble(prompt: string, body: any) {
   return complex || prompt.length > 900;
 }
 
+class ProviderError extends Error {
+  status: number;
+  model: string;
+  code: string;
+  constructor(model: string, status: number, message: string, code = '') {
+    super(message);
+    this.name = 'ProviderError';
+    this.status = status;
+    this.model = model;
+    this.code = code;
+  }
+}
+
 async function callModel(model: string, prompt: string, system = NOVA_SYSTEM, timeoutMs = 45000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -72,17 +85,48 @@ async function callModel(model: string, prompt: string, system = NOVA_SYSTEM, ti
         model,
         messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }],
         temperature: 0.2,
-        max_tokens: 3500
+        max_tokens: 2400
       })
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(clean(json?.error?.message || `Model request failed (${res.status})`, 500));
+    if (!res.ok) {
+      const code = clean(json?.error?.code || json?.code || '', 80);
+      const msg = clean(json?.error?.message || json?.message || `Model request failed (${res.status})`, 500);
+      throw new ProviderError(model, res.status, msg, code);
+    }
     const text = clean(json?.choices?.[0]?.message?.content, 16000);
-    if (!text) throw new Error('Model returned an empty response');
+    if (!text) throw new ProviderError(model, 502, 'Model returned an empty response', 'EMPTY_RESPONSE');
     return { model, text, usage: json?.usage || null };
+  } catch (e) {
+    if (e instanceof ProviderError) throw e;
+    if (e instanceof DOMException && e.name === 'AbortError') throw new ProviderError(model, 504, 'Provider request timed out', 'TIMEOUT');
+    throw new ProviderError(model, 502, clean(e instanceof Error ? e.message : e, 500) || 'Provider request failed', 'NETWORK');
   } finally {
     clearTimeout(timer);
   }
+}
+
+function safeFailure(reason: unknown) {
+  if (reason instanceof ProviderError) return { model: reason.model, status: reason.status, code: reason.code || undefined, error: clean(reason.message, 240) };
+  return { model: 'unknown', status: 502, code: 'UNKNOWN', error: clean(reason, 240) };
+}
+
+function serviceMessage(failures: Array<{model:string;status:number;code?:string;error:string}>) {
+  const statuses = new Set(failures.map(x => x.status));
+  const joined = failures.map(x => x.error.toLowerCase()).join(' | ');
+  if (statuses.has(401) || joined.includes('invalid api key') || joined.includes('authentication')) {
+    return { code: 'OPENROUTER_AUTH_REJECTED', answer: 'Nova reached the multi-model provider, but OpenRouter rejected the API key. Check that the OPENROUTER_API_KEY secret contains a current OpenRouter API key and has no extra spaces.' };
+  }
+  if (statuses.has(402) || joined.includes('credit') || joined.includes('insufficient balance')) {
+    return { code: 'OPENROUTER_CREDITS_REQUIRED', answer: 'Nova reached OpenRouter successfully, but the account does not currently have enough credit for the selected GPT, Gemini and Claude models. Add OpenRouter credit, then retry the same request.' };
+  }
+  if (statuses.has(403)) {
+    return { code: 'OPENROUTER_ACCESS_REJECTED', answer: 'Nova reached OpenRouter, but the provider account or key is not permitted to use one or more selected models. Check the key restrictions and provider/model permissions in OpenRouter.' };
+  }
+  if (statuses.has(429)) {
+    return { code: 'OPENROUTER_RATE_LIMITED', answer: 'Nova reached OpenRouter, but the provider is rate-limiting the request right now. Retry shortly.' };
+  }
+  return { code: 'OPENROUTER_MODELS_UNAVAILABLE', answer: 'Nova reached the multi-model provider, but none of the selected GPT, Gemini or Claude model calls completed successfully. No answer was fabricated.' };
 }
 
 async function fuse(prompt: string, answers: { model: string; text: string }[]) {
@@ -108,21 +152,30 @@ Deno.serve(async (req: Request) => {
     const ensemble = shouldEnsemble(prompt, { ...body, mode });
 
     if (!ensemble) {
-      const result = await callModel(PRIMARY_MODEL, prompt);
-      return reply({ ok: true, mode: 'single', answer: result.text, models_used: [result.model], usage: [result.usage], guarded: true });
+      try {
+        const result = await callModel(PRIMARY_MODEL, prompt);
+        return reply({ ok: true, mode: 'single', answer: result.text, models_used: [result.model], usage: [result.usage], guarded: true });
+      } catch (e) {
+        const failure = safeFailure(e);
+        const diagnostic = serviceMessage([failure]);
+        return reply({ ok: false, mode: 'single-unavailable', answer: diagnostic.answer, code: diagnostic.code, failures: [failure], guarded: true });
+      }
     }
 
     const settled = await Promise.allSettled(ENSEMBLE_MODELS.map(model => callModel(model, prompt)));
     const successes = settled.filter((x): x is PromiseFulfilledResult<any> => x.status === 'fulfilled').map(x => x.value);
-    const failures = settled.filter((x): x is PromiseRejectedResult => x.status === 'rejected').map((x, i) => ({ index: i, error: clean(x.reason?.message || x.reason, 300) }));
-    if (!successes.length) return reply({ error: 'All ensemble models failed', failures }, 502);
+    const failures = settled.filter((x): x is PromiseRejectedResult => x.status === 'rejected').map(x => safeFailure(x.reason));
+    if (!successes.length) {
+      const diagnostic = serviceMessage(failures);
+      return reply({ ok: false, mode: 'ensemble-unavailable', answer: diagnostic.answer, code: diagnostic.code, failures, guarded: true });
+    }
     if (successes.length === 1) return reply({ ok: true, mode: 'ensemble-degraded', answer: successes[0].text, models_used: [successes[0].model], failures, guarded: true });
 
     let final;
     try {
       final = await fuse(prompt, successes);
     } catch (e) {
-      return reply({ ok: true, mode: 'ensemble-unfused', answer: successes[0].text, models_used: successes.map(x => x.model), candidates: successes.map(x => ({ model: x.model, answer: x.text })), fusion_error: clean(e instanceof Error ? e.message : e, 300), failures, guarded: true });
+      return reply({ ok: true, mode: 'ensemble-unfused', answer: successes[0].text, models_used: successes.map(x => x.model), candidates: successes.map(x => ({ model: x.model, answer: x.text })), fusion_error: safeFailure(e), failures, guarded: true });
     }
     return reply({ ok: true, mode: 'ensemble', answer: final.text, models_used: [...successes.map(x => x.model), final.model], candidate_models: successes.map(x => x.model), fusion_model: final.model, failures, guarded: true });
   } catch (e) {
