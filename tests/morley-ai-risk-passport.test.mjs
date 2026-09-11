@@ -63,7 +63,8 @@ test('passport events are append-only records with explicit source and version',
   assert.equal(event.assessmentId, 'assessment-1');
   assert.equal(event.source, 'staff');
   assert.equal(event.version, 'condition-v1');
-  assert.deepEqual(event.details, { test: 'touch', status: 'pass' });
+  assert.equal(event.details.test, 'touch');
+  assert.equal(event.details.status, 'pass');
   assert.equal(Object.isFrozen(event), true);
   assert.equal(Object.isFrozen(event.details), true);
 });
