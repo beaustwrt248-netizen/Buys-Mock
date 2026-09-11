@@ -10,6 +10,7 @@ on:
       - 'android/app/src/main/java/com/buysloans/hub/MorleyAssessmentBridge.kt'
       - 'tests/morley-ai-assessment-core.test.mjs'
       - 'tests/morley-ai-device-lens-integration.test.mjs'
+      - 'tests/morley-ai-damage-review-contract.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -29,3 +30,5 @@ jobs:
         run: node --test tests/morley-ai-assessment-core.test.mjs
       - name: Run Device Lens assessment integration contract
         run: node --test tests/morley-ai-device-lens-integration.test.mjs
+      - name: Run AI damage review contract
+        run: node --test tests/morley-ai-damage-review-contract.test.mjs
