@@ -6,6 +6,7 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
+      - 'tests/admin-webview-input-focus.test.mjs'
       - 'supabase/migrations/**safe_remote_feature_flags.sql'
       - '.github/workflows/admin-android-check.yml'
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
+      - 'tests/admin-webview-input-focus.test.mjs'
       - 'supabase/migrations/**safe_remote_feature_flags.sql'
       - '.github/workflows/admin-android-check.yml'
   workflow_dispatch:
@@ -78,6 +80,11 @@ jobs:
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "admin_audit_log" supabase/migrations/*safe_remote_feature_flags.sql
+      - name: Verify Samsung WebView login input contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/admin-webview-input-focus.test.mjs
       - name: Compile, test and lint Admin module only
         working-directory: android
         shell: bash
