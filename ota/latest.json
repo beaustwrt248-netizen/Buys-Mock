@@ -1,7 +1,7 @@
 {
-  "versionCode": 131,
-  "versionName": "2.15.87",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.87/B-and-L-Morley-2.15.87.apk",
-  "sha256": "c60bb9ce67cd134d81ec5a7a5ba1934179c7c395d8a9d6e07c5b41fb555f30fc",
-  "notes": "Morley Vision 2: verified identity, multi-angle inspection and pricing safety (#1338)"
+  "versionCode": 132,
+  "versionName": "2.15.88",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.88/B-and-L-Morley-2.15.88.apk",
+  "sha256": "b12617b41c201c8b9ea2b433f042db0417c20260391bc7b1f2f70b15c54abb7c",
+  "notes": "Morley Vision review UI: staff verification, damage decisions and pricing blocks (#1342)"
 }
