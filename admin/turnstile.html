@@ -20,7 +20,6 @@
   const parentOrigin=window.location.origin;
   const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*';
   let rendered=false;
-  let started=false;
   let loading=false;
   window.__morleyTurnstileToken='';
   window.__morleyTurnstileState='idle';
@@ -78,7 +77,6 @@
 
   function loadApi(){
     if(loading||rendered)return;
-    started=true;
     loading=true;
     window.__morleyTurnstileState='loading';
     status.textContent='Security check loading…';
@@ -105,14 +103,15 @@
   status.addEventListener('click',function(){
     if(window.__morleyTurnstileState==='error'){
       rendered=false;
-      started=false;
       loadApi();
     }
   });
 
-  // Deliberately do not load Cloudflare here. The parent starts the challenge only
-  // after credentials are present so the Android WebView remains responsive for typing.
-  post('idle','');
+  // Existing cached Admin HTML may still point at turnstile.html?v=2. Keep that
+  // initial iframe inert. Only credential-triggered URLs carry load/retry flags.
+  const params=new URLSearchParams(window.location.search);
+  if(params.has('load')||params.has('retry'))loadApi();
+  else post('idle','');
 })();
 </script>
 </body>
