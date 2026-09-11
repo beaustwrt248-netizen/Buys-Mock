@@ -7,10 +7,7 @@ import android.os.Bundle
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks {
@@ -18,7 +15,6 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     @Volatile private var maintenanceCheckInFlight = false
     @Volatile private var lastMaintenanceCheckAt = 0L
-    private var catalogueSyncJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -42,17 +38,10 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
 
     private fun ensureCatalogueLiveSync() {
         if (!AuthManager.isSignedIn(this)) {
-            catalogueSyncJob?.cancel()
-            catalogueSyncJob = null
+            CatalogueRealtimeSync.stop()
             return
         }
-        if (catalogueSyncJob?.isActive == true) return
-        catalogueSyncJob = appScope.launch {
-            while (isActive) {
-                runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) }
-                delay(1_000L)
-            }
-        }
+        CatalogueRealtimeSync.ensure(this)
     }
 
     private fun checkMaintenance(activity: Activity) {
