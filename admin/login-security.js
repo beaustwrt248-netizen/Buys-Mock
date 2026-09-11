@@ -13,6 +13,14 @@
   mobileStyle.textContent='@media(max-width:620px){#loginView.auth-card{margin:18px auto 24px!important;padding:18px!important}#loginView.auth-card h2{margin-bottom:10px!important}#loginView.auth-card p{margin-top:0!important;margin-bottom:12px!important}#email,#password{pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;-webkit-text-fill-color:#1d2b26!important;caret-color:#0d8463!important;opacity:1!important}}';
   document.head.appendChild(mobileStyle);
 
+  const challengePlaceholder=document.createElement('div');
+  challengePlaceholder.id='adminSecurityPlaceholder';
+  challengePlaceholder.setAttribute('role','status');
+  challengePlaceholder.setAttribute('aria-live','polite');
+  challengePlaceholder.style.cssText='min-height:74px;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px;color:#d5dfec;background:#111;font-size:14px;line-height:1.35';
+  challengePlaceholder.innerHTML='<strong style="color:#fff;font-size:15px">Cloudflare security check</strong><span>Enter your email and password to begin.</span>';
+  if(challengeShell)challengeShell.insertBefore(challengePlaceholder,frame);
+
   let captchaToken='';
   let busy=false;
   let challengeLoaded=false;
@@ -21,8 +29,9 @@
   function syncLoginEnabled(){loginBtn.disabled=busy||!captchaToken||!credentialsReady();}
   function setChallengeState(text,ok){challengeStatus.textContent=text;challengeStatus.style.color=ok?'#25d991':'#8fa6c6';}
   function setChallengeVisible(visible){
-    if(challengeShell)challengeShell.style.display=visible?'block':'none';
+    if(challengeShell)challengeShell.style.display='block';
     frame.style.display=visible?'block':'none';
+    challengePlaceholder.style.display=visible?'none':'flex';
   }
 
   function restoreEditable(input){
@@ -84,8 +93,9 @@
     frame.src='turnstile.html?v=5&retry='+Date.now();
   }
 
-  // Keep Cloudflare completely out of the WebView while credentials are being
-  // entered, but do not leave an empty black challenge box on screen.
+  // Keep the Admin security area visible so users can see that Cloudflare protection is present,
+  // but defer loading the actual Turnstile WebView until credentials are ready. This preserves
+  // the Samsung anti-freeze protection without making the security control appear to be missing.
   try{frame.src='about:blank';}catch(_){}
   setChallengeVisible(false);
   setChallengeState('Enter your email and password first.',false);
