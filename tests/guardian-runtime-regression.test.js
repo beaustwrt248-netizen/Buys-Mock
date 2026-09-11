@@ -24,18 +24,29 @@ test('repository-owned srcdoc base binds recent activity to an explicit DOM targ
   assert.doesNotMatch(source,/(?<![A-Za-z0-9_$])recent\.(?:innerHTML|insertAdjacentHTML)/);
 });
 
-test('about:srcdoc repair discovery prioritises the generating sources and keeps protection gates',()=>{
+test('about:srcdoc repair discovery prioritises generating sources and keeps Nova/Guardian protection gates',()=>{
   const worker=read('supabase/functions/guardian-repair-worker/index.ts');
+  const nova=read('supabase/functions/nova-guardian-intelligence/index.ts');
+  const executor=read('supabase/functions/guardian-repair-executor/index.ts');
   assert.match(worker,/isSrcdocIncident\(input\)\?\["web-base\.html","web-admin-mode\.js","index\.html","tests\/web-admin-srcdoc-regression\.test\.js","tests\/guardian-runtime-regression\.test\.js"/);
   assert.match(worker,/hints\.push\("web-base\.html","web-admin-mode\.js","index\.html","tests\/web-admin-srcdoc-regression\.test\.js","tests\/guardian-runtime-regression\.test\.js"\)/);
   assert.match(worker,/diagnostic_kind,diagnostic_message,diagnostic_metadata/);
-  assert.match(worker,/decode\(bytes\)\.slice\(0,90000\)/);
-  assert.match(worker,/JSON\.stringify\(repo\)\.slice\(0,180000\)/);
-  assert.match(worker,/Number\(x\.size\|\|0\)<=100000/);
-  assert.match(worker,/if\(!allowed\.has\(f\.path\)\|\|!safeRepairPath\(f\.path\)\)/);
-  assert.match(worker,/PROTECTED_CHANGE_BLOCKED/);
+  assert.match(worker,/decode\(bytes\)\.slice\(0,100000\)/);
+  assert.match(worker,/Number\(x\.size\|\|0\)<=120000/);
+  assert.match(worker,/functions\/v1\/nova-guardian-intelligence/);
+  assert.match(worker,/x-guardian-source":"guardian-repair-worker/);
+  assert.match(worker,/p\.startsWith\("supabase\/functions\/"\)/);
+  assert.match(worker,/p\.startsWith\("supabase\/migrations\/"\)\)return false/);
+  assert.match(worker,/isMigrationPath\(path\)/);
+  assert.match(worker,/createdMigration\|\|!canMigrate\|\|!isMigrationPath\(path\)/);
   assert.match(worker,/authorized=!!profile\?\.is_enabled&&\["admin","manager"\]\.includes\(profile\.role\)/);
-  assert.match(worker,/state:"awaiting_approval"/);
+  assert.match(worker,/state:"awaiting_approval",requires_approval:true/);
+  assert.match(nova,/Never authorize a repair/i);
+  assert.match(nova,/Never edit an applied migration/i);
+  assert.match(executor,/approved_by,approved_at/);
+  assert.match(executor,/incident_approval_required/);
+  assert.match(executor,/new_files_limited_to_migrations/);
+  assert.match(executor,/production_changed:false/);
 });
 
 test('Guardian canonicalises volatile runtime fingerprints and suppresses same-build terminal replay',()=>{
