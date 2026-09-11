@@ -50,7 +50,7 @@ internal data class MorleyVisionReviewState(
         get() = damageReviews.count { it.decision == VisionStaffDecision.PENDING }
 
     val canCompleteStaffReview: Boolean
-        get() = identityVerified && unresolvedDamageCount == 0
+        get() = identityVerified && storageVerified && !hasBlockingEvidenceGap && unresolvedDamageCount == 0
 }
 
 internal object MorleyVisionReviewPolicy {
