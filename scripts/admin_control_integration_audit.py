@@ -107,7 +107,10 @@ if web_parity_shell:
         require("clearCache(true)" not in admin_activity, "Android Admin must not purge the full WebView cache on every launch")
         require("freshHomeUrl" in admin_web_policy and "adminApp=" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
         require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
-        require("attempt < 50" in admin_activity, "Android Admin native session handoff must use a bounded Supabase readiness retry")
+        require("maxAttempts=120" in admin_activity, "Android Admin native session handoff must use a bounded Supabase readiness retry")
+        require("setTimeout(install,100)" in admin_activity, "Android Admin native session handoff must retry Supabase readiness")
+        require("typeof window.loadSession==='function'" in admin_activity, "Android Admin native session handoff must wait for the Admin session loader")
+        require("setTimeout(finish,100)" in admin_activity, "Android Admin native session handoff must retry until the Admin session loader is ready")
 else:
     for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
         require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")

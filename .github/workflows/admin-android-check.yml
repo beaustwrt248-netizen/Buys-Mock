@@ -63,7 +63,10 @@ jobs:
               ! grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
               grep -q 'adminApp=' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
               grep -q 'nativeSessionInjectionStarted' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-              grep -q 'attempt < 50' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'maxAttempts=120' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'setTimeout(install,100)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q "typeof window.loadSession==='function'" android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+              grep -q 'setTimeout(finish,100)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             fi
           else
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
