@@ -4,15 +4,17 @@ import test from 'node:test';
 
 const orchestrator = fs.readFileSync('supabase/functions/nova-orchestrator/index.ts', 'utf8');
 const metrics = fs.readFileSync('supabase/functions/nova-ai-metrics/index.ts', 'utf8');
+const vision = fs.readFileSync('supabase/functions/nova-vision/index.ts', 'utf8');
 const migration = fs.readFileSync('supabase/migrations/20260911185000_nova_ai_runs.sql', 'utf8');
 const apiClient = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaApiClient.java', 'utf8');
 const operatorUi = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaOperatorUi.java', 'utf8');
+const damageReview = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaDamageReviewActivity.java', 'utf8');
+const reviewBridge = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaVisionReviewBridge.java', 'utf8');
+const functionalityGate = fs.readFileSync('android/novaapp/src/main/java/com/buysloans/nova/NovaVisionFunctionalityGate.java', 'utf8');
 const manifest = fs.readFileSync('android/novaapp/src/main/AndroidManifest.xml', 'utf8');
 
 test('orchestrator supports explicit provider routing and consensus', () => {
-  for (const provider of ['gpt', 'gemini', 'claude', 'consensus']) {
-    assert.match(orchestrator, new RegExp(`['\"]${provider}['\"]`));
-  }
+  for (const provider of ['gpt', 'gemini', 'claude', 'consensus']) assert.match(orchestrator, new RegExp(`['\"]${provider}['\"]`));
   assert.match(orchestrator, /PROVIDER_MODELS/);
   assert.match(orchestrator, /provider === 'consensus'/);
   assert.match(orchestrator, /body\.provider/);
@@ -75,4 +77,25 @@ test('voice input uses runtime microphone permission, speech recognition and han
   assert.match(operatorUi, /partialResults/);
   assert.match(operatorUi, /sendVoiceResult/);
   assert.match(operatorUi, /getDeclaredMethod\("sendQuestion"/);
+});
+
+test('Vision localises only validated visible damage regions for overlays', () => {
+  assert.match(vision, /damage_regions/);
+  assert.match(vision, /normaliseDamageRegions/);
+  assert.match(vision, /center_x/);
+  assert.match(vision, /center_y/);
+  assert.match(vision, /radius/);
+  assert.match(vision, /Omit uncertain or merely inferred regions rather than guessing coordinates/);
+  assert.match(vision, /Math\.max\(\.02,Math\.min\(\.45,rawRadius\)\)/);
+});
+
+test('native Vision damage review circles regions without changing pricing authority', () => {
+  assert.match(manifest, /NovaDamageReviewActivity/);
+  assert.match(reviewBridge, /sessionUris/);
+  assert.match(reviewBridge, /lastAssessment/);
+  assert.match(damageReview, /canvas\.drawCircle/);
+  assert.match(damageReview, /staff must physically inspect every device/i);
+  assert.match(functionalityGate, /Review highlighted damage/);
+  assert.match(functionalityGate, /manual pricing/i);
+  assert.match(functionalityGate, /human final approval/i);
 });
