@@ -134,8 +134,11 @@ internal fun MorleyVisionReviewPanel(
 ) {
     var storageInput by remember(state.inspection) { mutableStateOf("") }
     var storageError by remember(state.inspection) { mutableStateOf("") }
+    val assessment = MorleyAssessmentBridge.from(state.inspection, state, null)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        MorleyAssessmentStatusCard(assessment)
+
         ReviewStatusCard(
             title = if (state.identityVerified) "Device identity verified" else "Device identity not verified",
             body = if (state.identityVerified) {
@@ -257,6 +260,23 @@ internal fun MorleyVisionReviewPanel(
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+@Composable
+internal fun MorleyAssessmentStatusCard(assessment: MorleyAssessmentSnapshot) {
+    val blocked = assessment.state in setOf("identity_unresolved", "storage_unresolved", "evidence_insufficient")
+    val title = when {
+        blocked -> "AI assessment · Blocked"
+        assessment.reviewRequired -> "AI assessment · Review required"
+        else -> "AI assessment · Verified"
+    }
+    val body = assessment.valuationBlockedReason
+        ?: "Evidence is verified. AI recommendations remain advisory until staff confirmation."
+    ReviewStatusCard(
+        title = title,
+        body = "$body Confidence ${(assessment.confidence * 100).toInt()}% · advisory only.",
+        warning = blocked || assessment.reviewRequired
+    )
 }
 
 @Composable
