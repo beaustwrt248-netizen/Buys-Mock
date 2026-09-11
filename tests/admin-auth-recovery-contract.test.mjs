@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
+const webApp = readFileSync(new URL('../admin/app.js', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 
 test('Admin web starts Turnstile without waiting for credentials', () => {
@@ -11,10 +12,15 @@ test('Admin web starts Turnstile without waiting for credentials', () => {
   assert.doesNotMatch(webSecurity, /Enter your email and password to begin/);
 });
 
-test('Admin native session handoff retries until Supabase and loadSession are ready', () => {
-  assert.match(adminActivity, /maxAttempts=120/);
-  assert.match(adminActivity, /setTimeout\(install,100\)/);
-  assert.match(adminActivity, /typeof window\.loadSession==='function'/);
-  assert.match(adminActivity, /setTimeout\(finish,100\)/);
-  assert.match(adminActivity, /window\.sb\.auth\.setSession/);
+test('native Admin web mode waits for the verified native session instead of showing web login', () => {
+  assert.match(webApp, /nativeAuthMode/);
+  assert.match(webApp, /URLSearchParams\(location\.search\)/);
+  assert.match(webApp, /window\.installNativeAdminSession\s*=\s*async/);
+  assert.match(webApp, /if\s*\(!nativeAuthMode\)\s*loadSession\(\)/);
+});
+
+test('Admin Android delegates session installation to the web native-session contract', () => {
+  assert.match(adminActivity, /window\.installNativeAdminSession/);
+  assert.doesNotMatch(adminActivity, /window\.sb\.auth\.setSession/);
+  assert.doesNotMatch(adminActivity, /typeof window\.loadSession==='function'/);
 });
