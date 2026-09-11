@@ -4,6 +4,17 @@
   const CONDITION_RULES_VERSION = 'condition-v1';
   const VALID_DIAGNOSTIC_STATUSES = new Set(['pass', 'fail', 'unknown', 'not_tested']);
   const SEVERITY_WEIGHTS = Object.freeze({ critical: 4, high: 3, medium: 2, low: 1 });
+  const STAFF_DIAGNOSTIC_SEVERITY = Object.freeze({
+    display: 'critical',
+    touch: 'critical',
+    camera: 'high',
+    speaker: 'medium',
+    microphone: 'medium',
+    charging: 'critical',
+    buttons: 'medium',
+    vibration: 'low',
+    connectivity: 'high',
+  });
 
   function clamp(value, min, max) {
     const number = Number(value);
@@ -48,6 +59,27 @@
       status: VALID_DIAGNOSTIC_STATUSES.has(rawStatus) ? rawStatus : 'unknown',
       severity: Object.prototype.hasOwnProperty.call(SEVERITY_WEIGHTS, rawSeverity) ? rawSeverity : 'low',
     };
+  }
+
+  function normalizeStaffDiagnostics(checks) {
+    if (!Array.isArray(checks)) return [];
+    return checks.map((check) => {
+      const source = check && typeof check === 'object' ? check : {};
+      const test = String(source.name || source.test || 'unknown')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_');
+      const rawState = String(source.state || source.status || 'unavailable').trim().toLowerCase();
+      const observed = rawState === 'pass' || rawState === 'fail';
+      return Object.freeze({
+        test,
+        status: observed ? rawState : 'not_tested',
+        severity: STAFF_DIAGNOSTIC_SEVERITY[test] || 'low',
+        staffVerified: observed,
+        automatedVerified: observed && source.automated === true && source.platformVerified === true,
+        note: typeof source.note === 'string' && source.note.trim() ? source.note.trim() : null,
+      });
+    });
   }
 
   function gradeForScore(score) {
@@ -103,6 +135,14 @@
     });
   }
 
+  function scoreStaffCondition(input) {
+    const value = input && typeof input === 'object' ? input : {};
+    return scoreCondition({
+      cosmeticScore: value.cosmeticScore,
+      diagnostics: normalizeStaffDiagnostics(value.checks),
+    });
+  }
+
   function canPrepareStock(input) {
     const value = input && typeof input === 'object' ? input : {};
     const confirmations = value.confirmations && typeof value.confirmations === 'object'
@@ -140,11 +180,13 @@
   }
 
   const api = Object.freeze({
-    version: '1.0.0',
+    version: '1.1.0',
     CONDITION_RULES_VERSION,
     normalizeEvidence,
+    normalizeStaffDiagnostics,
     resolveAssessmentState,
     scoreCondition,
+    scoreStaffCondition,
     canPrepareStock,
     buildAssessmentProposal,
   });
