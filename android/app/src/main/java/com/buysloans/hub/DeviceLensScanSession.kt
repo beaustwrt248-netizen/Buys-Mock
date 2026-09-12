@@ -16,6 +16,16 @@ object DeviceLensScanSession {
         return id
     }
 
+    @Synchronized
+    fun resume(context: Context, assessmentId: String): String {
+        require(assessmentId.isNotBlank()) { "Assessment ID is required." }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_ACTIVE, assessmentId)
+            .apply()
+        return assessmentId
+    }
+
     fun current(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_ACTIVE, null)
