@@ -1,7 +1,10 @@
 package com.buysloans.hub
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -13,6 +16,7 @@ import java.util.UUID
 object DeviceAssessmentStore {
     private const val PREFS = "morley_ai_scan_pending"
     private const val KEY_PENDING = "pending"
+    private val checkpointScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val checkpoints = setOf(
         "capture_started", "front_captured", "rear_captured", "analysis_started", "analysis_failed",
         "review_ready", "review_completed", "pricing_started", "pricing_ready", "repair_decision_ready",
@@ -24,6 +28,21 @@ object DeviceAssessmentStore {
         val id = UUID.randomUUID().toString()
         savePending(context, id, "capture_started", JSONObject(), null, remoteCreated = false)
         return id
+    }
+
+    fun checkpointAsync(
+        context: Context,
+        assessmentId: String,
+        checkpoint: String,
+        metadata: JSONObject = JSONObject(),
+        errorCode: String? = null
+    ) {
+        val appContext = context.applicationContext
+        checkpointScope.launch {
+            runCatching {
+                checkpoint(appContext, assessmentId, checkpoint, metadata, errorCode)
+            }
+        }
     }
 
     suspend fun checkpoint(
