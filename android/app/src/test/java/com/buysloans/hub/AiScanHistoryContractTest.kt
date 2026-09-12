@@ -1,9 +1,9 @@
 package com.buysloans.hub
 
 import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class AiScanHistoryContractTest {
     @Test
