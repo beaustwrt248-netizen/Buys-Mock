@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -20,10 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -47,7 +48,6 @@ class MorleyRepairDecisionActivity : ComponentActivity() {
                     assessmentId = assessmentId,
                     initialBuyCost = initialBuyCost,
                     asIsResale = asIsResale,
-                    close = { finish() },
                     confirm = { decision, metadata ->
                         MorleyRepairDecisionConfirmationStore.confirm(this, assessmentId, decision)
                         lifecycleScope.launch {
@@ -86,28 +86,28 @@ class MorleyRepairDecisionActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RepairDecisionScreen(
     assessmentId: String,
     initialBuyCost: String,
     asIsResale: String,
-    close: () -> Unit,
     confirm: (MorleyRepairDisposition, JSONObject) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var buyCost by remember { mutableStateOf(initialBuyCost) }
     var repairedResale by remember { mutableStateOf("") }
     var repairCost by remember { mutableStateOf("") }
     var partsRecovery by remember { mutableStateOf("") }
     var repairDays by remember { mutableStateOf("") }
     var staffDecision by remember {
-        mutableStateOf(MorleyRepairDecisionConfirmationStore.confirmedDecision(LocalRepairContext.current, assessmentId))
+        mutableStateOf(MorleyRepairDecisionConfirmationStore.confirmedDecision(context, assessmentId))
     }
     var saving by remember { mutableStateOf(false) }
 
     val state = MorleyRepairDecisionState.awaitingCanonicalRecommendation(
         staffDecision = staffDecision,
-        confirmed = MorleyRepairDecisionConfirmationStore.isConfirmed(LocalRepairContext.current, assessmentId)
+        confirmed = MorleyRepairDecisionConfirmationStore.isConfirmed(context, assessmentId)
     ).copy(
         repairCost = repairCost.toDoubleOrNull(),
         repairDays = repairDays.toDoubleOrNull()
@@ -153,7 +153,7 @@ private fun RepairDecisionScreen(
                         put("requiresStaffConfirmation", true)
                         put("commercialInputsCaptured", listOf(buyCost, asIsResale, repairedResale, repairCost).any { it.isNotBlank() })
                     }
-                    scope.launch { confirm(selected, metadata) }
+                    confirm(selected, metadata)
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -165,10 +165,6 @@ private fun RepairDecisionScreen(
             )
         }
     }
-}
-
-private object LocalRepairContext {
-    lateinit var current: Context
 }
 
 private fun moneyInput(value: String): String {
