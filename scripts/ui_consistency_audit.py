@@ -62,10 +62,10 @@ product = read('product-parity-v3.js')
 for label in ['Computer Pricing', 'Console Pricing', 'General Buys / GP']:
     require(label in product, f"canonical product label missing: {label}")
 
-# Android must stay on the same light/emerald presentation contract as the web client.
+# Android uses the requested Morley blue presentation contract; web remains on its own light contract.
 android_theme = read('android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt')
-for token in ['lightColorScheme', '0xFFF5F7F4', '0xFFFFFFFF', '0xFF1C2B26', '0xFF52645D', '0xFF167A5A']:
-    require(token in android_theme, f"Android Morley theme contract missing: {token}")
+for token in ['lightColorScheme', '0xFFF5F8FC', '0xFFFFFFFF', '0xFF102A43', '0xFF52677C', '0xFF0878F9']:
+    require(token in android_theme, f"Android Morley blue theme contract missing: {token}")
 support = read('android/app/src/main/java/com/buysloans/hub/SupportTicketActivity.kt')
 require('Text("B&L Morley Support", color = Color.White' in support, "Android Support top-bar title contrast regressed")
 require('containerColor = Color(0xFF050B16)' in support, "Android Support top-bar surface contract changed")
