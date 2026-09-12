@@ -1,7 +1,7 @@
 {
-  "versionCode": 145,
-  "versionName": "2.15.101",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.101/B-and-L-Morley-2.15.101.apk",
-  "sha256": "2a79f4842dbfb82fd734d4669731016636fc2276d491e0a3a1096d7c3fa0a3c4",
-  "notes": "Merge Morley restore, AI scan history, and search workflows"
+  "versionCode": 146,
+  "versionName": "2.15.102",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.102/B-and-L-Morley-2.15.102.apk",
+  "sha256": "69e1cd3cac7856584491445df07d0ffd711abcd7b74247ca10978103731648bf",
+  "notes": "Align Android auth with Morley blue theme (#1760)"
 }
