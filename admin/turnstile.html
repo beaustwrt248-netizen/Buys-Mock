@@ -20,10 +20,13 @@
   const status=document.getElementById('status');
   const parentOrigin=window.location.origin;
   const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*';
+  const MAX_API_ATTEMPTS=3;
+  let apiAttempt=0;
+  let apiWatchdog=0;
   let rendered=false;
   let loading=false;
   window.__morleyTurnstileToken='';
-  window.__morleyTurnstileState='idle';
+  window.__morleyTurnstileState='loading';
 
   function post(type,value){
     try{
@@ -44,19 +47,27 @@
       window.__morleyTurnstileState=name==='onExpired'?'expired':'error';
     }
     try{if(window.AndroidBridge&&typeof window.AndroidBridge[name]==='function')window.AndroidBridge[name](token);}catch(_){}
-    post(name==='onToken'?'token':name==='onExpired'?'expired':'error',token);
+    const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
+    post(type,token);
+    if(name==='onToken'){
+      setTimeout(()=>post(type,token),150);
+      setTimeout(()=>post(type,token),600);
+    }
   }
 
   function fail(message,code){
+    clearTimeout(apiWatchdog);
     loading=false;
+    rendered=false;
     status.textContent=message||'Security check unavailable. Tap here to retry.';
     window.__morleyTurnstileState='error';
     post('bootstrap-error',code||'api_unavailable');
   }
 
   function renderChallenge(){
-    loading=false;
     if(rendered||!window.turnstile)return;
+    clearTimeout(apiWatchdog);
+    loading=false;
     rendered=true;
     window.__morleyTurnstileState='ready';
     status.textContent='Complete the security check.';
@@ -67,65 +78,66 @@
         theme:'dark',
         size:'flexible',
         action:'blmorley_auth',
-        // The parent login surface already renders the completed state. Keep
-        // the embedded challenge visually compact after success instead of
-        // repeating the same message below Cloudflare's success indicator.
         callback:function(token){status.textContent='';send('onToken',token);},
-        'expired-callback':function(){status.textContent='Security check expired.';send('onExpired','');},
-        'error-callback':function(code){status.textContent='Security check unavailable. Tap here to retry.';send('onError',String(code||''));return false;}
+        'expired-callback':function(){status.textContent='Security check expired. Complete it again.';send('onExpired','');},
+        'error-callback':function(code){
+          status.textContent='Security check failed. Retrying…';
+          send('onError',String(code||''));
+          return true;
+        }
       });
     }catch(error){
       rendered=false;
-      fail('Security check unavailable. Tap here to retry.','render_failed');
+      retryApi('Security check failed to start. Retrying…');
     }
+  }
+
+  function retryApi(message){
+    clearTimeout(apiWatchdog);
+    loading=false;
+    if(apiAttempt>=MAX_API_ATTEMPTS){
+      fail('Security check unavailable. Tap here to retry.','api_unavailable');
+      return;
+    }
+    status.textContent=message||'Security check loading…';
+    const old=document.getElementById('morleyTurnstileApi');
+    if(old)old.remove();
+    loadApi();
   }
 
   function loadApi(){
     if(loading||rendered)return;
     loading=true;
+    apiAttempt+=1;
     window.__morleyTurnstileState='loading';
-    status.textContent='Security check loading…';
-    const old=document.getElementById('morleyTurnstileApi');
-    if(old)old.remove();
     const script=document.createElement('script');
     script.id='morleyTurnstileApi';
     script.async=true;
     script.defer=true;
     script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.onload=function(){window.turnstile?renderChallenge():fail('Security check unavailable. Tap here to retry.','api_incomplete');};
-    script.onerror=function(){fail('Security check unavailable. Tap here to retry.','api_load_failed');};
+    script.onload=function(){
+      loading=false;
+      if(window.turnstile)renderChallenge();
+      else retryApi('Security check script loaded incompletely. Retrying…');
+    };
+    script.onerror=function(){loading=false;retryApi('Security check connection failed. Retrying…');};
     document.head.appendChild(script);
+    apiWatchdog=setTimeout(function(){
+      if(!window.turnstile&&!rendered){loading=false;retryApi('Security check is taking too long. Retrying…');}
+    },5000);
   }
-
-  window.addEventListener('message',function(event){
-    if(event.source!==window.parent)return;
-    if(parentOrigin!=='null'&&event.origin!==parentOrigin)return;
-    const payload=event.data;
-    if(!payload||payload.source!=='morley-admin-login')return;
-    if(payload.type==='start')loadApi();
-  });
 
   status.addEventListener('click',function(){
     if(window.__morleyTurnstileState==='error'){
+      apiAttempt=0;
       rendered=false;
-      loadApi();
+      loading=false;
+      window.__morleyTurnstileState='loading';
+      retryApi('Retrying security check…');
     }
   });
 
-  // Any real navigation to this page must start the challenge immediately.
-  // Current Morley Admin keeps the iframe on about:blank until credentials are
-  // ready, then navigates here with v=5&load. The native Morley Buys WebView
-  // also navigates here directly, but its JavaScript bridge is not guaranteed
-  // to be visible during the page's first synchronous script evaluation.
-  // Default-on bootstrap therefore prevents native login from becoming inert
-  // without weakening CAPTCHA: sign-in still requires a returned token.
-  const params=new URLSearchParams(window.location.search);
-  if(params.get('defer')==='1'){
-    status.textContent='Enter your email and password first.';
-    post('idle','');
-  }else{
-    loadApi();
-  }
+  loadApi();
 })();
 </script>
 </body>
