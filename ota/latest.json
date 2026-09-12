@@ -1,7 +1,7 @@
 {
-  "versionCode": 139,
-  "versionName": "2.15.95",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.95/B-and-L-Morley-2.15.95.apk",
-  "sha256": "b95748540a00be1cc19825fc8149dca3c3b5dffff4073008d13aea6f36c8e527",
-  "notes": "Fix scanner routing release regression test (#1429)"
+  "versionCode": 140,
+  "versionName": "2.15.96",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.96/B-and-L-Morley-2.15.96.apk",
+  "sha256": "cc7917e81871f8ed4fafe3679b63c75717002b1fce2da755249265e4caeb31d9",
+  "notes": "Merge Morley AI assessment engine"
 }
