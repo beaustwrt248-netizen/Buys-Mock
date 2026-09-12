@@ -2,13 +2,14 @@
   'use strict';
   const VALID_DIAGNOSTIC_STATUSES=new Set(['pass','fail','unknown','not_tested']);
   const VALID_SEVERITIES=new Set(['low','medium','high','critical']);
+  const VALID_CHECKPOINTS=new Set(['capture_started','front_captured','rear_captured','analysis_started','analysis_failed','review_ready','review_completed','pricing_started','pricing_ready','repair_decision_ready','staff_confirmed','stock_prepared','cancelled','completed']);
   function result(ok,code,data=null,recoverable=true){return Object.freeze({ok,code,data,recoverable})}
   function text(value){return typeof value==='string'?value.trim():''}
   function numberOrNull(value){const n=Number(value);return Number.isFinite(n)?n:null}
   function clamp(value,min,max){const n=numberOrNull(value);return n===null?min:Math.min(max,Math.max(min,n))}
   function cleanMetadata(input){
     const source=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
-    const blocked=/^(imei|imei\d*|serial|serialnumber|serial_number|rawidentifier|raw_identifier|deviceidentifier|device_identifier)$/i;
+    const blocked=/^(imei|imei\d*|serial|serialnumber|serial_number|rawidentifier|raw_identifier|deviceidentifier|device_identifier|access[_-]?token|refresh[_-]?token|service[_-]?role|password|secret)$/i;
     return Object.fromEntries(Object.entries(source).filter(([key])=>!blocked.test(String(key))));
   }
   async function session(){
@@ -24,11 +25,48 @@
     if(text(input.catalogueRef))payload.catalogue_ref=text(input.catalogueRef);
     if(text(input.stockRef))payload.stock_ref=text(input.stockRef);
     if(text(input.resolvedModel))payload.resolved_model=text(input.resolvedModel);
+    if(text(input.source))payload.source=text(input.source);
+    const checkpoint=text(input.checkpoint).toLowerCase();
+    if(checkpoint){if(!VALID_CHECKPOINTS.has(checkpoint))return result(false,'invalid_checkpoint',null,true);payload.checkpoint=checkpoint;payload.last_checkpoint_at=new Date().toISOString()}
     const storage=numberOrNull(input.resolvedStorageGb);if(storage!==null&&storage>=0)payload.resolved_storage_gb=Math.round(storage);
     const confidence=numberOrNull(input.identityConfidence);if(confidence!==null)payload.identity_confidence=clamp(confidence,0,1);
     const {data,error}=await root.sb.from('device_assessments').insert(payload).select('id').single();
     if(error)return result(false,'assessment_create_failed',{message:error.message||'Assessment could not be created.'},true);
     return result(true,'created',{id:data?.id||null},false);
+  }
+  async function checkpointAssessment(assessmentId,input={}){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const id=text(assessmentId);if(!id)return result(false,'assessment_required',null,true);
+    const checkpoint=text(input.checkpoint).toLowerCase();if(!VALID_CHECKPOINTS.has(checkpoint))return result(false,'invalid_checkpoint',null,true);
+    const now=new Date().toISOString();
+    const update={checkpoint,last_checkpoint_at:now,checkpoint_metadata:cleanMetadata(input.metadata)};
+    const errorCode=text(input.errorCode);if(errorCode)update.last_error_code=errorCode;else update.last_error_code=null;
+    if(checkpoint==='cancelled')update.cancelled_at=now;
+    if(checkpoint==='completed')update.completed_at=now;
+    const {error}=await root.sb.from('device_assessments').update(update).eq('id',id);
+    if(error)return result(false,'checkpoint_write_failed',{message:error.message||'Scan checkpoint could not be saved.'},true);
+    return result(true,'checkpoint_saved',{id,checkpoint},false);
+  }
+  async function listScanHistory(input={}){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const requested=Math.floor(numberOrNull(input.limit)??50),limit=Math.min(100,Math.max(1,requested));
+    const query=root.sb.from('device_assessments')
+      .select('id,state,source,checkpoint,resolved_model,resolved_storage_gb,identity_confidence,last_error_code,last_checkpoint_at,cancelled_at,completed_at,created_at,updated_at')
+      .eq('source','device_lens')
+      .order('created_at',{ascending:false})
+      .limit(limit);
+    const {data,error}=await query;
+    if(error)return result(false,'scan_history_read_failed',{message:error.message||'Scan history could not be loaded.'},true);
+    return result(true,'loaded',Array.isArray(data)?data:[],false);
+  }
+  async function getScanHistory(assessmentId){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const id=text(assessmentId);if(!id)return result(false,'assessment_required',null,true);
+    const {data,error}=await root.sb.from('device_assessments')
+      .select('id,state,source,checkpoint,resolved_model,resolved_storage_gb,identity_confidence,last_error_code,last_checkpoint_at,cancelled_at,completed_at,created_at,updated_at')
+      .eq('id',id).single();
+    if(error)return result(false,'scan_history_read_failed',{message:error.message||'Scan could not be loaded.'},true);
+    return result(true,'loaded',data||null,false);
   }
   async function addEvidence(assessmentId,input={}){
     const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
@@ -71,5 +109,5 @@
     const payload=Object.freeze({model:text(input.model),modelNumber:text(input.modelNumber),storage:text(input.storage),grade:text(input.grade),buyPrice:numberOrNull(input.buyPrice),targetResale:numberOrNull(input.targetResale),repairDecision:text(input.repairDecision),description:text(input.description)});
     return Object.freeze({ok:true,code:'ready_for_staff_publish',payload,recoverable:false,requiresStaffPublish:true});
   }
-  root.MorleyAssessmentClient=Object.freeze({version:'1.0.0',createAssessment,addEvidence,recordDiagnostic,requestProposal,confirmCommercialDecision,prepareStockPayload});
+  root.MorleyAssessmentClient=Object.freeze({version:'1.1.0',createAssessment,checkpointAssessment,listScanHistory,getScanHistory,addEvidence,recordDiagnostic,requestProposal,confirmCommercialDecision,prepareStockPayload});
 })(typeof globalThis!=='undefined'?globalThis:window);
