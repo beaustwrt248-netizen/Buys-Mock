@@ -10,10 +10,14 @@ FUNCTION = ROOT / "supabase" / "functions" / "nova-knowledge" / "index.ts"
 class NovaHybridKnowledgeContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.migration = MIGRATION.read_text(encoding="utf-8")
-        cls.function = FUNCTION.read_text(encoding="utf-8")
+        cls.migration = MIGRATION.read_text(encoding="utf-8") if MIGRATION.exists() else ""
+        cls.function = FUNCTION.read_text(encoding="utf-8") if FUNCTION.exists() else ""
         cls.migration_lower = cls.migration.lower()
         cls.function_lower = cls.function.lower()
+
+    def test_foundation_files_exist(self):
+        self.assertTrue(MIGRATION.exists(), "Nova hybrid knowledge migration is missing")
+        self.assertTrue(FUNCTION.exists(), "Nova knowledge Edge Function is missing")
 
     def test_vector_chunk_schema_and_indexes_exist(self):
         required = (
