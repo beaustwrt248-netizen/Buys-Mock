@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#06101e" />
+  <title>Nova Next</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-a" aria-hidden="true"></div>
+  <div class="ambient ambient-b" aria-hidden="true"></div>
+
+  <main class="app-frame" id="appFrame">
+    <section class="entry-view splash-view" id="splashView" aria-label="Nova AI loading screen">
+      <div class="status-spacer" aria-hidden="true"></div>
+      <div class="entry-center">
+        <div class="nova-mark nova-mark-xl" aria-hidden="true"><span></span><span></span></div>
+        <h1>NOVA AI</h1>
+        <p>Smarter Tools<br />Brighter Results</p>
+      </div>
+      <div class="entry-footer">
+        <div class="progress-track" aria-hidden="true"><span></span></div>
+        <p>Loading your workspace...</p>
+      </div>
+    </section>
+
+    <section class="entry-view login-view is-hidden" id="loginView" aria-label="Nova AI sign in">
+      <div class="login-card-wrap">
+        <div class="nova-mark nova-mark-lg" aria-hidden="true"><span></span><span></span></div>
+        <div class="brand-lockup">NOVA AI</div>
+        <h2>Welcome Back</h2>
+        <p class="muted">Sign in to continue</p>
+        <form id="loginForm" class="login-form">
+          <label class="field"><span class="field-icon">✉</span><input name="identity" autocomplete="username" placeholder="Email or Username" /></label>
+          <label class="field"><span class="field-icon">▣</span><input name="password" autocomplete="current-password" type="password" placeholder="Password" /><button type="button" class="field-action" data-action="toggle-password" aria-label="Show password">◉</button></label>
+          <div class="login-options"><label><input type="checkbox" checked /> Remember me</label><button class="link-button" type="button">Forgot password?</button></div>
+          <button class="primary-button" type="submit">Sign In</button>
+        </form>
+        <div class="divider"><span>or continue with</span></div>
+        <div class="social-row"><button type="button" aria-label="Continue with Google">G</button><button type="button" aria-label="Continue with Apple">●</button></div>
+        <p class="signup-copy">Don't have an account? <button type="button" class="link-button">Sign up</button></p>
+        <p class="preview-note" id="previewNote">Bootstrap preview: authentication adapter not connected yet.</p>
+      </div>
+    </section>
+
+    <section class="shell is-hidden" id="shell" aria-label="Nova AI application">
+      <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+      <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Main menu">
+        <div class="drawer-brand"><div class="nova-mark nova-mark-sm" aria-hidden="true"><span></span><span></span></div><div><strong>NOVA AI</strong><small>Smarter Tools. Brighter Results.</small></div></div>
+        <nav class="drawer-nav" id="drawerNav"></nav>
+        <div class="drawer-profile"><div class="avatar">B</div><div class="profile-copy"><strong>Beau John</strong><small>beau@example.com</small></div><button class="icon-button" type="button" title="Sign out" data-action="signout">↪</button></div>
+      </aside>
+
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" type="button" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><span></span><span></span><span></span></button>
+        <div class="topbar-title"><strong>NOVA AI</strong><small id="topbarSubtitle">Your AI-Powered Assistant</small></div>
+        <button class="avatar avatar-button" type="button" aria-label="Open account">B</button>
+      </header>
+
+      <div class="page-stack" id="pageStack">
+        <section class="page is-active" data-route="home" aria-labelledby="home-title">
+          <h1 id="home-title" class="sr-only">Home</h1>
+          <button class="ask-bar" type="button" data-route-target="chat"><span>Ask Nova anything...</span><span class="mic">◉</span></button>
+          <div class="quick-actions" aria-label="Quick actions">
+            <button data-route-target="chat"><span class="quick-icon">●</span><span>Chat</span></button>
+            <button data-tool="camera"><span class="quick-icon">◎</span><span>Scan</span></button>
+            <button data-tool="create"><span class="quick-icon">✦</span><span>Create</span></button>
+            <button data-tool="research"><span class="quick-icon">⌕</span><span>Research</span></button>
+          </div>
+          <article class="welcome-card"><div class="welcome-icon">♛</div><div><strong>Good morning, Beau</strong><span>Let's make today productive.</span></div></article>
+          <div class="section-heading"><h2>Quick Access</h2><button class="link-button" type="button" data-route-target="more">See All</button></div>
+          <div class="access-grid">
+            <button class="access-card" data-route-target="tasks"><span class="tile-icon blue">≡</span><span><strong>My Tasks</strong><small>Track your work</small></span></button>
+            <button class="access-card" data-route-target="projects"><span class="tile-icon cyan">▣</span><span><strong>Projects</strong><small>Manage & build</small></span></button>
+            <button class="access-card" data-route-target="knowledge"><span class="tile-icon violet">◇</span><span><strong>Knowledge</strong><small>Saved info</small></span></button>
+            <button class="access-card" data-route-target="tools"><span class="tile-icon indigo">⌘</span><span><strong>Tools</strong><small>AI utilities</small></span></button>
+          </div>
+        </section>
+
+        <section class="page" data-route="chat" aria-labelledby="chat-title">
+          <div class="page-title-row assistant-row"><div class="assistant-orb" aria-hidden="true"></div><div><h1 id="chat-title">Nova</h1><p><span class="online-dot"></span> Online</p></div></div>
+          <article class="chat-welcome">Hi Beau! 👋<br /><span>How can I help you today?</span></article>
+          <div class="suggestion-list">
+            <button><span>◉</span>Summarise information</button>
+            <button><span>✎</span>Help me write something</button>
+            <button><span>▧</span>Analyse an image</button>
+            <button><span>▤</span>Find the best price</button>
+            <button><span>◈</span>Plan or organise a task</button>
+            <button><span>⌄</span>Other...</button>
+          </div>
+          <div class="composer"><input placeholder="Ask Nova anything..." aria-label="Message Nova" /><button type="button" aria-label="Voice input">◉</button></div>
+        </section>
+
+        <section class="page" data-route="tools" aria-labelledby="tools-title">
+          <div class="page-title-row"><div><h1 id="tools-title">Tools</h1><p>Powerful AI tools at your fingertips</p></div><button class="icon-button" type="button" aria-label="Search tools">⌕</button></div>
+          <div class="filter-tabs" role="tablist" aria-label="Tool filters"><button class="is-selected">All</button><button>Productivity</button><button>Content</button><button>Analysis</button></div>
+          <div class="list-cards">
+            <button><span class="tool-icon blue">●</span><span><strong>AI Chat</strong><small>General assistant</small></span><b>›</b></button>
+            <button><span class="tool-icon violet">▧</span><span><strong>Image Analysis</strong><small>Analyse photos & screenshots</small></span><b>›</b></button>
+            <button><span class="tool-icon cyan">▤</span><span><strong>Document Assistant</strong><small>Summarise, edit, extract</small></span><b>›</b></button>
+            <button><span class="tool-icon green">⌕</span><span><strong>Price & Product Search</strong><small>Find the best deals</small></span><b>›</b></button>
+            <button><span class="tool-icon indigo">♧</span><span><strong>Translate</strong><small>Multiple languages</small></span><b>›</b></button>
+            <button><span class="tool-icon coral">&lt;/&gt;</span><span><strong>Code Assistant</strong><small>Write, debug, explain</small></span><b>›</b></button>
+            <button><span class="tool-icon amber">♙</span><span><strong>Idea Generator</strong><small>Brainstorm anything</small></span><b>›</b></button>
+            <button><span class="tool-icon blue">▥</span><span><strong>Data Analysis</strong><small>Analyse and visualise data</small></span><b>›</b></button>
+          </div>
+        </section>
+
+        <section class="page" data-route="tasks" aria-labelledby="tasks-title">
+          <div class="page-title-row"><div><h1 id="tasks-title">My Tasks</h1><p>Stay organised and get things done</p></div><button class="icon-button" type="button" aria-label="Search tasks">⌕</button></div>
+          <div class="filter-tabs" role="tablist" aria-label="Task filters"><button class="is-selected">All</button><button>Today</button><button>Upcoming</button><button>Done</button></div>
+          <div class="task-list">
+            <label><input type="checkbox" /><span><strong>Update Morley Buys app</strong><small>Today</small></span><em class="priority high">High</em></label>
+            <label><input type="checkbox" /><span><strong>Review new device data</strong><small>Today</small></span><em class="priority medium">Medium</em></label>
+            <label><input type="checkbox" /><span><strong>Check GitHub builds</strong><small>Tomorrow</small></span><em class="priority medium">Medium</em></label>
+            <label><input type="checkbox" /><span><strong>Plan next feature release</strong><small>Tomorrow</small></span><em class="priority low">Low</em></label>
+            <label><input type="checkbox" /><span><strong>Research new AI tools</strong><small>Thu, 12 Sep</small></span><em class="priority low">Low</em></label>
+            <label><input type="checkbox" /><span><strong>Backup important files</strong><small>Thu, 12 Sep</small></span><em class="priority medium">Medium</em></label>
+            <label><input type="checkbox" /><span><strong>Update documentation</strong><small>Fri, 13 Sep</small></span><em class="priority low">Low</em></label>
+          </div>
+          <button class="primary-button sticky-action" type="button">＋ Add Task</button>
+        </section>
+
+        <section class="page" data-route="projects" aria-labelledby="projects-title">
+          <div class="page-title-row"><div><h1 id="projects-title">Projects</h1><p>Manage and build your ideas</p></div><button class="small-primary" type="button">＋ New Project</button></div>
+          <div class="project-list">
+            <article><div class="project-head"><span class="project-icon green">▣</span><div><strong>Morley Buys</strong><small>App, website and ecosystem</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:75%"></span></div><em>75%</em></article>
+            <article><div class="project-head"><span class="project-icon blue">N</span><div><strong>Nova AI</strong><small>AI assistant and automation</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:60%"></span></div><em>60%</em></article>
+            <article><div class="project-head"><span class="project-icon coral">▤</span><div><strong>Device Database</strong><small>Mobile, tablet, laptop, console data</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:45%"></span></div><em>45%</em></article>
+            <article><div class="project-head"><span class="project-icon violet">▥</span><div><strong>Admin Tools</strong><small>Management and automation</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:30%"></span></div><em>30%</em></article>
+          </div>
+        </section>
+
+        <section class="page" data-route="settings" aria-labelledby="settings-title">
+          <div class="page-title-row"><div><h1 id="settings-title">Settings</h1><p>Customise your Nova experience</p></div></div>
+          <div class="settings-list">
+            <button><span>♙</span><div><strong>Account</strong><small>Profile, security, billing</small></div><b>›</b></button>
+            <button><span>◌</span><div><strong>Appearance</strong><small>Theme, display, language</small></div><b>›</b></button>
+            <button><span>♢</span><div><strong>Notifications</strong><small>Alerts and updates</small></div><b>›</b></button>
+            <button><span>▣</span><div><strong>Privacy & Data</strong><small>Manage your data</small></div><b>›</b></button>
+            <button><span>▤</span><div><strong>Integrations</strong><small>Connect your tools</small></div><b>›</b></button>
+            <button><span>⌘</span><div><strong>Automation</strong><small>Schedules and workflows</small></div><b>›</b></button>
+            <button><span>ⓘ</span><div><strong>About</strong><small>Version, updates, support</small></div><b>›</b></button>
+          </div>
+        </section>
+
+        <section class="page" data-route="knowledge"><div class="placeholder"><span class="placeholder-icon violet">◇</span><h1>Knowledge Base</h1><p>Saved information, evidence, memory and learning controls will live here.</p></div></section>
+        <section class="page" data-route="files"><div class="placeholder"><span class="placeholder-icon cyan">▤</span><h1>Files</h1><p>Browse and work with Nova-authorised files.</p></div></section>
+        <section class="page" data-route="automation"><div class="placeholder"><span class="placeholder-icon indigo">⌘</span><h1>Automation</h1><p>Schedules, jobs and multi-step workflows.</p></div></section>
+        <section class="page" data-route="calendar"><div class="placeholder"><span class="placeholder-icon blue">▦</span><h1>Calendar</h1><p>Planned work, due dates and automation timing.</p></div></section>
+        <section class="page" data-route="integrations"><div class="placeholder"><span class="placeholder-icon green">⌁</span><h1>Integrations</h1><p>Permissioned connections to Morley systems and external services.</p></div></section>
+        <section class="page" data-route="help"><div class="placeholder"><span class="placeholder-icon blue">?</span><h1>Help & Support</h1><p>Guides, diagnostics and support workflows.</p></div></section>
+        <section class="page" data-route="more"><div class="placeholder"><span class="placeholder-icon violet">•••</span><h1>More</h1><p>Control Centre, Guardian, release readiness, alerts, diagnostics and advanced Nova capabilities.</p><button class="secondary-button" type="button" data-route-target="settings">Open Settings</button></div></section>
+      </div>
+
+      <nav class="bottom-nav" id="bottomNav" aria-label="Primary navigation"></nav>
+    </section>
+
+    <section class="entry-view all-set-view is-hidden" id="allSetView" aria-label="Nova AI ready">
+      <div class="entry-center"><div class="check-orb">✓</div><h2>All Set!</h2><p>Smooth. Simple. Powerful.<br />Nova AI is ready when you are.</p></div><button class="primary-button" type="button" data-action="finish-intro">Let's Go</button>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
