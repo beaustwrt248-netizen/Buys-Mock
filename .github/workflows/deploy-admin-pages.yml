@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-phone-grouping.js mobile-viewport-lock.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js nova/app.js nova/app-core.js; do
+          for file in secure-pricing.js web-auth.js signed-in-user.js web-a11y.js premium-motion.js desktop-parity.js desktop-oem.js workflow.js match-quality.js app.js product-parity-v3.js ultimate-parity.js mobile-layout-fix.js mobile-app-parity-v4.js mobile-app-parity-v5.js mobile-phone-grouping.js mobile-viewport-lock.js admin/browser-auth-bootstrap.js admin/user-management-policy.js admin/app.js admin/login-security.js admin/release-control.js admin/targeted-notifications.js admin/invites.js admin/download-invites.js admin/support-tickets.js admin/audit-triage.js admin/control-governance.js nova/app.js nova/app-core.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -86,6 +86,9 @@ jobs:
           test -s site/morley-central-pricing.js
           test -s site/web-universal-buy.js
           test -s site/admin/index.html
+          test -s site/admin/browser-auth-bootstrap.js
+          test -s site/admin/workspace.html
+          test -s site/admin/workspace-template.html
           test -s site/admin/app.js
           test -s site/admin/invites.js
           test -s site/admin/download-invites.js
@@ -237,10 +240,23 @@ jobs:
           ! grep -Eqi '#ffd400|#ffe65b|#ffd000|#c99a27|#cda51d' "$RUNNER_TEMP/desktop-parity.js"
           fetch_until_contains "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html" 'postMessage(payload,postMessageOrigin)'
           fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'styles.css?v=3'
-          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'app.js?v=4'
-          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'id="inviteName"'
-          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'First and last name'
-          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'invites.js?v=3'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'id="adminTurnstileFrame"'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'browser-auth-bootstrap.js?v=1'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'login-security.js?v=11'
+          ! grep -Fq 'id="inviteName"' "$RUNNER_TEMP/admin-index.html"
+          ! grep -Fq 'id="releaseName"' "$RUNNER_TEMP/admin-index.html"
+          fetch_until_contains "$BASE/admin/browser-auth-bootstrap.js" "$RUNNER_TEMP/admin-browser-auth-bootstrap.js" 'workspace.html?auth='
+          fetch_until_contains "$BASE/admin/browser-auth-bootstrap.js" "$RUNNER_TEMP/admin-browser-auth-bootstrap.js" "['admin','manager']"
+          node --check "$RUNNER_TEMP/admin-browser-auth-bootstrap.js"
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'workspace-template.html?v=2'
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'app.js?v=5'
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'release-control.js?v=3'
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'invites.js?v=4'
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" "dataset.adminWorkspace='ready'"
+          fetch_until_contains "$BASE/admin/workspace-template.html" "$RUNNER_TEMP/admin-workspace-template.html" 'id="inviteName"'
+          fetch_until_contains "$BASE/admin/workspace-template.html" "$RUNNER_TEMP/admin-workspace-template.html" 'First and last name'
+          fetch_until_contains "$BASE/admin/workspace-template.html" "$RUNNER_TEMP/admin-workspace-template.html" 'Email private invite'
+          fetch_until_contains "$BASE/admin/workspace-template.html" "$RUNNER_TEMP/admin-workspace-template.html" 'id="releaseName" readonly'
           fetch_until_contains "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js" 'display_name:name'
           fetch_until_contains "$BASE/admin/invites.js" "$RUNNER_TEMP/admin-invites.js" 'inviteName'
           fetch_until_contains "$BASE/admin/app.js" "$RUNNER_TEMP/admin-app.js" "secureUserAction('set_role'"
