@@ -11,6 +11,7 @@ const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',i
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
 const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
 const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
+const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
 
@@ -75,6 +76,12 @@ test('Admin desktop authority loads last and home boot is bounded',()=>{
   assert.doesNotMatch(adminHome,/setInterval\(/);
   assert.doesNotMatch(adminHome,/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/);
   assert.doesNotThrow(()=>new Function(adminHome));
+});
+
+test('Admin Intelligence bootstrap observes only appView readiness',()=>{
+  assert.doesNotMatch(adminIntelligence,/observe\(document\.documentElement,\{subtree:true,attributes:true,attributeFilter:\['class'\]\}\)/);
+  assert.match(adminIntelligence,/observe\(app,\{attributes:true,attributeFilter:\['class'\]\}\)/);
+  assert.doesNotThrow(()=>new Function(adminIntelligence));
 });
 
 test('Admin app download invite is emailed through the existing audited mail service',()=>{
