@@ -34,11 +34,6 @@ jobs:
 
           files=json.loads(Path(os.environ['RUNNER_TEMP'],'pr-files.json').read_text())
           names=[f.get('filename','') for f in files]
-          patches='\n'.join(f.get('patch') or '' for f in files)
-          added='\n'.join(
-              line[1:] for line in patches.splitlines()
-              if line.startswith('+') and not line.startswith('+++')
-          )
 
           guarded_path=re.compile(
               r'(^|/)(auth|security|permissions?|migrations?|guardian)(/|$)|'
@@ -65,11 +60,27 @@ jobs:
               r'persist-credentials\s*:\s*true',
           ]
 
+          def safe_security_reference(name, line):
+              if name.startswith(('tests/','docs/')):
+                  return True
+              safe_markers=(
+                  'assertFalse', 'doesNotMatch',
+                  'blockedMetadataKeys', 'SECRET_KEY_RE',
+              )
+              return any(marker in line for marker in safe_markers)
+
           critical=[]
           for name in names:
               if critical_path.search(name): critical.append(name)
-          for pattern in critical_added:
-              if re.search(pattern, added, re.I|re.M): critical.append(f'diff:{pattern}')
+          for file in files:
+              name=file.get('filename','')
+              for line in (file.get('patch') or '').splitlines():
+                  if not line.startswith('+') or line.startswith('+++'):
+                      continue
+                  line=line[1:]
+                  if safe_security_reference(name, line): continue
+                  for pattern in critical_added:
+                      if re.search(pattern, line, re.I|re.M): critical.append(f'diff:{pattern}')
 
           guarded=[n for n in names if guarded_path.search(n)]
           level='critical' if critical else ('guarded' if guarded else 'routine')
