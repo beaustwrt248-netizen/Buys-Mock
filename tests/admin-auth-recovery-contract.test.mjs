@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
+const turnstileHtml = readFileSync(new URL('../admin/turnstile.html', import.meta.url), 'utf8');
 const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
@@ -10,23 +11,21 @@ const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java
 const sessionStore = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
-test('Admin browser login has direct and isolated fallback Turnstile recovery on mobile and desktop', () => {
+test('Admin browser login uses one isolated same-origin Turnstile transport on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
-  assert.match(webSecurity, /adminTurnstileWidget/);
-  assert.match(webSecurity, /legacyFrame\.replaceWith\(widget\)/);
-  assert.match(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
-  assert.match(webSecurity, /window\.turnstile\.render\(/);
-  assert.match(webSecurity, /function startFallback/);
-  assert.match(webSecurity, /turnstile\.html\?v=7&browser=1/);
+  assert.match(webSecurity, /turnstile\.html\?v=8&browser=1/);
   assert.match(webSecurity, /captchaToken:token/);
-  assert.match(webSecurity, /challengeWatchdog/);
+  assert.match(webSecurity, /bootstrapTimer=setTimeout/);
   assert.match(webSecurity, /Security check unavailable\. Tap here to retry\./);
-  assert.match(webSecurity, /visibilitychange/);
-  assert.match(webSecurity, /pageshow/);
   assert.match(webSecurity, /event\.source===frame\.contentWindow/);
   assert.match(webSecurity, /event\.origin===window\.location\.origin/);
   assert.match(webSecurity, /payload\.source!==['"]morley-turnstile['"]/);
-  assert.match(webSecurity, /payload\.type===['"]token['"]/);
+  assert.match(webSecurity, /payload\.type===['"]token['"]&&payload\.value/);
+  assert.doesNotMatch(webSecurity, /adminTurnstileWidget|window\.turnstile\.render|function startFallback/);
+  assert.match(turnstileHtml, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
+  assert.match(turnstileHtml, /MAX_API_ATTEMPTS=3/);
+  assert.match(turnstileHtml, /callback:function\(token\)/);
+  assert.match(turnstileHtml, /window\.parent\.postMessage/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
