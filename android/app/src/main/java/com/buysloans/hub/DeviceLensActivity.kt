@@ -125,6 +125,7 @@ private enum class LensStep {
     DETAILS,
     CONDITION,
     PRICING,
+    REPAIR_DECISION,
     ADD_STOCK,
     COMPLETE
 }
@@ -180,6 +181,12 @@ private fun DeviceLensFlow(
     var stockNumber by remember { mutableStateOf("") }
     var confirmedCondition by remember { mutableStateOf("") }
     var analysisAttempt by remember { mutableStateOf(0) }
+    var repairDecision by remember { mutableStateOf<MorleyRepairDisposition?>(null) }
+    var repairDecisionConfirmed by remember { mutableStateOf(false) }
+    var repairedResale by remember { mutableStateOf("") }
+    var repairCost by remember { mutableStateOf("") }
+    var partsRecovery by remember { mutableStateOf("") }
+    var repairDays by remember { mutableStateOf("") }
 
     fun clearPhotos() {
         runCatching { frontPhoto?.delete() }
@@ -200,6 +207,12 @@ private fun DeviceLensFlow(
         stockNumber = ""
         confirmedCondition = ""
         analysisAttempt = 0
+        repairDecision = null
+        repairDecisionConfirmed = false
+        repairedResale = ""
+        repairCost = ""
+        partsRecovery = ""
+        repairDays = ""
         step = LensStep.CAPTURE_FRONT
     }
 
@@ -207,6 +220,20 @@ private fun DeviceLensFlow(
         if (reviewState?.canCompleteStaffReview == true) return true
         error = "Complete staff verification before continuing to pricing or stock entry."
         step = LensStep.REVIEW
+        return false
+    }
+
+    fun openRepairDecision() {
+        if (!requireStaffReview()) return
+        error = ""
+        repairDecisionConfirmed = false
+        step = LensStep.REPAIR_DECISION
+    }
+
+    fun requireRepairDecision(): Boolean {
+        if (repairDecisionConfirmed && repairDecision != null) return true
+        error = "Repair-or-Buy must be confirmed before adding stock."
+        step = LensStep.REPAIR_DECISION
         return false
     }
 
@@ -249,6 +276,7 @@ private fun DeviceLensFlow(
                     )
                     it.conditionAdjustedResale?.let { value ->
                         if (sellPrice.isBlank()) sellPrice = roundToFive(value).toInt().toString()
+                        if (repairedResale.isBlank()) repairedResale = roundToFive(value).toInt().toString()
                     }
                 }
                 .onFailure { error = "Live pricing unavailable: ${it.message ?: "unknown error"}" }
@@ -349,7 +377,7 @@ private fun DeviceLensFlow(
                 deviceDetails = { step = LensStep.DETAILS },
                 condition = { step = LensStep.CONDITION },
                 pricing = ::openPricing,
-                addStock = { if (requireStaffReview()) step = LensStep.ADD_STOCK },
+                addStock = ::openRepairDecision,
                 retake = {
                     clearPhotos()
                     inspection = null
@@ -366,7 +394,7 @@ private fun DeviceLensFlow(
         } ?: reset()
 
         LensStep.DETAILS -> inspection?.let { result ->
-            DeviceDetailsScreen(result, pricing = ::openPricing, addStock = { if (requireStaffReview()) step = LensStep.ADD_STOCK }) {
+            DeviceDetailsScreen(result, pricing = ::openPricing, addStock = ::openRepairDecision) {
                 step = LensStep.RESULTS
             }
         } ?: reset()
@@ -387,8 +415,9 @@ private fun DeviceLensFlow(
                     if (!requireStaffReview()) return@PricingScreen
                     pricing?.conditionAdjustedResale?.let { value ->
                         sellPrice = roundToFive(value).toInt().toString()
+                        if (repairedResale.isBlank()) repairedResale = sellPrice
                     }
-                    step = LensStep.ADD_STOCK
+                    openRepairDecision()
                 },
                 retry = {
                     pricing = null
@@ -399,19 +428,66 @@ private fun DeviceLensFlow(
             )
         } ?: reset()
 
+        LensStep.REPAIR_DECISION -> inspection?.let { result ->
+            val asIsResale = pricing?.conditionAdjustedResale ?: sellPrice.toDoubleOrNull()
+            val proposal = MorleyRepairDecisionPolicy.evaluate(
+                buyCost = purchasePrice.toDoubleOrNull(),
+                resaleAsIs = asIsResale,
+                resaleAfterRepair = repairedResale.toDoubleOrNull(),
+                repairCost = repairCost.toDoubleOrNull(),
+                partsRecoveryValue = partsRecovery.toDoubleOrNull(),
+                partsProcessingCost = 0.0,
+                minMargin = 0.0,
+                repairDays = repairDays.toDoubleOrNull()
+            ).copy(staffDecision = repairDecision, confirmed = repairDecisionConfirmed)
+            ScanScaffold("Repair or Buy", back = { step = LensStep.RESULTS }) {
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    DeviceIdentityCard(result)
+                    if (error.isNotBlank()) ErrorCard(error)
+                    MorleyRepairDecisionPanel(
+                        state = proposal,
+                        buyCost = purchasePrice,
+                        onBuyCostChange = { purchasePrice = moneyInput(it); repairDecisionConfirmed = false; error = "" },
+                        repairedResale = repairedResale,
+                        onRepairedResaleChange = { repairedResale = moneyInput(it); repairDecisionConfirmed = false; error = "" },
+                        repairCost = repairCost,
+                        onRepairCostChange = { repairCost = moneyInput(it); repairDecisionConfirmed = false; error = "" },
+                        partsRecovery = partsRecovery,
+                        onPartsRecoveryChange = { partsRecovery = moneyInput(it); repairDecisionConfirmed = false; error = "" },
+                        repairDays = repairDays,
+                        onRepairDaysChange = { repairDays = moneyInput(it); repairDecisionConfirmed = false; error = "" },
+                        onSelect = { repairDecision = it; repairDecisionConfirmed = false; error = "" },
+                        onConfirm = {
+                            if (repairDecision != null) {
+                                repairDecisionConfirmed = true
+                                error = ""
+                                step = LensStep.ADD_STOCK
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    AiBoundary()
+                }
+            }
+        } ?: reset()
+
         LensStep.ADD_STOCK -> inspection?.let { result ->
             AddStockScreen(
                 inspection = result,
                 condition = confirmedCondition.ifBlank { gradeLabel(result.conditionGrade) },
                 onConditionChange = { confirmedCondition = it },
                 purchasePrice = purchasePrice,
-                onPurchasePriceChange = { purchasePrice = moneyInput(it) },
+                onPurchasePriceChange = { purchasePrice = moneyInput(it); repairDecisionConfirmed = false },
                 sellPrice = sellPrice,
-                onSellPriceChange = { sellPrice = moneyInput(it) },
+                onSellPriceChange = { sellPrice = moneyInput(it); repairDecisionConfirmed = false },
                 stockNumber = stockNumber,
                 onStockNumberChange = { stockNumber = it.take(80) },
                 submit = {
                     if (!requireStaffReview()) return@AddStockScreen
+                    if (!requireRepairDecision()) return@AddStockScreen
                     error = ""
                     runCatching {
                         WorkspaceStore.addInventory(
@@ -426,7 +502,7 @@ private fun DeviceLensFlow(
                         .onFailure { error = it.message ?: "The device could not be added." }
                 },
                 error = error,
-                back = { step = LensStep.RESULTS }
+                back = { step = LensStep.REPAIR_DECISION }
             )
         } ?: reset()
 
