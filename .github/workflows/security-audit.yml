@@ -20,5 +20,7 @@ jobs:
           persist-credentials: false
       - name: Run credential and workflow audit
         run: python3 scripts/security_audit.py
+      - name: Run auto-review workflow regression audit
+        run: python3 scripts/test_auto_review_merge_security.py
       - name: Run privacy regression audit
         run: python3 scripts/privacy_audit.py
