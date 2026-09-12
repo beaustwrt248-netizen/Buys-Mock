@@ -20,7 +20,8 @@ required = [
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
-    "admin/index.html", "admin/app.js", "admin/invites.js", "admin/support-tickets.js",
+    "admin/index.html", "admin/browser-auth-bootstrap.js", "admin/workspace.html", "admin/workspace-template.html",
+    "admin/app.js", "admin/invites.js", "admin/support-tickets.js",
     "admin/targeted-notifications.js", "admin/styles.css", "admin/turnstile.html", "admin/login-security.js",
     "supabase/functions/send-morley-email/index.ts",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
@@ -84,7 +85,7 @@ for rel in [
     "web-auth.js", "signed-in-user.js", "desktop-parity.js",
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
-    "admin/styles.css", "admin/index.html", "admin/app.js",
+    "admin/styles.css", "admin/index.html", "admin/workspace.html", "admin/workspace-template.html", "admin/app.js",
 ]:
     p = ROOT / rel
     if not p.exists(): continue
@@ -193,13 +194,29 @@ if "sb.rpc('admin_set_user_role'" in admin_app:
     errors.append("Admin UI still calls the retired role-change SECURITY DEFININER RPC")
 
 admin_index = (ROOT / "admin/index.html").read_text(encoding="utf-8")
+admin_browser_bootstrap = (ROOT / "admin/browser-auth-bootstrap.js").read_text(encoding="utf-8")
+admin_workspace = (ROOT / "admin/workspace.html").read_text(encoding="utf-8")
+admin_workspace_template = (ROOT / "admin/workspace-template.html").read_text(encoding="utf-8")
 admin_invites = (ROOT / "admin/invites.js").read_text(encoding="utf-8")
 admin_support = (ROOT / "admin/support-tickets.js").read_text(encoding="utf-8")
 admin_notifications = (ROOT / "admin/targeted-notifications.js").read_text(encoding="utf-8")
 email_function = (ROOT / "supabase/functions/send-morley-email/index.ts").read_text(encoding="utf-8")
-for token in ('id="inviteName"', 'placeholder="First and last name"', 'app.js?v=4', 'invites.js?v=3'):
+
+for token in ('id="email"', 'id="password"', 'id="adminTurnstileFrame"', 'browser-auth-bootstrap.js?v=1', 'login-security.js?v=11'):
     if token not in admin_index:
-        errors.append(f"Admin account/invite UI is missing approved full-name control: {token}")
+        errors.append(f"Admin browser auth document is missing required login control: {token}")
+for forbidden in ('id="inviteName"', 'id="releaseName"', 'app.js?v=4', 'invites.js?v=3'):
+    if forbidden in admin_index:
+        errors.append(f"Admin browser auth document must not load privileged workspace control: {forbidden}")
+for token in ("loadSession", "profiles", "is_enabled", "admin", "manager", "workspace.html?auth="):
+    if token not in admin_browser_bootstrap:
+        errors.append(f"Admin browser auth bootstrap is missing privileged-session gate: {token}")
+for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email private invite', 'id="releaseName" readonly', 'id="releaseCode" type="number" readonly', 'id="rolloutCurrent"', 'id="rolloutOutdated"'):
+    if token not in admin_workspace_template:
+        errors.append(f"Admin workspace template is missing approved privileged control: {token}")
+for token in ('workspace-template.html?v=2', 'app.js?v=5', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
+    if token not in admin_workspace:
+        errors.append(f"Admin workspace loader is missing gated runtime control: {token}")
 for token in ("inviteName", "send-morley-email", "action:'create_invite'", "display_name:name"):
     if token not in admin_invites:
         errors.append(f"Admin invite logic is missing server-side emailed-invite control: {token}")
