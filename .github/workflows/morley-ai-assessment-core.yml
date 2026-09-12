@@ -7,6 +7,7 @@ on:
       - 'morley-ai-assessment-core.js'
       - 'morley-ai-assessment-client.js'
       - 'nova/command-registry.js'
+      - 'admin/device-testing-centre.js'
       - 'android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyAssessmentBridge.kt'
@@ -19,6 +20,7 @@ on:
       - 'tests/morley-ai-risk-passport.test.mjs'
       - 'tests/morley-ai-orchestration-nova.test.mjs'
       - 'tests/nova-assessment-capabilities.test.mjs'
+      - 'tests/morley-ai-admin-condition-ui.test.mjs'
       - '.github/workflows/morley-ai-assessment-core.yml'
   workflow_dispatch:
 
@@ -52,3 +54,5 @@ jobs:
         run: node --test tests/morley-ai-orchestration-nova.test.mjs
       - name: Run canonical Nova assessment capability contract
         run: node --test tests/nova-assessment-capabilities.test.mjs
+      - name: Run staff Condition Score presentation contract
+        run: node --test tests/morley-ai-admin-condition-ui.test.mjs
