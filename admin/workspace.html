@@ -31,7 +31,7 @@ try{
     ['adminPricingManagement','pricing-management.js?v=3'],
     ['adminV2Script','admin-v2.js?v=8'],
     ['adminControlGovernance','control-governance.js?v=2'],
-    ['adminHome','admin-home.js?v=7']
+    ['adminHome','admin-home.js?v=8']
   ];
   const loadScript=([id,src])=>new Promise((resolve,reject)=>{if(document.getElementById(id)){resolve();return;}const script=document.createElement('script');script.id=id;script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error(`Failed to load ${src}`));document.body.appendChild(script);});
   for(const entry of scripts)await loadScript(entry);
