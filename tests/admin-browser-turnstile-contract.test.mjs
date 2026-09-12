@@ -6,8 +6,10 @@ const loginSecurity = readFileSync(new URL('../admin/login-security.js', import.
 const indexHtml = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
 
 test('browser Admin renders Turnstile directly in the top-level login document for desktop and mobile web', () => {
-  assert.match(indexHtml, /id="adminTurnstileWidget"/);
-  assert.doesNotMatch(indexHtml, /id="adminTurnstileFrame"/);
+  assert.match(indexHtml, /id="adminTurnstileFrame"/);
+  assert.match(loginSecurity, /document\.createElement\(['"]div['"]\)/);
+  assert.match(loginSecurity, /adminTurnstileWidget/);
+  assert.match(loginSecurity, /replaceWith\(widget\)/);
   assert.match(loginSecurity, /https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
   assert.match(loginSecurity, /window\.turnstile\.render\(/);
   assert.match(loginSecurity, /sitekey/);
