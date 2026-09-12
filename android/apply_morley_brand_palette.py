@@ -67,22 +67,6 @@ dashboard_changed = apply(root / 'DashboardActivity.kt', {
     'Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp)': 'MorleyIcon(when(icon){"computer"->MorleyIcons.Computer;"console"->MorleyIcons.Console;"money"->MorleyIcons.Money;else->MorleyIcons.Menu},title,MorleyAccent);Text(title,color=MorleyTextPrimary,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=MorleyTextSecondary,fontSize=13.sp)',
 })
 
-# The home dashboard already exposes Google camera scanning through Scan Device and
-# the shared Manual Search flow. Remove the redundant standalone camera card and
-# its duplicate explanation while leaving those scan/search routes untouched.
-dashboard_path = root / 'DashboardActivity.kt'
-dashboard_text = dashboard_path.read_text(encoding='utf-8')
-duplicate_start = '\n        Card(\n            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },\n            colors = CardDefaults.cardColors(containerColor = Color.White),\n            border = BorderStroke(1.dp, LensHomeBorder),\n            shape = RoundedCornerShape(16.dp),'
-duplicate_end = '\n        TextButton(onClick = onGp, modifier = Modifier.fillMaxWidth()) {'
-start_index = dashboard_text.find(duplicate_start)
-end_index = dashboard_text.find(duplicate_end, start_index + 1) if start_index >= 0 else -1
-if start_index >= 0 and end_index > start_index:
-    duplicate_section = dashboard_text[start_index:end_index]
-    if 'Text("Google camera search"' in duplicate_section and 'Scan Device and Google camera search now use the same Google Play services camera scanner' in duplicate_section:
-        dashboard_text = dashboard_text[:start_index] + '\n' + dashboard_text[end_index:]
-        dashboard_path.write_text(dashboard_text, encoding='utf-8')
-        dashboard_changed = True
-
 smart_changed = apply(root / 'SmartWorkspaceSection.kt', {
     'private val SWAccent = Color(0xFF16C7FF)': 'private val SWAccent = MorleyAccent',
     'private val SWStrong = Color(0xFF2684FF)': 'private val SWStrong = MorleyAccentStrong',
@@ -183,4 +167,4 @@ for kotlin_file in root.glob('*.kt'):
     blue_changed = apply(kotlin_file, blue_palette) or blue_changed
 
 changed = main_changed or dashboard_changed or smart_changed or legacy_changed or light_changed or blue_changed
-print('Applied Morley light/blue visual contract and dashboard camera cleanup' if changed else 'Morley light/blue visual contract already applied')
+print('Applied Morley light/blue visual contract' if changed else 'Morley light/blue visual contract already applied')
