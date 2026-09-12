@@ -1,7 +1,7 @@
 {
-  "versionCode": 143,
-  "versionName": "2.15.99",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.99/B-and-L-Morley-2.15.99.apk",
-  "sha256": "21cc345e1929639ad207ab79d4cb9d10fb964b13eb3f410b9e56c66bbcf8bb94",
-  "notes": "Replace Android catalogue polling with authenticated Realtime (#1640)"
+  "versionCode": 144,
+  "versionName": "2.15.100",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.100/B-and-L-Morley-2.15.100.apk",
+  "sha256": "488cf42be87f54201266f9ea5e109911365677524e1f043beabcbf32cd16f175",
+  "notes": "Fix Morley Device Lens analysis timeout (#1669)"
 }
