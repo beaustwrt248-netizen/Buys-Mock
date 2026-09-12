@@ -326,37 +326,6 @@ private fun ParityHome(onGp: () -> Unit) {
             )
         }
 
-        Card(
-            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, LensHomeBorder),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(12.dp), color = ReferencePaleBlue, modifier = Modifier.size(46.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text("G", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 21.sp) }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Google camera search", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 15.sp)
-                    Text("Scan a barcode, QR code or encoded model/stock label", color = MorleyTextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
-                }
-                Text("›", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 24.sp)
-            }
-        }
-
-        Surface(color = ReferencePaleBlue, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Text(
-                "Scan Device and Google camera search now use the same Google Play services camera scanner for barcodes, QR codes and encoded model/stock labels.",
-                Modifier.padding(11.dp),
-                color = Color(0xFF28577E),
-                fontSize = 10.sp,
-                lineHeight = 14.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-
         TextButton(onClick = onGp, modifier = Modifier.fillMaxWidth()) {
             Text("General Buys / GP • Trade-in tools", color = ReferenceBlue, fontWeight = FontWeight.Bold)
         }
