@@ -38,7 +38,7 @@ class AdminUpdateGateActivity : ComponentActivity() {
         window.decorView.setBackgroundColor(AndroidColor.rgb(4, 9, 18))
 
         // Recovery skips the canonical OTA channel but still uses the same native authentication
-        // boundary before entering the privileged Admin web workspace.
+        // boundary before entering the privileged native Admin workspace.
         if (BuildConfig.IS_RECOVERY_BUILD) {
             startActivity(Intent(this, AdminLoginActivity::class.java))
             finish()

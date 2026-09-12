@@ -31,14 +31,16 @@ def semantic_version(value: str) -> tuple[int, int, int] | None:
 admin_html = read("admin/index.html")
 admin_app = read("admin/app.js")
 login_security = read("admin/login-security.js")
-user_management_policy = read("admin/user-management-policy.js")
 release_control = read("admin/release-control.js")
 support_tickets = read("admin/support-tickets.js")
 targeted_notifications = read("admin/targeted-notifications.js")
 invites = read("admin/invites.js")
 audit_triage = read("admin/audit-triage.js")
 admin_activity = read("android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt")
-admin_web_policy = read("android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt")
+admin_login = read("android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt")
+captcha_challenge = read("android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt")
+admin_session_store = read("android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt")
+admin_dashboard = read("android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt")
 admin_api = read("android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt")
 update_manager = read("android/app/src/main/java/com/buysloans/hub/UpdateManager.kt")
 update_activity = read("android/app/src/main/java/com/buysloans/hub/UpdateActivity.kt")
@@ -48,7 +50,7 @@ build_gradle = read("android/app/build.gradle")
 ota_manifest_text = read("ota/latest.json")
 ota_migration = read("supabase/migrations/20260829192000_enable_ota_feature_control.sql")
 
-# Web Admin Control: every visible section must have both markup and a functional implementation hook.
+# Browser Admin remains an independent client and must keep its own complete auth and control surface.
 web_sections = {
     "overview": ["metricUsers", "metricDevices", "metricVersion", "metricQueued"],
     "users": ["usersList", "createInviteBtn", "invitesList"],
@@ -70,7 +72,6 @@ require("captchaToken:token" in login_security, "Admin web login is not submitti
 require("turnstile.render(challengeHost" in login_security, "Admin web Turnstile is not rendered directly on the login surface")
 require("challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" in login_security, "Admin web Turnstile API source is missing")
 require("challengeWatchdog" in login_security, "Admin web Turnstile loading is not bounded by a recovery watchdog")
-require("user-management-policy.js?v=2" in admin_html and "login-security.js?v=8" in admin_html, "Admin auth script cache busters were not advanced")
 require("loadUsers" in admin_app and "admin-user-control" in admin_app, "Accounts/user-control wiring is incomplete")
 require("loadDevices" in admin_app and "app_version" in admin_app, "Device/version visibility wiring is incomplete")
 require("ticketReplyBtn" in support_tickets and "support_ticket_messages" in support_tickets, "Support reply wiring is incomplete")
@@ -81,70 +82,74 @@ require("admin_audit_log" in audit_triage or "admin_audit_log" in admin_app, "Au
 require("redeem-app-invite" in invites or "app_invites" in invites, "Invite governance wiring is incomplete")
 require("target_installation_id" in targeted_notifications or "notifTarget" in targeted_notifications, "Targeted notification wiring is incomplete")
 
-# Android Admin Control: the app uses the canonical HTTPS Admin surface behind a
-# hardened path/origin boundary. Native auth is installed into the exact Supabase
-# client used by the final workspace before app.js can observe a signed-out state.
-admin_entry_navigation = (
-    "AdminWebParityPolicy.HOME_URL" in admin_activity
-    or "AdminWebParityPolicy.freshHomeUrl" in admin_activity
-    or "AdminWebParityPolicy.nativeWorkspaceUrl" in admin_activity
-)
-web_parity_shell = (
-    "WebView" in admin_activity
-    and admin_entry_navigation
-    and "AdminWebParityPolicy.isTrustedAdminUrl" in admin_activity
-    and 'HOME_URL = "https://buyshub.me/admin/"' in admin_web_policy
-    and 'private const val ADMIN_HOST = "buyshub.me"' in admin_web_policy
-    and 'uri.scheme.equals("https"' in admin_web_policy
-    and '(path == "/admin" || path.startsWith("/admin/"))' in admin_web_policy
-    and "MIXED_CONTENT_NEVER_ALLOW" in admin_activity
-    and "allowFileAccess = false" in admin_activity
-    and "allowContentAccess = false" in admin_activity
-)
+# Android Admin is a native authenticated client. The browser Admin is not its workspace,
+# session store, logout route or navigation fallback.
+require("AdminSessionStore.current()" in admin_activity, "Android Admin does not read the native session owner")
+require("AdminSessionStore.hasAuthorizedSession()" in admin_activity, "Android Admin does not verify the native session before workspace entry")
+require("AdminNativeDashboard" in admin_activity, "Android Admin does not enter the native Compose dashboard")
+for forbidden in [
+    "WebView",
+    "evaluateJavascript",
+    "loadUrl(",
+    "installNativeAdminSession",
+    "native-logout",
+    "AdminWebParityPolicy",
+    "EXTRA_ACCESS_TOKEN",
+    "EXTRA_REFRESH_TOKEN",
+]:
+    require(forbidden not in admin_activity, f"Authenticated Android Admin workspace still contains retired browser handoff symbol: {forbidden}")
 
-if web_parity_shell:
-    require("javaScriptEnabled = true" in admin_activity, "Android Admin parity shell must enable the canonical Admin JavaScript application")
-    require("domStorageEnabled = true" in admin_activity, "Android Admin parity shell must enable DOM storage for web authentication state")
-    require("setAcceptCookie(true)" in admin_activity, "Android Admin parity shell must enable required authentication cookies")
-    require("LOAD_DEFAULT" in admin_activity, "Android Admin must allow normal static-resource caching instead of forcing every navigation cold")
-    require("clearCache(true)" not in admin_activity, "Android Admin must not purge the full WebView cache on every launch")
-    require("adminApp=" in admin_web_policy, "Android Admin shell URL must vary by native build")
-    require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
+require("AdminSessionStore.set(session)" in admin_login, "Native Admin login does not install the authorized Android session")
+require("Intent(this, AdminActivity::class.java)" in admin_login, "Native Admin login does not navigate to AdminActivity")
+store_index = admin_login.find("AdminSessionStore.set(session)")
+navigation_index = admin_login.find("Intent(this, AdminActivity::class.java)")
+require(store_index >= 0 and navigation_index > store_index, "Native Admin session must be installed before workspace navigation")
+require("putExtra(AdminActivity.EXTRA_ACCESS_TOKEN" not in admin_login, "Admin access token is still transferred through an Intent")
+require("putExtra(AdminActivity.EXTRA_REFRESH_TOKEN" not in admin_login, "Admin refresh token is still transferred through an Intent")
+require("CaptchaChallenge(" in admin_login, "Native Admin login is not using the scoped Turnstile component")
 
-    if "AdminWebParityPolicy.nativeWorkspaceUrl" in admin_activity:
-        require("nativeWorkspaceUrl" in admin_web_policy and "nativeAuth=1" in admin_web_policy, "Android Admin must enter the final workspace in native-auth mode")
-        require("isNativeWorkspaceUrl" in admin_web_policy, "Android Admin native workspace URL must be origin/path validated")
-        require("window.installNativeAdminSession" in admin_activity, "Android Admin must call the final-workspace session installation contract")
-        require("maxInstallAttempts=40" in admin_activity, "Android Admin final-workspace handoff must use a bounded install retry")
-        require("maxWatchAttempts=80" in admin_activity, "Android Admin final-workspace handoff must use a bounded verification watch")
-        require("__morleyNativeSessionState" in admin_activity, "Android Admin must verify final-workspace native session state")
-        require("window.sb.auth.setSession" not in admin_activity, "Privileged Admin WebView must not directly own Supabase session mutation")
-        require("nativeAuthMode" in user_management_policy, "Pre-app Admin policy must activate the native session gate")
-        require("nativeSessionGate" in user_management_policy, "Pre-app Admin policy must hold getSession until Android installs the session")
-        require("window.installNativeAdminSession" in user_management_policy, "Pre-app Admin policy must expose the native session installation contract")
-        require("auth.setSession" in user_management_policy, "Pre-app Admin policy must install the supplied Supabase session")
-        require("auth.getSession" in user_management_policy, "Pre-app Admin policy must verify the installed Supabase session")
-        require("nativeAuthMode" in login_security, "Native Admin workspace must suppress duplicate web Turnstile startup")
-    elif "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
-        require("freshHomeUrl" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
-        require("maxAttempts=120" in admin_activity, "Legacy Android Admin native session handoff must use a bounded Supabase readiness retry")
-        require("setTimeout(install,100)" in admin_activity, "Legacy Android Admin native session handoff must retry Supabase readiness")
-        require("typeof window.loadSession==='function'" in admin_activity, "Legacy Android Admin native session handoff must wait for the Admin session loader")
-        require("setTimeout(finish,100)" in admin_activity, "Legacy Android Admin native session handoff must retry until the Admin session loader is ready")
-else:
-    for tab in ["Health", "Tickets", "Staff alerts", "Users & devices", "Controls", "Audit", "Release"]:
-        require(f'"{tab}"' in admin_activity, f"Android Admin tab missing: {tab}")
-    require("UserManagementPanel" in admin_activity, "Android Admin user-management panel is missing")
+require(captcha_challenge.count("addJavascriptInterface(") == 1, "Admin Android must have exactly one Turnstile JavaScript bridge")
+require('"AndroidBridge"' in captcha_challenge, "Admin Turnstile bridge identity is missing")
+require("domStorageEnabled = false" in captcha_challenge, "Admin Turnstile WebView must not enable DOM storage")
+require("allowFileAccess = false" in captcha_challenge, "Admin Turnstile WebView must disable file access")
+require("allowContentAccess = false" in captcha_challenge, "Admin Turnstile WebView must disable content access")
+require("databaseEnabled = false" in captcha_challenge, "Admin Turnstile WebView must disable database storage")
+require("MIXED_CONTENT_NEVER_ALLOW" in captcha_challenge, "Admin Turnstile WebView must forbid mixed content")
+require("addJavascriptInterface" not in admin_activity and "addJavascriptInterface" not in admin_dashboard, "Privileged native Admin workspace must not own a JavaScript bridge")
 
-# Native Admin APIs remain covered because they are still part of the package and
-# provide the legacy/fallback implementation and independently tested policies.
+require("private var active: AdminSession?" in admin_session_store, "Native Admin session store is missing its process-scoped session")
+require("fun clear()" in admin_session_store, "Native Admin session store cannot clear sign-in state")
+require('active?.accessToken = ""' in admin_session_store, "Native Admin sign-out does not blank the active access token")
+require('active?.refreshToken = ""' in admin_session_store, "Native Admin sign-out does not blank the active refresh token")
+
+for workspace in ["Overview", "Support", "Health", "Guardian", "Notifications", "Users & devices", "Staff alerts", "Controls", "Audit", "Release"]:
+    require(f'"{workspace}"' in admin_dashboard, f"Native Android Admin workspace missing: {workspace}")
+for component in [
+    "SupportOperationsPanel",
+    "GuardianPanel",
+    "ManualNotificationPanel",
+    "UserManagementPanel",
+    "AuditTimelinePanel",
+    "MaintenanceNativePanel",
+    "AdminReleasePanel",
+    "DeviceSummaryPanel",
+]:
+    require(component in admin_dashboard, f"Native Android Admin component is missing: {component}")
+require("AdminAppAccessPolicy.canReadFullSnapshot(session)" in admin_dashboard, "Native Android Admin full workspaces are not role gated")
+require("NATIVE CONTROL MODE" in admin_dashboard, "Native Android Admin identity marker is missing")
+require("AdminApi.load(session)" in admin_dashboard, "Native Android Admin does not load data directly through AdminApi")
+require("AdminSessionStore" not in admin_dashboard, "Dashboard must not become a second session owner")
+require("WebView" not in admin_dashboard and "evaluateJavascript" not in admin_dashboard, "Native Android Admin dashboard contains web runtime code")
+
+# Native API paths and privileged controls stay backend/RLS governed.
 require("updateMaintenanceConfig" in admin_api, "Android Admin maintenance write path is missing")
 require("updateSupportTicket" in admin_api, "Android Admin ticket update path is missing")
 require("sendSupportReply" in admin_api, "Android Admin support reply path is missing")
 require("loadSupportNotes" in admin_api, "Android Admin internal-note read path is missing")
 require("admin_audit_log" in admin_api, "Android Admin audit read path is missing")
+require("grant_type=refresh_token" in admin_api, "Android Admin refresh-token path is missing")
 
-# OTA: normal main is exact-match. A release PR may be exactly one monotonic
+# Morley customer OTA: normal main is exact-match. A release PR may be exactly one monotonic
 # versionCode ahead while the signed manifest still points to the last release.
 try:
     ota_manifest = json.loads(ota_manifest_text)
@@ -193,4 +198,4 @@ if errors:
     sys.exit(1)
 
 print("Admin Control integration audit PASSED")
-print("Verified sections: overview, accounts, devices, tickets, controls, release/OTA, notifications, announcements, audit, Android Admin parity.")
+print("Verified web Admin independence, native Android session ownership/workspaces, privileged API contracts and OTA governance.")

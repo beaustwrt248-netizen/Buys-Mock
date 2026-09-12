@@ -1,15 +1,8 @@
 package com.buysloans.admin
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color as AndroidColor
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -48,10 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.launch
-
-private const val ADMIN_TURNSTILE_PAGE = "https://buyshub.me/admin/turnstile.html"
 
 class AdminLoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,69 +50,14 @@ class AdminLoginActivity : ComponentActivity() {
         window.decorView.setBackgroundColor(AndroidColor.rgb(4, 9, 18))
         setContent {
             AdminLoginScreen { session ->
+                AdminSessionStore.set(session)
                 startActivity(
                     Intent(this, AdminActivity::class.java)
-                        .putExtra(AdminActivity.EXTRA_ACCESS_TOKEN, session.accessToken)
-                        .putExtra(AdminActivity.EXTRA_REFRESH_TOKEN, session.refreshToken)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 )
                 finish()
             }
         }
-    }
-}
-
-private class AdminTurnstileBridge(
-    private val onToken: (String) -> Unit,
-    private val onExpired: () -> Unit,
-    private val onError: (String) -> Unit
-) {
-    private val main = Handler(Looper.getMainLooper())
-
-    @JavascriptInterface
-    fun onToken(token: String) = main.post { onToken.invoke(token) }
-
-    @JavascriptInterface
-    fun onExpired(ignored: String) = main.post { onExpired.invoke() }
-
-    @JavascriptInterface
-    fun onError(code: String) = main.post { onError.invoke(code) }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun AdminTurnstileChallenge(
-    refreshKey: Int,
-    onToken: (String) -> Unit,
-    onExpired: () -> Unit,
-    onError: (String) -> Unit
-) {
-    key(refreshKey) {
-        AndroidView(
-            modifier = Modifier.fillMaxWidth().height(118.dp),
-            factory = { context ->
-                WebView(context).apply {
-                    setBackgroundColor(AndroidColor.TRANSPARENT)
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = false
-                    settings.allowFileAccess = false
-                    settings.allowContentAccess = false
-                    settings.databaseEnabled = false
-                    settings.setSupportMultipleWindows(false)
-                    if (Build.VERSION.SDK_INT >= 26) settings.safeBrowsingEnabled = true
-                    addJavascriptInterface(
-                        AdminTurnstileBridge(onToken, onExpired, onError),
-                        "AndroidBridge"
-                    )
-                    webViewClient = object : WebViewClient() {}
-                    loadUrl(ADMIN_TURNSTILE_PAGE)
-                }
-            },
-            onRelease = { webView ->
-                webView.stopLoading()
-                webView.removeJavascriptInterface("AndroidBridge")
-                webView.destroy()
-            }
-        )
     }
 }
 
@@ -195,24 +130,21 @@ private fun AdminLoginScreen(onSignedIn: (AdminSession) -> Unit) {
                 Spacer(Modifier.height(14.dp))
                 Text("Cloudflare security check", fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
-                AdminTurnstileChallenge(
-                    refreshKey = captchaRefresh,
-                    onToken = {
-                        captchaToken = it
-                        message = "Security check complete."
-                        error = false
-                    },
-                    onExpired = {
-                        captchaToken = ""
-                        message = "Security check expired. Complete it again."
-                        error = true
-                    },
-                    onError = {
-                        captchaToken = ""
-                        message = "Security check failed. Please retry."
-                        error = true
-                    }
-                )
+                key(captchaRefresh) {
+                    CaptchaChallenge(
+                        modifier = Modifier.fillMaxWidth().height(118.dp),
+                        onToken = {
+                            captchaToken = it
+                            message = "Security check complete."
+                            error = false
+                        },
+                        onFailure = {
+                            captchaToken = ""
+                            message = it
+                            error = true
+                        }
+                    )
+                }
                 if (message.isNotBlank()) {
                     Spacer(Modifier.height(8.dp))
                     Text(

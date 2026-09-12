@@ -2,6 +2,7 @@ package com.buysloans.admin
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
@@ -64,10 +65,14 @@ internal fun CaptchaChallenge(
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
+                settings.domStorageEnabled = false
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
+                settings.databaseEnabled = false
+                settings.javaScriptCanOpenWindowsAutomatically = false
+                settings.setSupportMultipleWindows(false)
                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                if (Build.VERSION.SDK_INT >= 26) settings.safeBrowsingEnabled = true
                 addJavascriptInterface(
                     TurnstileBridge(
                         emitToken = { token -> latestOnToken.value(token) },
@@ -84,6 +89,11 @@ internal fun CaptchaChallenge(
                 }
                 loadUrl(TURNSTILE_URL)
             }
+        },
+        onRelease = { webView ->
+            webView.stopLoading()
+            webView.removeJavascriptInterface("AndroidBridge")
+            webView.destroy()
         }
     )
 }
