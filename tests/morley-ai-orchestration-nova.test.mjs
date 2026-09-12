@@ -83,6 +83,20 @@ test('customer assessment summary keeps unavailable condition scores unverified 
   }
 });
 
+test('customer assessment summary never exposes a stale grade when the score is unavailable', () => {
+  const core = loadCore();
+  for (const conditionScore of [undefined, null, '', 'pending', false]) {
+    const summary = core.buildCustomerAssessmentSummary({
+      model: 'Pixel 10 Pro',
+      storage: '256 GB',
+      conditionScore,
+      recommendedGrade: 'good',
+    });
+    assert.equal(summary.conditionScore, null);
+    assert.equal(summary.recommendedGrade, 'unverified');
+  }
+});
+
 test('customer assessment summary preserves valid numeric scores and clamps out-of-range values', () => {
   const core = loadCore();
   assert.equal(core.buildCustomerAssessmentSummary({ conditionScore: '86' }).conditionScore, 86);
