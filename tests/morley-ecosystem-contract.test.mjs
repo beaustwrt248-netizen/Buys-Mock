@@ -14,6 +14,7 @@ const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url
 const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
+const autoReviewWorkflow=fs.readFileSync(new URL('../.github/workflows/auto-review-merge.yml',import.meta.url),'utf8');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
   assert.match(source,/id:'morley-buys'/);
@@ -91,4 +92,19 @@ test('Admin app download invite is emailed through the existing audited mail ser
   assert.match(morleyEmail,/action === "send_download_invite"/);
   assert.match(morleyEmail,/app_download_invite_sent/);
   assert.match(morleyEmail,/Download \/ Open invitation/);
+});
+
+test('guarded auto review exempts documentation and test service-role references only',()=>{
+  assert.match(autoReviewWorkflow,/service_role_pattern=re\.compile\(r'\\bservice\[_-\]\?role\\b'/);
+  assert.match(autoReviewWorkflow,/reference_only_path=re\.compile\(r'\(\^\|\/\)\(docs\?\/\|tests\?\/\|src\/\(test\|androidTest\)\/\|\[\^\/\]\+\\\.md\$\)'/);
+  assert.match(autoReviewWorkflow,/if service_role_pattern\.search\(file_added\) and not reference_only_path\.search\(name\):/);
+  assert.doesNotMatch(autoReviewWorkflow,/def safe_security_reference/);
+});
+
+test('guarded auto review keeps every other critical pattern global',()=>{
+  assert.match(autoReviewWorkflow,/added='\\n'\.join\(added_by_file\.values\(\)\)/);
+  assert.match(autoReviewWorkflow,/for pattern in critical_added:/);
+  assert.match(autoReviewWorkflow,/re\.search\(pattern, added, re\.I\|re\.M\)/);
+  assert.match(autoReviewWorkflow,/persist-credentials/);
+  assert.match(autoReviewWorkflow,/disable\\s\+row\\s\+level\\s\+security/);
 });

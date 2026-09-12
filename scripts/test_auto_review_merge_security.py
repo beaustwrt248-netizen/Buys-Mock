@@ -25,17 +25,32 @@ for line in lines:
     if in_run:
         run_lines.append(line)
 
-if direct in '\n'.join(run_lines):
+run_text = '\n'.join(run_lines)
+if direct in run_text:
     errors.append('critical step output is interpolated directly into workflow shell source')
 
 # The hardened form must transport the value via env and use it as a quoted shell
 # variable written to a body file, so shell metacharacters remain inert data.
 if not re.search(r'(?m)^\s*CRITICAL:\s*\$\{\{\s*steps\.risk\.outputs\.critical\s*\}\}\s*$', text):
     errors.append('critical step output is not transported through an environment variable')
-if '"$CRITICAL"' not in '\n'.join(run_lines):
+if '"$CRITICAL"' not in run_text:
     errors.append('critical value is not consumed as a quoted shell variable')
-if '--body-file "$RUNNER_TEMP/critical-stop.md"' not in '\n'.join(run_lines):
+if '--body-file "$RUNNER_TEMP/critical-stop.md"' not in run_text:
     errors.append('critical PR comment is not sent through a body file')
+
+# Documentation and test sources may intentionally contain the literal service-role
+# token while proving it is forbidden or documenting existing server-only behavior.
+# Those inert references must not promote an otherwise guarded change to critical.
+# Runtime source still needs broad service-role detection, so the exception is by
+# file type rather than by weakening/removing the matcher.
+if "service_role_pattern=re.compile(r'\\bservice[_-]?role\\b'" not in run_text:
+    errors.append('service-role critical detection is not preserved as a dedicated runtime-source matcher')
+if "reference_only_path=re.compile(r'(^|/)(docs?/|tests?/|src/(test|androidTest)/|[^/]+\\.md$)'" not in run_text:
+    errors.append('documentation and test paths are not explicitly separated from runtime service-role detection')
+if "if service_role_pattern.search(file_added) and not reference_only_path.search(name):" not in run_text:
+    errors.append('test/documentation-only service-role wording can still trigger a false critical classification')
+if re.search(r"(?m)^\s*r'\\bservice\[_-\]\?role\\b',\s*$", run_text):
+    errors.append('service-role matcher is still applied globally across documentation and runtime patches')
 
 # Keep the workflow least-privileged. The repository's Actions token cannot invoke
 # mergePullRequest with these permissions, so auto-merge arming must be best-effort
@@ -68,4 +83,4 @@ else:
 if errors:
     raise SystemExit('auto-review workflow security regression:\n- ' + '\n- '.join(errors))
 
-print('auto-review workflow shell-injection and least-privilege merge checks passed')
+print('auto-review workflow shell-injection, risk-classification and least-privilege merge checks passed')
