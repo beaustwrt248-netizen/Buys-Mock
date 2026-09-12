@@ -19,6 +19,7 @@ const MAX_IMAGES = 8;
 const MAX_SINGLE_DATA_URL = 8_000_000;
 const MAX_TOTAL_DATA_URL = 30_000_000;
 const DEFAULT_CAPTURE_ORDER = ["front", "back"];
+const PROVIDER_TIMEOUT_MS = 60_000;
 
 const clean = (value: unknown, max = 500) =>
   String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
@@ -269,19 +270,33 @@ quality_warnings (string array), consistency_warnings (string array), component_
     ];
     const payload = {
       model: MODEL,
-      reasoning: { effort: "medium" },
-      max_output_tokens: 3200,
+      reasoning: { effort: "low" },
+      max_output_tokens: 1600,
       input: [{ role: "user", content }],
     };
 
-    const provider = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    const providerController = new AbortController();
+    const providerTimeout = setTimeout(() => providerController.abort(), PROVIDER_TIMEOUT_MS);
+    let provider: Response;
+    try {
+      provider = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: providerController.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        console.warn("[device-inspection] provider deadline reached");
+        return reply({ error: "Device inspection took too long. Please retry." }, 504);
+      }
+      throw error;
+    } finally {
+      clearTimeout(providerTimeout);
+    }
 
     if (!provider.ok) {
       const detail = clean(await provider.text(), 500);
