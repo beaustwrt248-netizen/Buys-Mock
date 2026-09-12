@@ -1,5 +1,6 @@
 package com.buysloans.hub
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -47,10 +49,17 @@ class UniversalBuySearchActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val mode = UniversalBuySearchMode.from(intent.getStringExtra(UniversalBuySearchMode.EXTRA_MODE))
+        if (mode == UniversalBuySearchMode.AI_SCAN) {
+            startActivity(Intent(this, DeviceLensActivity::class.java))
+            finish()
+            return
+        }
         enableEdgeToEdge()
         setContent {
             MaterialTheme(colorScheme = MorleyColorScheme) {
                 UniversalBuySearchScreen(
+                    mode = mode,
                     scanning = scanning,
                     scanNotice = scanNotice,
                     onScan = ::scanForSearch,
@@ -86,9 +95,17 @@ class UniversalBuySearchActivity : ComponentActivity() {
     }
 }
 
+private fun modeIntro(mode: UniversalBuySearchMode): Pair<String, String> = when (mode) {
+    UniversalBuySearchMode.QUICK_SEARCH -> "Fast Morley lookup" to "Start typing a model, storage, model number or stock/code value for instant results."
+    UniversalBuySearchMode.MANUAL_SEARCH -> "Guided manual search" to "Choose a category first, then narrow the item by brand/model/storage or model number."
+    UniversalBuySearchMode.PRICE_CHECK -> "Price-focused lookup" to "Find the exact item first, then review whether Morley has an authorised price and continue into condition/valuation."
+    UniversalBuySearchMode.AI_SCAN -> "AI Device Scan" to "Camera-first Morley Vision assessment."
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UniversalBuySearchScreen(
+    mode: UniversalBuySearchMode,
     scanning: Boolean,
     scanNotice: String,
     onScan: ((String) -> Unit) -> Unit,
@@ -96,13 +113,19 @@ private fun UniversalBuySearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<UniversalBuySearchResult?>(null) }
-    val results = remember(query) { if (query.isBlank()) emptyList() else UniversalBuySearch.search(query, 30) }
+    var category by remember { mutableStateOf<UniversalBuyCategory?>(null) }
+    val allResults = remember(query) { if (query.isBlank()) emptyList() else UniversalBuySearch.search(query, 30) }
+    val results = remember(allResults, category, mode) {
+        if (mode == UniversalBuySearchMode.MANUAL_SEARCH && category != null) allResults.filter { it.category == category }
+        else allResults
+    }
+    val intro = modeIntro(mode)
 
     Scaffold(
         containerColor = MorleyBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Universal Buy Search", fontWeight = FontWeight.Black) },
+                title = { Text(mode.title, fontWeight = FontWeight.Black) },
                 navigationIcon = {
                     Button(onClick = onBack, modifier = Modifier.padding(start = 8.dp)) { Text("Back") }
                 },
@@ -115,13 +138,50 @@ private fun UniversalBuySearchScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
+                Surface(
+                    color = MorleySurface,
+                    border = BorderStroke(1.dp, MorleyBorder),
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(intro.first, fontSize = 20.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
+                        Text(intro.second, color = MorleyTextSecondary, fontSize = 12.sp)
+                    }
+                }
+            }
+            if (mode == UniversalBuySearchMode.MANUAL_SEARCH) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("1. Category", color = MorleyTextPrimary, fontWeight = FontWeight.Black)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(selected = category == UniversalBuyCategory.PHONE, onClick = { category = UniversalBuyCategory.PHONE; selected = null }, label = { Text("Phone") })
+                            FilterChip(selected = category == UniversalBuyCategory.LAPTOP, onClick = { category = UniversalBuyCategory.LAPTOP; selected = null }, label = { Text("Laptop") })
+                            FilterChip(selected = category == UniversalBuyCategory.CONSOLE, onClick = { category = UniversalBuyCategory.CONSOLE; selected = null }, label = { Text("Console") })
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(selected = category == UniversalBuyCategory.GENERAL_BUYS, onClick = { category = UniversalBuyCategory.GENERAL_BUYS; selected = null }, label = { Text("General Buys") })
+                            FilterChip(selected = category == null, onClick = { category = null; selected = null }, label = { Text("All") })
+                        }
+                    }
+                }
+            }
+            item {
                 OutlinedTextField(
                     value = query,
                     onValueChange = {
                         query = it
                         selected = null
                     },
-                    label = { Text("Search phones, laptops, consoles or any item") },
+                    label = {
+                        Text(
+                            when (mode) {
+                                UniversalBuySearchMode.MANUAL_SEARCH -> "2. Brand, model, storage or model number"
+                                UniversalBuySearchMode.PRICE_CHECK -> "Item to price"
+                                else -> "Search devices, stock or codes"
+                            }
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -147,12 +207,14 @@ private fun UniversalBuySearchScreen(
                     )
                 }
             }
-            item {
-                Text(
-                    "Use the Google Play services camera shown in the barcode scanner to scan a barcode, QR code or encoded model/stock label. Google returns the code result and Morley uses it as the search text.",
-                    color = MorleyTextSecondary,
-                    fontSize = 12.sp
-                )
+            if (mode != UniversalBuySearchMode.QUICK_SEARCH) {
+                item {
+                    Text(
+                        "Google camera scanning is for barcodes, QR codes and encoded model/stock labels. Morley Vision AI Device Scan remains the separate two-photo condition and damage workflow.",
+                        color = MorleyTextSecondary,
+                        fontSize = 12.sp
+                    )
+                }
             }
             if (scanNotice.isNotBlank()) {
                 item {
@@ -166,18 +228,15 @@ private fun UniversalBuySearchScreen(
                     }
                 }
             }
-            if (query.isBlank()) {
+            if (query.isBlank() && mode == UniversalBuySearchMode.QUICK_SEARCH) {
                 item {
-                    Surface(
-                        color = MorleySurface,
-                        border = BorderStroke(1.dp, MorleyBorder),
-                        shape = RoundedCornerShape(18.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("One search across Morley", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
-                            Text("Search by friendly name, storage, model number or a code returned by the Google scanner. Unpriced catalogue items stay searchable without authorising a buy.", color = MorleyTextSecondary)
-                        }
+                    Text("One search across Morley. Unpriced catalogue items stay searchable without authorising a buy.", color = MorleyTextSecondary, fontSize = 12.sp)
+                }
+            }
+            if (query.isNotBlank() && results.isEmpty()) {
+                item {
+                    Surface(color = MorleySurface, border = BorderStroke(1.dp, MorleyBorder), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text("No matching item in this ${if (mode == UniversalBuySearchMode.MANUAL_SEARCH && category != null) category!!.name.lowercase().replace('_', ' ') else "search"}. Try another model/storage or choose All.", Modifier.padding(14.dp), color = MorleyTextSecondary)
                     }
                 }
             }
@@ -185,7 +244,7 @@ private fun UniversalBuySearchScreen(
                 UniversalResultCard(result = result, selected = selected == result, onClick = { selected = result })
             }
             selected?.let { result ->
-                item { UniversalBuyDecisionCard(result) }
+                item { UniversalBuyDecisionCard(result, mode) }
             }
             item { Spacer(Modifier.height(20.dp)) }
         }
@@ -217,7 +276,7 @@ private fun UniversalResultCard(result: UniversalBuySearchResult, selected: Bool
 }
 
 @Composable
-private fun UniversalBuyDecisionCard(result: UniversalBuySearchResult) {
+private fun UniversalBuyDecisionCard(result: UniversalBuySearchResult, mode: UniversalBuySearchMode) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MorleySurfaceRaised),
         border = BorderStroke(1.dp, MorleyBorder),
@@ -225,9 +284,10 @@ private fun UniversalBuyDecisionCard(result: UniversalBuySearchResult) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Buy decision", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
+            Text(if (mode == UniversalBuySearchMode.PRICE_CHECK) "Price check" else "Buy decision", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
             if (result.canAuthoriseBuy && result.priceSheetValue != null) {
-                Text("Select condition/grade in the unified buy flow next. A/B/C price controls remain 70% / 50% / 30% of the authoritative Morley price-sheet value.", color = MorleyTextSecondary)
+                Text("Authoritative Morley price-sheet value: $${result.priceSheetValue.toInt()}", fontWeight = FontWeight.Black, color = MorleySuccess)
+                Text("Continue with condition/grade evidence before a final buy value is confirmed. A/B/C price controls remain governed by the authoritative Morley pricing rules.", color = MorleyTextSecondary)
             } else {
                 Text("This result can be identified and reviewed, but it cannot calculate or authorise a buy until an approved Morley price exists.", color = MorleyTextSecondary)
             }
