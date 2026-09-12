@@ -1,0 +1,93 @@
+name: Admin Live Auth Probe
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/admin-live-auth-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+      - name: Install browser probe
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Probe buyshub.me Admin challenge
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/probe.mjs" <<'EOF'
+          import { chromium } from 'playwright';
+
+          const target='https://buyshub.me/admin/';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1280,height:900}});
+          const consoleLines=[];
+          const requestFailures=[];
+          page.on('console',msg=>consoleLines.push(`${msg.type()}: ${msg.text()}`));
+          page.on('pageerror',err=>consoleLines.push(`pageerror: ${err.message}`));
+          page.on('requestfailed',req=>requestFailures.push(`${req.url()} :: ${req.failure()?.errorText||'failed'}`));
+
+          let response;
+          try {
+            response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:45000});
+            console.log(`ADMIN_HTTP=${response?.status()||0}`);
+            console.log(`ADMIN_URL=${page.url()}`);
+            console.log(`ADMIN_TITLE=${await page.title()}`);
+            await page.waitForTimeout(12000);
+
+            const frame=page.frames().find(f=>f.url().includes('/admin/turnstile.html'));
+            console.log(`TURNSTILE_FRAME=${frame?.url()||'missing'}`);
+            if(frame){
+              const state=await frame.evaluate(()=>({
+                state:window.__morleyTurnstileState||'',
+                token:window.__morleyTurnstileToken||'',
+                status:document.getElementById('status')?.textContent||'',
+                challengeText:document.getElementById('challenge')?.innerText||''
+              })).catch(e=>({evaluateError:String(e)}));
+              console.log(`TURNSTILE_STATE=${JSON.stringify({...state,token:state.token?'[present]':''})}`);
+            }
+            const parentState=await page.evaluate(()=>({
+              challengeStatus:document.getElementById('challengeStatus')?.textContent||'',
+              loginDisabled:document.getElementById('loginBtn')?.disabled,
+              iframeSrc:document.getElementById('adminTurnstileFrame')?.src||''
+            }));
+            console.log(`PARENT_STATE=${JSON.stringify(parentState)}`);
+          } catch(error){
+            console.log(`PROBE_ERROR=${error?.stack||error}`);
+          } finally {
+            console.log('=== BROWSER CONSOLE ===');
+            for(const line of consoleLines) console.log(line);
+            console.log('=== REQUEST FAILURES ===');
+            for(const line of requestFailures) console.log(line);
+            await page.screenshot({path:'admin-live-auth-probe.png',fullPage:true}).catch(()=>{});
+            await browser.close();
+          }
+          EOF
+          node "$RUNNER_TEMP/probe.mjs" | tee "$RUNNER_TEMP/probe.log"
+          if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Turnstile configuration failure detected on the live custom domain.'
+            exit 1
+          fi
+          if grep -Eq 'TURNSTILE_FRAME=missing|ADMIN_HTTP=0|PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Live Admin auth bootstrap failed before challenge validation.'
+            exit 1
+          fi
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-live-auth-probe
+          path: |
+            admin-live-auth-probe.png
+            ${{ runner.temp }}/probe.log
+          if-no-files-found: warn
