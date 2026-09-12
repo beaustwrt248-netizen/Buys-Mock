@@ -18,7 +18,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Keeps the native catalogue aligned with the canonical Supabase catalogue revision row.
+ * Keeps the native catalogue aligned with the canonical Supabase catalogue revision table.
  * Realtime is the primary path; a 60-second reconciliation loop only covers reconnect gaps.
  */
 object CatalogueRealtimeSync {
@@ -66,7 +66,6 @@ object CatalogueRealtimeSync {
                     val channel = realtimeClient.channel("morley-catalogue-sync-v1")
                     val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                         table = "catalog_sync_state"
-                        filter = "id=eq.1"
                     }
                     val collector = changes.onEach {
                         runCatching { LiveDevicePricing.refresh(appContext) }
