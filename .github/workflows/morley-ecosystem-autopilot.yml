@@ -120,7 +120,15 @@ jobs:
           ISSUE="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "${TITLE} in:title" --json number,title --jq '.[0].number // empty')"
           if [ -n "$ISSUE" ]; then
             gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "✅ Recovery detected. The latest monitored **${WORKFLOW_NAME}** run succeeded: ${RUN_URL}"
-            gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
+            if ! gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed; then
+              ISSUE_STATE="$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json state --jq '.state' 2>/dev/null || true)"
+              if [ "$ISSUE_STATE" = "CLOSED" ]; then
+                echo "Incident #$ISSUE is already closed despite gh close returning an error."
+              else
+                echo "::error::Failed to close recovered incident #$ISSUE; observed state: ${ISSUE_STATE:-unknown}."
+                exit 1
+              fi
+            fi
           else
             echo "No open incident exists for ${WORKFLOW_NAME}."
           fi
