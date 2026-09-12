@@ -11,6 +11,8 @@ const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',i
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
 const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
 const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
+const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
+const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
   assert.match(source,/id:'morley-buys'/);
@@ -73,4 +75,13 @@ test('Admin desktop authority loads last and home boot is bounded',()=>{
   assert.doesNotMatch(adminHome,/setInterval\(/);
   assert.doesNotMatch(adminHome,/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/);
   assert.doesNotThrow(()=>new Function(adminHome));
+});
+
+test('Admin app download invite is emailed through the existing audited mail service',()=>{
+  assert.match(adminDownloadInvites,/textContent='Email app download invite'/);
+  assert.match(adminDownloadInvites,/action:'send_download_invite'/);
+  assert.match(adminDownloadInvites,/Invitation emailed to/);
+  assert.match(morleyEmail,/action === "send_download_invite"/);
+  assert.match(morleyEmail,/app_download_invite_sent/);
+  assert.match(morleyEmail,/Download \/ Open invitation/);
 });
