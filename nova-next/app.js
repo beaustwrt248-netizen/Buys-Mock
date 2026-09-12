@@ -79,6 +79,14 @@ function showOnly(view) {
   for (const item of [splashView, loginView, shell, allSetView]) item.classList.toggle('is-hidden', item !== view);
 }
 
+function ensureIsolatedManifest() {
+  if (document.head.querySelector('link[rel="manifest"]')) return;
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
+
 function registerIsolatedServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   const base = new URL('./', window.location.href);
@@ -89,6 +97,7 @@ function registerIsolatedServiceWorker() {
 }
 
 function bootstrap() {
+  ensureIsolatedManifest();
   buildNavigation();
   setRoute('home', { closeDrawer: false });
   registerIsolatedServiceWorker();
