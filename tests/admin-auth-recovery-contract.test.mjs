@@ -34,7 +34,6 @@ test('Admin browser login has direct and isolated fallback Turnstile recovery on
 
 test('logged-out Admin browser keeps workspace code off the authentication critical path', () => {
   const workspaceScripts = [
-    'user-management-policy.js',
     'release-control.js',
     'targeted-notifications.js',
     'invites.js',
@@ -46,6 +45,7 @@ test('logged-out Admin browser keeps workspace code off the authentication criti
     'admin-v2.js',
     'admin-home.js'
   ];
+  assert.match(adminIndex, /user-management-policy\.js\?v=2/);
   assert.match(adminIndex, /workspace-loader\.js\?v=1/);
   for (const script of workspaceScripts) {
     assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute before Admin authorization`);
