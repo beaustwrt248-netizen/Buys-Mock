@@ -43,6 +43,15 @@ class MorleyRepairDecisionActivity : ComponentActivity() {
         }
         val initialBuyCost = intent.getStringExtra(EXTRA_BUY_COST).orEmpty()
         val asIsResale = intent.getStringExtra(EXTRA_AS_IS_RESALE).orEmpty()
+        DeviceAssessmentStore.checkpointAsync(
+            applicationContext,
+            assessmentId,
+            "repair_decision_ready",
+            JSONObject().apply {
+                put("commercialAuthority", "advisory")
+                put("rulesSource", "MorleyAssessmentCore")
+            }
+        )
 
         setContent {
             MaterialTheme {
