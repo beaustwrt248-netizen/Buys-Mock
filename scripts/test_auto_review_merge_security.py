@@ -37,14 +37,35 @@ if '"$CRITICAL"' not in '\n'.join(run_lines):
 if '--body-file "$RUNNER_TEMP/critical-stop.md"' not in '\n'.join(run_lines):
     errors.append('critical PR comment is not sent through a body file')
 
+# Keep the workflow least-privileged. The repository's Actions token cannot invoke
+# mergePullRequest with these permissions, so auto-merge arming must be best-effort
+# rather than turning a successful routine review into a failed workflow incident.
 if not re.search(r'(?m)^\s*pull-requests:\s*write\s*$', text):
     errors.append('pull-requests permission changed from write')
 if not re.search(r'(?m)^\s*contents:\s*read\s*$', text):
     errors.append('contents permission changed from read')
+if re.search(r'(?m)^\s*contents:\s*write\s*$', text):
+    errors.append('workflow must not expand contents permission to write just to arm auto-merge')
 if re.search(r'uses:\s*actions/checkout', text):
     errors.append('privileged pull_request_target workflow must not check out PR code')
+
+auto_merge_start = None
+for index, line in enumerate(lines):
+    if line.strip() == '- name: Enable auto-merge for routine changes only':
+        auto_merge_start = index
+        break
+if auto_merge_start is None:
+    errors.append('auto-merge arming step is missing')
+else:
+    auto_merge_step = []
+    for line in lines[auto_merge_start + 1:]:
+        if line.startswith('      - name:'):
+            break
+        auto_merge_step.append(line)
+    if not any(line.strip() == 'continue-on-error: true' for line in auto_merge_step):
+        errors.append('auto-merge arming must be best-effort when the least-privilege token cannot merge')
 
 if errors:
     raise SystemExit('auto-review workflow security regression:\n- ' + '\n- '.join(errors))
 
-print('auto-review workflow shell-injection regression checks passed')
+print('auto-review workflow shell-injection and least-privilege merge checks passed')
