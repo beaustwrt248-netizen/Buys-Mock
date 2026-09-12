@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -123,7 +125,11 @@ private fun RepairDecisionScreen(
         }
     ) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(14.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
@@ -142,8 +148,9 @@ private fun RepairDecisionScreen(
                 onPartsRecoveryChange = { partsRecovery = moneyInput(it) },
                 repairDays = repairDays,
                 onRepairDaysChange = { repairDays = it.filter(Char::isDigit).take(3) },
-                onSelect = { staffDecision = it },
+                onSelect = { if (!saving) staffDecision = it },
                 onConfirm = {
+                    if (saving) return@MorleyRepairDecisionPanel
                     val selected = staffDecision ?: return@MorleyRepairDecisionPanel
                     saving = true
                     val metadata = JSONObject().apply {
