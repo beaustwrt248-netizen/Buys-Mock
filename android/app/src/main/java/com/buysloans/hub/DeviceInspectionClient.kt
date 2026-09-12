@@ -118,9 +118,11 @@ data class LivePricingResult(
 
 object DeviceInspectionClient {
     const val REQUIRED_PHOTOS = 2
-    private const val MAX_SINGLE_ENCODED_BYTES = 2_250_000
-    private const val LONG_EDGE = 2560
-    private const val FALLBACK_LONG_EDGE = 2048
+    private const val MAX_SINGLE_ENCODED_BYTES = 1_250_000
+    private const val LONG_EDGE = 1920
+    private const val FALLBACK_LONG_EDGE = 1600
+    private const val DEFAULT_READ_TIMEOUT_MS = 45_000
+    private const val INSPECTION_READ_TIMEOUT_MS = 75_000
 
     suspend fun inspect(context: Context, frontPhoto: File, backPhoto: File): DeviceInspection =
         inspect(
@@ -152,7 +154,8 @@ object DeviceInspectionClient {
                 "device-inspection",
                 JSONObject()
                     .put("image_data_urls", images)
-                    .put("capture_order", order)
+                    .put("capture_order", order),
+                readTimeoutMs = INSPECTION_READ_TIMEOUT_MS
             )
             parseInspection(response)
         }
@@ -283,12 +286,17 @@ object DeviceInspectionClient {
         return best
     }
 
-    private fun edge(token: String, function: String, body: JSONObject): JSONObject {
+    private fun edge(
+        token: String,
+        function: String,
+        body: JSONObject,
+        readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS
+    ): JSONObject {
         val connection = URL("${BuildConfig.SUPABASE_URL}/functions/v1/$function").openConnection() as HttpURLConnection
         return try {
             connection.requestMethod = "POST"
             connection.connectTimeout = 15_000
-            connection.readTimeout = 45_000
+            connection.readTimeout = readTimeoutMs
             connection.doOutput = true
             connection.useCaches = false
             connection.setRequestProperty("Content-Type", "application/json")
