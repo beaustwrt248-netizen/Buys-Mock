@@ -4,19 +4,23 @@ import fs from 'node:fs';
 
 const workflow = fs.readFileSync(new URL('../.github/workflows/auto-review-merge.yml', import.meta.url), 'utf8');
 
-test('guarded review ignores negative or sanitizer-only service-role references but keeps the critical pattern', () => {
-  assert.match(workflow, /service\[_-\]\?role/);
-  assert.match(workflow, /safe_security_reference/);
-  assert.match(workflow, /tests\//);
-  assert.match(workflow, /docs\//);
-  assert.match(workflow, /assertFalse|doesNotMatch/);
-  assert.match(workflow, /blockedMetadataKeys|SECRET_KEY_RE/);
-  assert.match(workflow, /if safe_security_reference\(name, line\):\s*continue/);
+test('service-role documentation is exempted narrowly without weakening other critical patterns', () => {
+  assert.match(workflow, /service_role_pattern=re\.compile\(r'\\bservice\[_-\]\?role\\b'/);
+  assert.match(workflow, /document_path=re\.compile\(r'\(\^\|\/\)\(docs\?\/\|\[\^\/\]\+\\\.md\$\)'/);
+  assert.match(workflow, /if service_role_pattern\.search\(file_added\) and not document_path\.search\(name\):/);
+  assert.doesNotMatch(workflow, /def safe_security_reference/);
 });
 
-test('guarded review evaluates added lines per file so safe references cannot hide real critical changes', () => {
-  assert.match(workflow, /for file in files:/);
-  assert.match(workflow, /name=file\.get\('filename',''\)/);
-  assert.match(workflow, /for line in \(file\.get\('patch'\) or ''\)\.splitlines\(\):/);
-  assert.match(workflow, /critical\.append\(f'diff:\{pattern\}'\)/);
+test('non-service-role critical patterns remain global across documentation and tests', () => {
+  assert.match(workflow, /for pattern in critical_added:/);
+  assert.match(workflow, /re\.search\(pattern, added, re\.I\|re\.M\)/);
+  assert.match(workflow, /disable\\s\+row\\s\+level\\s\+security/);
+  assert.match(workflow, /persist-credentials/);
+});
+
+test('classifier keeps added text associated with each file for the service-role exception', () => {
+  assert.match(workflow, /added_by_file=\{\}/);
+  assert.match(workflow, /for f in files:/);
+  assert.match(workflow, /added_by_file\[name\]=/);
+  assert.match(workflow, /for name, file_added in added_by_file\.items\(\):/);
 });
