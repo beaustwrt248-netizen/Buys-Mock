@@ -5,6 +5,7 @@ import test from 'node:test';
 const workspaceActivity = fs.readFileSync('android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', 'utf8');
 const nativeDashboard = fs.readFileSync('android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', 'utf8');
 const loginActivity = fs.readFileSync('android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', 'utf8');
+const captchaChallenge = fs.readFileSync('android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', 'utf8');
 const gateActivity = fs.readFileSync('android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateGateActivity.kt', 'utf8');
 const manifest = fs.readFileSync('android/adminapp/src/main/AndroidManifest.xml', 'utf8');
 
@@ -16,10 +17,11 @@ test('Admin Android credential entry is native instead of HTML WebView input', (
   assert.doesNotMatch(workspaceActivity, /MotionEvent|setOnTouchListener|requestFocusFromTouch/);
 });
 
-test('Admin native login uses the one dedicated mandatory Turnstile WebView', () => {
-  assert.match(loginActivity, /ADMIN_TURNSTILE_PAGE\s*=\s*"https:\/\/buyshub\.me\/admin\/turnstile\.html"/);
-  assert.equal((loginActivity.match(/addJavascriptInterface\(/g) || []).length, 1);
-  assert.match(loginActivity, /addJavascriptInterface\([\s\S]*?"AndroidBridge"/);
+test('Admin native login uses one dedicated mandatory Turnstile WebView', () => {
+  assert.match(loginActivity, /CaptchaChallenge\(/);
+  assert.match(captchaChallenge, /TURNSTILE_URL\s*=\s*"https:\/\/buyshub\.me\/admin\/turnstile\.html"/);
+  assert.equal((captchaChallenge.match(/addJavascriptInterface\(/g) || []).length, 1);
+  assert.match(captchaChallenge, /addJavascriptInterface\([\s\S]*?"AndroidBridge"/);
   assert.match(loginActivity, /isAdminLoginReady\(email, password, captchaToken, busy\)/);
   assert.match(loginActivity, /AdminApi\.signIn\(email, password, token\)/);
 });
