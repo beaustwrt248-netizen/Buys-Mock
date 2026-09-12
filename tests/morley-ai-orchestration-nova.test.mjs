@@ -83,6 +83,13 @@ test('customer assessment summary keeps unavailable condition scores unverified 
   }
 });
 
+test('customer assessment summary preserves valid numeric scores and clamps out-of-range values', () => {
+  const core = loadCore();
+  assert.equal(core.buildCustomerAssessmentSummary({ conditionScore: '86' }).conditionScore, 86);
+  assert.equal(core.buildCustomerAssessmentSummary({ conditionScore: 120 }).conditionScore, 100);
+  assert.equal(core.buildCustomerAssessmentSummary({ conditionScore: -5 }).conditionScore, 0);
+});
+
 test('Nova planner maps assessment questions to read-only or advisory tools', () => {
   const core = loadCore();
   const buy = core.planNovaAssessmentCommand('What should I buy today?');
