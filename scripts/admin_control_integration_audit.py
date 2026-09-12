@@ -38,6 +38,7 @@ invites = read("admin/invites.js")
 audit_triage = read("admin/audit-triage.js")
 admin_activity = read("android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt")
 admin_login = read("android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt")
+captcha_challenge = read("android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt")
 admin_session_store = read("android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt")
 admin_dashboard = read("android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt")
 admin_api = read("android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt")
@@ -81,7 +82,7 @@ require("admin_audit_log" in audit_triage or "admin_audit_log" in admin_app, "Au
 require("redeem-app-invite" in invites or "app_invites" in invites, "Invite governance wiring is incomplete")
 require("target_installation_id" in targeted_notifications or "notifTarget" in targeted_notifications, "Targeted notification wiring is incomplete")
 
-# Android Admin is now a native authenticated client. The browser Admin is not its workspace,
+# Android Admin is a native authenticated client. The browser Admin is not its workspace,
 # session store, logout route or navigation fallback.
 require("AdminSessionStore.current()" in admin_activity, "Android Admin does not read the native session owner")
 require("AdminSessionStore.hasAuthorizedSession()" in admin_activity, "Android Admin does not verify the native session before workspace entry")
@@ -105,11 +106,16 @@ navigation_index = admin_login.find("Intent(this, AdminActivity::class.java)")
 require(store_index >= 0 and navigation_index > store_index, "Native Admin session must be installed before workspace navigation")
 require("putExtra(AdminActivity.EXTRA_ACCESS_TOKEN" not in admin_login, "Admin access token is still transferred through an Intent")
 require("putExtra(AdminActivity.EXTRA_REFRESH_TOKEN" not in admin_login, "Admin refresh token is still transferred through an Intent")
-require(admin_login.count("addJavascriptInterface(") == 1, "Admin Android must have exactly one JavaScript bridge, scoped to Turnstile login")
-require('"AndroidBridge"' in admin_login, "Admin Turnstile bridge identity is missing")
-require("domStorageEnabled = false" in admin_login, "Admin Turnstile WebView must not enable DOM storage")
-require("allowFileAccess = false" in admin_login, "Admin Turnstile WebView must disable file access")
-require("allowContentAccess = false" in admin_login, "Admin Turnstile WebView must disable content access")
+require("CaptchaChallenge(" in admin_login, "Native Admin login is not using the scoped Turnstile component")
+
+require(captcha_challenge.count("addJavascriptInterface(") == 1, "Admin Android must have exactly one Turnstile JavaScript bridge")
+require('"AndroidBridge"' in captcha_challenge, "Admin Turnstile bridge identity is missing")
+require("domStorageEnabled = false" in captcha_challenge, "Admin Turnstile WebView must not enable DOM storage")
+require("allowFileAccess = false" in captcha_challenge, "Admin Turnstile WebView must disable file access")
+require("allowContentAccess = false" in captcha_challenge, "Admin Turnstile WebView must disable content access")
+require("databaseEnabled = false" in captcha_challenge, "Admin Turnstile WebView must disable database storage")
+require("MIXED_CONTENT_NEVER_ALLOW" in captcha_challenge, "Admin Turnstile WebView must forbid mixed content")
+require("addJavascriptInterface" not in admin_activity and "addJavascriptInterface" not in admin_dashboard, "Privileged native Admin workspace must not own a JavaScript bridge")
 
 require("private var active: AdminSession?" in admin_session_store, "Native Admin session store is missing its process-scoped session")
 require("fun clear()" in admin_session_store, "Native Admin session store cannot clear sign-in state")
