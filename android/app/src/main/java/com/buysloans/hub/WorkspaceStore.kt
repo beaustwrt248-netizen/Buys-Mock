@@ -105,11 +105,28 @@ object WorkspaceStore {
             )
             error("Repair-or-Buy must be confirmed before adding stock")
         }
+        if(lensAssessmentId!=null){
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "stock_prepared",
+                JSONObject().apply{
+                    put("commercialAuthority","staff_confirmed")
+                    put("quantity",quantity)
+                }
+            )
+        }
 
         val items=inventory(context).toMutableList()
         items.add(0,StockItem(UUID.randomUUID().toString(),name.trim(),barcode.trim(),cost.coerceAtLeast(0.0),resale.coerceAtLeast(0.0),quantity,System.currentTimeMillis()))
         saveInventory(context,items)
         if(lensAssessmentId!=null){
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "completed",
+                JSONObject().apply{put("stockCreated",true)}
+            )
             MorleyRepairDecisionConfirmationStore.clear(context,lensAssessmentId)
             DeviceLensScanSession.finishLocalSession(context.applicationContext)
         }
