@@ -9,4 +9,5 @@ if(home.includes('setInterval('))throw new Error('Admin home boot must not poll 
 if(/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/.test(home))throw new Error('Admin home must not attach a broad subtree/class observer to the entire workspace');
 if(!mobileParity.includes("if(target.dataset.evidenceSignature==='empty')return;"))throw new Error('Admin inventory empty-state renderer must be idempotent so its workspace observer cannot self-trigger forever');
 if(!home.includes("mobile-system-parity.js?v=3"))throw new Error('Admin home must bump the mobile-system-parity cache key so browsers receive the render-loop fix');
+if(!workspace.includes("admin-home.js?v=8"))throw new Error('Admin workspace must bump the admin-home cache key so browsers receive the corrected runtime loader');
 console.log('Admin desktop stability contract passed');
