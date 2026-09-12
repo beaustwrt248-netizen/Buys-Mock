@@ -12,9 +12,10 @@ function normalizeResult(result) {
   };
 }
 
-export function createNovaApi({ getAccessToken, transport }) {
+export function createNovaApi({ getAccessToken, transport, requestTimeoutMs = 15000 }) {
   if (typeof getAccessToken !== 'function') throw new TypeError('getAccessToken must be a function');
   if (typeof transport !== 'function') throw new TypeError('transport must be a function');
+  if (!Number.isFinite(requestTimeoutMs) || requestTimeoutMs <= 0) throw new TypeError('requestTimeoutMs must be a positive number');
 
   async function run(action, payload = {}) {
     const policy = classifyAction(action);
@@ -56,21 +57,43 @@ export function createNovaApi({ getAccessToken, transport }) {
       };
     }
 
+    const controller = new AbortController();
+    let timeoutId;
     try {
-      const response = await transport({
-        action,
-        payload,
-        headers: { Authorization: `Bearer ${token}` }
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          const error = new Error('Request timed out.');
+          error.code = 'REQUEST_TIMEOUT';
+          reject(error);
+        }, requestTimeoutMs);
       });
+      const response = await Promise.race([
+        transport({
+          action,
+          payload,
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        }),
+        timeout
+      ]);
       return { ...normalizeResult(response), policy };
     } catch (error) {
+      const timedOut = error?.code === 'REQUEST_TIMEOUT';
       return {
         ok: false,
         data: null,
         evidence: [],
-        error: { code: 'TRANSPORT_ERROR', message: error instanceof Error ? error.message : 'Request failed.' },
+        error: {
+          code: timedOut ? 'REQUEST_TIMEOUT' : 'TRANSPORT_ERROR',
+          message: timedOut
+            ? 'Request timed out.'
+            : (error instanceof Error ? error.message : 'Request failed.')
+        },
         policy
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
