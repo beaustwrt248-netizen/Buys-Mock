@@ -1,5 +1,6 @@
 package com.buysloans.admin
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,6 +9,7 @@ import java.io.File
 class AdminNativeWorkspaceContractTest {
     private val adminActivitySource = File("src/main/java/com/buysloans/admin/AdminActivity.kt").readText()
     private val loginSource = File("src/main/java/com/buysloans/admin/AdminLoginActivity.kt").readText()
+    private val captchaSource = File("src/main/java/com/buysloans/admin/CaptchaChallenge.kt").readText()
 
     @Test
     fun authenticatedWorkspaceIsComposeOnly() {
@@ -24,6 +26,7 @@ class AdminNativeWorkspaceContractTest {
             assertFalse("AdminActivity must not contain $forbidden", adminActivitySource.contains(forbidden))
         }
         assertTrue(adminActivitySource.contains("AdminSessionStore.current()"))
+        assertTrue(adminActivitySource.contains("AdminNativeDashboard"))
     }
 
     @Test
@@ -35,9 +38,12 @@ class AdminNativeWorkspaceContractTest {
     }
 
     @Test
-    fun onlyLoginOwnsTheTurnstileBridge() {
-        assertTrue(loginSource.contains("addJavascriptInterface"))
-        assertTrue(loginSource.contains("\"AndroidBridge\""))
+    fun onlyTurnstileChallengeOwnsJavascriptBridge() {
+        assertFalse(loginSource.contains("addJavascriptInterface"))
+        assertTrue(captchaSource.contains("addJavascriptInterface"))
+        assertEquals(1, Regex("addJavascriptInterface\\(").findAll(captchaSource).count())
+        assertTrue(captchaSource.contains("\"AndroidBridge\""))
+        assertTrue(captchaSource.contains("domStorageEnabled = false"))
         assertFalse(adminActivitySource.contains("addJavascriptInterface"))
     }
 }
