@@ -1,0 +1,37 @@
+'use strict';
+const assert=require('node:assert/strict');
+const cp=require('node:child_process');
+const fs=require('node:fs');
+const http=require('node:http');
+const os=require('node:os');
+const path=require('node:path');
+
+const CDP_TIMEOUT=8000;
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function chromeBinary(){for(const name of ['google-chrome','google-chrome-stable','chromium','chromium-browser']){const r=cp.spawnSync('which',[name],{encoding:'utf8'});if(r.status===0&&r.stdout.trim())return r.stdout.trim()}return null}
+function withTimeout(promise,ms,label){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out after ${ms}ms`)),ms);timer.unref?.()})]).finally(()=>clearTimeout(timer))}
+function json(url,options={}){return withTimeout(new Promise((resolve,reject)=>{const u=new URL(url);const req=http.request({hostname:u.hostname,port:u.port,path:u.pathname+u.search,method:options.method||'GET',headers:{Connection:'close'}},res=>{let body='';res.setEncoding('utf8');res.on('data',c=>body+=c);res.on('end',()=>{if((res.statusCode||500)>=400)return reject(new Error(`${res.statusCode} ${url}`));try{resolve(JSON.parse(body))}catch(e){reject(e)}})});req.on('error',reject);req.setTimeout(4000,()=>req.destroy(new Error(`socket timeout ${url}`)));req.end()}),6000,`HTTP ${url}`)}
+async function jsonRetry(url,options={},attempts=8){let last;for(let i=0;i<attempts;i++){try{return await json(url,options)}catch(e){last=e;await sleep(250)}}throw last}
+class Cdp{constructor(url){this.url=url;this.ws=null;this.id=0;this.pending=new Map();this.events=[]}async open(){this.ws=new WebSocket(this.url);await withTimeout(new Promise((resolve,reject)=>{this.ws.addEventListener('open',resolve,{once:true});this.ws.addEventListener('error',reject,{once:true})}),CDP_TIMEOUT,'CDP open');this.ws.addEventListener('message',e=>{const msg=JSON.parse(String(e.data));if(msg.id){const p=this.pending.get(msg.id);if(!p)return;this.pending.delete(msg.id);clearTimeout(p.timer);msg.error?p.reject(new Error(msg.error.message||JSON.stringify(msg.error))):p.resolve(msg.result||{})}else if(msg.method)this.events.push(msg)})}call(method,params={}){const id=++this.id;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`${method} timeout`))},CDP_TIMEOUT);timer.unref?.();this.pending.set(id,{resolve,reject,timer});this.ws.send(JSON.stringify({id,method,params}))})}async close(){try{this.ws?.close()}catch{}}}
+function startChrome(chrome){const profile=fs.mkdtempSync(path.join(os.tmpdir(),'morley-admin-live-'));const proc=cp.spawn(chrome,['--remote-debugging-port=0','--remote-debugging-address=127.0.0.1','--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--no-default-browser-check',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});let stderr='';proc.stderr.on('data',d=>stderr+=String(d));return {profile,proc,getStderr:()=>stderr}}
+async function waitPort(started){const begin=Date.now();while(Date.now()-begin<15000){const m=started.getStderr().match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost):(\d+)\//);if(m)return Number(m[1]);if(started.proc.exitCode!==null)throw new Error(`Chrome exited early: ${started.getStderr().slice(-1500)}`);await sleep(100)}throw new Error(`DevTools startup timeout: ${started.getStderr().slice(-1500)}`)}
+async function stop(started){if(started.proc.exitCode===null){started.proc.kill('SIGTERM');await sleep(400);if(started.proc.exitCode===null)started.proc.kill('SIGKILL')}try{fs.rmSync(started.profile,{recursive:true,force:true})}catch{}}
+async function evaluate(cdp){const r=await cdp.call('Runtime.evaluate',{returnByValue:true,awaitPromise:true,expression:`(()=>{const s=document.getElementById('challengeStatus');const frame=document.getElementById('adminTurnstileFrame');const widget=document.getElementById('adminTurnstileWidget');const fallback=document.getElementById('adminTurnstileFallbackFrame');const api=document.getElementById('morleyAdminTurnstileApi');return {readyState:document.readyState,title:document.title,status:s?.textContent||null,statusColor:s?getComputedStyle(s).color:null,legacyFrame:!!frame,widget:!!widget,fallback:!!fallback,apiSrc:api?.src||null,turnstileType:typeof window.turnstile,supabaseType:typeof window.supabase,sbType:typeof window.sb,loginSecurityScripts:[...document.scripts].map(x=>x.src).filter(x=>x.includes('login-security')),cloudflareScripts:[...document.scripts].map(x=>x.src).filter(x=>x.includes('challenges.cloudflare.com')),bodyText:(document.body?.innerText||'').slice(0,1200)}})()`});return r.result.value}
+async function run(){
+  assert.equal(typeof WebSocket,'function','Node WebSocket support required');
+  const chrome=chromeBinary();assert.ok(chrome,'Chrome/Chromium required');
+  const started=startChrome(chrome);let cdp;
+  try{
+    const port=await waitPort(started);const target=await jsonRetry(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'});cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();
+    await cdp.call('Page.enable');await cdp.call('Runtime.enable');await cdp.call('Network.enable');await cdp.call('Log.enable').catch(()=>{});
+    const url=`https://buyshub.me/admin/?morley_runtime_diag=${Date.now()}`;await cdp.call('Page.navigate',{url});
+    const samples=[];for(let i=0;i<32;i++){await sleep(500);try{samples.push(await evaluate(cdp))}catch(e){samples.push({evalError:e.message})}const last=samples.at(-1);if(last&&(last.status!=='Security check loading…'||last.widget||last.fallback||!last.legacyFrame))break}
+    const state=await evaluate(cdp);
+    const interesting=cdp.events.filter(e=>['Runtime.exceptionThrown','Runtime.consoleAPICalled','Network.loadingFailed','Network.responseReceived','Log.entryAdded'].includes(e.method)).map(e=>{if(e.method==='Network.responseReceived'){const u=e.params?.response?.url||'';if(!/login-security|turnstile|cloudflare|supabase|jsdelivr/i.test(u))return null;return {method:e.method,url:u,status:e.params.response.status,mime:e.params.response.mimeType,fromDiskCache:e.params.response.fromDiskCache,fromServiceWorker:e.params.response.fromServiceWorker}}if(e.method==='Network.loadingFailed')return {method:e.method,url:e.params?.requestId,error:e.params?.errorText,blockedReason:e.params?.blockedReason,canceled:e.params?.canceled};if(e.method==='Runtime.exceptionThrown')return {method:e.method,text:e.params?.exceptionDetails?.text,description:e.params?.exceptionDetails?.exception?.description,url:e.params?.exceptionDetails?.url,line:e.params?.exceptionDetails?.lineNumber,column:e.params?.exceptionDetails?.columnNumber};if(e.method==='Runtime.consoleAPICalled')return {method:e.method,type:e.params?.type,args:(e.params?.args||[]).map(a=>a.value||a.description).slice(0,8)};return {method:e.method,entry:e.params?.entry}}).filter(Boolean);
+    console.log(JSON.stringify({url,state,samples,interesting,chromeStderr:started.getStderr().slice(-2500)},null,2));
+    assert.ok(state.loginSecurityScripts.some(x=>x.includes('login-security.js?v=10')),'live page did not load v10 auth controller tag');
+    assert.ok(!state.legacyFrame,'auth controller did not replace legacy frame');
+    assert.notEqual(state.status,'Security check loading…','auth controller remained in initial loading state');
+  }finally{await cdp?.close();await stop(started)}
+}
+run().catch(e=>{console.error(e.stack||e);process.exitCode=1});
