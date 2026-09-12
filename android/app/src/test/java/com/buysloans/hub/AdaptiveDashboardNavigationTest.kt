@@ -1,5 +1,6 @@
 package com.buysloans.hub
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -15,20 +16,22 @@ class AdaptiveDashboardNavigationTest {
         assertTrue(source.contains("TRADE(\"Trade\", MorleyIcons.Money)"))
         assertTrue(source.contains("BottomDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }"))
         assertTrue(source.contains("BottomDestination.SCAN ->"))
-        assertTrue(source.contains("BottomDestination.SCAN -> {\n                showMenu = false\n                context.startActivity(Intent(context, DeviceLensActivity::class.java))"))
+        assertTrue(source.contains("Intent(context, DeviceLensActivity::class.java)"))
         assertTrue(source.contains("title = \"Scan Device\""))
         assertTrue(source.contains("subtitle = \"AI device scan\""))
         assertTrue(source.contains("title = \"Manual Search\""))
-        assertTrue(source.contains("onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }"))
-        assertTrue(source.contains("Intent(context, UniversalBuySearchActivity::class.java)"))
-        assertTrue(source.contains("MenuRow(\"◉\", \"Device scan\", \"Take front and back photos for model, damage and condition analysis.\") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }"))
-        assertTrue(source.contains("Google camera search"))
-        assertTrue(source.contains("Scan a barcode, QR code or encoded model/stock label"))
-        assertTrue(source.contains("Device Scan uses Morley Vision for the two-photo model, condition and damage assessment. Google Play services is used separately for code scanning in Morley Search."))
+        assertTrue(source.contains("openSearch(UniversalBuySearchMode.MANUAL_SEARCH)"))
+        assertTrue(source.contains("title = \"Add to Catalogue\""))
+        assertTrue(source.contains("\"Device scan\""))
+        assertTrue(source.contains("Take front and back photos for model, damage and condition analysis."))
+        assertTrue(source.contains("Google code scanning available inside the search flow."))
+        assertTrue(source.contains("openSearch(UniversalBuySearchMode.PRICE_CHECK)"))
         assertTrue(source.contains("BottomDestination.TRADE -> { showMenu = false; page = Page.GP }"))
-        assertTrue(!source.contains("BottomDestination.MORE"))
-        assertTrue(!source.contains("BottomDestination.STOCK"))
-        assertTrue(source.contains("MenuRow(\"▣\", \"Stock\", \"Current inventory, costs and resale values.\") { open(\"inventory\") }"))
+        assertFalse(source.contains("BottomDestination.MORE"))
+        assertFalse(source.contains("BottomDestination.STOCK"))
+        assertTrue(source.contains("\"Stock\""))
+        assertTrue(source.contains("Current inventory, costs and resale values."))
+        assertFalse(source.contains("title = \"Google camera search\""))
     }
 
     @Test

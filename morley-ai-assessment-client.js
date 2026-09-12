@@ -2,14 +2,21 @@
   'use strict';
   const VALID_DIAGNOSTIC_STATUSES=new Set(['pass','fail','unknown','not_tested']);
   const VALID_SEVERITIES=new Set(['low','medium','high','critical']);
+  const VALID_CHECKPOINTS=new Set(['capture_started','front_captured','rear_captured','analysis_started','analysis_failed','review_ready','review_completed','pricing_started','pricing_ready','repair_decision_ready','staff_confirmed','stock_prepared','cancelled','completed']);
+  const REPAIR_DB_RECOMMENDATIONS=Object.freeze({buy_and_repair:'buy_repair',buy_as_is:'buy_as_is',parts_only:'parts_only',review_required:'review'});
   function result(ok,code,data=null,recoverable=true){return Object.freeze({ok,code,data,recoverable})}
   function text(value){return typeof value==='string'?value.trim():''}
   function numberOrNull(value){const n=Number(value);return Number.isFinite(n)?n:null}
   function clamp(value,min,max){const n=numberOrNull(value);return n===null?min:Math.min(max,Math.max(min,n))}
+  function cents(value){const n=numberOrNull(value);return n===null?null:Math.round(Math.max(0,n)*100)}
   function cleanMetadata(input){
     const source=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
-    const blocked=/^(imei|imei\d*|serial|serialnumber|serial_number|rawidentifier|raw_identifier|deviceidentifier|device_identifier)$/i;
+    const blocked=/^(imei|imei\d*|serial|serialnumber|serial_number|rawidentifier|raw_identifier|deviceidentifier|device_identifier|access[_-]?token|refresh[_-]?token|service[_-]?role|password|secret)$/i;
     return Object.fromEntries(Object.entries(source).filter(([key])=>!blocked.test(String(key))));
+  }
+  function cleanInputRefs(input){
+    if(!Array.isArray(input))return[];
+    return input.map(text).filter((value)=>value&&value.length<=200&&!/^\d{14,17}$/.test(value)).slice(0,50);
   }
   async function session(){
     const sb=root.sb;
@@ -24,11 +31,48 @@
     if(text(input.catalogueRef))payload.catalogue_ref=text(input.catalogueRef);
     if(text(input.stockRef))payload.stock_ref=text(input.stockRef);
     if(text(input.resolvedModel))payload.resolved_model=text(input.resolvedModel);
+    if(text(input.source))payload.source=text(input.source);
+    const checkpoint=text(input.checkpoint).toLowerCase();
+    if(checkpoint){if(!VALID_CHECKPOINTS.has(checkpoint))return result(false,'invalid_checkpoint',null,true);payload.checkpoint=checkpoint;payload.last_checkpoint_at=new Date().toISOString()}
     const storage=numberOrNull(input.resolvedStorageGb);if(storage!==null&&storage>=0)payload.resolved_storage_gb=Math.round(storage);
     const confidence=numberOrNull(input.identityConfidence);if(confidence!==null)payload.identity_confidence=clamp(confidence,0,1);
     const {data,error}=await root.sb.from('device_assessments').insert(payload).select('id').single();
     if(error)return result(false,'assessment_create_failed',{message:error.message||'Assessment could not be created.'},true);
     return result(true,'created',{id:data?.id||null},false);
+  }
+  async function checkpointAssessment(assessmentId,input={}){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const id=text(assessmentId);if(!id)return result(false,'assessment_required',null,true);
+    const checkpoint=text(input.checkpoint).toLowerCase();if(!VALID_CHECKPOINTS.has(checkpoint))return result(false,'invalid_checkpoint',null,true);
+    const now=new Date().toISOString();
+    const update={checkpoint,last_checkpoint_at:now,checkpoint_metadata:cleanMetadata(input.metadata)};
+    const errorCode=text(input.errorCode);if(errorCode)update.last_error_code=errorCode;else update.last_error_code=null;
+    if(checkpoint==='cancelled')update.cancelled_at=now;
+    if(checkpoint==='completed')update.completed_at=now;
+    const {error}=await root.sb.from('device_assessments').update(update).eq('id',id);
+    if(error)return result(false,'checkpoint_write_failed',{message:error.message||'Scan checkpoint could not be saved.'},true);
+    return result(true,'checkpoint_saved',{id,checkpoint},false);
+  }
+  async function listScanHistory(input={}){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const requested=Math.floor(numberOrNull(input.limit)??50),limit=Math.min(100,Math.max(1,requested));
+    const query=root.sb.from('device_assessments')
+      .select('id,state,source,checkpoint,resolved_model,resolved_storage_gb,identity_confidence,last_error_code,last_checkpoint_at,cancelled_at,completed_at,created_at,updated_at')
+      .eq('source','device_lens')
+      .order('created_at',{ascending:false})
+      .limit(limit);
+    const {data,error}=await query;
+    if(error)return result(false,'scan_history_read_failed',{message:error.message||'Scan history could not be loaded.'},true);
+    return result(true,'loaded',Array.isArray(data)?data:[],false);
+  }
+  async function getScanHistory(assessmentId){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const id=text(assessmentId);if(!id)return result(false,'assessment_required',null,true);
+    const {data,error}=await root.sb.from('device_assessments')
+      .select('id,state,source,checkpoint,resolved_model,resolved_storage_gb,identity_confidence,last_error_code,last_checkpoint_at,cancelled_at,completed_at,created_at,updated_at')
+      .eq('id',id).single();
+    if(error)return result(false,'scan_history_read_failed',{message:error.message||'Scan could not be loaded.'},true);
+    return result(true,'loaded',data||null,false);
   }
   async function addEvidence(assessmentId,input={}){
     const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
@@ -53,12 +97,103 @@
     const core=root.MorleyAssessmentCore;if(!core?.buildAssessmentProposal)return result(false,'core_unavailable',null,true);
     return result(true,'proposed',core.buildAssessmentProposal(input),false);
   }
+  async function ensurePassport(assessmentId,current){
+    const lookup=await root.sb.from('device_passports').select('id').eq('assessment_id',assessmentId).maybeSingle();
+    if(lookup?.error)return result(false,'passport_lookup_failed',{message:lookup.error.message||'Device Passport could not be loaded.'},true);
+    if(lookup?.data?.id)return result(true,'passport_ready',{id:lookup.data.id},false);
+    const created=await root.sb.from('device_passports').insert({assessment_id:assessmentId,created_by:current.user.id}).select('id').single();
+    if(created?.error)return result(false,'passport_create_failed',{message:created.error.message||'Device Passport could not be created.'},true);
+    if(!created?.data?.id)return result(false,'passport_create_failed',{message:'Device Passport creation did not return an id.'},true);
+    return result(true,'passport_ready',{id:created.data.id},false);
+  }
+  async function persistRepairProposal(assessmentId,input={}){
+    const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
+    const id=text(assessmentId);if(!id)return result(false,'assessment_required',null,true);
+    const core=root.MorleyAssessmentCore;if(!core?.decideRepairStrategy)return result(false,'core_unavailable',null,true);
+    const decision=core.decideRepairStrategy(input);
+    const recommendation=REPAIR_DB_RECOMMENDATIONS[decision?.recommendation];
+    if(!recommendation)return result(false,'repair_recommendation_invalid',null,true);
+
+    const buyCostCents=cents(input.buyCost);
+    const asIsCents=cents(input.resaleAsIs);
+    const repairedResaleCents=cents(input.resaleAfterRepair);
+    const partsRecoveryCents=cents(input.partsRecoveryValue);
+    const repairCostCents=cents(input.repairCost);
+    const selectedMargin=decision.recommendation==='buy_and_repair'?decision.repairedMargin:(decision.recommendation==='parts_only'?decision.partsMargin:decision.asIsMargin);
+    const targetResaleCents=decision.recommendation==='buy_and_repair'?repairedResaleCents:(decision.recommendation==='parts_only'?partsRecoveryCents:asIsCents);
+    const confidence=clamp(input.confidence,0,1);
+    const explanation={
+      reason:text(decision.reason),
+      commercialAuthority:'advisory',
+      requiresStaffConfirmation:true,
+      blockers:Array.isArray(decision.blockers)?Array.from(decision.blockers):[],
+      asIsMargin:decision.asIsMargin,
+      repairedMargin:decision.repairedMargin,
+      partsMargin:decision.partsMargin,
+      partsProcessingCost:numberOrNull(input.partsProcessingCost),
+    };
+    const quotePayload={
+      assessment_id:id,
+      base_market_value_cents:asIsCents,
+      repair_estimate_cents:repairCostCents,
+      target_resale_cents:targetResaleCents,
+      proposed_buy_cents:buyCostCents,
+      expected_margin_cents:selectedMargin===null?null:cents(selectedMargin),
+      confidence,
+      recommendation,
+      explanation,
+      rules_version:text(decision.rulesVersion)||text(core.REPAIR_RULES_VERSION)||'repair-v1',
+      model_version:text(input.modelVersion)||null,
+      created_by:current.user.id,
+    };
+    const quote=await root.sb.from('valuation_quotes').insert(quotePayload).select('id').single();
+    if(quote?.error)return result(false,'repair_quote_write_failed',{message:quote.error.message||'Repair or Buy proposal could not be saved.'},true);
+
+    const auditPayload={
+      assessment_id:id,
+      decision_type:'repair_or_buy',
+      capability:'repair_or_buy',
+      model_version:text(input.modelVersion)||null,
+      rules_version:quotePayload.rules_version,
+      input_refs:cleanInputRefs(input.inputRefs),
+      output:cleanMetadata({...decision,commercialAuthority:'advisory',requiresStaffConfirmation:true,quoteId:quote?.data?.id||null}),
+      confidence,
+      approval_status:'pending',
+      actor_user_id:current.user.id,
+    };
+    const audit=await root.sb.from('ai_decision_audit').insert(auditPayload);
+    if(audit?.error)return result(false,'repair_audit_write_failed',{message:audit.error.message||'Repair or Buy audit could not be saved.'},true);
+
+    const passport=await ensurePassport(id,current);
+    if(!passport.ok)return passport;
+    const eventPayload={
+      passport_id:passport.data.id,
+      assessment_id:id,
+      event_type:'repair',
+      details:{recommendation:decision.recommendation,reason:text(decision.reason),asIsMargin:decision.asIsMargin,repairedMargin:decision.repairedMargin,partsMargin:decision.partsMargin,commercialAuthority:'advisory',requiresStaffConfirmation:true,quoteId:quote?.data?.id||null},
+      actor_user_id:current.user.id,
+      source:'morley_ai_assessment_client',
+      version:quotePayload.rules_version,
+    };
+    const event=await root.sb.from('device_passport_events').insert(eventPayload);
+    if(event?.error)return result(false,'repair_passport_write_failed',{message:event.error.message||'Repair or Buy Device Passport event could not be saved.'},true);
+
+    const assessmentUpdate={
+      state:decision.recommendation==='review_required'?'review_required':'proposed',
+      proposed_buy_price_cents:buyCostCents,
+      valuation_confidence:confidence,
+    };
+    const assessment=await root.sb.from('device_assessments').update(assessmentUpdate).eq('id',id);
+    if(assessment?.error)return result(false,'repair_assessment_update_failed',{message:assessment.error.message||'Assessment proposal state could not be saved.'},true);
+
+    return result(true,'repair_proposal_recorded',{assessmentId:id,quoteId:quote?.data?.id||null,recommendation:decision.recommendation,commercialAuthority:'advisory',requiresStaffConfirmation:true,blockers:Array.isArray(decision.blockers)?Array.from(decision.blockers):[]},false);
+  }
   async function confirmCommercialDecision(assessmentId,input={}){
     const current=await requireSession();if(!current)return result(false,'auth_required',null,true);
     if(input.explicitStaffConfirmation!==true)return result(false,'staff_confirmation_required',null,true);
     const update={};const now=new Date().toISOString();
     if(text(input.finalGrade)){update.final_grade=text(input.finalGrade);update.grade_confirmed_by=current.user.id;update.grade_confirmed_at=now}
-    const cents=numberOrNull(input.finalBuyPriceCents);if(cents!==null&&cents>=0){update.final_buy_price_cents=Math.round(cents);update.buy_price_confirmed_by=current.user.id;update.buy_price_confirmed_at=now}
+    const centsValue=numberOrNull(input.finalBuyPriceCents);if(centsValue!==null&&centsValue>=0){update.final_buy_price_cents=Math.round(centsValue);update.buy_price_confirmed_by=current.user.id;update.buy_price_confirmed_at=now}
     if(text(input.repairDecision)){update.repair_decision=text(input.repairDecision);update.repair_decision_confirmed_by=current.user.id;update.repair_decision_confirmed_at=now}
     if(!Object.keys(update).length)return result(false,'commercial_decision_required',null,true);
     const {error}=await root.sb.from('device_assessments').update(update).eq('id',text(assessmentId));
@@ -71,5 +206,5 @@
     const payload=Object.freeze({model:text(input.model),modelNumber:text(input.modelNumber),storage:text(input.storage),grade:text(input.grade),buyPrice:numberOrNull(input.buyPrice),targetResale:numberOrNull(input.targetResale),repairDecision:text(input.repairDecision),description:text(input.description)});
     return Object.freeze({ok:true,code:'ready_for_staff_publish',payload,recoverable:false,requiresStaffPublish:true});
   }
-  root.MorleyAssessmentClient=Object.freeze({version:'1.0.0',createAssessment,addEvidence,recordDiagnostic,requestProposal,confirmCommercialDecision,prepareStockPayload});
+  root.MorleyAssessmentClient=Object.freeze({version:'1.2.0',createAssessment,checkpointAssessment,listScanHistory,getScanHistory,addEvidence,recordDiagnostic,requestProposal,persistRepairProposal,confirmCommercialDecision,prepareStockPayload});
 })(typeof globalThis!=='undefined'?globalThis:window);

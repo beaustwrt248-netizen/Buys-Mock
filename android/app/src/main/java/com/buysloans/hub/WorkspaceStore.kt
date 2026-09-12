@@ -81,9 +81,41 @@ object WorkspaceStore {
     fun addInventory(context:Context,name:String,barcode:String,cost:Double,resale:Double,quantity:Int){
         require(name.isNotBlank()){ "Enter an item name." }
         require(quantity>0){ "Quantity must be at least 1." }
+
+        val lensAssessmentId=DeviceLensScanSession.current(context.applicationContext)
+        if(lensAssessmentId!=null){
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "staff_confirmed",
+                JSONObject().apply{
+                    put("commercialAuthority","staff_confirmed")
+                    put("confirmationSource","device_lens_repair_gate")
+                }
+            )
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "stock_prepared",
+                JSONObject().apply{
+                    put("commercialAuthority","staff_confirmed")
+                    put("quantity",quantity)
+                }
+            )
+        }
+
         val items=inventory(context).toMutableList()
         items.add(0,StockItem(UUID.randomUUID().toString(),name.trim(),barcode.trim(),cost.coerceAtLeast(0.0),resale.coerceAtLeast(0.0),quantity,System.currentTimeMillis()))
         saveInventory(context,items)
+        if(lensAssessmentId!=null){
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "completed",
+                JSONObject().apply{put("stockCreated",true)}
+            )
+            DeviceLensScanSession.finishLocalSession(context.applicationContext)
+        }
     }
 
     fun addInventoryFromTestBuy(

@@ -28,11 +28,12 @@ class UniversalBuySearchScannerContractTest {
     }
 
     @Test
-    fun scannerEnabledMorleySearchIsReachableFromWorkspaceMenu() {
+    fun scannerEnabledManualSearchIsReachableFromWorkspaceMenu() {
         val dashboard = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
 
-        assertTrue(dashboard.contains("\"Morley search\""))
+        assertTrue(dashboard.contains("\"Manual search\""))
         assertTrue(dashboard.contains("Intent(context, UniversalBuySearchActivity::class.java)"))
-        assertTrue(dashboard.contains("scan a code with the Google camera"))
+        assertTrue(dashboard.contains("openSearch(UniversalBuySearchMode.MANUAL_SEARCH)"))
+        assertTrue(dashboard.contains("Google code scanning available inside the search flow."))
     }
 }

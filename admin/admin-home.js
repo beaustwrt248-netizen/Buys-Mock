@@ -53,3 +53,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 // Ecosystem presentation keeps Admin administrative while exposing Guardian as Nova's protected enforcement boundary.
 (()=>{const load=()=>{if(document.querySelector('#morleyAdminEcosystemPresentation'))return;const s=document.createElement('script');s.id='morleyAdminEcosystemPresentation';s.src='ecosystem-presentation.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+
+// Backups & Restore is a preview-first administrative recovery surface. It never performs generic database rewinds.
+(()=>{const load=()=>{if(document.querySelector('#morleyRestoreCentreLoader'))return;const s=document.createElement('script');s.id='morleyRestoreCentreLoader';s.src='restore-centre.js?v=1';s.async=false;document.body.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();

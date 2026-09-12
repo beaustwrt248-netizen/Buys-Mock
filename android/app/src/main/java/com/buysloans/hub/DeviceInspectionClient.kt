@@ -141,23 +141,62 @@ object DeviceInspectionClient {
         require(captures.size >= REQUIRED_PHOTOS) { "Take at least front and back photos before analysis." }
         require(captures.all { it.file.exists() }) { "One or more inspection photos are missing." }
         require(captures.map { it.angle.lowercase() }.toSet().size == captures.size) { "Each inspection angle must be unique." }
-        val token = AuthManager.validAccessToken(context)
-        return withContext(Dispatchers.IO) {
-            val images = JSONArray()
-            val order = JSONArray()
-            captures.forEach { capture ->
-                images.put(imageDataUrl(capture.file))
-                order.put(MorleyVisionPolicy.clean(capture.angle).ifBlank { "additional" })
+        val assessmentId = DeviceLensScanSession.current(context.applicationContext)
+        if (assessmentId != null) {
+            if (captures.any { it.angle.equals("front", true) }) {
+                DeviceAssessmentStore.checkpointAsync(context, assessmentId, "front_captured")
             }
-            val response = edge(
-                token,
-                "device-inspection",
-                JSONObject()
-                    .put("image_data_urls", images)
-                    .put("capture_order", order),
-                readTimeoutMs = INSPECTION_READ_TIMEOUT_MS
+            if (captures.any { it.angle.equals("back", true) || it.angle.equals("rear", true) }) {
+                DeviceAssessmentStore.checkpointAsync(context, assessmentId, "rear_captured")
+            }
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                assessmentId,
+                "analysis_started",
+                JSONObject().apply { put("captureCount", captures.size) }
             )
-            parseInspection(response)
+        }
+        val token = AuthManager.validAccessToken(context)
+        return try {
+            val inspection = withContext(Dispatchers.IO) {
+                val images = JSONArray()
+                val order = JSONArray()
+                captures.forEach { capture ->
+                    images.put(imageDataUrl(capture.file))
+                    order.put(MorleyVisionPolicy.clean(capture.angle).ifBlank { "additional" })
+                }
+                val response = edge(
+                    token,
+                    "device-inspection",
+                    JSONObject()
+                        .put("image_data_urls", images)
+                        .put("capture_order", order),
+                    readTimeoutMs = INSPECTION_READ_TIMEOUT_MS
+                )
+                parseInspection(response)
+            }
+            if (assessmentId != null) {
+                DeviceAssessmentStore.checkpointAsync(
+                    context,
+                    assessmentId,
+                    "review_ready",
+                    JSONObject().apply {
+                        put("confidence", inspection.confidence)
+                        put("damageFindingCount", inspection.damageRegions.size)
+                    }
+                )
+            }
+            inspection
+        } catch (error: Throwable) {
+            if (assessmentId != null) {
+                DeviceAssessmentStore.checkpointAsync(
+                    context,
+                    assessmentId,
+                    "analysis_failed",
+                    errorCode = error::class.java.simpleName.take(120)
+                )
+            }
+            throw error
         }
     }
 
@@ -172,11 +211,27 @@ object DeviceInspectionClient {
         }
         val query = inspection.identityQuery.trim()
         require(query.isNotBlank()) { "A verified device identity is required before live price research." }
+        val assessmentId = DeviceLensScanSession.current(context.applicationContext)
+        if (assessmentId != null) {
+            DeviceAssessmentStore.checkpointAsync(context, assessmentId, "pricing_started")
+        }
         val token = AuthManager.validAccessToken(context)
-        return withContext(Dispatchers.IO) {
+        val pricing = withContext(Dispatchers.IO) {
             val response = edge(token, "market-search-v2", JSONObject().put("query", query).put("limit", 30))
             parsePricing(response, inspection)
         }
+        if (assessmentId != null) {
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                assessmentId,
+                "pricing_ready",
+                JSONObject().apply {
+                    put("verifiedComparableCount", pricing.verifiedComparableCount)
+                    put("recommendationAvailable", pricing.conditionAdjustedResale != null)
+                }
+            )
+        }
+        return pricing
     }
 
     fun decodeDisplayBitmap(file: File, maxEdge: Int = 1800): Bitmap = decodeOriented(file, maxEdge)
