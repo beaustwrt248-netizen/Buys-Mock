@@ -92,6 +92,12 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
     override fun onActivityDestroyed(activity: Activity) {
-        if (activity is DeviceLensActivity) DeviceLensScanSession.finishLocalSession(activity)
+        if (activity is DeviceLensActivity && activity.isFinishing) {
+            val assessmentId = DeviceLensScanSession.current(this)
+            if (assessmentId != null) {
+                DeviceAssessmentStore.checkpointAsync(this, assessmentId, "cancelled")
+                DeviceLensScanSession.finishLocalSession(this)
+            }
+        }
     }
 }
