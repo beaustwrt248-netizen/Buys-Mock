@@ -94,19 +94,17 @@ test('Admin app download invite is emailed through the existing audited mail ser
   assert.match(morleyEmail,/Download \/ Open invitation/);
 });
 
-test('guarded auto review ignores negative or sanitizer-only service-role references while retaining a critical stop for real usage',()=>{
-  assert.match(autoReviewWorkflow,/service\[_-\]\?role/);
-  assert.match(autoReviewWorkflow,/safe_security_reference/);
-  assert.match(autoReviewWorkflow,/tests\//);
-  assert.match(autoReviewWorkflow,/docs\//);
-  assert.match(autoReviewWorkflow,/assertFalse|doesNotMatch/);
-  assert.match(autoReviewWorkflow,/blockedMetadataKeys|SECRET_KEY_RE/);
-  assert.match(autoReviewWorkflow,/if safe_security_reference\(name, line\):\s*continue/);
+test('guarded auto review exempts only documentation service-role wording',()=>{
+  assert.match(autoReviewWorkflow,/service_role_pattern=re\.compile\(r'\\bservice\[_-\]\?role\\b'/);
+  assert.match(autoReviewWorkflow,/document_path=re\.compile\(r'\(\^\|\/\)\(docs\?\/\|\[\^\/\]\+\\\.md\$\)'/);
+  assert.match(autoReviewWorkflow,/if service_role_pattern\.search\(file_added\) and not document_path\.search\(name\):/);
+  assert.doesNotMatch(autoReviewWorkflow,/def safe_security_reference/);
 });
 
-test('guarded auto review evaluates critical added text per file',()=>{
-  assert.match(autoReviewWorkflow,/for file in files:/);
-  assert.match(autoReviewWorkflow,/name=file\.get\('filename',''\)/);
-  assert.match(autoReviewWorkflow,/for line in \(file\.get\('patch'\) or ''\)\.splitlines\(\):/);
-  assert.match(autoReviewWorkflow,/critical\.append\(f'diff:\{pattern\}'\)/);
+test('guarded auto review keeps every other critical pattern global',()=>{
+  assert.match(autoReviewWorkflow,/added='\\n'\.join\(added_by_file\.values\(\)\)/);
+  assert.match(autoReviewWorkflow,/for pattern in critical_added:/);
+  assert.match(autoReviewWorkflow,/re\.search\(pattern, added, re\.I\|re\.M\)/);
+  assert.match(autoReviewWorkflow,/persist-credentials/);
+  assert.match(autoReviewWorkflow,/disable\\s\+row\\s\+level\\s\+security/);
 });
