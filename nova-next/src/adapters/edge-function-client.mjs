@@ -1,9 +1,18 @@
 const DEFAULT_TIMEOUT_MS = 20000;
 const FUNCTION_NAME = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const DEFAULT_ALLOWED_FUNCTIONS = Object.freeze(['nova-orchestrator']);
 
-export function createEdgeFunctionClient({ baseUrl, publishableKey, getAccessToken, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+export function createEdgeFunctionClient({
+  baseUrl,
+  publishableKey,
+  getAccessToken,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  allowedFunctions = DEFAULT_ALLOWED_FUNCTIONS
+} = {}) {
   const base = String(baseUrl || '').replace(/\/+$/, '');
   const key = String(publishableKey || '');
+  const allowed = new Set(Array.isArray(allowedFunctions) ? allowedFunctions.map(String) : []);
   if (!base || !key) throw new Error('EDGE_CONFIG_INCOMPLETE');
   if (typeof getAccessToken !== 'function') throw new TypeError('EDGE_TOKEN_PROVIDER_REQUIRED');
   if (typeof fetchImpl !== 'function') throw new TypeError('EDGE_FETCH_REQUIRED');
@@ -11,6 +20,7 @@ export function createEdgeFunctionClient({ baseUrl, publishableKey, getAccessTok
   async function invoke(functionName, body = {}) {
     const name = String(functionName || '');
     if (!FUNCTION_NAME.test(name)) throw new Error('INVALID_FUNCTION_NAME');
+    if (!allowed.has(name)) throw new Error('EDGE_FUNCTION_BLOCKED');
     const token = await getAccessToken();
     if (!token) throw new Error('AUTH_REQUIRED');
 
