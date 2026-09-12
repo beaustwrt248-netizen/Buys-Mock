@@ -11,7 +11,6 @@ const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',i
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
 const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
 const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
-const adminWorkspaceTemplate=fs.readFileSync(new URL('../admin/workspace-template.html',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
 
@@ -79,7 +78,7 @@ test('Admin desktop authority loads last and home boot is bounded',()=>{
 });
 
 test('Admin app download invite is emailed through the existing audited mail service',()=>{
-  assert.match(adminWorkspaceTemplate,/Email app download invite/);
+  assert.match(adminDownloadInvites,/textContent='Email app download invite'/);
   assert.match(adminDownloadInvites,/action:'send_download_invite'/);
   assert.match(adminDownloadInvites,/Invitation emailed to/);
   assert.match(morleyEmail,/action === "send_download_invite"/);
