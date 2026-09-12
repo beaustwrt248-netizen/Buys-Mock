@@ -1,4 +1,5 @@
 import { PRIMARY_NAV, DRAWER_NAV, resolveRoute } from './src/navigation.mjs';
+import { createRouter } from './src/router.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -21,8 +22,7 @@ const ROUTE_LABELS = {
 
 const DRAWER_ICONS = ['⌂','◉','⌘','☑','▣','◇','▤','◴','▦','⌁','⚙','?'];
 const BOTTOM_ICONS = { Home: '⌂', Chat: '◉', Tools: '⌘', Tasks: '☑', More: '•••' };
-
-let currentRoute = 'home';
+const router = createRouter({ initialRoute: 'home' });
 
 function labelToRoute(label) {
   return resolveRoute(label);
@@ -53,7 +53,8 @@ function buildNavigation() {
 }
 
 function setRoute(route, { closeDrawer = true } = {}) {
-  currentRoute = resolveRoute(route);
+  router.go(route);
+  const currentRoute = router.current();
   for (const page of pages) page.classList.toggle('is-active', page.dataset.route === currentRoute);
   for (const button of document.querySelectorAll('[data-route-target]')) {
     if (button.closest('.bottom-nav, .drawer-nav')) {
@@ -78,9 +79,19 @@ function showOnly(view) {
   for (const item of [splashView, loginView, shell, allSetView]) item.classList.toggle('is-hidden', item !== view);
 }
 
+function registerIsolatedServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const base = new URL('./', window.location.href);
+  if (!base.pathname.endsWith('/nova-next/')) return;
+  navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(() => {
+    // PWA support is progressive; bootstrap UI must remain usable without SW registration.
+  });
+}
+
 function bootstrap() {
   buildNavigation();
   setRoute('home', { closeDrawer: false });
+  registerIsolatedServiceWorker();
   window.setTimeout(() => showOnly(loginView), 850);
 }
 
