@@ -117,3 +117,61 @@ test('repair engine flags low-margin economics for staff review instead of auto 
   assert.match(result.reason, /margin/i);
   assert.notEqual(result.recommendation, 'auto_reject');
 });
+
+test('repair engine recommends parts-only when verified parts recovery is the strongest route clearing policy', () => {
+  const core = loadCore();
+  const result = core.decideRepairStrategy({
+    commercialInputsVerified: true,
+    buyCost: 100,
+    resaleAsIs: 150,
+    resaleAfterRepair: 220,
+    repairCost: 90,
+    partsRecoveryValue: 260,
+    partsProcessingCost: 20,
+    minMargin: 100,
+  });
+  assert.equal(result.recommendation, 'parts_only');
+  assert.equal(result.partsMargin, 140);
+  assert.match(result.reason, /parts/i);
+});
+
+test('repair engine tie handling is deterministic and avoids unnecessary work', () => {
+  const core = loadCore();
+  const result = core.decideRepairStrategy({
+    commercialInputsVerified: true,
+    buyCost: 100,
+    resaleAsIs: 250,
+    resaleAfterRepair: 300,
+    repairCost: 50,
+    partsRecoveryValue: 250,
+    minMargin: 100,
+  });
+  assert.equal(result.asIsMargin, 150);
+  assert.equal(result.repairedMargin, 150);
+  assert.equal(result.partsMargin, 150);
+  assert.equal(result.recommendation, 'buy_as_is');
+});
+
+test('repair engine requires staff review when required commercial inputs are missing or unverified', () => {
+  const core = loadCore();
+  const missing = core.decideRepairStrategy({
+    commercialInputsVerified: true,
+    buyCost: 100,
+    resaleAsIs: 250,
+    repairCost: 50,
+    minMargin: 100,
+  });
+  assert.equal(missing.recommendation, 'review_required');
+  assert.ok(missing.blockers.includes('commercial_inputs_incomplete'));
+
+  const unverified = core.decideRepairStrategy({
+    commercialInputsVerified: false,
+    buyCost: 100,
+    resaleAsIs: 250,
+    resaleAfterRepair: 300,
+    repairCost: 50,
+    minMargin: 100,
+  });
+  assert.equal(unverified.recommendation, 'review_required');
+  assert.ok(unverified.blockers.includes('commercial_inputs_unverified'));
+});
