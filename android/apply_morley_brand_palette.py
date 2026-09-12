@@ -15,7 +15,7 @@ def apply(path: Path, replacements: dict[str, str]) -> bool:
 
 
 # Presentation-only migration. Keep legacy tokens so repeated preBuild execution
-# converges on the current light, welcoming Morley visual contract.
+# converges on the current light Morley visual contract.
 main_changed = apply(root / 'MainActivity.kt', {
     '0xFFFFD400': '0xFF38D6A3',
     '0xFF2F7CFF': '0xFF38D6A3',
@@ -47,6 +47,10 @@ dashboard_changed = apply(root / 'DashboardActivity.kt', {
     'private val DashBg = Color(0xFF030712)': 'private val DashBg = MorleyBackground',
     'private val DashCard = Color(0xFF0B1528)': 'private val DashCard = MorleySurfaceRaised',
     'private val DashMuted = Color(0xFF8EA6C4)': 'private val DashMuted = MorleyTextSecondary',
+    'private val ReferenceNavy = Color(0xFF032A4F)': 'private val ReferenceNavy = MorleyAccent',
+    'private val ReferenceBlue = Color(0xFF0878F9)': 'private val ReferenceBlue = MorleyAccent',
+    'private val ReferencePaleBlue = Color(0xFFEAF4FF)': 'private val ReferencePaleBlue = MorleyAccentSoft',
+    'private val LensHomeBorder = Color(0xFFD8E2EE)': 'private val LensHomeBorder = MorleyBorder',
     'android.graphics.Color.rgb(3,7,18)': 'android.graphics.Color.rgb(8,11,13)',
     'MaterialTheme(colorScheme = darkColorScheme(primary = DashAccent, secondary = DashAccentStrong, background = DashBg, surface = DashCard))': 'MaterialTheme(colorScheme = MorleyColorScheme)',
     'containerColor=Color(0xFF050B16).copy(alpha=.96f)': 'containerColor=MorleySurfaceSoft.copy(alpha=.98f)',
@@ -62,6 +66,22 @@ dashboard_changed = apply(root / 'DashboardActivity.kt', {
     'Text(value,color=Color(0xFF57E389),fontSize=18.sp,fontWeight=FontWeight.Black)': 'Text(value,color=MorleySuccess,fontSize=18.sp,fontWeight=FontWeight.Black)',
     'Text(icon,fontSize=24.sp);Text(title,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=Color.LightGray,fontSize=13.sp)': 'MorleyIcon(when(icon){"computer"->MorleyIcons.Computer;"console"->MorleyIcons.Console;"money"->MorleyIcons.Money;else->MorleyIcons.Menu},title,MorleyAccent);Text(title,color=MorleyTextPrimary,fontSize=19.sp,fontWeight=FontWeight.Black);Text(subtitle,color=MorleyTextSecondary,fontSize=13.sp)',
 })
+
+# The home dashboard already exposes Google camera scanning through Scan Device and
+# the shared Manual Search flow. Remove the redundant standalone camera card and
+# its duplicate explanation while leaving those scan/search routes untouched.
+dashboard_path = root / 'DashboardActivity.kt'
+dashboard_text = dashboard_path.read_text(encoding='utf-8')
+duplicate_start = '\n        Card(\n            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },\n            colors = CardDefaults.cardColors(containerColor = Color.White),\n            border = BorderStroke(1.dp, LensHomeBorder),\n            shape = RoundedCornerShape(16.dp),'
+duplicate_end = '\n        TextButton(onClick = onGp, modifier = Modifier.fillMaxWidth()) {'
+start_index = dashboard_text.find(duplicate_start)
+end_index = dashboard_text.find(duplicate_end, start_index + 1) if start_index >= 0 else -1
+if start_index >= 0 and end_index > start_index:
+    duplicate_section = dashboard_text[start_index:end_index]
+    if 'Text("Google camera search"' in duplicate_section and 'Scan Device and Google camera search now use the same Google Play services camera scanner' in duplicate_section:
+        dashboard_text = dashboard_text[:start_index] + '\n' + dashboard_text[end_index:]
+        dashboard_path.write_text(dashboard_text, encoding='utf-8')
+        dashboard_changed = True
 
 smart_changed = apply(root / 'SmartWorkspaceSection.kt', {
     'private val SWAccent = Color(0xFF16C7FF)': 'private val SWAccent = MorleyAccent',
@@ -80,7 +100,7 @@ smart_changed = apply(root / 'SmartWorkspaceSection.kt', {
 
 # Catch older one-off surfaces that pre-date the shared theme. This generic pass
 # is intentionally presentation-only and keeps every Android screen inside the
-# same light/emerald family without changing valuation, auth, NFC or data logic.
+# same light visual family without changing valuation, auth, NFC or data logic.
 legacy_palette = {
     '0xFFFFD400': '0xFF38D6A3',
     '0xFFC99A27': '0xFF38D6A3',
@@ -133,5 +153,34 @@ light_changed = False
 for kotlin_file in root.glob('*.kt'):
     light_changed = apply(kotlin_file, light_palette) or light_changed
 
-changed = main_changed or dashboard_changed or smart_changed or legacy_changed or light_changed
-print('Applied Morley light/emerald visual contract' if changed else 'Morley light/emerald visual contract already applied')
+# Final visual convergence: all normal app chrome, sections, categories and
+# subcategories use the same Morley blue family. Semantic success/warning/danger
+# colours are deliberately not rewritten.
+blue_palette = {
+    '0xFFF5F7F4': '0xFFF5F8FC',
+    '0xFFEEF4F0': '0xFFF0F6FF',
+    '0xFFE5EFEA': '0xFFEAF4FF',
+    '0xFFD8EFE5': '0xFFEAF4FF',
+    '0xFF167A5A': '0xFF0878F9',
+    '0xFF0F684C': '0xFF0566D8',
+    '0xFF1C2B26': '0xFF102A43',
+    '0xFF52645D': '0xFF52677C',
+    '0xFF71827B': '0xFF71869A',
+    '0xFFCEDBD5': '0xFFC9DAEC',
+    '0xFF032A4F': '0xFF0878F9',
+    '0xFF28577E': '0xFF52677C',
+    '0xFFD8E2EE': '0xFFC9DAEC',
+    '0xFF17332C': '0xFF102A43',
+    '0xFF46564F': '0xFF52677C',
+    '0xFFDDF4E9': '0xFFEAF4FF',
+    '0xFFD6E1DC': '0xFFC9DAEC',
+    '0xFFDCE6E1': '0xFFC9DAEC',
+    '0xFF287E68': '0xFF0878F9',
+    'android.graphics.Color.rgb(245,247,244)': 'android.graphics.Color.rgb(245,248,252)',
+}
+blue_changed = False
+for kotlin_file in root.glob('*.kt'):
+    blue_changed = apply(kotlin_file, blue_palette) or blue_changed
+
+changed = main_changed or dashboard_changed or smart_changed or legacy_changed or light_changed or blue_changed
+print('Applied Morley light/blue visual contract and dashboard camera cleanup' if changed else 'Morley light/blue visual contract already applied')
