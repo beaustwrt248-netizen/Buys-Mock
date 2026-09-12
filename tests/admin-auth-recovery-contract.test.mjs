@@ -14,8 +14,9 @@ test('Admin web uses the isolated same-origin Turnstile page on mobile and deskt
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
   assert.match(webSecurity, /challengeBase=['"]turnstile\.html\?v=\d+&browser=1['"]/);
   assert.match(webSecurity, /frame\.src=challengeUrl\(['"]load['"]\)/);
-  assert.match(webSecurity, /event\.source!==frame\.contentWindow/);
-  assert.match(webSecurity, /event\.origin!==window\.location\.origin/);
+  assert.match(webSecurity, /event\.source===frame\.contentWindow/);
+  assert.match(webSecurity, /event\.origin===window\.location\.origin/);
+  assert.match(webSecurity, /window\.location\.origin===['"]null['"]&&event\.origin===['"]null['"]/);
   assert.match(webSecurity, /payload\.source!==['"]morley-turnstile['"]/);
   assert.match(webSecurity, /payload\.type===['"]token['"]/);
   assert.match(webSecurity, /challengeWatchdog/);
