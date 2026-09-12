@@ -28,13 +28,14 @@ test('launcher and keyboard route through the native Admin login activity', () =
   assert.match(manifest, /android:name="\.AdminActivity"[\s\S]*?android:exported="false"/);
 });
 
-test('authenticated workspace remains pinned to trusted Admin web origin and preloads native session', () => {
+test('authenticated workspace remains pinned to trusted Admin web origin and installs native session there', () => {
   assert.match(workspaceActivity, /allowFileAccess\s*=\s*false/);
   assert.match(workspaceActivity, /allowContentAccess\s*=\s*false/);
   assert.match(workspaceActivity, /mixedContentMode\s*=\s*WebSettings\.MIXED_CONTENT_NEVER_ALLOW/);
   assert.match(workspaceActivity, /AdminWebParityPolicy\.isTrustedAdminUrl/);
   assert.match(workspaceActivity, /JSONObject\.quote\(accessToken\)/);
-  assert.match(workspaceActivity, /AdminWebParityPolicy\.nativeSessionBootstrapUrl/);
+  assert.match(workspaceActivity, /AdminWebParityPolicy\.nativeWorkspaceUrl/);
   assert.match(workspaceActivity, /window\.installNativeAdminSession/);
+  assert.match(workspaceActivity, /__morleyNativeSessionState/);
   assert.doesNotMatch(workspaceActivity, /window\.sb\.auth\.setSession/);
 });
