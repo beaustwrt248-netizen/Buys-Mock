@@ -89,8 +89,9 @@ forbid(console_catalog, "private val catalogueSeed", "compiled console catalogue
 read("android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt")
 require(live_pricing, "catalog_sync_state?id=eq.1&select=revision", "native catalogue revision reconciliation")
 
-for token in ("0xFFF5F7F4", "0xFFFFFFFF", "0xFF167A5A", "0xFF1C2B26", "0xFFCEDBD5"):
-    require(android_theme, token, "Android Morley theme token")
+# Web keeps its canonical light/emerald contract; the Android app intentionally uses Morley blue.
+for token in ("0xFFF5F8FC", "0xFFFFFFFF", "0xFF0878F9", "0xFF102A43", "0xFFC9DAEC"):
+    require(android_theme, token, "Android Morley blue theme token")
 require(android_theme, "lightColorScheme", "Android light color scheme")
 web_light = read("morley-light-web.css")
 require(index, "morley-light-web.css?v=2", "web light theme layer")
@@ -159,4 +160,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, light Help/FAQ, live console/mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
+print("Ultimate parity audit passed: current Categories/GP/More navigation, Android blue presentation, light Help/FAQ, live console/mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
