@@ -34,6 +34,15 @@ jobs:
 
           files=json.loads(Path(os.environ['RUNNER_TEMP'],'pr-files.json').read_text())
           names=[f.get('filename','') for f in files]
+          added_by_file={}
+          for f in files:
+              name=f.get('filename','')
+              patch=f.get('patch') or ''
+              added_by_file[name]='\n'.join(
+                  line[1:] for line in patch.splitlines()
+                  if line.startswith('+') and not line.startswith('+++')
+              )
+          added='\n'.join(added_by_file.values())
 
           guarded_path=re.compile(
               r'(^|/)(auth|security|permissions?|migrations?|guardian)(/|$)|'
@@ -50,7 +59,6 @@ jobs:
           critical_added=[
               r'\bdisable\s+row\s+level\s+security\b',
               r'\bgrant\s+all\b.*\b(to|role)\s+(anon|authenticated|public)\b',
-              r'\bservice[_-]?role\b',
               r'\bdrop\s+(table|schema|database)\b',
               r'\btruncate\s+(table\s+)?\w+',
               r'\bdelete\s+from\s+\w+\s*;?$',
@@ -59,28 +67,17 @@ jobs:
               r'raw_(evidence|prices|user_backups)_exposed\s*[:=]\s*true',
               r'persist-credentials\s*:\s*true',
           ]
-
-          def safe_security_reference(name, line):
-              if name.startswith(('tests/','docs/')):
-                  return True
-              safe_markers=(
-                  'assertFalse', 'doesNotMatch',
-                  'blockedMetadataKeys', 'SECRET_KEY_RE',
-              )
-              return any(marker in line for marker in safe_markers)
+          service_role_pattern=re.compile(r'\bservice[_-]?role\b', re.I)
+          document_path=re.compile(r'(^|/)(docs?/|[^/]+\.md$)', re.I)
 
           critical=[]
           for name in names:
               if critical_path.search(name): critical.append(name)
-          for file in files:
-              name=file.get('filename','')
-              for line in (file.get('patch') or '').splitlines():
-                  if not line.startswith('+') or line.startswith('+++'):
-                      continue
-                  line=line[1:]
-                  if safe_security_reference(name, line): continue
-                  for pattern in critical_added:
-                      if re.search(pattern, line, re.I|re.M): critical.append(f'diff:{pattern}')
+          for pattern in critical_added:
+              if re.search(pattern, added, re.I|re.M): critical.append(f'diff:{pattern}')
+          for name, file_added in added_by_file.items():
+              if service_role_pattern.search(file_added) and not document_path.search(name):
+                  critical.append(f'diff:{name}:service-role')
 
           guarded=[n for n in names if guarded_path.search(n)]
           level='critical' if critical else ('guarded' if guarded else 'routine')
