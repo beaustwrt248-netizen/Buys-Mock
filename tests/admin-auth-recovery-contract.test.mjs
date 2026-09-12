@@ -1,34 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
+const preAppPolicy = readFileSync(new URL('../admin/user-management-policy.js', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
-const bootstrapUrl = new URL('../admin/native-session-bootstrap.html', import.meta.url);
+const adminWebPolicy = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt', import.meta.url), 'utf8');
 
-test('Admin web starts Turnstile without waiting for credentials', () => {
-  assert.match(webSecurity, /loadChallenge\('Security check loading…'\);/);
-  assert.match(webSecurity, /turnstile\.html\?v=6&load=/);
-  assert.doesNotMatch(webSecurity, /Enter your email and password to begin/);
+test('Admin web renders Turnstile directly instead of nesting the challenge in another iframe', () => {
+  assert.match(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
+  assert.match(webSecurity, /turnstile\.render\(challengeHost/);
+  assert.match(webSecurity, /challengeWatchdog/);
+  assert.doesNotMatch(webSecurity, /frame\.src=['"]turnstile\.html/);
 });
 
-test('native Admin mode does not start a second web Turnstile challenge', () => {
+test('native Admin mode suppresses web Turnstile and waits for Android session installation', () => {
   assert.match(webSecurity, /nativeAuthMode/);
-  assert.match(webSecurity, /if\s*\(nativeAuthMode\)\s*return/);
+  assert.match(webSecurity, /if\s*\(nativeAuthMode\)/);
+  assert.match(preAppPolicy, /nativeAuthMode/);
+  assert.match(preAppPolicy, /window\.supabase\.createClient/);
+  assert.match(preAppPolicy, /window\.installNativeAdminSession/);
+  assert.match(preAppPolicy, /auth\.setSession/);
+  assert.match(preAppPolicy, /nativeSessionGate/);
+  assert.match(preAppPolicy, /__morleyNativeSessionState\s*=\s*['"]ready['"]/);
 });
 
-test('native Admin session is established before the privileged workspace loads', () => {
-  assert.equal(existsSync(bootstrapUrl), true, 'native session bootstrap page must exist');
-  const bootstrap = readFileSync(bootstrapUrl, 'utf8');
-  assert.match(bootstrap, /installNativeAdminSession/);
-  assert.match(bootstrap, /auth\.setSession/);
-  assert.match(bootstrap, /location\.replace/);
-  assert.match(bootstrap, /nativeAuth=1/);
-});
-
-test('Admin Android loads the session bootstrap before loading the workspace', () => {
-  assert.match(adminActivity, /AdminWebParityPolicy\.nativeSessionBootstrapUrl/);
+test('Admin Android injects the verified session into the final workspace without bootstrap navigation', () => {
+  assert.match(adminWebPolicy, /nativeWorkspaceUrl/);
+  assert.match(adminActivity, /AdminWebParityPolicy\.nativeWorkspaceUrl/);
   assert.match(adminActivity, /window\.installNativeAdminSession/);
+  assert.match(adminActivity, /__morleyNativeSessionState/);
+  assert.doesNotMatch(adminActivity, /AdminWebParityPolicy\.nativeSessionBootstrapUrl/);
   assert.doesNotMatch(adminActivity, /window\.sb\.auth\.setSession/);
-  assert.doesNotMatch(adminActivity, /typeof window\.loadSession==='function'/);
+  assert.doesNotMatch(adminActivity, /addJavascriptInterface/);
 });

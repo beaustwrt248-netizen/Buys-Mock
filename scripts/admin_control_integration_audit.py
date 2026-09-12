@@ -31,7 +31,7 @@ def semantic_version(value: str) -> tuple[int, int, int] | None:
 admin_html = read("admin/index.html")
 admin_app = read("admin/app.js")
 login_security = read("admin/login-security.js")
-native_session_bootstrap = read("admin/native-session-bootstrap.html")
+user_management_policy = read("admin/user-management-policy.js")
 release_control = read("admin/release-control.js")
 support_tickets = read("admin/support-tickets.js")
 targeted_notifications = read("admin/targeted-notifications.js")
@@ -67,6 +67,10 @@ for section, ids in web_sections.items():
         require(f'id="{element_id}"' in admin_html, f"Admin web {section} control missing: {element_id}")
 
 require("captchaToken:token" in login_security, "Admin web login is not submitting the Turnstile token")
+require("turnstile.render(challengeHost" in login_security, "Admin web Turnstile is not rendered directly on the login surface")
+require("challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" in login_security, "Admin web Turnstile API source is missing")
+require("challengeWatchdog" in login_security, "Admin web Turnstile loading is not bounded by a recovery watchdog")
+require("user-management-policy.js?v=2" in admin_html and "login-security.js?v=8" in admin_html, "Admin auth script cache busters were not advanced")
 require("loadUsers" in admin_app and "admin-user-control" in admin_app, "Accounts/user-control wiring is incomplete")
 require("loadDevices" in admin_app and "app_version" in admin_app, "Device/version visibility wiring is incomplete")
 require("ticketReplyBtn" in support_tickets and "support_ticket_messages" in support_tickets, "Support reply wiring is incomplete")
@@ -77,15 +81,13 @@ require("admin_audit_log" in audit_triage or "admin_audit_log" in admin_app, "Au
 require("redeem-app-invite" in invites or "app_invites" in invites, "Invite governance wiring is incomplete")
 require("target_installation_id" in targeted_notifications or "notifTarget" in targeted_notifications, "Targeted notification wiring is incomplete")
 
-# Android Admin Control: either the legacy native dashboard must implement each
-# section directly, or the app must use the canonical HTTPS Admin surface behind
-# a hardened path/origin boundary. The latter intentionally makes web Admin the
-# single functional implementation so filters, permissions and Guardian changes
-# cannot drift between browser and APK releases.
+# Android Admin Control: the app uses the canonical HTTPS Admin surface behind a
+# hardened path/origin boundary. Native auth is installed into the exact Supabase
+# client used by the final workspace before app.js can observe a signed-out state.
 admin_entry_navigation = (
     "AdminWebParityPolicy.HOME_URL" in admin_activity
     or "AdminWebParityPolicy.freshHomeUrl" in admin_activity
-    or "AdminWebParityPolicy.nativeSessionBootstrapUrl" in admin_activity
+    or "AdminWebParityPolicy.nativeWorkspaceUrl" in admin_activity
 )
 web_parity_shell = (
     "WebView" in admin_activity
@@ -109,18 +111,19 @@ if web_parity_shell:
     require("adminApp=" in admin_web_policy, "Android Admin shell URL must vary by native build")
     require("nativeSessionInjectionStarted" in admin_activity, "Android Admin native session handoff must be one-shot per privileged shell")
 
-    if "AdminWebParityPolicy.nativeSessionBootstrapUrl" in admin_activity:
-        require("NATIVE_SESSION_BOOTSTRAP_URL" in admin_web_policy, "Android Admin native session bootstrap must use the trusted Admin origin")
-        require("isNativeSessionBootstrapUrl" in admin_web_policy, "Android Admin native session bootstrap URL must be origin/path validated")
-        require("window.installNativeAdminSession" in admin_activity, "Android Admin must delegate session installation to the bootstrap contract")
-        require("maxAttempts=3" in admin_activity, "Android Admin bootstrap handoff must use a bounded retry")
-        require("setTimeout(install,500)" in admin_activity, "Android Admin bootstrap handoff must retry bounded bootstrap readiness")
-        require("window.sb.auth.setSession" not in admin_activity, "Privileged Admin WebView must not install Supabase state after workspace render")
-        require("typeof window.loadSession==='function'" not in admin_activity, "Privileged Admin WebView must not race the workspace session loader")
-        require("installNativeAdminSession" in native_session_bootstrap, "Native Admin bootstrap page must expose the session installation contract")
-        require("auth.setSession" in native_session_bootstrap, "Native Admin bootstrap page must install the Supabase session")
-        require("auth.getSession" in native_session_bootstrap, "Native Admin bootstrap page must verify the Supabase session")
-        require("location.replace" in native_session_bootstrap and "nativeAuth=1" in native_session_bootstrap, "Native Admin bootstrap page must navigate to native-auth workspace only after verification")
+    if "AdminWebParityPolicy.nativeWorkspaceUrl" in admin_activity:
+        require("nativeWorkspaceUrl" in admin_web_policy and "nativeAuth=1" in admin_web_policy, "Android Admin must enter the final workspace in native-auth mode")
+        require("isNativeWorkspaceUrl" in admin_web_policy, "Android Admin native workspace URL must be origin/path validated")
+        require("window.installNativeAdminSession" in admin_activity, "Android Admin must call the final-workspace session installation contract")
+        require("maxInstallAttempts=40" in admin_activity, "Android Admin final-workspace handoff must use a bounded install retry")
+        require("maxWatchAttempts=80" in admin_activity, "Android Admin final-workspace handoff must use a bounded verification watch")
+        require("__morleyNativeSessionState" in admin_activity, "Android Admin must verify final-workspace native session state")
+        require("window.sb.auth.setSession" not in admin_activity, "Privileged Admin WebView must not directly own Supabase session mutation")
+        require("nativeAuthMode" in user_management_policy, "Pre-app Admin policy must activate the native session gate")
+        require("nativeSessionGate" in user_management_policy, "Pre-app Admin policy must hold getSession until Android installs the session")
+        require("window.installNativeAdminSession" in user_management_policy, "Pre-app Admin policy must expose the native session installation contract")
+        require("auth.setSession" in user_management_policy, "Pre-app Admin policy must install the supplied Supabase session")
+        require("auth.getSession" in user_management_policy, "Pre-app Admin policy must verify the installed Supabase session")
         require("nativeAuthMode" in login_security, "Native Admin workspace must suppress duplicate web Turnstile startup")
     elif "AdminWebParityPolicy.freshHomeUrl" in admin_activity:
         require("freshHomeUrl" in admin_web_policy, "Android Admin fresh-shell URL must vary by native build")
@@ -186,7 +189,7 @@ require("revoke execute on function private.admin_set_config_impl(text,jsonb) fr
 if errors:
     print("Admin Control integration audit FAILED")
     for error in errors:
-        print(f" - {error}")
+        print(" -", error)
     sys.exit(1)
 
 print("Admin Control integration audit PASSED")
