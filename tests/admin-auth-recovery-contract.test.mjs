@@ -10,18 +10,23 @@ const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java
 const sessionStore = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
-test('Admin web uses the isolated same-origin Turnstile page on mobile and desktop', () => {
+test('Admin browser login has direct and isolated fallback Turnstile recovery on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
-  assert.match(webSecurity, /challengeBase=['"]turnstile\.html\?v=\d+&browser=1['"]/);
-  assert.match(webSecurity, /frame\.src=challengeUrl\(['"]load['"]\)/);
+  assert.match(webSecurity, /adminTurnstileWidget/);
+  assert.match(webSecurity, /legacyFrame\.replaceWith\(widget\)/);
+  assert.match(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
+  assert.match(webSecurity, /window\.turnstile\.render\(/);
+  assert.match(webSecurity, /function startFallback/);
+  assert.match(webSecurity, /turnstile\.html\?v=7&browser=1/);
+  assert.match(webSecurity, /captchaToken:token/);
+  assert.match(webSecurity, /challengeWatchdog/);
+  assert.match(webSecurity, /Security check unavailable\. Tap here to retry\./);
+  assert.match(webSecurity, /visibilitychange/);
+  assert.match(webSecurity, /pageshow/);
   assert.match(webSecurity, /event\.source===frame\.contentWindow/);
   assert.match(webSecurity, /event\.origin===window\.location\.origin/);
-  assert.match(webSecurity, /window\.location\.origin===['"]null['"]&&event\.origin===['"]null['"]/);
   assert.match(webSecurity, /payload\.source!==['"]morley-turnstile['"]/);
   assert.match(webSecurity, /payload\.type===['"]token['"]/);
-  assert.match(webSecurity, /challengeWatchdog/);
-  assert.doesNotMatch(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
-  assert.doesNotMatch(webSecurity, /turnstile\.render\(/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
