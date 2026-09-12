@@ -1,24 +1,27 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-12 14:25 AWST
+Last reconciled: 2026-09-12 14:36 AWST
 Source of truth for this entry: live GitHub and connected Google Drive evidence, with previously verified protected-service findings retained only where no newer recovery evidence exists.
 
 ## Current main
 
-- Main SHA: `ccd9442ae91a98337379e9b13d9e6a48300e8a15`.
-- Latest merged change: `Enforce protected manual-review boundaries` (approved PR #1576).
-- Parent release/source change: PR #1592 merged as `9a7c3ae59e7f5b77b06fe2aaf77abe6310215a9e`, restoring Morley AI Device Lens scanner routing and advancing Android source identity to 2.15.98 / versionCode 142.
+- Main SHA: `fe4691f328b94b079d587cf7d93f4e29b3d2742b`.
+- Latest merged change: `Publish Morley 2.15.98 OTA metadata` (approved release sequence, PR #1603).
+- Morley Buys 2.15.98 / versionCode 142 source was merged by PR #1592 as `9a7c3ae59e7f5b77b06fe2aaf77abe6310215a9e`, restoring Morley AI Device Lens scanner routing.
+- Protected auto-review/auto-merge governance repair #1576 is merged with explicit approval; only routine work is eligible for automation, while guarded/protected changes require manual review.
 - Main remains protected; automation must not push directly to it or bypass repository protections.
 
 ## Production-first triage
 
-- Admin browser authentication recovery PR #1593 is merged on the current main ancestry. It restored the same-origin Turnstile transport for browser Admin sign-in while preserving the separate native Android boundary.
-- Morley Buys source on main now declares 2.15.98 / versionCode 142 through merged PR #1592. The push-triggered `Build B&L Morley APK` run `34678061085` is still active at this reconciliation point; release-readiness/version/login-video setup and regression tests have passed, with Android lint/build/sign/release steps not yet all complete. Do not claim 2.15.98 published until the release and OTA evidence exists.
-- Published Morley Buys release/OTA remains 2.15.97 / versionCode 141. `ota/latest.json` still points at `v2.15.97`, APK `B-and-L-Morley-2.15.97.apk`, SHA-256 `353c47208ccafac6d1c97b16008f1f3f8fda6772d947eb9b6473a6920844a401`.
-- Protected auto-review/auto-merge governance repair #1576 is now merged with explicit approval. Automation eligibility is restricted to routine work; guarded workflow/security/release-sensitive changes require manual approval and destructive/credential/trust-breaking changes remain hard-stopped.
+- **Morley Buys 2.15.98 release is complete.** Build run `34678061085` passed release-readiness, regression tests, Android lint, release APK build, signer verification, login-video packaging verification and artifact upload.
+- GitHub Release `v2.15.98` is published against exact tested source `9a7c3ae59e7f5b77b06fe2aaf77abe6310215a9e` with APK `B-and-L-Morley-2.15.98.apk` and SHA-256 `c2f7d86723f53f3148c6a2435ad788f1fb82adba0d7527287c40b4f2bc1aaced`.
+- `ota/latest.json` on main now declares 2.15.98 / versionCode 142 and matches the same release URL and SHA-256. Owner-authored replacement PR #1603 was used because bot-authored #1602 was blocked before CI jobs started; #1603 passed Repository Security, Quality, parity, Admin OTA Safety, feature-contract, Admin integration, private-distribution and email checks before merge.
+- Admin browser authentication recovery PR #1593 is merged. It restored the same-origin Turnstile transport for browser Admin sign-in while preserving the separate native Android boundary.
+- Autopilot incident #1604 was traced to an intermediate #1590 browser-isolation test that expected the temporary `workspace-loader.js?v=1` design. The later merged #1593 deliberately replaced that contract; current main no longer contains the stale assertion. #1604 is closed as superseded evidence, not as approval of #1590.
+- Diagnostic PR #1598 remains draft because it changes a GitHub workflow. Its live Admin browser probe may collect evidence, but it must not merge without explicit workflow-security approval.
 - Morley AI assessment engine PR #1437 is merged as `42d90c20cc67820bd4ff18e844a3e6f60eb9cbb1`; its approved production assessment migration was applied and its protected commercial/action boundaries remain staff-confirmed.
 - Latest observed published Admin release is `admin-v0.1.41`, with signed APK `Morley-Admin-0.1.41.apk` and release digest `295953c3afc1bc412926eb8802b7c062fecce3fcd0256e6c98f89174bcbc884c`.
-- Google Drive folder `Morley Backups` is reachable, but current Drive search returns no backup-file listing from that folder. There is therefore no fresh evidence in this run that backup freshness recovered. The previously verified blocker remains the expired/revoked Google OAuth refresh credential until a successful re-authorization plus new Drive upload/digest readback proves otherwise.
+- Google Drive folder `Morley Backups` is reachable, but current Drive search returns no backup-file listing from that folder. There is therefore no fresh evidence that backup freshness recovered. The previously verified blocker remains the expired/revoked Google OAuth refresh credential until a successful re-authorization plus new Drive upload/digest readback proves otherwise.
 - No production restore, credential mutation or destructive backup action has been attempted.
 - No Gumtree work is in scope.
 
@@ -28,11 +31,11 @@ Scoring scale: impact and confidence 1-5 (higher is better); risk, effort and de
 
 | Workstream | Evidence / identifier | Impact | Risk | Effort | Confidence | Dependency risk | Priority | Current safe action |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
-| Morley 2.15.98 build/release sequencing | #1592 / run `34678061085` / `ota/latest.json` | 5 | 5 | 2 | 5 | 5 | Highest, active | Let the existing protected pipeline finish; verify signed artifact, release tag/digest and OTA metadata before any success claim or next Android version. |
 | Backup freshness / recovery readiness | Google Drive `Morley Backups` / `google-drive-backup` | 5 | 5 | 2 | 4 | 5 | Highest, blocked | Keep fail-closed. Re-authorize the existing Google OAuth connection through the approved credential flow, then run one backup and verify upload, digest readback and audit evidence. |
-| Android catalogue push realtime | PR #1422 | 5 | 3 | 3 | 5 | 4 | High, release-blocked | Preserve the feature work but do not merge the stale release branch. Reconcile onto fresh main only after 2.15.98 publication/OTA identity is settled and retest all consumers/contracts. |
-| Admin browser/native auth stability | #1593 / Admin 0.1.41 | 5 | 4 | 2 | 4 | 5 | High, monitor | Continue synthetic/live evidence and regression checks without weakening Turnstile/auth/session boundaries. |
+| Android catalogue push realtime | PR #1422 | 5 | 4 | 3 | 5 | 4 | Highest safe feature lane, design/approval gated | Do not merge stale #1422. Design a fresh-current-main implementation using authenticated Realtime plus bounded recovery reconciliation, preserving auth/RLS and separating any GitHub workflow-contract change behind its protected approval boundary. |
+| Admin browser/native auth stability | #1593 / #1598 / Admin 0.1.41 | 5 | 4 | 2 | 4 | 5 | High, monitor | Continue live/synthetic and regression evidence without weakening Turnstile/auth/session boundaries; keep diagnostic workflow changes draft unless approved. |
 | Nova / Morley assessment quality | #1437 / assessment core | 5 | 4 | 3 | 4 | 4 | High | Continue evaluation, source-quality, latency/cost and protected-command drift checks; consequential actions remain human-confirmed. |
+| Morley 2.15.98 release | #1592 / #1603 / `v2.15.98` | 5 | 5 | 2 | 5 | 5 | Completed milestone | Preserve immutable release identity and monitor post-release health; do not advance Android identity until a subsequent source-changing release candidate is actually ready. |
 | Durable continuity / triage ledger | this file | 4 | 1 | 1 | 5 | 1 | Immediate maintenance | Reconcile every run from live state; never allow stale release/backup/governance entries to drive action. |
 
 ## Protected blockers / approval requirements
@@ -75,6 +78,12 @@ Scoring scale: impact and confidence 1-5 (higher is better); risk, effort and de
 - **Symptom:** OTA publication rejects an APK after a successful build because an existing version/tag has different bytes.
 - **Safe behavior:** preserve the immutable release identity and advance exactly once through the protected release path; never weaken checksum/identity guards.
 
+### Bot-authored protected OTA PR cannot start CI
+
+- **Symptom:** generated OTA PR is mergeable but all required workflows finish `action_required` with zero jobs.
+- **Observed 2.15.98 case:** #1602 was created by `github-actions[bot]`; required jobs did not start. The exact same metadata recreated as owner-authored #1603 ran the full gate suite normally.
+- **Safe behavior:** do not bypass checks. Recreate only the exact already-verified metadata from current main under an authorized branch/PR, run the complete required gates, close the blocked duplicate, and merge only after all required checks are green and release approval exists.
+
 ### Backup scheduler appears healthy but no Drive backup exists
 
 - **Symptom:** scheduler invocation succeeds or the folder exists, but no new backup/upload/audit evidence appears.
@@ -84,8 +93,14 @@ Scoring scale: impact and confidence 1-5 (higher is better); risk, effort and de
 ### Stale Android release branch
 
 - **Symptom:** a valid feature PR remains open across multiple release identities and can no longer satisfy exact-next OTA/version policy.
-- **Current example:** #1422 was created from old main `062e64b...` and its Realtime implementation is absent from current main.
-- **Safe behavior:** do not force/rebase a stale release identity into main. Preserve the feature intent, wait for the active release sequence to settle, then recreate/reconcile from fresh main with current contracts and an exactly-next identity if Android source changes still require one.
+- **Current example:** #1422 was created from old main `062e64b...`; its Realtime implementation is absent from current main and its embedded Android identity is obsolete.
+- **Safe behavior:** do not force/rebase a stale release identity into main. Preserve the feature intent and recreate/reconcile from fresh main with current contracts and an exactly-next identity only if/when Android source changes still require one.
+
+### Stale intermediate auth-contract incident
+
+- **Symptom:** automation opens a security incident for a failing intermediate PR revision after a later production-recovery design has superseded that exact contract.
+- **Observed case:** #1604 came from #1590 commit `c054760c...`, whose single failed assertion required `workspace-loader.js?v=1`; merged #1593 replaced that browser flow and current main no longer contains the assertion.
+- **Safe behavior:** trace the failure to the exact head SHA and current main before changing auth code. Close only the stale incident evidence; do not infer approval for the superseded design branch.
 
 ## Definition-of-done checkpoint
 
@@ -93,9 +108,9 @@ A work item is not Done until applicable implementation, tests, security/permiss
 
 ## Next safe actions
 
-1. Follow run `34678061085` to completion. If successful, verify the 2.15.98 signed APK, release tag/target/digest and subsequent OTA metadata before treating the release as complete.
-2. Keep backup recovery fail-closed until Google OAuth is re-authorized and one fresh backup is verified end-to-end.
-3. After 2.15.98 sequencing is settled, reconcile #1422 onto fresh main rather than merging the stale branch; rerun catalogue live-sync, Android, security, quality, parity and release-version contracts.
-4. Continue Admin auth synthetic/regression monitoring across browser and native boundaries.
-5. Continue Nova assessment/provider quality, cost, source and safety-drift evaluation without granting protected action authority.
-6. Continue current-main data-integrity, catalogue-quality, performance, accessibility and degraded-mode rotation using measured evidence only.
+1. Keep backup recovery fail-closed until Google OAuth is re-authorized and one fresh backup is verified end-to-end.
+2. Present the fresh-current-main Android catalogue Realtime design for approval before implementing; do not reuse #1422's stale release identity or silently bundle workflow-security changes.
+3. Continue Admin auth synthetic/regression monitoring across browser and native boundaries; inspect #1598 diagnostic evidence when its run completes while keeping the workflow PR draft.
+4. Continue Nova assessment/provider quality, cost, source and safety-drift evaluation without granting protected action authority.
+5. Continue current-main data-integrity, catalogue-quality, performance, accessibility and degraded-mode rotation using measured evidence only.
+6. Monitor Morley 2.15.98 post-release health and preserve its immutable APK/checksum identity.
