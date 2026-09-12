@@ -36,6 +36,7 @@ jobs:
           persist-credentials: false
       - name: Validate Admin JavaScript
         run: |
+          node --check admin/browser-auth-bootstrap.js
           node --check admin/app.js
           node --check admin/release-control.js
           node --check admin/invites.js
@@ -44,11 +45,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'release-control.js?v=2' admin/index.html
-          grep -q 'id="releaseName" readonly' admin/index.html
-          grep -q 'id="releaseCode" type="number" readonly' admin/index.html
-          grep -q 'id="rolloutCurrent"' admin/index.html
-          grep -q 'id="rolloutOutdated"' admin/index.html
+          grep -q 'release-control.js?v=3' admin/workspace.html
+          grep -q 'id="releaseName" readonly' admin/workspace-template.html
+          grep -q 'id="releaseCode" type="number" readonly' admin/workspace-template.html
+          grep -q 'id="rolloutCurrent"' admin/workspace-template.html
+          grep -q 'id="rolloutOutdated"' admin/workspace-template.html
+          ! grep -q 'release-control.js' admin/index.html
+          ! grep -q 'id="releaseName"' admin/index.html
           grep -q 'OTA_METADATA_URL' admin/release-control.js
           grep -q 'SOURCE_BUILD_URL' admin/release-control.js
           grep -q 'isVerifiedOtaShape' admin/release-control.js
