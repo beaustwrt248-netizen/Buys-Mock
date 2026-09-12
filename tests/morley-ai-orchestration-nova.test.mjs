@@ -74,6 +74,16 @@ test('customer assessment summary exposes condition guidance but hides commercia
   assert.equal(summary.commercialRecommendationVisible, false);
 });
 
+test('customer assessment summary keeps an unavailable condition score unverified instead of inventing zero', () => {
+  const core = loadCore();
+  const missing = core.buildCustomerAssessmentSummary({ model: 'Pixel 10 Pro', storage: '256 GB' });
+  const invalid = core.buildCustomerAssessmentSummary({ model: 'Pixel 10 Pro', storage: '256 GB', conditionScore: 'pending' });
+  assert.equal(missing.conditionScore, null);
+  assert.equal(invalid.conditionScore, null);
+  assert.equal(missing.recommendedGrade, 'unverified');
+  assert.equal(invalid.recommendedGrade, 'unverified');
+});
+
 test('Nova planner maps assessment questions to read-only or advisory tools', () => {
   const core = loadCore();
   const buy = core.planNovaAssessmentCommand('What should I buy today?');
