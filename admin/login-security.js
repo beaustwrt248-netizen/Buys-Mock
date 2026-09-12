@@ -43,8 +43,9 @@
   }
 
   window.addEventListener('message',function(event){
-    if(event.source!==frame.contentWindow)return;
-    if(event.origin!==window.location.origin)return;
+    const trustedSource=event.source===frame.contentWindow;
+    const trustedOrigin=event.origin===window.location.origin||(window.location.origin==='null'&&event.origin==='null');
+    if(!trustedSource||!trustedOrigin)return;
     const payload=event.data;
     if(!payload||payload.source!=='morley-turnstile')return;
 
