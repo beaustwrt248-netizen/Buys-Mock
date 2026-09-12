@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function loadClient({ session = { user: { id: 'user-1' } }, insertResult = { data: [{ id: 'assessment-1' }], error: null } } = {}) {
+function loadClient({
+  session = { user: { id: 'user-1' } },
+  insertResult = { data: [{ id: 'assessment-1' }], error: null },
+  tableResults = {},
+  core = {},
+} = {}) {
   const calls = [];
   const tables = new Map();
+  const responseFor = (name) => tableResults[name] || insertResult;
   const sb = {
     auth: { getSession: async () => ({ data: { session }, error: null }) },
     from(name) {
@@ -14,16 +20,23 @@ function loadClient({ session = { user: { id: 'user-1' } }, insertResult = { dat
         update(payload) { calls.push({ op: 'update', name, payload }); api._payload = payload; return api; },
         eq(column, value) { calls.push({ op: 'eq', name, column, value }); return api; },
         select() { calls.push({ op: 'select', name }); return api; },
-        single: async () => ({ data: insertResult.data?.[0] || null, error: insertResult.error }),
-        then(resolve) { return Promise.resolve(insertResult).then(resolve); },
+        single: async () => ({ data: responseFor(name).data?.[0] || null, error: responseFor(name).error }),
+        maybeSingle: async () => ({ data: null, error: null }),
+        then(resolve) { return Promise.resolve(responseFor(name)).then(resolve); },
       };
       tables.set(name, api);
       return api;
     },
   };
   const source = fs.readFileSync(new URL('../morley-ai-assessment-client.js', import.meta.url), 'utf8');
-  const window = { sb, MorleyAssessmentCore: { canPrepareStock: (v) => !!v?.ready } };
-  vm.runInNewContext(source, { window, globalThis: window, Object, Array, Number, String, Boolean, Math, JSON, Promise, Error }, { filename: 'morley-ai-assessment-client.js' });
+  const window = {
+    sb,
+    MorleyAssessmentCore: {
+      canPrepareStock: (v) => !!v?.ready,
+      ...core,
+    },
+  };
+  vm.runInNewContext(source, { window, globalThis: window, Object, Array, Number, String, Boolean, Math, JSON, Promise, Error, Date }, { filename: 'morley-ai-assessment-client.js' });
   return { client: window.MorleyAssessmentClient, calls };
 }
 
@@ -81,6 +94,108 @@ test('diagnostic writes only the supported normalized state vocabulary', async (
   const write = calls.find((x) => x.name === 'diagnostic_results' && x.op === 'insert');
   assert.equal(write.payload.test_type, 'touch');
   assert.equal(write.payload.status, 'pass');
+});
+
+test('persists Repair or Buy proposal, pending AI audit and passport event without granting commercial authority', async () => {
+  const decision = Object.freeze({
+    recommendation: 'parts_only',
+    reason: 'Verified parts recovery produces the strongest margin while clearing the required minimum.',
+    asIsMargin: 50,
+    repairedMargin: 30,
+    partsMargin: 140,
+    repairCost: 90,
+    partsProcessingCost: 20,
+    rulesVersion: 'repair-v1',
+    commercialAuthority: 'advisory',
+    requiresStaffConfirmation: true,
+    blockers: Object.freeze([]),
+  });
+  const { client, calls } = loadClient({
+    tableResults: {
+      valuation_quotes: { data: [{ id: 'quote-1' }], error: null },
+      device_passports: { data: [{ id: 'passport-1' }], error: null },
+      ai_decision_audit: { data: [{ id: 'audit-1' }], error: null },
+      device_passport_events: { data: [{ id: 'event-1' }], error: null },
+      device_assessments: { data: [{ id: 'assessment-1' }], error: null },
+    },
+    core: { decideRepairStrategy: () => decision },
+  });
+
+  const result = await client.persistRepairProposal('assessment-1', {
+    commercialInputsVerified: true,
+    buyCost: 100,
+    resaleAsIs: 150,
+    resaleAfterRepair: 220,
+    repairCost: 90,
+    partsRecoveryValue: 260,
+    partsProcessingCost: 20,
+    minMargin: 100,
+    confidence: 0.92,
+    modelVersion: 'rules-only',
+    inputRefs: ['valuation:quote-0'],
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'repair_proposal_recorded');
+  assert.equal(result.data.recommendation, 'parts_only');
+  assert.equal(result.data.requiresStaffConfirmation, true);
+
+  const quote = calls.find((x) => x.name === 'valuation_quotes' && x.op === 'insert');
+  assert.ok(quote);
+  assert.equal(quote.payload.assessment_id, 'assessment-1');
+  assert.equal(quote.payload.recommendation, 'parts_only');
+  assert.equal(quote.payload.proposed_buy_cents, 10000);
+  assert.equal(quote.payload.expected_margin_cents, 14000);
+  assert.equal(quote.payload.confidence, 0.92);
+
+  const assessment = calls.find((x) => x.name === 'device_assessments' && x.op === 'update');
+  assert.ok(assessment);
+  assert.equal(assessment.payload.state, 'proposed');
+  assert.equal(assessment.payload.proposed_buy_price_cents, 10000);
+  assert.equal(Object.hasOwn(assessment.payload, 'repair_decision'), false);
+
+  const audit = calls.find((x) => x.name === 'ai_decision_audit' && x.op === 'insert');
+  assert.ok(audit);
+  assert.equal(audit.payload.decision_type, 'repair_or_buy');
+  assert.equal(audit.payload.approval_status, 'pending');
+  assert.equal(audit.payload.output.recommendation, 'parts_only');
+
+  const passport = calls.find((x) => x.name === 'device_passports' && x.op === 'insert');
+  assert.ok(passport);
+  const event = calls.find((x) => x.name === 'device_passport_events' && x.op === 'insert');
+  assert.ok(event);
+  assert.equal(event.payload.passport_id, 'passport-1');
+  assert.equal(event.payload.event_type, 'repair');
+  assert.equal(event.payload.details.recommendation, 'parts_only');
+  assert.equal(event.payload.details.commercialAuthority, 'advisory');
+});
+
+test('repair proposal remains review-required when the shared core blocks commercial inputs', async () => {
+  const decision = Object.freeze({
+    recommendation: 'review_required',
+    reason: 'Commercial inputs are not verified; staff review is required.',
+    asIsMargin: null,
+    repairedMargin: null,
+    partsMargin: null,
+    repairCost: 50,
+    rulesVersion: 'repair-v1',
+    commercialAuthority: 'advisory',
+    requiresStaffConfirmation: true,
+    blockers: Object.freeze(['commercial_inputs_unverified']),
+  });
+  const { client, calls } = loadClient({ core: { decideRepairStrategy: () => decision } });
+  const result = await client.persistRepairProposal('assessment-1', {
+    commercialInputsVerified: false,
+    buyCost: 100,
+    resaleAsIs: 250,
+    resaleAfterRepair: 300,
+    repairCost: 50,
+    minMargin: 100,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.data.recommendation, 'review_required');
+  const assessment = calls.find((x) => x.name === 'device_assessments' && x.op === 'update');
+  assert.equal(assessment.payload.state, 'review_required');
 });
 
 test('stock payload remains unavailable until the shared core says preparation is safe', async () => {
