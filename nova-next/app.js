@@ -67,12 +67,23 @@ function setRoute(route, { closeDrawer = true } = {}) {
   if (closeDrawer) setDrawer(false);
 }
 
-function setDrawer(open) {
+function getDrawerFocusable() {
+  return [...drawer.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter(element => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+}
+
+function setDrawer(open, { restoreFocus = true } = {}) {
+  const wasOpen = drawer.classList.contains('is-open');
   drawer.classList.toggle('is-open', open);
   drawer.setAttribute('aria-hidden', String(!open));
   menuButton.setAttribute('aria-expanded', String(open));
   drawerBackdrop.hidden = !open;
-  if (open) drawer.querySelector('[aria-current="page"]')?.focus({ preventScroll: true });
+  if (open) {
+    const target = drawer.querySelector('[aria-current="page"]') || getDrawerFocusable()[0];
+    target?.focus({ preventScroll: true });
+  } else if (wasOpen && restoreFocus) {
+    menuButton.focus({ preventScroll: true });
+  }
 }
 
 function showOnly(view) {
@@ -119,7 +130,7 @@ document.addEventListener('click', event => {
     const input = document.querySelector('input[name="password"]');
     input.type = input.type === 'password' ? 'text' : 'password';
   } else if (action === 'signout') {
-    setDrawer(false);
+    setDrawer(false, { restoreFocus: false });
     showOnly(loginView);
   } else if (action === 'finish-intro') {
     showOnly(shell);
@@ -128,7 +139,29 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && drawer.classList.contains('is-open')) setDrawer(false);
+  if (event.key === 'Escape' && drawer.classList.contains('is-open')) {
+    event.preventDefault();
+    setDrawer(false);
+    return;
+  }
+
+  if (event.key === 'Tab' && drawer.classList.contains('is-open')) {
+    const focusable = getDrawerFocusable();
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !drawer.contains(active))) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!event.shiftKey && (active === last || !drawer.contains(active))) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
 });
 
 document.getElementById('loginForm').addEventListener('submit', event => {
@@ -137,10 +170,19 @@ document.getElementById('loginForm').addEventListener('submit', event => {
 });
 
 for (const tabList of document.querySelectorAll('.filter-tabs')) {
+  tabList.setAttribute('role', 'group');
+  for (const candidate of tabList.querySelectorAll('button')) {
+    candidate.setAttribute('aria-pressed', String(candidate.classList.contains('is-selected')));
+  }
+
   tabList.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
-    for (const candidate of tabList.querySelectorAll('button')) candidate.classList.toggle('is-selected', candidate === button);
+    for (const candidate of tabList.querySelectorAll('button')) {
+      const selected = candidate === button;
+      candidate.classList.toggle('is-selected', selected);
+      candidate.setAttribute('aria-pressed', String(selected));
+    }
   });
 }
 
