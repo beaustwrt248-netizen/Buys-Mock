@@ -89,6 +89,13 @@ function inviteMail(displayName: string, role: string, code: string, expiresAt: 
   const html = `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto"><h2>${APP_NAME} invitation</h2><p>Hi ${escapeHtml(displayName)},</p><p>You've been invited to <strong>${APP_NAME}</strong> as <strong>${escapeHtml(role)}</strong>.</p><p>Your invite code is:</p><div style="font-size:28px;font-weight:700;letter-spacing:4px;padding:16px;border:1px solid #ddd;border-radius:10px;text-align:center">${escapeHtml(code)}</div><p>Open ${APP_NAME}, choose <strong>Create account</strong>, and enter your approved email address plus this invite code.</p><p>This code expires <strong>${escapeHtml(formatPerth(expiresAt))}</strong>.</p><p style="color:#666">If you weren't expecting this invitation, you can ignore this email.</p></div>`;
   return { subject, text, html };
 }
+function downloadInviteMail(displayName: string, role: string, appChannel: string, inviteUrl: string, expiresAt: string) {
+  const appLabel = appChannel === "admin" ? "B&L Morley Admin Control" : "B&L Morley app";
+  const subject = `${appLabel} download invitation`;
+  const text = `Hi ${displayName},\n\nYou've been sent a private ${appLabel} download invitation for the ${role} role.\n\nDownload / Open invitation: ${inviteUrl}\n\nThis secure link can be used once and expires ${formatPerth(expiresAt)}.\n\nIf you weren't expecting this invitation, you can ignore this email.`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto"><h2>${escapeHtml(appLabel)} download invitation</h2><p>Hi ${escapeHtml(displayName)},</p><p>You've been sent a private <strong>${escapeHtml(appLabel)}</strong> download invitation for the <strong>${escapeHtml(role)}</strong> role.</p><p style="margin:24px 0"><a href="${escapeHtml(inviteUrl)}" style="display:inline-block;background:#16a36a;color:#fff;text-decoration:none;font-weight:700;padding:14px 20px;border-radius:10px">Download / Open invitation</a></p><p>This secure link can be used once and expires <strong>${escapeHtml(formatPerth(expiresAt))}</strong>.</p><p style="word-break:break-all;color:#555">${escapeHtml(inviteUrl)}</p><p style="color:#666">If you weren't expecting this invitation, you can ignore this email.</p></div>`;
+  return { subject, text, html };
+}
 
 Deno.serve(async (req: Request) => {
   const headers = corsHeaders(req);
@@ -129,6 +136,29 @@ Deno.serve(async (req: Request) => {
         await admin.from("app_invites").delete().eq("id", invite.id).eq("created_by", caller.user.id);
         throw error;
       }
+    }
+
+    if (action === "send_download_invite") {
+      if (!isAdminControl) return reply({ error: "Admin or Manager access required" }, 403);
+      const inviteId = clean(body?.invite_id, 80);
+      const inviteUrlRaw = clean(body?.invite_url, 1200);
+      if (!inviteId || !inviteUrlRaw) return reply({ error: "invite_id and invite_url required" }, 400);
+      let inviteUrl: URL;
+      try { inviteUrl = new URL(inviteUrlRaw); } catch { return reply({ error: "Invalid download invitation URL" }, 400); }
+      const token = inviteUrl.searchParams.get("token") || "";
+      if (!ALLOWED_ORIGINS.has(inviteUrl.origin) || !inviteUrl.pathname.endsWith("/invite.html") || !/^[a-f0-9]{48}$/i.test(token)) return reply({ error: "Invalid download invitation URL" }, 400);
+      const { data: invite, error } = await admin.from("app_download_invites").select("id,email,display_name,role,app_channel,token_hash,expires_at,created_by,redeemed_at,revoked_at").eq("id", inviteId).maybeSingle();
+      if (error) throw error;
+      if (!invite) return reply({ error: "Download invitation not found" }, 404);
+      if (invite.created_by !== caller.user.id) return reply({ error: "Only the invitation creator can email this link" }, 403);
+      if (invite.redeemed_at || invite.revoked_at || new Date(invite.expires_at).getTime() <= Date.now()) return reply({ error: "Download invitation is no longer active" }, 409);
+      if (!validEmail(String(invite.email || "").toLowerCase())) return reply({ error: "Download invitation has no valid email recipient" }, 400);
+      if (callerRole === "manager" && (invite.app_channel === "admin" || invite.role !== "staff")) return reply({ error: "Managers may invite Staff to Morley only" }, 403);
+      if (await sha256(token) !== invite.token_hash) return reply({ error: "Download invitation token does not match the stored invite" }, 400);
+      const mail = downloadInviteMail(invite.display_name || invite.email, invite.role, invite.app_channel, inviteUrl.toString(), invite.expires_at);
+      const sent = await sendEmail([String(invite.email).toLowerCase()], mail.subject, mail.html, mail.text, "download_invite");
+      await writeAudit(caller.user.id, "app_download_invite_sent", "app_download_invite", invite.id, { email: String(invite.email).toLowerCase(), role: invite.role, app_channel: invite.app_channel, resend_id: sent.id });
+      return reply({ ok: true, action, invite_id: invite.id, expires_at: invite.expires_at, delivery: "email" });
     }
 
     if (action === "reissue_invite") {
