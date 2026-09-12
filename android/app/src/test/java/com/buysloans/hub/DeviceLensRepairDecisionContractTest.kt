@@ -9,22 +9,21 @@ class DeviceLensRepairDecisionContractTest {
     private fun source(path: String): String = File(path).readText()
 
     @Test
-    fun `device lens inventory handoff requires explicit repair decision confirmation`() {
+    fun `device lens inventory handoff requires one explicit repair decision confirmation`() {
+        val lens = source("src/main/java/com/buysloans/hub/DeviceLensActivity.kt")
         val workspace = source("src/main/java/com/buysloans/hub/WorkspaceStore.kt")
-        val activity = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionActivity.kt")
         val ui = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionUi.kt")
-        val manifest = source("src/main/AndroidManifest.xml")
 
-        assertTrue(workspace.contains("findDeviceLensActivity"))
-        assertTrue(workspace.contains("ContextWrapper"))
-        assertTrue(workspace.contains("MorleyRepairDecisionConfirmationStore.isConfirmed"))
-        assertTrue(workspace.contains("MorleyRepairDecisionActivity.createIntent"))
-        assertTrue(workspace.contains("Repair-or-Buy must be confirmed before adding stock"))
-        assertTrue(activity.contains("MorleyRepairDecisionPanel"))
+        val guard = lens.indexOf("if (!requireRepairDecision()) return@AddStockScreen")
+        val handoff = lens.indexOf("WorkspaceStore.addInventory(")
+        assertTrue(guard >= 0)
+        assertTrue(handoff > guard)
+        assertTrue(lens.contains("Repair-or-Buy must be confirmed before adding stock"))
         assertTrue(ui.contains("Confirm staff decision"))
-        assertTrue(activity.contains("DeviceAssessmentStore.checkpoint"))
-        assertTrue(activity.contains("\"staff_confirmed\""))
-        assertTrue(manifest.contains(".MorleyRepairDecisionActivity"))
+        assertTrue(workspace.contains("\"staff_confirmed\""))
+        assertTrue(workspace.contains("\"stock_prepared\""))
+        assertTrue(workspace.contains("\"completed\""))
+        assertFalse(workspace.contains("MorleyRepairDecisionActivity.createIntent"))
     }
 
     @Test
