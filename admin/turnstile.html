@@ -28,10 +28,10 @@
   window.__morleyTurnstileToken='';
   window.__morleyTurnstileState='loading';
 
-  function post(type,value){
+  function post(type,value,code){
     try{
       if(window.parent&&window.parent!==window){
-        const payload={source:'morley-turnstile',type,value:value||''};
+        const payload={source:'morley-turnstile',type,value:value||'',code:code||''};
         window.parent.postMessage(payload,postMessageOrigin);
       }
     }catch(_){}
@@ -48,11 +48,18 @@
     }
     try{if(window.AndroidBridge&&typeof window.AndroidBridge[name]==='function')window.AndroidBridge[name](token);}catch(_){}
     const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
-    post(type,token);
+    post(type,token,'');
     if(name==='onToken'){
-      setTimeout(()=>post(type,token),150);
-      setTimeout(()=>post(type,token),600);
+      setTimeout(()=>post(type,token,''),150);
+      setTimeout(()=>post(type,token,''),600);
     }
+  }
+
+  function sendError(code){
+    window.__morleyTurnstileToken='';
+    window.__morleyTurnstileState='error';
+    try{if(window.AndroidBridge&&typeof window.AndroidBridge.onError==='function')window.AndroidBridge.onError(String(code||''));}catch(_){}
+    post('error','',String(code||''));
   }
 
   function fail(message,code){
@@ -61,7 +68,7 @@
     rendered=false;
     status.textContent=message||'Security check unavailable. Tap here to retry.';
     window.__morleyTurnstileState='error';
-    post('bootstrap-error',code||'api_unavailable');
+    post('bootstrap-error','',code||'api_unavailable');
   }
 
   function renderChallenge(){
@@ -71,7 +78,7 @@
     rendered=true;
     window.__morleyTurnstileState='ready';
     status.textContent='Complete the security check.';
-    post('ready','');
+    post('ready','','');
     try{
       window.turnstile.render('#challenge',{
         sitekey,
@@ -81,8 +88,8 @@
         callback:function(token){status.textContent='';send('onToken',token);},
         'expired-callback':function(){status.textContent='Security check expired. Complete it again.';send('onExpired','');},
         'error-callback':function(code){
-          status.textContent='Security check failed. Retrying…';
-          send('onError',String(code||''));
+          status.textContent='Security check failed. Tap the message below to retry.';
+          sendError(String(code||''));
           return true;
         }
       });
