@@ -41,10 +41,10 @@ import androidx.lifecycle.lifecycleScope
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
-private val AuthAccent=Color(0xFF77E9C4)
-private val AuthPrimary=Color(0xFF167A5A)
-private val AuthBg=Color(0xFFF5F7F4)
-private val AuthCard=Color(0xFFFFFFFF)
+private val AuthAccent=MorleyAccent
+private val AuthPrimary=MorleyAccent
+private val AuthBg=MorleyBackground
+private val AuthCard=MorleySurface
 private const val TURNSTILE_PAGE="https://buyshub.me/admin/turnstile.html"
 private const val LOGIN_VIDEO_RESOURCE="morley_buys_login_bg_app"
 private const val LOGIN_PREFS="morley_login_preferences"
