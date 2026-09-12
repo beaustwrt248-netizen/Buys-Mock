@@ -178,11 +178,13 @@ function buildChunks(raw: string, maxChars = 3200, overlap = 320) {
   const paragraphs = normalized.split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
   const chunks: string[] = [];
   let current = '';
+
   const flush = () => {
     const value = current.trim();
     if (value) chunks.push(value);
     current = '';
   };
+
   for (const paragraph of paragraphs.length ? paragraphs : [normalized]) {
     if (paragraph.length > maxChars) {
       flush();
@@ -258,6 +260,7 @@ async function syncChunks(knowledgeId: string, content: string, active = true) {
     if (error) throw error;
     return { chunks: 0, embedded: 0, active: false };
   }
+
   const parts = buildChunks(content);
   const vectors = await embedTexts(parts);
   const hashes = await Promise.all(parts.map(part => hash(part)));
@@ -434,8 +437,10 @@ Deno.serve(async (req: Request) => {
 
       const nextHash = await hash(payload.content);
       const now = new Date().toISOString();
-      if (existing.content_hash === nextHash) {
+      const materialChanged = existing.content_hash !== nextHash || existing.title !== payload.title;
+      if (!materialChanged) {
         const { data, error } = await admin.from('nova_knowledge_items').update({
+          title: payload.title,
           source_label: payload.source_label,
           source_filename: payload.source_filename,
           mime_type: payload.mime_type,
@@ -477,7 +482,7 @@ Deno.serve(async (req: Request) => {
       await snap(old, caller.user.id);
       const now = new Date().toISOString();
       const patch: any = action === 'update'
-        ? { ...input(body), content_hash: await hash(knowledgeContent(body.content)) }
+        ? { ...input({ ...old, ...body, metadata: body.metadata ?? old.metadata }), content_hash: await hash(knowledgeContent(body.content ?? old.content)) }
         : { status: action === 'archive' ? 'archived' : 'active' };
       patch.revision = Number(old.revision || 1) + 1;
       patch.updated_by = caller.user.id;
