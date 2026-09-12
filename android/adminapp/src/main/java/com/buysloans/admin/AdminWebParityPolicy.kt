@@ -4,9 +4,7 @@ import java.net.URI
 
 object AdminWebParityPolicy {
     const val HOME_URL = "https://buyshub.me/admin/"
-    const val NATIVE_SESSION_BOOTSTRAP_URL = "https://buyshub.me/admin/native-session-bootstrap.html"
     private const val ADMIN_HOST = "buyshub.me"
-    private const val NATIVE_SESSION_BOOTSTRAP_PATH = "/admin/native-session-bootstrap.html"
 
     /**
      * The Admin app is a privileged WebView shell around the live Admin workspace.
@@ -16,18 +14,23 @@ object AdminWebParityPolicy {
     fun freshHomeUrl(versionCode: Int): String = "$HOME_URL?adminApp=$versionCode"
 
     /**
-     * Native authentication is installed into same-origin Supabase storage before the
-     * privileged Admin workspace loads. This removes the race where /admin/ could render
-     * its logged-out web view before the Android session was available.
+     * Native authentication is installed into the exact Supabase client used by the
+     * final Admin workspace. The nativeAuth marker makes app.js wait for Android's
+     * verified session instead of briefly observing a signed-out browser state.
      */
-    fun nativeSessionBootstrapUrl(versionCode: Int): String =
-        "$NATIVE_SESSION_BOOTSTRAP_URL?adminApp=$versionCode"
+    fun nativeWorkspaceUrl(versionCode: Int): String =
+        "$HOME_URL?adminApp=$versionCode&nativeAuth=1"
 
-    fun isNativeSessionBootstrapUrl(rawUrl: String): Boolean = runCatching {
+    fun isNativeWorkspaceUrl(rawUrl: String): Boolean = runCatching {
         val uri = URI(rawUrl)
+        val path = uri.path ?: return false
+        val nativeAuth = uri.rawQuery.orEmpty()
+            .split('&')
+            .any { it.substringBefore('=') == "nativeAuth" && it.substringAfter('=', "") == "1" }
         uri.scheme.equals("https", ignoreCase = true) &&
             uri.host.equals(ADMIN_HOST, ignoreCase = true) &&
-            uri.path == NATIVE_SESSION_BOOTSTRAP_PATH
+            (path == "/admin" || path == "/admin/") &&
+            nativeAuth
     }.getOrDefault(false)
 
     fun isTrustedAdminUrl(rawUrl: String): Boolean = runCatching {
