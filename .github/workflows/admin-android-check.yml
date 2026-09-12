@@ -52,63 +52,63 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          ROOT=android/adminapp/src/main/java/com/buysloans/admin
+          ACTIVITY="$ROOT/AdminActivity.kt"
+          LOGIN="$ROOT/AdminLoginActivity.kt"
+          CAPTCHA="$ROOT/CaptchaChallenge.kt"
+          DASHBOARD="$ROOT/AdminNativeDashboard.kt"
+          STORE="$ROOT/AdminSessionStore.kt"
+
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
 
-          if grep -Eq 'AdminWebParityPolicy\.(HOME_URL|freshHomeUrl|nativeWorkspaceUrl)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
-            grep -q 'const val HOME_URL = "https://buyshub.me/admin/"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'private const val ADMIN_HOST = "buyshub.me"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'uri.scheme.equals("https"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'path == "/admin" || path.startsWith("/admin/")' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'AdminWebParityPolicy.isTrustedAdminUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'AdminWebParityPolicy.isNativeWorkspaceUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'AdminWebParityPolicy.nativeWorkspaceUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'javaScriptCanOpenWindowsAutomatically = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            ! grep -Eq 'addJavascriptInterface|setAllowUniversalAccessFromFileURLs\(true\)|setAllowFileAccessFromFileURLs\(true\)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'cacheMode = WebSettings.LOAD_DEFAULT' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            ! grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'adminApp=' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'nativeAuth=1' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'nativeSessionInjectionStarted' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'maxInstallAttempts=40' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'maxWatchAttempts=80' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'window.installNativeAdminSession' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q '__morleyNativeSessionState' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            ! grep -q 'window.sb.auth.setSession' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-          else
-            grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-          fi
+          # Authenticated workspace is native Compose. It must never regain a browser runtime,
+          # JavaScript session handoff or web logout fallback.
+          grep -q 'AdminSessionStore.current()' "$ACTIVITY"
+          grep -q 'AdminSessionStore.hasAuthorizedSession()' "$ACTIVITY"
+          grep -q 'AdminNativeDashboard' "$ACTIVITY"
+          ! grep -Eq 'android\.webkit|WebView|CookieManager|evaluateJavascript|loadUrl\(|AdminWebParityPolicy|installNativeAdminSession|native-logout|EXTRA_ACCESS_TOKEN|EXTRA_REFRESH_TOKEN|addJavascriptInterface' "$ACTIVITY"
+          ! grep -Eq 'android\.webkit|WebView|evaluateJavascript|installNativeAdminSession|addJavascriptInterface' "$DASHBOARD"
+          grep -q 'NATIVE CONTROL MODE' "$DASHBOARD"
+          grep -q 'SupportOperationsPanel' "$DASHBOARD"
+          grep -q 'GuardianPanel' "$DASHBOARD"
+          grep -q 'ManualNotificationPanel' "$DASHBOARD"
+          grep -q 'UserManagementPanel' "$DASHBOARD"
+          grep -q 'AuditTimelinePanel' "$DASHBOARD"
+          grep -q 'AdminAppAccessPolicy.canReadFullSnapshot(session)' "$DASHBOARD"
 
-          test "$(grep -c 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt)" = "1"
-          ! grep -q 'addJavascriptInterface(' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-          grep -q '"AndroidBridge"' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
-          grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
-          grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
-          grep -q 'domStorageEnabled = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
+          # Native login owns the authorized process session before navigation and does not put
+          # access/refresh tokens into Intents.
+          grep -q 'AdminSessionStore.set(session)' "$LOGIN"
+          grep -q 'Intent(this, AdminActivity::class.java)' "$LOGIN"
+          ! grep -Eq 'EXTRA_ACCESS_TOKEN|EXTRA_REFRESH_TOKEN|putExtra\(AdminActivity' "$LOGIN"
+          grep -q 'private var active: AdminSession?' "$STORE"
+          grep -q 'fun clear()' "$STORE"
+          grep -q 'active?.accessToken = ""' "$STORE"
+          grep -q 'active?.refreshToken = ""' "$STORE"
 
-          grep -q 'nativeAuthMode' admin/user-management-policy.js
-          grep -q 'window.installNativeAdminSession' admin/user-management-policy.js
-          grep -q 'auth.setSession' admin/user-management-policy.js
-          grep -q 'nativeSessionGate' admin/user-management-policy.js
-          grep -q 'nativeAuthMode' admin/login-security.js
-          grep -q 'turnstile.render(challengeHost' admin/login-security.js
-          grep -q 'challenges.cloudflare.com/turnstile/v0/api.js?render=explicit' admin/login-security.js
-          grep -q 'user-management-policy.js?v=2' admin/index.html
-          grep -q 'login-security.js?v=8' admin/index.html
+          # Exactly one Android JavaScript bridge is allowed in the whole Admin app, and it is
+          # the tightly-scoped Turnstile challenge only.
+          test "$(grep -Rho 'addJavascriptInterface(' "$ROOT" | wc -l)" = "1"
+          grep -q 'addJavascriptInterface(' "$CAPTCHA"
+          grep -q '"AndroidBridge"' "$CAPTCHA"
+          grep -q 'domStorageEnabled = false' "$CAPTCHA"
+          grep -q 'allowFileAccess = false' "$CAPTCHA"
+          grep -q 'allowContentAccess = false' "$CAPTCHA"
+          grep -q 'databaseEnabled = false' "$CAPTCHA"
+          grep -q 'MIXED_CONTENT_NEVER_ALLOW' "$CAPTCHA"
 
-          grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
-          test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
-          grep -q '/rest/v1/support_tickets?id=eq.' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
-          grep -q 'authorizedRequest(session, path, "PATCH", payload, preferMinimal = true)' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
-          grep -q 'grant_type=refresh_token' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
-          test "$(grep -Rho 'PATCH' android/adminapp/src/main/java | wc -l)" = "1"
-          test "$(grep -Rlo '/functions/v1/admin-user-control' android/adminapp/src/main/java | wc -l)" = "2"
-          grep -q '/functions/v1/admin-user-control' android/adminapp/src/main/java/com/buysloans/admin/UserControlApi.kt
-          grep -q '/functions/v1/admin-user-control' android/adminapp/src/main/java/com/buysloans/admin/TeamInviteApi.kt
-          ! grep -REq 'force_signout|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' android/adminapp/src/main/java
+          # Existing backend-first least-privilege API boundaries remain intact.
+          grep -q '/rest/v1/rpc/admin_set_config' "$ROOT/AdminApi.kt"
+          test "$(grep -Rho '/rest/v1/rpc/admin_set_config' "$ROOT" | wc -l)" = "1"
+          grep -q '/rest/v1/support_tickets?id=eq.' "$ROOT/AdminApi.kt"
+          grep -q 'authorizedRequest(session, path, "PATCH", payload, preferMinimal = true)' "$ROOT/AdminApi.kt"
+          grep -q 'grant_type=refresh_token' "$ROOT/AdminApi.kt"
+          test "$(grep -Rho 'PATCH' "$ROOT" | wc -l)" = "1"
+          test "$(grep -Rlo '/functions/v1/admin-user-control' "$ROOT" | wc -l)" = "2"
+          grep -q '/functions/v1/admin-user-control' "$ROOT/UserControlApi.kt"
+          grep -q '/functions/v1/admin-user-control' "$ROOT/TeamInviteApi.kt"
+          ! grep -REq 'force_signout|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' "$ROOT"
           ! grep -REqi 'service[_-]?role|SUPABASE_SECRET_KEY' android/adminapp
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
