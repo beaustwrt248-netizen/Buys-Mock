@@ -45,8 +45,8 @@ Source of truth: live GitHub, Supabase and connected service evidence. No Gumtre
 
 - `device_catalog` currently has 1777 active records.
 - Missing active model number: 235. Missing active image: 0.
-- Audit queue currently has 709 pending and 69 blocked records after manufacturer-first review of two missing-model-number items.
-- Queue #912 (realme P4 Lite 5G) and #923 (HUAWEI MateBook Pro S) were moved from pending to blocked because their official manufacturer product/specification pages confirm the devices but do not publish a safe model-number code. Evidence findings were recorded; no model number was guessed and no catalogue row was destructively changed.
+- Audit queue currently has 708 pending and 70 blocked records after manufacturer-first review of three missing-model-number items.
+- Queue #912 (realme P4 Lite 5G), #915 (vivo V80 Lite 5G) and #923 (HUAWEI MateBook Pro S) were moved from pending to blocked because their official manufacturer product/specification pages confirm the devices but do not publish a safe model-number code. Evidence findings were recorded; no model number was guessed and no catalogue row was destructively changed.
 - `catalog_sync_state` revision is 269, last changed at `2026-09-12 09:02:27+00`.
 - Missing facts remain verification backlog; never fill them by guessing. Potential duplicate identifier groups remain triage signals, not permission for destructive merge/delete.
 
@@ -57,7 +57,7 @@ Scoring scale: impact/confidence 1-5 higher is better; risk/effort/dependency ri
 | Workstream | Evidence | Impact | Risk | Effort | Confidence | Dependency risk | Priority | Next safe action |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | Global backup recovery | scheduler job 3 / `google-drive-backup` | 5 | 5 | 2 | 5 | 5 | Highest blocker | Keep fail-closed. A valid fresh Google refresh credential must be supplied through the approved user OAuth flow; then immediately verify one new upload and digest read-back. |
-| Catalogue verification | 709 pending / 235 missing model numbers | 5 | 2 | 5 | 4 | 3 | High safe lane | Process evidence-backed Australian/manufacturer records; never guess or destructively reconcile ambiguity. |
+| Catalogue verification | 708 pending / 235 missing model numbers | 5 | 2 | 5 | 4 | 3 | High safe lane | Process evidence-backed Australian/manufacturer records; never guess or destructively reconcile ambiguity. |
 | Nova evaluation telemetry | 0 recorded orchestrator runs | 4 | 3 | 3 | 5 | 4 | High measurement lane | Build/use non-sensitive benchmark fixtures and collect enough routed results to compare accuracy, latency, failure rate and cost before changing routing defaults. |
 | Admin stability/parity | #1647 merged | 4 | 3 | 2 | 4 | 4 | Monitor | Continue synthetic/static evidence for desktop/mobile browser and native Admin boundaries; do not weaken auth/CAPTCHA/role gates. |
 | Guardian | 28 total / 0 open | 4 | 4 | 1 | 5 | 4 | Monitor | Watch for new evidence-backed incidents; keep code-changing repairs approval-gated. |
