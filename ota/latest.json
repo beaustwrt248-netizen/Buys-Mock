@@ -1,7 +1,7 @@
 {
-  "versionCode": 140,
-  "versionName": "2.15.96",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.96/B-and-L-Morley-2.15.96.apk",
-  "sha256": "cc7917e81871f8ed4fafe3679b63c75717002b1fce2da755249265e4caeb31d9",
-  "notes": "Merge Morley AI assessment engine"
+  "versionCode": 141,
+  "versionName": "2.15.97",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.97/B-and-L-Morley-2.15.97.apk",
+  "sha256": "353c47208ccafac6d1c97b16008f1f3f8fda6772d947eb9b6473a6920844a401",
+  "notes": "Unify Morley Buys on blue theme and simplify dashboard camera entry"
 }
