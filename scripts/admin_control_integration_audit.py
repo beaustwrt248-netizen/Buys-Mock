@@ -26,7 +26,7 @@ browser_auth = read("admin/browser-auth-bootstrap.js")
 workspace_html = read("admin/workspace.html")
 workspace_template = read("admin/workspace-template.html")
 admin_user_control = read("supabase/functions/admin-user-control/index.ts")
-session_revoke_migration = read("supabase/migrations/20260912123000_admin_revoke_user_sessions.sql")
+session_revoke_migration = read("supabase/migrations/20260912122323_admin_revoke_user_sessions.sql")
 
 workspace_scripts = [
     "user-management-policy.js",
