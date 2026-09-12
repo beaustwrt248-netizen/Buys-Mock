@@ -26,6 +26,14 @@ class DeviceLensRepairDecisionContractTest {
     }
 
     @Test
+    fun `repair decision screen uses live Compose context rather than uninitialised global context`() {
+        val activity = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionActivity.kt")
+        assertTrue(activity.contains("LocalContext.current"))
+        assertFalse(activity.contains("LocalRepairContext"))
+        assertFalse(activity.contains("lateinit var current: Context"))
+    }
+
+    @Test
     fun `repair decision ui stays advisory and never creates a second decision engine`() {
         val ui = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionUi.kt")
         assertTrue(ui.contains("AI recommendation"))
