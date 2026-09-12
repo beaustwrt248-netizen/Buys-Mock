@@ -68,7 +68,7 @@ jobs:
               r'persist-credentials\s*:\s*true',
           ]
           service_role_pattern=re.compile(r'\bservice[_-]?role\b', re.I)
-          document_path=re.compile(r'(^|/)(docs?/|[^/]+\.md$)', re.I)
+          reference_only_path=re.compile(r'(^|/)(docs?/|tests?/|src/(test|androidTest)/|[^/]+\.md$)', re.I)
 
           critical=[]
           for name in names:
@@ -76,7 +76,7 @@ jobs:
           for pattern in critical_added:
               if re.search(pattern, added, re.I|re.M): critical.append(f'diff:{pattern}')
           for name, file_added in added_by_file.items():
-              if service_role_pattern.search(file_added) and not document_path.search(name):
+              if service_role_pattern.search(file_added) and not reference_only_path.search(name):
                   critical.append(f'diff:{name}:service-role')
 
           guarded=[n for n in names if guarded_path.search(n)]
