@@ -11,9 +11,11 @@ class DashboardSearchEntryPointContractTest {
     @Test
     fun `dashboard routes search manual and price check with explicit modes`() {
         val src = source()
-        assertTrue(src.contains("UniversalBuySearchMode.QUICK_SEARCH.wireValue"))
-        assertTrue(src.contains("UniversalBuySearchMode.MANUAL_SEARCH.wireValue"))
-        assertTrue(src.contains("UniversalBuySearchMode.PRICE_CHECK.wireValue"))
+        assertTrue(src.contains("private fun openSearch(mode: UniversalBuySearchMode)"))
+        assertTrue(src.contains("putExtra(UniversalBuySearchActivity.EXTRA_MODE, mode.wireValue)"))
+        assertTrue(src.contains("openSearch(UniversalBuySearchMode.QUICK_SEARCH)"))
+        assertTrue(src.contains("openSearch(UniversalBuySearchMode.MANUAL_SEARCH)"))
+        assertTrue(src.contains("openSearch(UniversalBuySearchMode.PRICE_CHECK)"))
     }
 
     @Test
