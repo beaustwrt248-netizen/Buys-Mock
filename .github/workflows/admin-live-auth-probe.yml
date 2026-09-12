@@ -12,7 +12,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -22,87 +22,62 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Trace buyshub.me Admin startup and Turnstile relay
+      - name: Isolate live Admin renderer blocker
         shell: bash
         run: |
           cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
 
-          const target='https://buyshub.me/admin/';
+          const [name='baseline',blockText='']=process.argv.slice(2);
+          const block=blockText?new RegExp(blockText):null;
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1280,height:900}});
-          const withDeadline=(promise,ms,label)=>Promise.race([
-            promise,
-            new Promise(resolve=>setTimeout(()=>resolve({probeTimeout:label}),ms))
-          ]);
-          await page.addInitScript(()=>{
-            window.addEventListener('message',event=>{
-              const data=event.data;
-              if(data&&data.source==='morley-turnstile'){
-                console.log('MORLEY_TURNSTILE_MESSAGE '+JSON.stringify({type:data.type||'',value:data.value?'[present]':'',code:data.code||''}));
-              }
+          const deadline=(promise,ms)=>Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({timeout:true}),ms))]);
+          if(block){
+            await page.route('**/*',async route=>{
+              const url=route.request().url();
+              if(block.test(url)){
+                console.log(`SCENARIO=${name} BLOCK=${url}`);
+                await route.abort();
+              }else await route.continue();
             });
-          });
-          page.on('request',req=>console.log(`REQ=${req.resourceType()} ${req.url()}`));
-          page.on('response',res=>console.log(`RES=${res.status()} ${res.url()}`));
-          page.on('requestfailed',req=>console.log(`FAIL=${req.url()} :: ${req.failure()?.errorText||'failed'}`));
-          page.on('console',msg=>console.log(`CONSOLE=${msg.type()} ${msg.text()}`));
-          page.on('pageerror',err=>console.log(`PAGEERROR=${err.message}`));
-
-          try {
-            const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
-            console.log(`ADMIN_HTTP=${response?.status()||0}`);
-            console.log(`ADMIN_URL=${page.url()}`);
-            console.log('DOMCONTENTLOADED=1');
-            await new Promise(resolve=>setTimeout(resolve,12000));
-            const frameUrls=page.frames().map(frame=>frame.url());
-            console.log(`FRAME_URLS=${JSON.stringify(frameUrls)}`);
-            const parentState=await withDeadline(page.evaluate(()=>({
+          }
+          page.on('console',msg=>{if(/MORLEY|error/i.test(msg.text()))console.log(`SCENARIO=${name} CONSOLE=${msg.type()} ${msg.text()}`)});
+          page.on('pageerror',err=>console.log(`SCENARIO=${name} PAGEERROR=${err.message}`));
+          try{
+            const response=await page.goto('https://buyshub.me/admin/',{waitUntil:'domcontentloaded',timeout:25000});
+            console.log(`SCENARIO=${name} HTTP=${response?.status()||0}`);
+            await new Promise(resolve=>setTimeout(resolve,7000));
+            const state=await deadline(page.evaluate(()=>({
               status:document.getElementById('challengeStatus')?.textContent||'',
               loginDisabled:document.getElementById('loginBtn')?.disabled,
-              frameSrc:document.getElementById('adminTurnstileFrame')?.src||''
-            })).catch(error=>({evaluateError:String(error)})),3000,'parent-evaluate');
-            console.log(`PARENT_STATE=${JSON.stringify(parentState)}`);
-            const turnstileFrame=page.frames().find(frame=>frame.url().includes('/admin/turnstile.html'));
-            if(!turnstileFrame){
-              console.log('TURNSTILE_STATE={"missing":true}');
-            }else{
-              const turnstileState=await withDeadline(turnstileFrame.evaluate(()=>({
-                state:window.__morleyTurnstileState||'',
-                token:window.__morleyTurnstileToken?'[present]':'',
-                status:document.getElementById('status')?.textContent||'',
-                challengeText:document.getElementById('challenge')?.innerText||''
-              })).catch(error=>({evaluateError:String(error)})),3000,'turnstile-evaluate');
-              console.log(`TURNSTILE_STATE=${JSON.stringify(turnstileState)}`);
-            }
-          } catch(error){
-            console.log(`PROBE_ERROR=${error?.stack||error}`);
-          } finally {
-            await Promise.race([
-              browser.close().catch(()=>{}),
-              new Promise(resolve=>setTimeout(resolve,3000))
-            ]);
-          }
+              frameSrc:document.getElementById('adminTurnstileFrame')?.src||'',
+              readyState:document.readyState
+            })).catch(error=>({error:String(error)})),2500);
+            console.log(`SCENARIO=${name} STATE=${JSON.stringify(state)}`);
+            console.log(`SCENARIO=${name} FRAMES=${JSON.stringify(page.frames().map(f=>f.url()))}`);
+          }catch(error){console.log(`SCENARIO=${name} ERROR=${error?.message||error}`)}
+          await Promise.race([browser.close().catch(()=>{}),new Promise(resolve=>setTimeout(resolve,2000))]);
           EOF
-          set +e
-          timeout 55s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
-          rc=${PIPESTATUS[0]}
-          set -e
-          if [ "$rc" -eq 124 ]; then echo 'PROBE_ERROR=browser probe timed out' | tee -a "$RUNNER_TEMP/probe.log"; fi
-          if ! grep -q 'ADMIN_HTTP=200' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Live Admin page did not return HTTP 200.'
-            exit 1
-          fi
-          if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Turnstile configuration failure detected on the live custom domain.'
-            exit 1
-          fi
-          if grep -q 'TURNSTILE_STATE={"missing":true}' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Live Admin page did not create its Turnstile frame.'
-            exit 1
-          fi
-          if [ "$rc" -ne 0 ] || grep -q 'PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Live Admin renderer/startup did not remain responsive.'
+
+          : > "$RUNNER_TEMP/probe.log"
+          run_case() {
+            local name="$1" pattern="$2"
+            set +e
+            timeout 38s node probe.mjs "$name" "$pattern" 2>&1 | tee -a "$RUNNER_TEMP/probe.log"
+            local rc=${PIPESTATUS[0]}
+            set -e
+            echo "SCENARIO=$name RC=$rc" | tee -a "$RUNNER_TEMP/probe.log"
+          }
+
+          run_case baseline ''
+          run_case no_admin_home 'admin/admin-home\\.js'
+          run_case no_governance_children 'admin/(catalogue-live-sync|admin-v2)\\.js\\?v=1'
+          run_case no_home_children 'admin/(control-centre-visual|mobile-workspace-fix|release-fetch-fallback|mobile-system-parity|mobile-nav-dock|intelligence-command-centre|device-intelligence-centre|catalogue-autopilot|pricing-intelligence-centre|marketplace-manager|smart-alerts|image-intelligence-model|image-intelligence-review|support-intelligence-model|support-intelligence-centre|release-intelligence-model|release-intelligence-centre|device-testing-centre|business-intelligence-model|business-intelligence-centre|ecosystem-presentation)\\.js'
+
+          cat "$RUNNER_TEMP/probe.log"
+          if ! grep -q 'SCENARIO=no_admin_home STATE=.*"readyState":"complete"' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Blocking admin-home did not restore a responsive login renderer.'
             exit 1
           fi
       - name: Upload browser evidence
