@@ -31,6 +31,7 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
             appScope.launch {
                 runCatching { MainAppCrashTelemetry.flushPending(this@MorleyApplication) }
                 runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) }
+                runCatching { DeviceAssessmentStore.syncPending(this@MorleyApplication) }
             }
             FirebaseMessaging.getInstance().token.addOnSuccessListener { token -> DeviceRegistrar.register(this, token) }
         }
@@ -70,11 +71,16 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
         appScope.launch {
             runCatching { MainAppCrashTelemetry.flushPending(this@MorleyApplication) }
             runCatching { LiveDevicePricing.reconcile(this@MorleyApplication) }
+            runCatching { DeviceAssessmentStore.syncPending(this@MorleyApplication) }
         }
         checkMaintenance(activity)
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+        if (activity is DeviceLensActivity) {
+            DeviceLensScanSession.begin(activity)
+            appScope.launch { runCatching { DeviceAssessmentStore.syncPending(this@MorleyApplication) } }
+        }
         if (activity is MenuFeatureActivity && activity.intent?.getStringExtra(MenuFeatureActivity.EXTRA_FEATURE) == "backup") {
             activity.startActivity(Intent(activity, DriveRecoveryActivity::class.java))
             activity.finish()
@@ -85,5 +91,7 @@ class MorleyApplication : Application(), Application.ActivityLifecycleCallbacks 
     override fun onActivityPaused(activity: Activity) = Unit
     override fun onActivityStopped(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-    override fun onActivityDestroyed(activity: Activity) = Unit
+    override fun onActivityDestroyed(activity: Activity) {
+        if (activity is DeviceLensActivity) DeviceLensScanSession.finishLocalSession(activity)
+    }
 }
