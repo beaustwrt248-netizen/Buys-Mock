@@ -9,10 +9,12 @@ on:
       - 'admin/control-governance.js'
       - 'nova/live-catalogue.js'
       - 'android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt'
       - 'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt'
       - 'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt'
+      - 'tests/catalogue-realtime-contract.test.mjs'
       - 'supabase/migrations/*catalogue_realtime_sync.sql'
       - '.github/workflows/catalogue-live-sync.yml'
   push:
@@ -24,11 +26,14 @@ on:
       - 'admin/control-governance.js'
       - 'nova/live-catalogue.js'
       - 'android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt'
       - 'android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt'
       - 'android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt'
       - 'android/app/src/test/java/com/buysloans/hub/ConsolePricingCatalogTest.kt'
+      - 'tests/catalogue-realtime-contract.test.mjs'
       - 'supabase/migrations/*catalogue_realtime_sync.sql'
+      - '.github/workflows/catalogue-live-sync.yml'
 
 permissions:
   contents: read
@@ -56,7 +61,28 @@ jobs:
           grep -q "catalogue-live-sync.js?v=20260908" admin/control-governance.js
           grep -q "table:'catalog_sync_state'" nova/live-catalogue.js
           grep -q "catalog_sync_state?id=eq.1&select=revision" android/app/src/main/java/com/buysloans/hub/LiveDevicePricing.kt
-          grep -q "delay(1_000L)" android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt
+          if test -f android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt; then
+            grep -q 'CatalogueRealtimeSync.ensure(this)' android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt
+            grep -q 'CatalogueRealtimeSync.stop()' android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt
+            grep -q 'RECOVERY_RECONCILE_MS = 60_000L' android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt
+            grep -q 'AuthManager.validAccessToken(appContext)' android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt
+            grep -q 'BuildConfig.SUPABASE_PUBLISHABLE_KEY' android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt
+            grep -q 'table = "catalog_sync_state"' android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt
+            if grep -q 'delay(1_000L)' android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt; then
+              echo 'One-second native catalogue polling must not return after Realtime adoption.'
+              exit 1
+            fi
+            if grep -Eiq 'service[_-]?role' android/app/src/main/java/com/buysloans/hub/CatalogueRealtimeSync.kt; then
+              echo 'Catalogue Realtime must not use a service-role credential.'
+              exit 1
+            fi
+            if test -f tests/catalogue-realtime-contract.test.mjs; then
+              node --test tests/catalogue-realtime-contract.test.mjs
+            fi
+          else
+            # Transition guard: main still uses the legacy loop until the separately-reviewed runtime PR lands.
+            grep -q 'delay(1_000L)' android/app/src/main/java/com/buysloans/hub/MorleyApplication.kt
+          fi
           grep -q 'filter { it.category == "console" }' android/app/src/main/java/com/buysloans/hub/ConsolePricingCatalog.kt
           grep -q "LiveDevicePricing.find" android/app/src/main/java/com/buysloans/hub/MobilePhoneDeviceCatalog.kt
           grep -q "create table if not exists public.catalog_sync_state" supabase/migrations/20260908150000_catalogue_realtime_sync.sql
