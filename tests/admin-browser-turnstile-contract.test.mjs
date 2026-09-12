@@ -5,6 +5,10 @@ import { readFileSync } from 'node:fs';
 const loginSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const indexHtml = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
 
+test('browser Admin ships the current auth controller under a fresh cache key', () => {
+  assert.match(indexHtml, /login-security\.js\?v=10/);
+});
+
 test('browser Admin uses direct Turnstile first on desktop and mobile web', () => {
   assert.match(indexHtml, /id="adminTurnstileFrame"/);
   assert.match(loginSecurity, /adminTurnstileWidget/);
