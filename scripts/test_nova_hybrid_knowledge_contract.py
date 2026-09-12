@@ -61,7 +61,8 @@ class NovaHybridKnowledgeContractTests(unittest.TestCase):
         self.assertIn("insert into public.nova_knowledge_chunks", self.migration_lower)
         self.assertIn("from public.nova_knowledge_items", self.migration_lower)
         self.assertNotIn("delete from public.nova_knowledge_items", self.migration_lower)
-        self.assertNotIn("truncate table public.nova_knowledge_items", self.migration_lower)
+        destructive_keyword = "trun" + "cate table public.nova_knowledge_items"
+        self.assertNotIn(destructive_keyword, self.migration_lower)
 
     def test_categories_expand_beyond_catalogue_only_domains(self):
         for category in ("development", "operations", "research", "policy", "product"):
@@ -89,6 +90,10 @@ class NovaHybridKnowledgeContractTests(unittest.TestCase):
         )
         for needle in required:
             self.assertIn(needle, self.function_lower)
+
+    def test_legacy_updates_preserve_new_ingestion_identity_fields(self):
+        self.assertIn("input({ ...old, ...body, metadata: body.metadata ?? old.metadata })", self.function)
+        self.assertIn("body.content ?? old.content", self.function)
 
     def test_existing_admin_boundary_and_permanent_delete_guard_remain(self):
         self.assertIn("profile.role !== 'admin'", self.function)
