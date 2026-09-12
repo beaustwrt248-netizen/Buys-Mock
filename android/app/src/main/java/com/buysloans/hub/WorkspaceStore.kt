@@ -1,7 +1,6 @@
 package com.buysloans.hub
 
 import android.content.Context
-import android.content.ContextWrapper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -33,15 +32,6 @@ object WorkspaceStore {
     private const val SALES="sales_json"
 
     private fun prefs(context:Context)=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE)
-
-    private tailrec fun findDeviceLensActivity(context:Context):DeviceLensActivity? = when(context){
-        is DeviceLensActivity -> context
-        is ContextWrapper -> {
-            val base=context.baseContext
-            if(base===context)null else findDeviceLensActivity(base)
-        }
-        else -> null
-    }
 
     private fun lifecycleFrom(raw:String):InventoryLifecycle =
         runCatching { InventoryLifecycle.valueOf(raw) }.getOrDefault(InventoryLifecycle.PURCHASED)
@@ -92,20 +82,17 @@ object WorkspaceStore {
         require(name.isNotBlank()){ "Enter an item name." }
         require(quantity>0){ "Quantity must be at least 1." }
 
-        val lensActivity=findDeviceLensActivity(context)
-        val lensAssessmentId=lensActivity?.let{DeviceLensScanSession.begin(it.applicationContext)}
-        if(lensActivity!=null&&lensAssessmentId!=null&&!MorleyRepairDecisionConfirmationStore.isConfirmed(lensActivity,lensAssessmentId)){
-            lensActivity.startActivity(
-                MorleyRepairDecisionActivity.createIntent(
-                    context=lensActivity,
-                    assessmentId=lensAssessmentId,
-                    buyCost=cost,
-                    asIsResale=resale
-                )
-            )
-            error("Repair-or-Buy must be confirmed before adding stock")
-        }
+        val lensAssessmentId=DeviceLensScanSession.current(context.applicationContext)
         if(lensAssessmentId!=null){
+            DeviceAssessmentStore.checkpointAsync(
+                context,
+                lensAssessmentId,
+                "staff_confirmed",
+                JSONObject().apply{
+                    put("commercialAuthority","staff_confirmed")
+                    put("confirmationSource","device_lens_repair_gate")
+                }
+            )
             DeviceAssessmentStore.checkpointAsync(
                 context,
                 lensAssessmentId,
@@ -127,7 +114,6 @@ object WorkspaceStore {
                 "completed",
                 JSONObject().apply{put("stockCreated",true)}
             )
-            MorleyRepairDecisionConfirmationStore.clear(context,lensAssessmentId)
             DeviceLensScanSession.finishLocalSession(context.applicationContext)
         }
     }
