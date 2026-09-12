@@ -12,7 +12,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -22,32 +22,23 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Isolate live Admin renderer blocker
+      - name: Compare Admin startup with and without Turnstile
         shell: bash
         run: |
           cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
-
           const [name='baseline',blockText='']=process.argv.slice(2);
           const block=blockText?new RegExp(blockText):null;
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1280,height:900}});
           const deadline=(promise,ms)=>Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve({timeout:true}),ms))]);
-          if(block){
-            await page.route('**/*',async route=>{
-              const url=route.request().url();
-              if(block.test(url)){
-                console.log(`SCENARIO=${name} BLOCK=${url}`);
-                await route.abort();
-              }else await route.continue();
-            });
-          }
-          page.on('console',msg=>{if(/MORLEY|error/i.test(msg.text()))console.log(`SCENARIO=${name} CONSOLE=${msg.type()} ${msg.text()}`)});
+          if(block)await page.route('**/*',async route=>block.test(route.request().url())?route.abort():route.continue());
+          page.on('console',msg=>{if(/error|turnstile/i.test(msg.text()))console.log(`SCENARIO=${name} CONSOLE=${msg.type()} ${msg.text()}`)});
           page.on('pageerror',err=>console.log(`SCENARIO=${name} PAGEERROR=${err.message}`));
           try{
             const response=await page.goto('https://buyshub.me/admin/',{waitUntil:'domcontentloaded',timeout:25000});
             console.log(`SCENARIO=${name} HTTP=${response?.status()||0}`);
-            await new Promise(resolve=>setTimeout(resolve,7000));
+            await new Promise(resolve=>setTimeout(resolve,5000));
             const state=await deadline(page.evaluate(()=>({
               status:document.getElementById('challengeStatus')?.textContent||'',
               loginDisabled:document.getElementById('loginBtn')?.disabled,
@@ -59,25 +50,21 @@ jobs:
           }catch(error){console.log(`SCENARIO=${name} ERROR=${error?.message||error}`)}
           await Promise.race([browser.close().catch(()=>{}),new Promise(resolve=>setTimeout(resolve,2000))]);
           EOF
-
           : > "$RUNNER_TEMP/probe.log"
-          run_case() {
-            local name="$1" pattern="$2"
+          run_case(){
             set +e
-            timeout 38s node probe.mjs "$name" "$pattern" 2>&1 | tee -a "$RUNNER_TEMP/probe.log"
-            local rc=${PIPESTATUS[0]}
+            timeout 32s node probe.mjs "$1" "$2" 2>&1 | tee -a "$RUNNER_TEMP/probe.log"
+            echo "SCENARIO=$1 RC=${PIPESTATUS[0]}" | tee -a "$RUNNER_TEMP/probe.log"
             set -e
-            echo "SCENARIO=$name RC=$rc" | tee -a "$RUNNER_TEMP/probe.log"
           }
-
           run_case baseline ''
-          run_case no_admin_home 'admin/admin-home\\.js'
-          run_case no_governance_children 'admin/(catalogue-live-sync|admin-v2)\\.js\\?v=1'
-          run_case no_home_children 'admin/(control-centre-visual|mobile-workspace-fix|release-fetch-fallback|mobile-system-parity|mobile-nav-dock|intelligence-command-centre|device-intelligence-centre|catalogue-autopilot|pricing-intelligence-centre|marketplace-manager|smart-alerts|image-intelligence-model|image-intelligence-review|support-intelligence-model|support-intelligence-centre|release-intelligence-model|release-intelligence-centre|device-testing-centre|business-intelligence-model|business-intelligence-centre|ecosystem-presentation)\\.js'
-
+          run_case no_turnstile_document 'buyshub\\.me/admin/turnstile\\.html'
+          run_case no_cloudflare 'challenges\\.cloudflare\\.com'
           cat "$RUNNER_TEMP/probe.log"
-          if ! grep -q 'SCENARIO=no_admin_home STATE=.*"readyState":"complete"' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Blocking admin-home did not restore a responsive login renderer.'
+          if grep -q 'SCENARIO=no_turnstile_document STATE=.*"readyState":"complete"' "$RUNNER_TEMP/probe.log" || grep -q 'SCENARIO=no_cloudflare STATE=.*"readyState":"complete"' "$RUNNER_TEMP/probe.log"; then
+            echo 'Turnstile dependency isolation restored a responsive Admin login renderer.'
+          else
+            echo '::error::Turnstile isolation did not restore the renderer; continue upstream script isolation.'
             exit 1
           fi
       - name: Upload browser evidence
