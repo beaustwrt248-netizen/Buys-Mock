@@ -50,8 +50,8 @@
     const type=name==='onToken'?'token':name==='onExpired'?'expired':'error';
     post(type,token,'');
     if(name==='onToken'){
-      setTimeout(()=>post(type,token,''),150);
-      setTimeout(()=>post(type,token,''),600);
+      setTimeout(()=>post(type,token),150);
+      setTimeout(()=>post(type,token),600);
     }
   }
 
