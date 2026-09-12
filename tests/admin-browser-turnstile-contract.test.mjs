@@ -4,23 +4,30 @@ import { readFileSync } from 'node:fs';
 
 const loginSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const indexHtml = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
-const turnstileHtml = readFileSync(new URL('../admin/turnstile.html', import.meta.url), 'utf8');
 
-test('browser Admin uses the isolated same-origin Turnstile page instead of injecting Cloudflare into the parent document', () => {
-  assert.match(indexHtml, /id="adminTurnstileFrame"/);
-  assert.match(loginSecurity, /challengeBase=['"]turnstile\.html\?v=\d+&browser=1['"]/);
-  assert.match(loginSecurity, /frame\.src=challengeUrl\(['"]load['"]\)/);
-  assert.match(loginSecurity, /event\.source===frame\.contentWindow/);
-  assert.match(loginSecurity, /event\.origin===window\.location\.origin/);
-  assert.match(loginSecurity, /window\.location\.origin===['"]null['"]&&event\.origin===['"]null['"]/);
-  assert.match(loginSecurity, /payload\.source!==['"]morley-turnstile['"]/);
-  assert.match(loginSecurity, /payload\.type===['"]token['"]/);
-  assert.doesNotMatch(loginSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
-  assert.doesNotMatch(loginSecurity, /turnstile\.render\(/);
+test('browser Admin renders Turnstile directly in the top-level login document for desktop and mobile web', () => {
+  assert.match(indexHtml, /id="adminTurnstileWidget"/);
+  assert.doesNotMatch(indexHtml, /id="adminTurnstileFrame"/);
+  assert.match(loginSecurity, /https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
+  assert.match(loginSecurity, /window\.turnstile\.render\(/);
+  assert.match(loginSecurity, /sitekey/);
+  assert.doesNotMatch(loginSecurity, /postMessage\(/);
+  assert.doesNotMatch(loginSecurity, /frame\.contentWindow/);
 });
 
-test('isolated challenge starts immediately and posts token state to its parent', () => {
-  assert.match(turnstileHtml, /loadApi\(\)/);
-  assert.match(turnstileHtml, /window\.parent\.postMessage/);
-  assert.match(turnstileHtml, /source:'morley-turnstile'/);
+test('browser Admin recovers from blocked or stalled challenge loading instead of hanging forever', () => {
+  assert.match(loginSecurity, /challengeWatchdog=setTimeout/);
+  assert.match(loginSecurity, /Security check unavailable\. Tap here to retry\./);
+  assert.match(loginSecurity, /script\.onerror/);
+  assert.match(loginSecurity, /resetChallenge/);
+  assert.match(loginSecurity, /visibilitychange/);
+  assert.match(loginSecurity, /pageshow/);
+});
+
+test('browser Admin still requires a completed captcha token for password sign-in', () => {
+  assert.match(loginSecurity, /!captchaToken/);
+  assert.match(loginSecurity, /captchaToken:token/);
+  assert.match(loginSecurity, /callback:function\(token\)/);
+  assert.match(loginSecurity, /expired-callback/);
+  assert.match(loginSecurity, /error-callback/);
 });
