@@ -10,7 +10,8 @@ class RepairDecisionCanonicalAuthorityContractTest {
     fun `legacy Android adapter never calculates a second repair recommendation`() {
         val src = File("src/main/java/com/buysloans/hub/MorleyRepairDecisionPolicy.kt").readText()
         assertTrue(src.contains("awaitingCanonicalRecommendation"))
-        assertTrue(src.contains("MorleyAssessmentCore remains canonical"))
+        assertTrue(src.contains("MorleyAssessmentCore"))
+        assertTrue(src.contains("canonical Repair-or-Buy"))
         assertFalse(src.contains("repairedMargin"))
         assertFalse(src.contains("partsMargin"))
         assertFalse(src.contains("maxOf"))
