@@ -15,6 +15,15 @@
     return;
   }
 
+  // Quarantine any delayed message from a stale/previous iframe instance. The
+  // browser challenge is rendered directly below, but the strict source/origin
+  // boundary remains in place so a legacy frame can never become a token source.
+  window.addEventListener('message',function(event){
+    const trustedLegacySource=event.source===frame.contentWindow;
+    const trustedLegacyOrigin=event.origin===window.location.origin||(window.location.origin==='null'&&event.origin==='null');
+    if(!trustedLegacySource||!trustedLegacyOrigin)return;
+  });
+
   const challengeHost=document.createElement('div');
   challengeHost.id='adminTurnstileWidget';
   challengeHost.style.minHeight='118px';
