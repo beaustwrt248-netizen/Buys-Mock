@@ -22,7 +22,7 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Trace buyshub.me Admin startup
+      - name: Trace buyshub.me Admin startup and Turnstile relay
         shell: bash
         run: |
           cat > probe.mjs <<'EOF'
@@ -31,6 +31,18 @@ jobs:
           const target='https://buyshub.me/admin/';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1280,height:900}});
+          const withDeadline=(promise,ms,label)=>Promise.race([
+            promise,
+            new Promise(resolve=>setTimeout(()=>resolve({probeTimeout:label}),ms))
+          ]);
+          await page.addInitScript(()=>{
+            window.addEventListener('message',event=>{
+              const data=event.data;
+              if(data&&data.source==='morley-turnstile'){
+                console.log('MORLEY_TURNSTILE_MESSAGE '+JSON.stringify({type:data.type||'',value:data.value?'[present]':'',code:data.code||''}));
+              }
+            });
+          });
           page.on('request',req=>console.log(`REQ=${req.resourceType()} ${req.url()}`));
           page.on('response',res=>console.log(`RES=${res.status()} ${res.url()}`));
           page.on('requestfailed',req=>console.log(`FAIL=${req.url()} :: ${req.failure()?.errorText||'failed'}`));
@@ -45,6 +57,24 @@ jobs:
             await new Promise(resolve=>setTimeout(resolve,12000));
             const frameUrls=page.frames().map(frame=>frame.url());
             console.log(`FRAME_URLS=${JSON.stringify(frameUrls)}`);
+            const parentState=await withDeadline(page.evaluate(()=>({
+              status:document.getElementById('challengeStatus')?.textContent||'',
+              loginDisabled:document.getElementById('loginBtn')?.disabled,
+              frameSrc:document.getElementById('adminTurnstileFrame')?.src||''
+            })).catch(error=>({evaluateError:String(error)})),3000,'parent-evaluate');
+            console.log(`PARENT_STATE=${JSON.stringify(parentState)}`);
+            const turnstileFrame=page.frames().find(frame=>frame.url().includes('/admin/turnstile.html'));
+            if(!turnstileFrame){
+              console.log('TURNSTILE_STATE={"missing":true}');
+            }else{
+              const turnstileState=await withDeadline(turnstileFrame.evaluate(()=>({
+                state:window.__morleyTurnstileState||'',
+                token:window.__morleyTurnstileToken?'[present]':'',
+                status:document.getElementById('status')?.textContent||'',
+                challengeText:document.getElementById('challenge')?.innerText||''
+              })).catch(error=>({evaluateError:String(error)})),3000,'turnstile-evaluate');
+              console.log(`TURNSTILE_STATE=${JSON.stringify(turnstileState)}`);
+            }
           } catch(error){
             console.log(`PROBE_ERROR=${error?.stack||error}`);
           } finally {
@@ -55,7 +85,7 @@ jobs:
           }
           EOF
           set +e
-          timeout 50s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
+          timeout 55s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -eq 124 ]; then echo 'PROBE_ERROR=browser probe timed out' | tee -a "$RUNNER_TEMP/probe.log"; fi
@@ -65,6 +95,10 @@ jobs:
           fi
           if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
             echo '::error::Turnstile configuration failure detected on the live custom domain.'
+            exit 1
+          fi
+          if grep -q 'TURNSTILE_STATE={"missing":true}' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Live Admin page did not create its Turnstile frame.'
             exit 1
           fi
           if [ "$rc" -ne 0 ] || grep -q 'PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
