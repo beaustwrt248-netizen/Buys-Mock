@@ -67,7 +67,7 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
 
 test('Admin desktop authority loads last and home boot is bounded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
-  assert.match(adminWorkspace,/admin-home\.js\?v=7/);
+  assert.match(adminWorkspace,/admin-home\.js\?v=8/);
   assert.match(adminHome,/id='adminDesktopWorkspaceFixCss'/);
   assert.match(adminHome,/desktop-workspace-fix\.css\?v=2/);
   assert.doesNotMatch(adminHome,/setInterval\(/);
