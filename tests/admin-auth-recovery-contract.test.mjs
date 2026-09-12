@@ -28,6 +28,19 @@ test('Admin browser login uses one isolated same-origin Turnstile transport on m
   assert.match(turnstileHtml, /window\.parent\.postMessage/);
 });
 
+test('Admin browser exposes the real Turnstile failure code instead of hiding it behind a generic retry loop', () => {
+  assert.match(turnstileHtml, /payload=\{source:'morley-turnstile',type,value:value\|\|'',code:code\|\|''\}/);
+  assert.match(turnstileHtml, /post\('error','',String\(code\|\|''\)\)/);
+  assert.match(turnstileHtml, /post\('bootstrap-error','',code\|\|'api_unavailable'\)/);
+  assert.match(webSecurity, /function describeChallengeFailure\(code\)/);
+  assert.match(webSecurity, /110200/);
+  assert.match(webSecurity, /Domain not authorised/);
+  assert.match(webSecurity, /payload\.type===['"]error['"]/);
+  assert.match(webSecurity, /describeChallengeFailure\(payload\.code\)/);
+  assert.match(webSecurity, /payload\.type===['"]bootstrap-error['"]/);
+  assert.match(webSecurity, /describeChallengeFailure\(payload\.code\)/);
+});
+
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
   assert.match(adminLogin, /AdminSessionStore\.set\(session\)/);
   assert.match(adminLogin, /Intent\(this, AdminActivity::class\.java\)/);
