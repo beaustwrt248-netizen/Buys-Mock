@@ -60,10 +60,10 @@ class AdminLoginActivity : ComponentActivity() {
         window.decorView.setBackgroundColor(AndroidColor.rgb(4, 9, 18))
         setContent {
             AdminLoginScreen { session ->
+                AdminSessionStore.set(session)
                 startActivity(
                     Intent(this, AdminActivity::class.java)
-                        .putExtra(AdminActivity.EXTRA_ACCESS_TOKEN, session.accessToken)
-                        .putExtra(AdminActivity.EXTRA_REFRESH_TOKEN, session.refreshToken)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 )
                 finish()
             }
