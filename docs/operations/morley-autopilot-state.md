@@ -1,33 +1,39 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-12 18:57 AWST
+Last reconciled: 2026-09-12 20:02 AWST
 Source of truth: live GitHub, Supabase and connected service evidence. No Gumtree work is in scope.
 
 ## Current main and release state
 
-- Last material release-state main SHA at reconciliation: `78d5411e7a14e03da7fb78425c6525852d1deb24`. Ledger-only documentation commits may follow it and do not change runtime/release state.
-- Protected OTA PR #1674 was merged on 2026-09-12 at 10:47:28 UTC after external approval/promotion. It changed only `ota/latest.json`.
-- Morley Buys 2.15.100 / versionCode 144 is now the advertised OTA release. `ota/latest.json` points to `v2.15.100/B-and-L-Morley-2.15.100.apk` with SHA-256 `488cf42be87f54201266f9ea5e109911365677524e1f043beabcbf32cd16f175` and release note `Fix Morley Device Lens analysis timeout (#1669)`.
+- Current `main`: `6bb1080475e6036b0874d338d89ce0fc76f5d56b`.
+- Security hardening PR #1678 was explicitly approved and merged as `c0f7f16824dc72771da85fe9f603ccee9c4b5843`. It removes direct interpolation of PR-controlled critical filenames into privileged `pull_request_target` shell source, preserves `contents: read` + `pull-requests: write`, and adds a regression check. Security issue #1643 is closed as completed.
+- Admin invitation delivery PR #1681 is the current main tip. It adds audited direct email delivery for secure one-use app download invitations while retaining existing Admin/Manager distribution boundaries and Copy/Share recovery.
+- No pull request is currently open.
+- Morley Buys 2.15.100 / versionCode 144 remains the advertised OTA release. `ota/latest.json` points to `v2.15.100/B-and-L-Morley-2.15.100.apk` with SHA-256 `488cf42be87f54201266f9ea5e109911365677524e1f043beabcbf32cd16f175` and release note `Fix Morley Device Lens analysis timeout (#1669)`.
 - GitHub Release `v2.15.100` targets runtime source `d44beab010af2be7b4135dc2bb6f3d63e0b2296d`; its APK asset is 44,452,238 bytes and carries the same SHA-256 as the OTA manifest.
-- The post-promotion `Morley Ecosystem Autopilot` workflow completed successfully on the OTA metadata commit. No runtime/release PR is currently open.
-- PR #1669 remains the latest runtime release change: it reduces Device Lens inspection payload weight, applies bounded provider/client timeouts and preserves JWT/profile authorization plus high-detail damage evidence.
-- Admin desktop stability repairs #1644 and #1647 remain merged. Android catalogue Realtime sync #1640 remains merged and superseded the one-second polling loop.
 - Main remains protected. Automation must not push directly to main or bypass repository/release protections.
 
 ## Production-first triage
 
 ### Release / OTA
 
-- 2.15.100 is fully promoted in source metadata: versionCode 144, versionName 2.15.100, release URL and SHA-256 agree with the published GitHub release asset.
-- Release identity is immutable: published 2.15.100 bytes must not be replaced or reused for different content.
-- Any future release must advance version identity and repeat exact-source build, security/parity/quality, signer/checksum, OTA monotonicity and post-promotion verification.
+- 2.15.100 release identity remains internally consistent: versionCode 144, versionName 2.15.100, release URL and SHA-256 agree with the published GitHub release asset.
+- Published release identity is immutable; future runtime releases must advance version identity and repeat exact-source build, security/parity/quality, signer/checksum, OTA monotonicity and post-promotion verification.
+
+### GitHub / CI / security
+
+- The latest sampled Morley Ecosystem Autopilot workflow on current main completed successfully.
+- Issue #1676 (`Guarded Auto Review & Merge` autopilot failure) is closed as completed.
+- Issue #1643 is closed after the validated #1678 workflow-security fix.
+- #1678 validation evidence on its exact head included green Repository Security Audit, B&L Morley Quality Gate, Morley Ultimate Parity Gate and Morley Email Contract. The dedicated regression first failed against the vulnerable form, then passed after hardening.
+- No open PR currently requires cleanup or promotion.
 
 ### Google Drive backup / recovery
 
 - Global scheduler job 3 last recorded a database-scheduler success at `2026-09-11 19:00:00+00`; scheduler success is not backup success.
-- Latest verified successful global Drive backup audit remains `2026-09-10 19:00:12+00`, with successful upload/read-back integrity evidence recorded by the prior reconciliation.
+- Latest verified successful global Drive backup audit remains `2026-09-10 19:00:12+00`, with successful upload/read-back integrity evidence recorded by prior reconciliation.
 - The most recent direct backup-function response observed at `2026-09-12 07:23:12+00` returned HTTP 500 in phase `google-auth`: `Google OAuth refresh failed: Token has been expired or revoked.`
-- No newer successful global upload/read-back evidence exists. Recovery therefore remains red/fail-closed until a valid user-authorized refresh credential is supplied and a fresh upload plus digest read-back is verified.
+- Current read-only production state still contains one open recovery-health finding. Recovery remains red/fail-closed until a valid user-authorized refresh credential is supplied and a fresh upload plus digest read-back is verified.
 - User-scoped encrypted Drive backup is separate from the global scheduler path and must not be treated as evidence that the global backup is healthy.
 - No production restore, credential mutation or destructive backup action has been attempted by automation.
 
@@ -43,26 +49,33 @@ Source of truth: live GitHub, Supabase and connected service evidence. No Gumtre
 
 ### Catalogue / data quality
 
-- `device_catalog` currently has 1777 active records.
-- Missing active model number: 235. Missing active image: 0.
-- Audit queue currently has 708 pending and 70 blocked records after manufacturer-first review of three missing-model-number items.
-- Queue #912 (realme P4 Lite 5G), #915 (vivo V80 Lite 5G) and #923 (HUAWEI MateBook Pro S) were moved from pending to blocked because their official manufacturer product/specification pages confirm the devices but do not publish a safe model-number code. Evidence findings were recorded; no model number was guessed and no catalogue row was destructively changed.
-- `catalog_sync_state` revision is 269, last changed at `2026-09-12 09:02:27+00`.
-- Missing facts remain verification backlog; never fill them by guessing. Potential duplicate identifier groups remain triage signals, not permission for destructive merge/delete.
+Read-only invariant sweep at reconciliation:
+
+- Active catalogue records: 1777.
+- Missing active model number: 235.
+- Missing active image: 0.
+- Audit queue: 708 pending / 70 blocked.
+- `catalog_sync_state`: revision 269, last changed `2026-09-12 09:02:27+00`, source `device_catalog`, operation `UPDATE`.
+- Duplicate active model-number groups: 16. Duplicate brand/model/year groups: 12. These remain triage signals only; they do not authorize merge/delete.
+- Orphan active buy-price rows: 0.
+- Negative active buy prices: 0.
+- Download invite rows: 2 total; 0 currently active by expiry/redeemed/revoked criteria.
+- Missing facts remain verification backlog; never fill them by guessing.
 
 ## Active workstreams and priority scoring
 
 Scoring scale: impact/confidence 1-5 higher is better; risk/effort/dependency risk 1-5 higher means more caution/cost. Priority does not authorize protected changes.
 
 | Workstream | Evidence | Impact | Risk | Effort | Confidence | Dependency risk | Priority | Next safe action |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| Global backup recovery | scheduler job 3 / `google-drive-backup` | 5 | 5 | 2 | 5 | 5 | Highest blocker | Keep fail-closed. A valid fresh Google refresh credential must be supplied through the approved user OAuth flow; then immediately verify one new upload and digest read-back. |
-| Catalogue verification | 708 pending / 235 missing model numbers | 5 | 2 | 5 | 4 | 3 | High safe lane | Process evidence-backed Australian/manufacturer records; never guess or destructively reconcile ambiguity. |
-| Nova evaluation telemetry | 0 recorded orchestrator runs | 4 | 3 | 3 | 5 | 4 | High measurement lane | Build/use non-sensitive benchmark fixtures and collect enough routed results to compare accuracy, latency, failure rate and cost before changing routing defaults. |
-| Admin stability/parity | #1647 merged | 4 | 3 | 2 | 4 | 4 | Monitor | Continue synthetic/static evidence for desktop/mobile browser and native Admin boundaries; do not weaken auth/CAPTCHA/role gates. |
+| --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
+| Global backup recovery | one open recovery finding; invalid Google refresh token | 5 | 5 | 2 | 5 | 5 | Highest blocker | Keep fail-closed. After user-authorized credential replacement, verify a new upload and digest read-back before declaring recovery healthy. |
+| Catalogue verification | 708 pending / 235 missing model numbers | 5 | 2 | 5 | 4 | 3 | High safe lane | Continue manufacturer-first Australian verification; never guess or destructively reconcile ambiguity. |
+| Nova evaluation telemetry | 0 recorded orchestrator runs | 4 | 3 | 3 | 5 | 4 | High measurement lane | Build/use non-sensitive benchmark fixtures and collect routed results before changing routing defaults. |
+| Admin invitation delivery | #1681 merged; 2 invite rows / 0 currently active | 4 | 3 | 2 | 4 | 4 | Monitor | Validate invite lifecycle/email contract and ensure expired/redeemed/revoked semantics stay fail-closed. |
+| Admin stability/parity | current main includes #1681 | 4 | 3 | 2 | 4 | 4 | Monitor | Continue synthetic/static evidence for browser/native Admin boundaries; do not weaken auth/CAPTCHA/role gates. |
 | Guardian | 28 total / 0 open | 4 | 4 | 1 | 5 | 4 | Monitor | Watch for new evidence-backed incidents; keep code-changing repairs approval-gated. |
 | Release integrity | 2.15.100 live | 5 | 4 | 1 | 5 | 5 | Monitor | Preserve immutable release identity, exact checksum and monotonic next-version rules. |
-| Durable continuity ledger | this file | 4 | 1 | 1 | 5 | 1 | Continuous | Reconcile from live evidence every run so stale release, branch or backup assumptions never drive work. |
+| Durable continuity ledger | this file | 4 | 1 | 1 | 5 | 1 | Continuous | Reconcile from live evidence every run so stale release, branch, backup or security assumptions never drive work. |
 
 ## Protected boundaries / approval requirements
 
@@ -76,7 +89,7 @@ Scoring scale: impact/confidence 1-5 higher is better; risk/effort/dependency ri
 
 - **Morley Buys Android** -> auth/session -> catalogue API/data + Supabase Realtime -> valuation/Test & Buy -> Device Lens/code scan/NFC -> signed release + OTA identity.
 - **Morley website** -> shared catalogue/pricing contracts -> auth/session -> valuation/Nova-facing contracts -> static/deployment integrity.
-- **Morley Admin** -> browser/native auth separation -> privileged roles -> support/governance -> catalogue/admin contracts -> Admin release/OTA.
+- **Morley Admin** -> browser/native auth separation -> privileged roles -> support/governance -> invitation distribution -> catalogue/admin contracts -> Admin release/OTA.
 - **Nova** -> verified catalogue/evidence -> external model provider routing -> operational telemetry -> protected action boundaries.
 - **Guardian** -> runtime diagnostics + repository context + Nova engineering analysis -> human approval for code-changing repair.
 - **Supabase** -> schema/RLS/auth -> catalogue revision/Realtime -> assessment/audit -> backup trigger and recovery metadata.
@@ -87,11 +100,13 @@ Scoring scale: impact/confidence 1-5 higher is better; risk/effort/dependency ri
 
 - Preserve legitimate regional/hardware/retail variants; carrier is not brand.
 - Missing catalogue facts remain unverified rather than guessed.
-- Duplicate model-number groups are triage signals, not permission to merge records.
+- Duplicate model-number or brand/model/year groups are triage signals, not permission to merge records.
 - Catalogue counts must not collapse/spike without explained source/import evidence.
 - App/web/Admin/Nova views must not silently diverge from shared catalogue authority.
 - Inventory state transitions and stock identifiers must remain internally consistent.
 - Pricing/valuation logic must not bypass protected commercial approvals.
+- Active buy prices must reference existing catalogue rows and must never be negative.
+- Download invites must remain single-use/revocable/expiring and must not broaden Admin/Manager distribution authority.
 - OTA versionCode/versionName/tag/APK URL/SHA-256/notes must describe the same signed artifact.
 - Published release identities must never be reused for different APK bytes.
 - Backup health is green only with fresh uploaded-content integrity/read-back evidence, not merely a successful scheduler row.
@@ -103,6 +118,13 @@ Scoring scale: impact/confidence 1-5 higher is better; risk/effort/dependency ri
 - **Symptom:** pg_cron reports `succeeded`/`1 row`, while the Edge Function can still fail later.
 - **Current evidence:** latest observed function response reports `Google OAuth refresh failed: Token has been expired or revoked.`
 - **Safe response:** keep recovery red/fail-closed; refresh through the approved user OAuth credential flow, then prove a new Drive upload and digest read-back. Never treat scheduler status as backup success.
+
+### Privileged pull_request_target shell interpolation
+
+- **Symptom:** PR-controlled filename data was expanded directly into a `run:` shell body in a workflow with `pull-requests: write`.
+- **Root cause:** untrusted multiline step output was embedded in shell source instead of transported as inert data.
+- **Fix:** #1678 / `c0f7f168...` transports the value through `env`, references a quoted shell variable and posts via body file while keeping least-privilege permissions and no PR checkout.
+- **Regression:** dedicated workflow-security regression is part of Repository Security Audit and must remain authoritative.
 
 ### Device Lens two-photo raw timeout
 
@@ -124,8 +146,8 @@ A work item is not Done until applicable implementation, tests, security/permiss
 
 ## Next safe actions
 
-1. Keep global backup recovery fail-closed and surface the invalid/revoked Google refresh credential as the current required human action.
+1. Keep global backup recovery fail-closed and surface the invalid/revoked Google refresh credential only when human action is required.
 2. Continue evidence-backed catalogue verification, especially 235 missing-model-number records and the pending audit queue, without destructive reconciliation.
 3. Establish Nova benchmark/telemetry evidence before changing provider-routing/cost defaults; current production telemetry is empty.
-4. Continue Admin/browser/native synthetic/regression monitoring and Guardian watch without weakening protected boundaries.
+4. Continue Admin invitation lifecycle/browser/native regression monitoring and Guardian watch without weakening protected boundaries.
 5. Preserve 2.15.100 release/OTA identity and require a new monotonic version for all future runtime releases.
