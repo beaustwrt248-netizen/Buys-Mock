@@ -81,9 +81,29 @@ object WorkspaceStore {
     fun addInventory(context:Context,name:String,barcode:String,cost:Double,resale:Double,quantity:Int){
         require(name.isNotBlank()){ "Enter an item name." }
         require(quantity>0){ "Quantity must be at least 1." }
+
+        val lensAssessmentId = if (context is DeviceLensActivity) {
+            DeviceLensScanSession.begin(context.applicationContext)
+        } else null
+        if (lensAssessmentId != null && !MorleyRepairDecisionConfirmationStore.isConfirmed(context, lensAssessmentId)) {
+            context.startActivity(
+                MorleyRepairDecisionActivity.createIntent(
+                    context = context,
+                    assessmentId = lensAssessmentId,
+                    buyCost = cost,
+                    asIsResale = resale
+                )
+            )
+            error("Repair-or-Buy must be confirmed before adding stock")
+        }
+
         val items=inventory(context).toMutableList()
         items.add(0,StockItem(UUID.randomUUID().toString(),name.trim(),barcode.trim(),cost.coerceAtLeast(0.0),resale.coerceAtLeast(0.0),quantity,System.currentTimeMillis()))
         saveInventory(context,items)
+        if (lensAssessmentId != null) {
+            MorleyRepairDecisionConfirmationStore.clear(context, lensAssessmentId)
+            DeviceLensScanSession.finishLocalSession(context.applicationContext)
+        }
     }
 
     fun addInventoryFromTestBuy(
