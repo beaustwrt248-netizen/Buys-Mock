@@ -54,6 +54,7 @@
 
   function startFallback(message){
     clearChallengeWatchdog();
+    loadingApi=false;
     captchaToken='';
     syncLoginEnabled();
     removeRenderedChallenge();
@@ -103,6 +104,7 @@
 
   function resetChallenge(message,forceReload){
     clearChallengeWatchdog();
+    loadingApi=false;
     captchaToken='';
     syncLoginEnabled();
     removeRenderedChallenge();
