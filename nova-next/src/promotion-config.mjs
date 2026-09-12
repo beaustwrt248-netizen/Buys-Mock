@@ -1,15 +1,15 @@
 export const CHANNELS = Object.freeze({
   development: Object.freeze({
     name: 'Nova Next',
-    appId: 'au.com.morley.novanext.dev',
+    appId: 'com.buysloans.novanext',
     webScope: '/nova-next/',
     cacheNamespace: 'nova-next-dev-v1',
     requiresExplicitPromotion: false
   }),
   production: Object.freeze({
     name: 'Nova AI',
-    appId: '__CURRENT_NOVA_PRODUCTION_APP_ID__',
-    webScope: '__CURRENT_NOVA_PRODUCTION_SCOPE__',
+    appId: 'com.buysloans.nova',
+    webScope: '/nova/',
     cacheNamespace: 'nova-production',
     requiresExplicitPromotion: true
   })
