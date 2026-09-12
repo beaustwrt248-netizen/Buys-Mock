@@ -48,7 +48,7 @@ if "document_path=re.compile(r'(^|/)(docs?/|[^/]+\\.md$)'" not in run_text:
     errors.append('documentation paths are not explicitly separated from runtime service-role detection')
 if "if service_role_pattern.search(file_added) and not document_path.search(name):" not in run_text:
     errors.append('documentation-only service-role wording can still trigger a false critical classification')
-if "r'\\bservice[_-]?role\\b'," in run_text:
+if re.search(r"(?m)^\s*r'\\bservice\[_-\]\?role\\b',\s*$", run_text):
     errors.append('service-role matcher is still applied globally across documentation and runtime patches')
 
 # Keep the workflow least-privileged. The repository's Actions token cannot invoke
