@@ -12,10 +12,11 @@ const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/
 
 test('Admin web uses the isolated same-origin Turnstile page on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
-  assert.match(adminIndex, /src="turnstile\.html\?v=\d+&browser=1"/);
-  assert.match(webSecurity, /event\.source===frame\.contentWindow/);
-  assert.match(webSecurity, /event\.origin===window\.location\.origin/);
-  assert.match(webSecurity, /payload\.source===['"]morley-turnstile['"]/);
+  assert.match(webSecurity, /challengeBase=['"]turnstile\.html\?v=\d+&browser=1['"]/);
+  assert.match(webSecurity, /frame\.src=challengeUrl\(['"]load['"]\)/);
+  assert.match(webSecurity, /event\.source!==frame\.contentWindow/);
+  assert.match(webSecurity, /event\.origin!==window\.location\.origin/);
+  assert.match(webSecurity, /payload\.source!==['"]morley-turnstile['"]/);
   assert.match(webSecurity, /payload\.type===['"]token['"]/);
   assert.match(webSecurity, /challengeWatchdog/);
   assert.doesNotMatch(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
