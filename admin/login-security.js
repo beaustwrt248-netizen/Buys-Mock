@@ -8,32 +8,115 @@
   if(!frame||!loginBtn||!loginStatus||!challengeStatus||!emailInput||!passwordInput)return;
 
   const nativeAuthMode=new URLSearchParams(location.search).get('nativeAuth')==='1';
-  if(nativeAuthMode)return;
+  if(nativeAuthMode){
+    frame.style.display='none';
+    challengeStatus.textContent='Opening secure Admin session…';
+    loginBtn.disabled=true;
+    return;
+  }
+
+  const challengeHost=document.createElement('div');
+  challengeHost.id='adminTurnstileWidget';
+  challengeHost.style.minHeight='118px';
+  challengeHost.style.display='flex';
+  challengeHost.style.alignItems='center';
+  challengeHost.style.justifyContent='center';
+  frame.replaceWith(challengeHost);
 
   let captchaToken='';
   let busy=false;
-  let challengeLoaded=false;
+  let widgetId=null;
+  let apiLoading=false;
+  let challengeWatchdog=null;
 
   function credentialsReady(){return emailInput.value.trim().length>0&&emailInput.checkValidity()&&passwordInput.value.length>0;}
   function syncLoginEnabled(){loginBtn.disabled=busy||!captchaToken||!credentialsReady();}
   function setChallengeState(text,ok){challengeStatus.textContent=text;challengeStatus.style.color=ok?'#25d991':'#8fa6c6';}
+  function clearChallengeWatchdog(){if(challengeWatchdog){clearTimeout(challengeWatchdog);challengeWatchdog=null;}}
+  function armChallengeWatchdog(){
+    clearChallengeWatchdog();
+    challengeWatchdog=setTimeout(function(){
+      if(captchaToken)return;
+      apiLoading=false;
+      setChallengeState('Security check unavailable. Tap here to retry.',false);
+      syncLoginEnabled();
+    },12000);
+  }
+
+  function renderChallenge(){
+    apiLoading=false;
+    if(!window.turnstile){setChallengeState('Security check unavailable. Tap here to retry.',false);return;}
+    captchaToken='';
+    syncLoginEnabled();
+    setChallengeState('Complete the security check to sign in.',false);
+    try{
+      if(widgetId!==null){try{window.turnstile.remove(widgetId);}catch(_){}widgetId=null;}
+      challengeHost.innerHTML='';
+      widgetId=window.turnstile.render(challengeHost,{
+        sitekey:'0x4AAAAAAEZul-Qo6dqMim2U',
+        theme:'dark',
+        size:'flexible',
+        action:'blmorley_auth',
+        callback:function(token){
+          clearChallengeWatchdog();
+          captchaToken=String(token||'');
+          syncLoginEnabled();
+          setChallengeState('Security check complete.',true);
+        },
+        'expired-callback':function(){
+          captchaToken='';
+          syncLoginEnabled();
+          setChallengeState('Security check expired. Tap here to retry.',false);
+        },
+        'error-callback':function(){
+          clearChallengeWatchdog();
+          captchaToken='';
+          syncLoginEnabled();
+          setChallengeState('Security check unavailable. Tap here to retry.',false);
+          return false;
+        }
+      });
+      armChallengeWatchdog();
+    }catch(_){
+      clearChallengeWatchdog();
+      widgetId=null;
+      setChallengeState('Security check unavailable. Tap here to retry.',false);
+    }
+  }
 
   function loadChallenge(reason,force){
-    if(challengeLoaded&&!force)return;
-    challengeLoaded=true;
     captchaToken='';
-    frame.style.display='block';
     syncLoginEnabled();
     setChallengeState(reason||'Security check loading…',false);
-    frame.src='turnstile.html?v=6&load='+Date.now();
+    if(window.turnstile&&!force){renderChallenge();return;}
+    if(apiLoading)return;
+    apiLoading=true;
+    const old=document.getElementById('morleyAdminTurnstileApi');
+    if(old)old.remove();
+    const script=document.createElement('script');
+    script.id='morleyAdminTurnstileApi';
+    script.async=true;
+    script.defer=true;
+    script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&_='+Date.now();
+    script.onload=function(){window.turnstile?renderChallenge():setChallengeState('Security check unavailable. Tap here to retry.',false);};
+    script.onerror=function(){
+      apiLoading=false;
+      clearChallengeWatchdog();
+      setChallengeState('Security check unavailable. Tap here to retry.',false);
+    };
+    document.head.appendChild(script);
+    armChallengeWatchdog();
   }
 
   function resetChallenge(reason){
     captchaToken='';
     syncLoginEnabled();
     setChallengeState(reason||'Reloading security check…',false);
-    frame.style.display='block';
-    frame.src='turnstile.html?v=6&retry='+Date.now();
+    if(window.turnstile&&widgetId!==null){
+      try{window.turnstile.reset(widgetId);armChallengeWatchdog();return;}catch(_){}
+    }
+    widgetId=null;
+    loadChallenge(reason||'Reloading security check…',true);
   }
 
   emailInput.readOnly=false;
@@ -47,38 +130,7 @@
   passwordInput.addEventListener('input',syncLoginEnabled);
   emailInput.addEventListener('change',syncLoginEnabled);
   passwordInput.addEventListener('change',syncLoginEnabled);
-  challengeStatus.addEventListener('click',function(){
-    if(!captchaToken)resetChallenge('Retrying security check…');
-  });
-
-  window.addEventListener('message',function(event){
-    const sameSource=event.source===frame.contentWindow;
-    const sameOrigin=event.origin===window.location.origin;
-    const opaqueLocalOrigin=window.location.origin==='null'&&event.origin==='null';
-    if(!sameSource||(!sameOrigin&&!opaqueLocalOrigin))return;
-    const payload=event.data;
-    if(!payload||payload.source!=='morley-turnstile')return;
-    if(payload.type==='ready'){
-      if(!captchaToken)setChallengeState('Complete the security check to sign in.',false);
-    }else if(payload.type==='token'&&payload.value){
-      captchaToken=String(payload.value);
-      syncLoginEnabled();
-      setChallengeState('Security check complete.',true);
-    }else if(payload.type==='expired'){
-      captchaToken='';
-      syncLoginEnabled();
-      setChallengeState('Security check expired. Tap here to retry.',false);
-    }else if(payload.type==='error'||payload.type==='bootstrap-error'){
-      captchaToken='';
-      syncLoginEnabled();
-      setChallengeState('Security check unavailable. Tap here to retry.',false);
-    }
-  });
-
-  frame.addEventListener('load',function(){
-    if(challengeLoaded&&!captchaToken)setChallengeState('Security check loading…',false);
-    syncLoginEnabled();
-  });
+  challengeStatus.addEventListener('click',function(){if(!captchaToken)resetChallenge('Retrying security check…');});
 
   syncLoginEnabled();
   loadChallenge('Security check loading…');
