@@ -1,22 +1,24 @@
 # Morley Ecosystem Autopilot State
 
-Last reconciled: 2026-09-13 00:23 AWST
+Last reconciled: 2026-09-13 02:00 AWST
 Source of truth: live GitHub/release evidence plus read-only connected Supabase and Google Drive evidence. Gumtree remains excluded unless Beau explicitly re-enables it.
 
 ## Current repository and release state
 
-- `main`: `b160ae668aecb8f4850589d43c94fdad2e7bf219`.
+- `main`: `dc597dbc49ac739dd052f6751537817f64973a6f`.
 - Morley Buys production OTA is **2.15.102 / versionCode 146**. Protected OTA PR #1767 merged as `1dda6cdb62f39a4fedf9fc3b0de8a83e5ee0b8a0` after the signed release artifact was published.
 - `ota/latest.json` points to `v2.15.102/B-and-L-Morley-2.15.102.apk` with SHA-256 `69e1cd3cac7856584491445df07d0ffd711abcd7b74247ca10978103731648bf` and notes `Align Android auth with Morley blue theme (#1760)`.
 - GitHub release `v2.15.102` exists for target `fb4f3712a625f76f5019cc5ec2a6219fccfa143f` and contains `B-and-L-Morley-2.15.102.apk` with the same SHA-256 digest.
 - Protected workflow fixes #1742 and #1755 are merged. #1742 narrows documentation/test-only service-role false positives while preserving real trust/destructive stops; #1755 verifies final issue state after issue-close transport errors.
 - Nova Next bootstrap PR #1772 merged as `b160ae668aecb8f4850589d43c94fdad2e7bf219`. It adds the isolated `nova-next/` successor surface, parity/security contracts and isolated PWA identity without changing current production Nova routing, production authentication wiring, Supabase schema/RLS, OTA/signing, pricing authority or Guardian authority.
+- Nova Next degraded-mode PR #1776 merged as `dc597dbc49ac739dd052f6751537817f64973a6f`. It adds a 15-second default API timeout, AbortSignal propagation and explicit `REQUEST_TIMEOUT` evidence so stalled transports cannot leave indefinite waits.
 - Open PR #1764, `nova/hybrid-knowledge-foundation`, exact head `45dffc7b996340e5dad9f2e15130443fb25eff84`, is a high-risk Nova/Supabase knowledge-foundation change and remains explicit-approval gated.
 
 ## Production-first triage
 
 ### CI / automation reliability
 
+- Nova Next PR #1776 exact-head Repository Security Audit, B&L Morley Quality Gate, Morley Email Contract and Morley Ultimate Parity Gate all completed successfully before merge; Nova PR Guard was skipped as non-applicable.
 - Nova Next PR #1772 exact-head parity and applicable contract checks completed successfully before merge; the PR was clean/mergeable and isolated from current production application paths.
 - #1764 exact-head checks are green for Repository Security Audit, B&L Morley Quality Gate, Morley Ultimate Parity Gate, Full Feature Contract Audit, Admin Control Integration Audit, Morley Restore Point Capture and Morley Email Contract.
 - Nova PR Guard intentionally fails closed on #1764 because the diff contains production Supabase migration/function trust-boundary work and real service-role use.
@@ -35,6 +37,7 @@ Source of truth: live GitHub/release evidence plus read-only connected Supabase 
 - Guardian incidents remain classified with no unresolved production repair incident in the latest reconciled state. Guardian code-changing repairs remain human-approval gated.
 - `nova_ai_runs` remains without a production routing/latency/cost dataset sufficient to justify provider/model-default changes.
 - Nova Next is now present on `main` as an isolated successor bootstrap. It is not promoted over current Nova and its live production auth/backend adapters remain intentionally disconnected pending reviewed follow-up work.
+- Nova Next API calls now have bounded failure behavior from #1776: stalled safe API transports are aborted at the configured timeout and surface explicit timeout evidence rather than waiting indefinitely.
 - #1764 adds hybrid semantic/lexical knowledge retrieval, chunking/ingestion and OpenRouter embeddings. Because it changes production schema, Edge Function behavior and external-AI data flow, explicit approval/security review is required before merge or production application.
 
 ### Catalogue / live sync / data integrity
@@ -71,7 +74,7 @@ Scoring: impact/confidence 1-5 higher is better; risk/effort/dependency risk 1-5
 | Auth leaked-password protection #1686 | 5 | 5 | 1 | 5 | 5 | Await explicit approval; then change only the supported Auth setting and rerun advisor/auth regressions. |
 | Catalogue verification / data quality #1771 | 5 | 2 | 5 | 5 | 3 | Continue manufacturer-first read-only verification across shared identifiers, 783 pending audits and 235 missing-model-number rows. |
 | Supabase performance #1770 | 4 | 5 | 3 | 5 | 5 | Continue read-only query/index analysis; prepare evidence but do not change schema/RLS/indexes without explicit approval. |
-| Nova Next successor bootstrap follow-up | 4 | 2 | 3 | 5 | 3 | Add live capabilities through narrow reviewed adapters on fresh branches; preserve isolated identity and keep production auth/promotion protected. |
+| Nova Next successor bootstrap follow-up | 4 | 2 | 3 | 5 | 3 | #1776 closed the indefinite-wait gap; next add narrow reviewed read-only/service adapters and parity/evidence checks while keeping production auth/promotion protected. |
 | Nova evaluation telemetry | 4 | 3 | 3 | 5 | 4 | Build non-sensitive benchmark evidence before provider/routing/cost changes. |
 | Login/mobile visual/accessibility regression | 4 | 2 | 3 | 5 | 3 | Continue regression coverage for Android auth/mobile login presentation and add Nova Next preview visual checks when a safe preview path exists. |
 | Valuation 3.0 / Test & Buy / inventory | 5 | 3 | 4 | 4 | 4 | Rotate contract/e2e/degraded-mode coverage and repair only evidence-backed defects. |
@@ -109,6 +112,7 @@ Scoring: impact/confidence 1-5 higher is better; risk/effort/dependency risk 1-5
 - **Safe service-role reference false positive:** fixed by #1742 for documentation/test-only references; real runtime/migration service-role use remains critical.
 - **Protected PR creates failure incidents:** #1764 demonstrates expected fail-closed Nova Guard/Guarded Review behavior. Incident #1766 was closed as `not_planned` after reconciliation confirmed the guard was functioning as designed.
 - **Recovery incident close succeeds but transport errors afterward:** #1755 verifies final issue state before tolerating the transport error.
+- **Unbounded safe API transport:** #1776 ensures Nova Next requests do not wait forever when a transport never resolves; adapters must preserve timeout/abort behavior and explicit `REQUEST_TIMEOUT` evidence.
 - **Release-state race:** a protected OTA promotion can merge during ledger reconciliation; always re-read `main`, release and `ota/latest.json` immediately before recording production identity.
 - **Release candidate ahead of OTA:** source/OTA divergence is release-readiness state only until protected promotion completes.
 - **Legacy Drive folder lag is not definitive encrypted-backup failure:** reconcile Drive-visible artifacts with backup metadata/events and require integrity/read-back evidence.
@@ -120,7 +124,7 @@ Auth/authorization/RLS, secrets/credentials, destructive schema/data, privileged
 ## Next safe actions
 
 1. Keep #1764 unmerged/unapplied until explicit approval of this high-risk Nova/Supabase exact head; do not weaken intentional guard failures.
-2. Continue Nova Next on fresh isolated branches with live read-only/service adapters, capability parity tests and visual/accessibility validation; production auth, package/signing and promotion remain separately approval-gated.
+2. Continue Nova Next on fresh isolated branches with narrow read-only/service adapters, capability parity tests and visual/accessibility validation; preserve #1776 timeout/abort behavior and keep production auth, package/signing and promotion separately approval-gated.
 3. Continue read-only catalogue verification for #1771 and Nova non-sensitive evaluation lanes while protected work waits.
 4. Continue evidence gathering for #1770; do not change production schema/RLS/indexes without explicit approval.
 5. Keep #1686, destructive restore, credential replacement and Guardian code-changing repair approval-gated.
