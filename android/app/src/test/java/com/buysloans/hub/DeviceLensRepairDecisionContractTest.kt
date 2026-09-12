@@ -15,7 +15,8 @@ class DeviceLensRepairDecisionContractTest {
         val ui = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionUi.kt")
         val manifest = source("src/main/AndroidManifest.xml")
 
-        assertTrue(workspace.contains("context is DeviceLensActivity"))
+        assertTrue(workspace.contains("findDeviceLensActivity"))
+        assertTrue(workspace.contains("ContextWrapper"))
         assertTrue(workspace.contains("MorleyRepairDecisionConfirmationStore.isConfirmed"))
         assertTrue(workspace.contains("MorleyRepairDecisionActivity.createIntent"))
         assertTrue(workspace.contains("Repair-or-Buy must be confirmed before adding stock"))
