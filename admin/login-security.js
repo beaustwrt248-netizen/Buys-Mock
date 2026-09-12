@@ -25,6 +25,14 @@
   function credentialsReady(){return emailInput.value.trim().length>0&&emailInput.checkValidity()&&passwordInput.value.length>0;}
   function syncLoginEnabled(){loginBtn.disabled=busy||!captchaToken||!credentialsReady();}
   function setChallengeState(text,ok){challengeStatus.textContent=text;challengeStatus.style.color=ok?'#25d991':'#8fa6c6';}
+  function describeChallengeFailure(code){
+    const value=String(code||'').trim();
+    if(value==='110200')return 'Security check configuration error 110200: Domain not authorised.';
+    if(['110100','110110','400020','400070'].includes(value))return `Security check configuration error ${value}.`;
+    if(value==='200500')return 'Security check error 200500: Cloudflare challenge could not load. Check browser or network blocking.';
+    if(value==='api_unavailable')return 'Security check service unavailable (api_unavailable). Tap here to retry.';
+    return value?`Security check failed (${value}). Tap here to retry.`:'Security check failed. Tap here to retry.';
+  }
   function clearBootstrapTimer(){if(bootstrapTimer){clearTimeout(bootstrapTimer);bootstrapTimer=0;}}
   function armBootstrapWatchdog(){
     clearBootstrapTimer();
@@ -84,18 +92,24 @@
       syncLoginEnabled();
       setChallengeState('Security check expired. Complete it again.',false);
     }else if(payload.type==='error'){
+      clearBootstrapTimer();
       captchaToken='';
       syncLoginEnabled();
-      setChallengeState('Security check failed. Reloading…',false);
-      setTimeout(function(){resetChallenge('Complete a new security check to retry.');},700);
+      setChallengeState(describeChallengeFailure(payload.code),false);
     }else if(payload.type==='bootstrap-error'){
-      if(bootstrapRetries<MAX_BOOTSTRAP_RETRIES){
+      const code=String(payload.code||'');
+      if(code&&code!=='api_unavailable'){
+        clearBootstrapTimer();
+        captchaToken='';
+        syncLoginEnabled();
+        setChallengeState(describeChallengeFailure(payload.code),false);
+      }else if(bootstrapRetries<MAX_BOOTSTRAP_RETRIES){
         bootstrapRetries+=1;
         frame.src=challengeUrl();
         armBootstrapWatchdog();
       }else{
         clearBootstrapTimer();
-        setChallengeState('Security check unavailable. Tap here to retry.',false);
+        setChallengeState(describeChallengeFailure(payload.code),false);
       }
     }
   });
