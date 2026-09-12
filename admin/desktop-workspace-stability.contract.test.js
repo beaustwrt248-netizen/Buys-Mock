@@ -2,6 +2,7 @@ const fs=require('fs');
 const workspace=fs.readFileSync('admin/workspace.html','utf8');
 const home=fs.readFileSync('admin/admin-home.js','utf8');
 const mobileParity=fs.readFileSync('admin/mobile-system-parity.js','utf8');
+const intelligence=fs.readFileSync('admin/intelligence-command-centre.js','utf8');
 if(workspace.includes('desktop-workspace-fix.css'))throw new Error('desktop workspace authority must not preload before later dynamic Admin styles');
 if(!home.includes("id='adminDesktopWorkspaceFixCss'"))throw new Error('admin-home must append the final desktop workspace authority after the other Admin visual layers');
 if(!home.includes("desktop-workspace-fix.css?v=2"))throw new Error('final desktop workspace authority must use the current cache version');
@@ -10,4 +11,7 @@ if(/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subt
 if(!mobileParity.includes("if(target.dataset.evidenceSignature==='empty')return;"))throw new Error('Admin inventory empty-state renderer must be idempotent so its workspace observer cannot self-trigger forever');
 if(!home.includes("mobile-system-parity.js?v=3"))throw new Error('Admin home must bump the mobile-system-parity cache key so browsers receive the render-loop fix');
 if(!workspace.includes("admin-home.js?v=8"))throw new Error('Admin workspace must bump the admin-home cache key so browsers receive the corrected runtime loader');
+if(/observe\(document\.documentElement,\{subtree:true,attributes:true,attributeFilter:\['class'\]\}\)/.test(intelligence))throw new Error('Intelligence Command Centre must not observe class mutations across the entire Admin document tree');
+if(!/observe\(app,\{attributes:true,attributeFilter:\['class'\]\}\)/.test(intelligence))throw new Error('Intelligence Command Centre bootstrap must observe only the authenticated appView class state');
+if(!home.includes("intelligence-command-centre.js?v=3"))throw new Error('Admin home must bump the Intelligence Command Centre cache key so browsers receive the bounded observer runtime');
 console.log('Admin desktop stability contract passed');
