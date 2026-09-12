@@ -13,4 +13,5 @@ if(!home.includes("mobile-system-parity.js?v=3"))throw new Error('Admin home mus
 if(!workspace.includes("admin-home.js?v=8"))throw new Error('Admin workspace must bump the admin-home cache key so browsers receive the corrected runtime loader');
 if(/observe\(document\.documentElement,\{subtree:true,attributes:true,attributeFilter:\['class'\]\}\)/.test(intelligence))throw new Error('Intelligence Command Centre must not observe class mutations across the entire Admin document tree');
 if(!/observe\(app,\{attributes:true,attributeFilter:\['class'\]\}\)/.test(intelligence))throw new Error('Intelligence Command Centre bootstrap must observe only the authenticated appView class state');
+if(!home.includes("intelligence-command-centre.js?v=3"))throw new Error('Admin home must bump the Intelligence Command Centre cache key so browsers receive the bounded observer runtime');
 console.log('Admin desktop stability contract passed');
