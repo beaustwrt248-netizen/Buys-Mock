@@ -80,20 +80,21 @@ jobs:
       - name: Morley shared auth client contract
         run: node --test tests/morley-auth-client-contract.test.mjs
 
-      - name: Verify Android light palette transform with Morley emerald contract
+      - name: Verify Android light palette transform with Morley blue contract
         shell: bash
         run: |
           set -euo pipefail
           python3 -m py_compile android/apply_morley_brand_palette.py
           python3 android/apply_morley_brand_palette.py
           if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347|0xFF2F7CFF|0xFF12C9FF' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then
-            echo 'Retired Android gold/blue/cyan token remains after Morley palette transform'
+            echo 'Retired Android gold/legacy-blue/cyan token remains after Morley palette transform'
             exit 1
           fi
-          grep -q '0xFF167A5A' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q '0xFFF5F7F4' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF0878F9' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFFF5F8FC' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q '0xFFFFFFFF' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q '0xFF1C2B26' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF102A43' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
+          grep -q '0xFF52677C' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q 'lightColorScheme' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q 'CATEGORIES("Categories", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'GP("General Buys", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
