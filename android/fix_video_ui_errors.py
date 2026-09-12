@@ -51,6 +51,10 @@ replace(root / 'SmartWorkspaceSection.kt', {
 replace(root / 'TestBuyActivity.kt', {
     'labelColor = Color.White.copy(alpha = .86f),': 'labelColor = MorleyTextPrimary,',
     'selectedLabelColor = Color.White': 'selectedLabelColor = MorleyTextPrimary',
+    'labelColor = Color(0xFF1C2B26),': 'labelColor = MorleyTextPrimary,',
+    'selectedLabelColor = Color(0xFF1C2B26)': 'selectedLabelColor = MorleyTextPrimary',
+    'labelColor = Color(0xFF102A43),': 'labelColor = MorleyTextPrimary,',
+    'selectedLabelColor = Color(0xFF102A43)': 'selectedLabelColor = MorleyTextPrimary',
 })
 
 history = root / 'ValuationHistoryActivity.kt'
