@@ -19,6 +19,11 @@ test('condition UI never invents a cosmetic score', () => {
   assert.match(source, /Number\.isFinite/);
 });
 
+test('null and empty cosmetic evidence stay unavailable instead of coercing to zero', () => {
+  assert.match(source, /raw==null/);
+  assert.match(source, /String\(raw\)\.trim\(\)===''/);
+});
+
 test('unsupported and unavailable checks remain non-passing in the existing staff workflow', () => {
   assert.match(source, /state:\s*state\[name\]\?\.state\|\|'unavailable'/);
   assert.match(source, /Unsupported and unavailable are never treated as passing/);
