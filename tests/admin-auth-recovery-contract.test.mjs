@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
+const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
 const sessionStore = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
@@ -35,11 +36,13 @@ test('authenticated Admin workspace is fully native and cannot fall back to brow
   assert.doesNotMatch(nativeDashboard, /WebView|evaluateJavascript|installNativeAdminSession/);
 });
 
-test('the only Android JavaScript bridge remains the scoped Turnstile bridge', () => {
-  assert.match(adminLogin, /addJavascriptInterface\([\s\S]*?"AndroidBridge"/);
-  assert.match(adminLogin, /domStorageEnabled\s*=\s*false/);
-  assert.match(adminLogin, /allowFileAccess\s*=\s*false/);
-  assert.match(adminLogin, /allowContentAccess\s*=\s*false/);
+test('the only Android JavaScript bridge remains the scoped Turnstile challenge', () => {
+  assert.doesNotMatch(adminLogin, /addJavascriptInterface/);
+  assert.equal((captchaChallenge.match(/addJavascriptInterface\(/g) || []).length, 1);
+  assert.match(captchaChallenge, /"AndroidBridge"/);
+  assert.match(captchaChallenge, /domStorageEnabled\s*=\s*false/);
+  assert.match(captchaChallenge, /allowFileAccess\s*=\s*false/);
+  assert.match(captchaChallenge, /allowContentAccess\s*=\s*false/);
   assert.doesNotMatch(adminActivity, /addJavascriptInterface/);
   assert.doesNotMatch(nativeDashboard, /addJavascriptInterface/);
 });
