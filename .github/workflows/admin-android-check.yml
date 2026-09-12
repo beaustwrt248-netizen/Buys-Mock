@@ -6,7 +6,8 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
-      - 'admin/native-session-bootstrap.html'
+      - 'admin/index.html'
+      - 'admin/user-management-policy.js'
       - 'admin/login-security.js'
       - 'tests/admin-webview-input-focus.test.mjs'
       - 'tests/admin-auth-recovery-contract.test.mjs'
@@ -17,7 +18,8 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
-      - 'admin/native-session-bootstrap.html'
+      - 'admin/index.html'
+      - 'admin/user-management-policy.js'
       - 'admin/login-security.js'
       - 'tests/admin-webview-input-focus.test.mjs'
       - 'tests/admin-auth-recovery-contract.test.mjs'
@@ -53,15 +55,14 @@ jobs:
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
 
-          if grep -Eq 'AdminWebParityPolicy\.(HOME_URL|freshHomeUrl|nativeSessionBootstrapUrl)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
+          if grep -Eq 'AdminWebParityPolicy\.(HOME_URL|freshHomeUrl|nativeWorkspaceUrl)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt; then
             grep -q 'const val HOME_URL = "https://buyshub.me/admin/"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
-            grep -q 'const val NATIVE_SESSION_BOOTSTRAP_URL = "https://buyshub.me/admin/native-session-bootstrap.html"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'private const val ADMIN_HOST = "buyshub.me"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'uri.scheme.equals("https"' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'path == "/admin" || path.startsWith("/admin/")' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'AdminWebParityPolicy.isTrustedAdminUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'AdminWebParityPolicy.isNativeSessionBootstrapUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'AdminWebParityPolicy.nativeSessionBootstrapUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'AdminWebParityPolicy.isNativeWorkspaceUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'AdminWebParityPolicy.nativeWorkspaceUrl' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'allowFileAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
@@ -70,11 +71,13 @@ jobs:
             grep -q 'cacheMode = WebSettings.LOAD_DEFAULT' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             ! grep -q 'clearCache(true)' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'adminApp=' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
+            grep -q 'nativeAuth=1' android/adminapp/src/main/java/com/buysloans/admin/AdminWebParityPolicy.kt
             grep -q 'nativeSessionInjectionStarted' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            grep -q 'maxAttempts=3' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'maxInstallAttempts=40' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q 'maxWatchAttempts=80' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             grep -q 'window.installNativeAdminSession' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
+            grep -q '__morleyNativeSessionState' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
             ! grep -q 'window.sb.auth.setSession' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
-            ! grep -q "typeof window.loadSession==='function'" android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           else
             grep -q 'CONTROLLED ADMIN MODE' android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt
           fi
@@ -86,10 +89,15 @@ jobs:
           grep -q 'allowContentAccess = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
           grep -q 'domStorageEnabled = false' android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt
 
-          grep -q 'installNativeAdminSession' admin/native-session-bootstrap.html
-          grep -q 'auth.setSession' admin/native-session-bootstrap.html
-          grep -q 'nativeAuth=1' admin/native-session-bootstrap.html
+          grep -q 'nativeAuthMode' admin/user-management-policy.js
+          grep -q 'window.installNativeAdminSession' admin/user-management-policy.js
+          grep -q 'auth.setSession' admin/user-management-policy.js
+          grep -q 'nativeSessionGate' admin/user-management-policy.js
           grep -q 'nativeAuthMode' admin/login-security.js
+          grep -q 'turnstile.render(challengeHost' admin/login-security.js
+          grep -q 'challenges.cloudflare.com/turnstile/v0/api.js?render=explicit' admin/login-security.js
+          grep -q 'user-management-policy.js?v=2' admin/index.html
+          grep -q 'login-security.js?v=8' admin/index.html
 
           grep -q '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java/com/buysloans/admin/AdminApi.kt
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' android/adminapp/src/main/java | wc -l)" = "1"
