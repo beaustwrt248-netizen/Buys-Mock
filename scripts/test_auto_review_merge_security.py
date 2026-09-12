@@ -38,16 +38,17 @@ if '"$CRITICAL"' not in run_text:
 if '--body-file "$RUNNER_TEMP/critical-stop.md"' not in run_text:
     errors.append('critical PR comment is not sent through a body file')
 
-# Documentation may accurately describe existing service-role-only server behavior.
-# That wording alone must not promote an otherwise guarded change to critical. Runtime
-# source still needs broad service-role detection, so the workflow must make this
-# exception by file type rather than by weakening/removing the service-role matcher.
+# Documentation and test sources may intentionally contain the literal service-role
+# token while proving it is forbidden or documenting existing server-only behavior.
+# Those inert references must not promote an otherwise guarded change to critical.
+# Runtime source still needs broad service-role detection, so the exception is by
+# file type rather than by weakening/removing the matcher.
 if "service_role_pattern=re.compile(r'\\bservice[_-]?role\\b'" not in run_text:
     errors.append('service-role critical detection is not preserved as a dedicated runtime-source matcher')
-if "document_path=re.compile(r'(^|/)(docs?/|[^/]+\\.md$)'" not in run_text:
-    errors.append('documentation paths are not explicitly separated from runtime service-role detection')
-if "if service_role_pattern.search(file_added) and not document_path.search(name):" not in run_text:
-    errors.append('documentation-only service-role wording can still trigger a false critical classification')
+if "reference_only_path=re.compile(r'(^|/)(docs?/|tests?/|src/(test|androidTest)/|[^/]+\\.md$)'" not in run_text:
+    errors.append('documentation and test paths are not explicitly separated from runtime service-role detection')
+if "if service_role_pattern.search(file_added) and not reference_only_path.search(name):" not in run_text:
+    errors.append('test/documentation-only service-role wording can still trigger a false critical classification')
 if re.search(r"(?m)^\s*r'\\bservice\[_-\]\?role\\b',\s*$", run_text):
     errors.append('service-role matcher is still applied globally across documentation and runtime patches')
 
