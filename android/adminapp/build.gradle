@@ -11,8 +11,8 @@ android {
         applicationId 'com.buysloans.admin'
         minSdk 26
         targetSdk 35
-        versionCode 40
-        versionName '0.1.39'
+        versionCode 41
+        versionName '0.1.40'
         manifestPlaceholders = [appLabel: 'Morley Admin']
         buildConfigField 'boolean', 'IS_RECOVERY_BUILD', 'false'
         buildConfigField 'String', 'SUPABASE_URL', '"https://ghdhairijqjqivqriigi.supabase.co"'
