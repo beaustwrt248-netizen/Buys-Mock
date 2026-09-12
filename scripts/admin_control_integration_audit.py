@@ -25,6 +25,8 @@ auth_html = read("admin/index.html")
 browser_auth = read("admin/browser-auth-bootstrap.js")
 workspace_html = read("admin/workspace.html")
 workspace_template = read("admin/workspace-template.html")
+admin_user_control = read("supabase/functions/admin-user-control/index.ts")
+session_revoke_migration = read("supabase/migrations/20260912122323_admin_revoke_user_sessions.sql")
 
 workspace_scripts = [
     "user-management-policy.js",
@@ -56,6 +58,15 @@ require("workspace-template.html?v=2" in workspace_html, "Admin workspace does n
 require("for(const entry of scripts)await loadScript(entry)" in workspace_html, "Admin workspace scripts are not loaded behind the authorization gate")
 require("login-security.js" not in workspace_html, "Authenticated Admin workspace must not start a second browser Turnstile flow")
 require('id="appView"' in workspace_template and 'id="logoutBtn"' in workspace_template, "Admin workspace template is incomplete")
+
+# Supabase admin.signOut expects a logged-in JWT, not a target user UUID. The
+# server-side user-control path must revoke target sessions through the locked
+# service-role database helper instead of feeding a UUID into JWT parsing.
+require("admin.auth.admin.signOut(targetUser" not in admin_user_control, "Admin user control passes a target UUID to Supabase JWT signOut")
+require("admin_revoke_user_sessions" in admin_user_control, "Admin user control is missing target-session revocation")
+require("delete from auth.sessions" in session_revoke_migration.lower(), "Session revocation helper does not remove target auth sessions")
+require("revoke all on function public.admin_revoke_user_sessions(uuid) from authenticated" in session_revoke_migration.lower(), "Authenticated clients can execute the privileged session revocation helper")
+require("grant execute on function public.admin_revoke_user_sessions(uuid) to service_role" in session_revoke_migration.lower(), "Service role cannot execute the session revocation helper")
 
 if errors:
     print("Admin Control integration audit FAILED")
