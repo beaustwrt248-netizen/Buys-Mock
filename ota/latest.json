@@ -1,7 +1,7 @@
 {
-  "versionCode": 141,
-  "versionName": "2.15.97",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.97/B-and-L-Morley-2.15.97.apk",
-  "sha256": "353c47208ccafac6d1c97b16008f1f3f8fda6772d947eb9b6473a6920844a401",
-  "notes": "Unify Morley Buys on blue theme and simplify dashboard camera entry"
+  "versionCode": 142,
+  "versionName": "2.15.98",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.98/B-and-L-Morley-2.15.98.apk",
+  "sha256": "c2f7d86723f53f3148c6a2435ad788f1fb82adba0d7527287c40b4f2bc1aaced",
+  "notes": "Merge pull request #1592 from beaustwrt248-netizen/fix/restore-ai-device-scanner"
 }
