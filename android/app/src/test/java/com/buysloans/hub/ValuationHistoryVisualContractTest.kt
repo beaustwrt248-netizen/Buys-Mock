@@ -21,7 +21,7 @@ class ValuationHistoryVisualContractTest {
         assertTrue("Valuations screen must paint the light Morley background", history.contains("fillMaxSize().background(HistBg)"))
         assertTrue("Status filters must divide available phone width evenly", history.contains("modifier=Modifier.weight(1f)"))
         assertTrue("Status filter labels must remain single-line", history.contains("maxLines=1,softWrap=false"))
-        assertTrue("Selected filter must use pale mint with dark emerald text", history.contains("selectedContainerColor=Color(0xFFDDF4E9),selectedLabelColor=HistStrong"))
+        assertTrue("Selected filter must use the shared pale Morley blue with readable strong text", history.contains("selectedContainerColor=MorleyAccentSoft,selectedLabelColor=HistStrong"))
         assertTrue("Empty state must use a white card", history.contains("containerColor=Color.White"))
         assertTrue("Empty state guidance must be present", history.contains("Get started by saving your first valuation."))
     }

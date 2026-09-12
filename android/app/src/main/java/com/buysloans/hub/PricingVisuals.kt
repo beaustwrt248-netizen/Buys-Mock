@@ -22,24 +22,16 @@ internal enum class PricingVisual { ALL, LAPTOP, DESKTOP, PHONE, TABLET, WATCH, 
 
 @Composable
 internal fun PricingCategoryVisual(type: PricingVisual, modifier: Modifier = Modifier) {
-    val background = when (type) {
-        PricingVisual.ALL -> Color(0xFFE4F2EE)
-        PricingVisual.LAPTOP -> Color(0xFFE7EEF8)
-        PricingVisual.DESKTOP -> Color(0xFFE9ECEC)
-        PricingVisual.PHONE -> Color(0xFFE4F2EE)
-        PricingVisual.TABLET -> Color(0xFFE8F1EF)
-        PricingVisual.WATCH -> Color(0xFFEAF3EF)
-        PricingVisual.CONSOLE -> Color(0xFFF0ECE8)
-    }
+    val background = MorleyAccentSoft
     Box(modifier.background(background, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
         when (type) {
-            PricingVisual.ALL -> MorleyIcon(MorleyIcons.Categories, "All devices", Color(0xFF287E68), Modifier.size(31.dp))
-            PricingVisual.LAPTOP -> MorleyIcon(MorleyIcons.Laptop, "Laptop", Color(0xFF355B8C), Modifier.size(31.dp))
-            PricingVisual.DESKTOP -> MorleyIcon(MorleyIcons.Computer, "Desktop", Color(0xFF37403E), Modifier.size(31.dp))
-            PricingVisual.PHONE -> MorleyIcon(MorleyIcons.Phone, "Mobile phone", Color(0xFF287E68), Modifier.size(31.dp))
-            PricingVisual.TABLET -> MorleyIcon(MorleyIcons.Tablet, "Tablet", Color(0xFF287E68), Modifier.size(31.dp))
-            PricingVisual.WATCH -> MorleyIcon(MorleyIcons.Watch, "Smart watch", Color(0xFF287E68), Modifier.size(31.dp))
-            PricingVisual.CONSOLE -> MorleyIcon(MorleyIcons.Console, "Gaming console", Color(0xFF34383A), Modifier.size(31.dp))
+            PricingVisual.ALL -> MorleyIcon(MorleyIcons.Categories, "All devices", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.LAPTOP -> MorleyIcon(MorleyIcons.Laptop, "Laptop", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.DESKTOP -> MorleyIcon(MorleyIcons.Computer, "Desktop", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.PHONE -> MorleyIcon(MorleyIcons.Phone, "Mobile phone", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.TABLET -> MorleyIcon(MorleyIcons.Tablet, "Tablet", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.WATCH -> MorleyIcon(MorleyIcons.Watch, "Smart watch", MorleyAccent, Modifier.size(31.dp))
+            PricingVisual.CONSOLE -> MorleyIcon(MorleyIcons.Console, "Gaming console", MorleyAccent, Modifier.size(31.dp))
         }
     }
 }
@@ -111,7 +103,7 @@ private fun XiaomiMark() {
 @Composable
 private fun MoreBrandsMark() {
     Canvas(Modifier.size(38.dp)) {
-        val color = Color(0xFF37403E)
+        val color = MorleyAccent
         val y = size.height / 2f
         drawCircle(color, 2.8.dp.toPx(), Offset(size.width * .28f, y))
         drawCircle(color, 2.8.dp.toPx(), Offset(size.width * .50f, y))

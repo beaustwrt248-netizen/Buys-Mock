@@ -84,7 +84,7 @@ class UiCopyStyleTest {
         val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = SWStrong, contentColor = androidx.compose.ui.graphics.Color.White)"
         assertFalse("Low-contrast Smart Workspace primary action returned", workspace.contains(legacyContrast))
         assertTrue(
-            "Both Smart Workspace primary actions must use white on strong emerald",
+            "Both Smart Workspace primary actions must use white on strong Morley blue",
             workspace.split(accessibleContrast).size - 1 == 2
         )
         assertFalse("Legacy Quick Deal Seller Ask wording returned", workspace.contains("Seller asking price"))
@@ -103,21 +103,21 @@ class UiCopyStyleTest {
         )
         assertTrue(
             "Test & Buy unselected chip label must use canonical dark text",
-            testBuy.contains("labelColor = Color(0xFF1C2B26)")
+            testBuy.contains("labelColor = MorleyTextPrimary")
         )
         assertTrue(
             "Test & Buy selected chip label must use canonical dark text",
-            testBuy.contains("selectedLabelColor = Color(0xFF1C2B26)")
+            testBuy.contains("selectedLabelColor = MorleyTextPrimary")
         )
     }
 
-    @Test fun menuPrimaryActionsRemainReadableOnStrongEmerald() {
+    @Test fun menuPrimaryActionsRemainReadableOnStrongBlue() {
         val menu = sourceFile("MenuFeatureActivity.kt")
         val lowContrast = "ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = MorleyTextPrimary)"
         val accessibleContrast = "ButtonDefaults.buttonColors(containerColor = MorleyAccentStrong, contentColor = Color.White)"
         assertFalse("Low-contrast Menu primary action returned", menu.contains(lowContrast))
         assertTrue(
-            "Inventory and scanner primary actions must use white on strong emerald",
+            "Inventory and scanner primary actions must use white on strong Morley blue",
             menu.split(accessibleContrast).size - 1 >= 2
         )
     }
@@ -141,7 +141,7 @@ class UiCopyStyleTest {
             update.contains("color=Color(0xFF70DFFF)")
         )
         assertTrue(
-            "Update Centre version label must use canonical strong emerald",
+            "Update Centre version label must use canonical strong Morley blue",
             update.contains("color=MorleyAccentStrong")
         )
     }
