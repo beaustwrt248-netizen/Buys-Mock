@@ -90,9 +90,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          CRITICAL: ${{ steps.risk.outputs.critical }}
         shell: bash
         run: |
-          gh pr comment "$PR" --repo "$REPO" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
+          printf '%s\n' \
+            '🛑 **Critical autonomy stop.**' \
+            '' \
+            'This PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically.' \
+            '' \
+            'Detected:' \
+            '```' \
+            "$CRITICAL" \
+            '```' > "$RUNNER_TEMP/critical-stop.md"
+          gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/critical-stop.md"
           exit 1
 
       - name: Record guarded manual-review boundary
