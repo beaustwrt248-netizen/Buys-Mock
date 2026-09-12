@@ -1,5 +1,6 @@
 import { PRIMARY_NAV, DRAWER_NAV, resolveRoute } from './src/navigation.mjs';
 import { createRouter } from './src/router.mjs';
+import { createLiveRuntime } from './src/live-runtime.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -23,6 +24,8 @@ const ROUTE_LABELS = {
 const DRAWER_ICONS = ['⌂','◉','⌘','☑','▣','◇','▤','◴','▦','⌁','⚙','?'];
 const BOTTOM_ICONS = { Home: '⌂', Chat: '◉', Tools: '⌘', Tasks: '☑', More: '•••' };
 const router = createRouter({ initialRoute: 'home' });
+let liveRuntime = null;
+let toastTimer = null;
 
 function labelToRoute(label) {
   return resolveRoute(label);
@@ -79,29 +82,80 @@ function showOnly(view) {
   for (const item of [splashView, loginView, shell, allSetView]) item.classList.toggle('is-hidden', item !== view);
 }
 
-function ensureIsolatedManifest() {
-  if (document.head.querySelector('link[rel="manifest"]')) return;
-  const manifest = document.createElement('link');
-  manifest.rel = 'manifest';
-  manifest.href = './manifest.webmanifest';
-  document.head.append(manifest);
+function showToast(message, tone = '') {
+  document.querySelector('.runtime-toast')?.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+  const toast = document.createElement('div');
+  toast.className = `runtime-toast${tone ? ` ${tone}` : ''}`;
+  toast.setAttribute('role', 'status');
+  toast.textContent = message;
+  document.body.append(toast);
+  toastTimer = setTimeout(() => toast.remove(), 3600);
+}
+
+function ensureHeadLink(rel, href, id) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = rel;
+  link.href = href;
+  document.head.append(link);
+}
+
+function ensureIsolatedAssets() {
+  ensureHeadLink('manifest', './manifest.webmanifest', 'novaNextManifest');
+  ensureHeadLink('stylesheet', './live.css', 'novaNextLiveStyles');
 }
 
 function registerIsolatedServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   const base = new URL('./', window.location.href);
   if (!base.pathname.endsWith('/nova-next/')) return;
-  navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(() => {
-    // PWA support is progressive; bootstrap UI must remain usable without SW registration.
+  navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(error => {
+    console.warn('nova-next service worker registration failed', error);
   });
 }
 
-function bootstrap() {
-  ensureIsolatedManifest();
+function markAuthenticatedSession(session) {
+  const email = String(session?.user?.email || '');
+  const online = document.querySelector('.assistant-row p');
+  if (online) online.innerHTML = '<span class="online-dot"></span> Guarded · Admin session';
+  const preview = document.getElementById('previewNote');
+  if (preview && email) preview.textContent = `Signed in securely as ${email}.`;
+}
+
+async function bootstrap() {
+  ensureIsolatedAssets();
   buildNavigation();
   setRoute('home', { closeDrawer: false });
   registerIsolatedServiceWorker();
-  window.setTimeout(() => showOnly(loginView), 850);
+
+  liveRuntime = createLiveRuntime({
+    callbacks: {
+      onAuthenticated(session, { restored } = {}) {
+        markAuthenticatedSession(session);
+        showOnly(restored ? shell : allSetView);
+      },
+      onLocked(reason) {
+        showOnly(loginView);
+        if (reason === 'AUTH_REQUIRED') showToast('Your Nova session expired. Sign in again.', 'error');
+      },
+      onChatResult(result) {
+        if (result.degraded) showToast('Nova answered in degraded mode. Review the response evidence carefully.');
+      },
+      onRuntimeError(error) {
+        console.error('nova-next runtime', error);
+      }
+    }
+  });
+
+  try {
+    await liveRuntime.start();
+  } catch (error) {
+    console.error('nova-next boot', error);
+    showOnly(loginView);
+    showToast('Secure Nova startup failed. Access remains locked.', 'error');
+  }
 }
 
 menuButton.addEventListener('click', () => setDrawer(!drawer.classList.contains('is-open')));
@@ -120,20 +174,20 @@ document.addEventListener('click', event => {
     input.type = input.type === 'password' ? 'text' : 'password';
   } else if (action === 'signout') {
     setDrawer(false);
-    showOnly(loginView);
+    liveRuntime?.signOut();
   } else if (action === 'finish-intro') {
     showOnly(shell);
     setRoute('home');
+  }
+
+  const tool = event.target.closest('[data-tool]');
+  if (tool) {
+    showToast('This Nova tool is staged in the new interface but its live adapter is not connected in this security phase yet.');
   }
 });
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && drawer.classList.contains('is-open')) setDrawer(false);
-});
-
-document.getElementById('loginForm').addEventListener('submit', event => {
-  event.preventDefault();
-  showOnly(allSetView);
 });
 
 for (const tabList of document.querySelectorAll('.filter-tabs')) {
