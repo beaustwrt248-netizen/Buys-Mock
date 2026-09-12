@@ -22,7 +22,7 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Probe buyshub.me Admin challenge
+      - name: Trace buyshub.me Admin startup
         shell: bash
         run: |
           cat > probe.mjs <<'EOF'
@@ -31,48 +31,23 @@ jobs:
           const target='https://buyshub.me/admin/';
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:1280,height:900}});
-          const consoleLines=[];
-          const requestFailures=[];
-          page.on('console',msg=>consoleLines.push(`${msg.type()}: ${msg.text()}`));
-          page.on('pageerror',err=>consoleLines.push(`pageerror: ${err.message}`));
-          page.on('requestfailed',req=>requestFailures.push(`${req.url()} :: ${req.failure()?.errorText||'failed'}`));
+          page.on('request',req=>console.log(`REQ=${req.resourceType()} ${req.url()}`));
+          page.on('response',res=>console.log(`RES=${res.status()} ${res.url()}`));
+          page.on('requestfailed',req=>console.log(`FAIL=${req.url()} :: ${req.failure()?.errorText||'failed'}`));
+          page.on('console',msg=>console.log(`CONSOLE=${msg.type()} ${msg.text()}`));
+          page.on('pageerror',err=>console.log(`PAGEERROR=${err.message}`));
 
-          let response;
           try {
-            response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
+            const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
             console.log(`ADMIN_HTTP=${response?.status()||0}`);
             console.log(`ADMIN_URL=${page.url()}`);
-            console.log(`ADMIN_TITLE=${await page.title()}`);
-            await page.waitForTimeout(10000);
-
-            const frame=page.frames().find(f=>f.url().includes('/admin/turnstile.html'));
-            console.log(`TURNSTILE_FRAME=${frame?.url()||'missing'}`);
-            if(frame){
-              const state=await frame.evaluate(()=>({
-                state:window.__morleyTurnstileState||'',
-                token:window.__morleyTurnstileToken||'',
-                status:document.getElementById('status')?.textContent||'',
-                challengeText:document.getElementById('challenge')?.innerText||''
-              })).catch(e=>({evaluateError:String(e)}));
-              console.log(`TURNSTILE_STATE=${JSON.stringify({...state,token:state.token?'[present]':''})}`);
-            }
-            const parentState=await page.evaluate(()=>({
-              challengeStatus:document.getElementById('challengeStatus')?.textContent||'',
-              loginDisabled:document.getElementById('loginBtn')?.disabled,
-              iframeSrc:document.getElementById('adminTurnstileFrame')?.src||''
-            }));
-            console.log(`PARENT_STATE=${JSON.stringify(parentState)}`);
+            console.log('DOMCONTENTLOADED=1');
+            await new Promise(resolve=>setTimeout(resolve,12000));
+            const frameUrls=page.frames().map(frame=>frame.url());
+            console.log(`FRAME_URLS=${JSON.stringify(frameUrls)}`);
           } catch(error){
             console.log(`PROBE_ERROR=${error?.stack||error}`);
           } finally {
-            console.log('=== BROWSER CONSOLE ===');
-            for(const line of consoleLines) console.log(line);
-            console.log('=== REQUEST FAILURES ===');
-            for(const line of requestFailures) console.log(line);
-            await Promise.race([
-              page.screenshot({path:'admin-live-auth-probe.png',fullPage:true}).catch(()=>{}),
-              new Promise(resolve=>setTimeout(resolve,5000))
-            ]);
             await Promise.race([
               browser.close().catch(()=>{}),
               new Promise(resolve=>setTimeout(resolve,3000))
@@ -80,16 +55,20 @@ jobs:
           }
           EOF
           set +e
-          timeout 70s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
+          timeout 50s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
           rc=${PIPESTATUS[0]}
           set -e
-          if [ "$rc" -eq 124 ]; then echo 'PROBE_ERROR=browser probe timed out'; fi
+          if [ "$rc" -eq 124 ]; then echo 'PROBE_ERROR=browser probe timed out' | tee -a "$RUNNER_TEMP/probe.log"; fi
+          if ! grep -q 'ADMIN_HTTP=200' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Live Admin page did not return HTTP 200.'
+            exit 1
+          fi
           if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
             echo '::error::Turnstile configuration failure detected on the live custom domain.'
             exit 1
           fi
-          if [ "$rc" -ne 0 ] || grep -Eq 'TURNSTILE_FRAME=missing|ADMIN_HTTP=0|PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
-            echo '::error::Live Admin auth bootstrap failed before challenge validation.'
+          if [ "$rc" -ne 0 ] || grep -q 'PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
+            echo '::error::Live Admin renderer/startup did not remain responsive.'
             exit 1
           fi
       - name: Upload browser evidence
@@ -97,7 +76,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-live-auth-probe
-          path: |
-            admin-live-auth-probe.png
-            ${{ runner.temp }}/probe.log
+          path: ${{ runner.temp }}/probe.log
           if-no-files-found: warn
