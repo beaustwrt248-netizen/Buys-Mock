@@ -19,6 +19,7 @@ class AdaptiveDashboardNavigationTest {
         assertTrue(source.contains("title = \"Scan Device\""))
         assertTrue(source.contains("subtitle = \"AI device scan\""))
         assertTrue(source.contains("title = \"Manual Search\""))
+        assertTrue(source.contains("onClick = { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }"))
         assertTrue(source.contains("Intent(context, UniversalBuySearchActivity::class.java)"))
         assertTrue(source.contains("MenuRow(\"◉\", \"Device scan\", \"Take front and back photos for model, damage and condition analysis.\") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }"))
         assertTrue(source.contains("Google camera search"))
