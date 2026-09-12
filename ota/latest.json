@@ -1,7 +1,7 @@
 {
-  "versionCode": 142,
-  "versionName": "2.15.98",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.98/B-and-L-Morley-2.15.98.apk",
-  "sha256": "c2f7d86723f53f3148c6a2435ad788f1fb82adba0d7527287c40b4f2bc1aaced",
-  "notes": "Merge pull request #1592 from beaustwrt248-netizen/fix/restore-ai-device-scanner"
+  "versionCode": 143,
+  "versionName": "2.15.99",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.99/B-and-L-Morley-2.15.99.apk",
+  "sha256": "21cc345e1929639ad207ab79d4cb9d10fb964b13eb3f410b9e56c66bbcf8bb94",
+  "notes": "Replace Android catalogue polling with authenticated Realtime (#1640)"
 }
