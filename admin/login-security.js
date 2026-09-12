@@ -7,6 +7,9 @@
   const passwordInput=document.getElementById('password');
   if(!frame||!loginBtn||!loginStatus||!challengeStatus||!emailInput||!passwordInput)return;
 
+  const nativeAuthMode=new URLSearchParams(location.search).get('nativeAuth')==='1';
+  if(nativeAuthMode)return;
+
   let captchaToken='';
   let busy=false;
   let challengeLoaded=false;
