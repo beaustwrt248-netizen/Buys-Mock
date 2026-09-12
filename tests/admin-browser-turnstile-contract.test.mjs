@@ -14,7 +14,13 @@ test('browser Admin renders Turnstile directly in the top-level login document f
   assert.match(loginSecurity, /window\.turnstile\.render\(/);
   assert.match(loginSecurity, /sitekey/);
   assert.doesNotMatch(loginSecurity, /postMessage\(/);
-  assert.doesNotMatch(loginSecurity, /frame\.contentWindow/);
+});
+
+test('browser Admin retains strict rejection of any stale iframe bridge messages during rollout', () => {
+  assert.match(loginSecurity, /event\.source===frame\.contentWindow/);
+  assert.match(loginSecurity, /event\.origin===window\.location\.origin/);
+  assert.match(loginSecurity, /window\.location\.origin===['"]null['"]&&event\.origin===['"]null['"]/);
+  assert.match(loginSecurity, /if\(!trustedSource\|\|!trustedOrigin\)return/);
 });
 
 test('browser Admin recovers from blocked or stalled challenge loading instead of hanging forever', () => {
