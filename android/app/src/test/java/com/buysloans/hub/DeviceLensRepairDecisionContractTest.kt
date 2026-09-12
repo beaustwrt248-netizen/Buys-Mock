@@ -12,6 +12,7 @@ class DeviceLensRepairDecisionContractTest {
     fun `device lens inventory handoff requires explicit repair decision confirmation`() {
         val workspace = source("src/main/java/com/buysloans/hub/WorkspaceStore.kt")
         val activity = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionActivity.kt")
+        val ui = source("src/main/java/com/buysloans/hub/MorleyRepairDecisionUi.kt")
         val manifest = source("src/main/AndroidManifest.xml")
 
         assertTrue(workspace.contains("context is DeviceLensActivity"))
@@ -19,7 +20,7 @@ class DeviceLensRepairDecisionContractTest {
         assertTrue(workspace.contains("MorleyRepairDecisionActivity.createIntent"))
         assertTrue(workspace.contains("Repair-or-Buy must be confirmed before adding stock"))
         assertTrue(activity.contains("MorleyRepairDecisionPanel"))
-        assertTrue(activity.contains("Confirm staff decision"))
+        assertTrue(ui.contains("Confirm staff decision"))
         assertTrue(activity.contains("DeviceAssessmentStore.checkpoint"))
         assertTrue(activity.contains("\"staff_confirmed\""))
         assertTrue(manifest.contains(".MorleyRepairDecisionActivity"))
