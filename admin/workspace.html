@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf3ef"><title>B&L Morley Admin</title><link rel="stylesheet" href="styles.css?v=3"><link rel="stylesheet" href="auth-boundary.css?v=1"><link rel="stylesheet" href="desktop-workspace-fix.css?v=1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><main class="shell"><header class="topbar"><div><div class="eyebrow">B&L MORLEY</div><h1>Admin Control</h1></div><span class="badge">SECURE CONTROL CENTRE</span></header><section class="card auth-card"><h2>Opening Admin Control…</h2><div id="workspaceStatus" class="status" role="status" aria-live="polite">Verifying authorised session…</div></section></main><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf3ef"><title>B&L Morley Admin</title><link rel="stylesheet" href="styles.css?v=3"><link rel="stylesheet" href="auth-boundary.css?v=1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><main class="shell"><header class="topbar"><div><div class="eyebrow">B&L MORLEY</div><h1>Admin Control</h1></div><span class="badge">SECURE CONTROL CENTRE</span></header><section class="card auth-card"><h2>Opening Admin Control…</h2><div id="workspaceStatus" class="status" role="status" aria-live="polite">Verifying authorised session…</div></section></main><script>
 (async()=>{'use strict';
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
@@ -31,7 +31,7 @@ try{
     ['adminPricingManagement','pricing-management.js?v=3'],
     ['adminV2Script','admin-v2.js?v=8'],
     ['adminControlGovernance','control-governance.js?v=2'],
-    ['adminHome','admin-home.js?v=6']
+    ['adminHome','admin-home.js?v=8']
   ];
   const loadScript=([id,src])=>new Promise((resolve,reject)=>{if(document.getElementById(id)){resolve();return;}const script=document.createElement('script');script.id=id;script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error(`Failed to load ${src}`));document.body.appendChild(script);});
   for(const entry of scripts)await loadScript(entry);

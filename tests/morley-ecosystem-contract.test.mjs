@@ -9,6 +9,8 @@ const novaApp=fs.readFileSync(new URL('../nova/app.js',import.meta.url),'utf8');
 const adminPresentation=fs.readFileSync(new URL('../admin/ecosystem-presentation.js',import.meta.url),'utf8');
 const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',import.meta.url),'utf8');
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
+const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
+const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
   assert.match(source,/id:'morley-buys'/);
@@ -61,4 +63,14 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
   assert.match(guardianBranding,/guardian\?\.product===false/);
   assert.match(guardianBranding,/dataset\.guardianContract=contractValid\(\)\?'validated':'pending'/);
   assert.match(guardianBranding,/morley:ecosystem-ready/);
+});
+
+test('Admin desktop authority loads last and home boot is bounded',()=>{
+  assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
+  assert.match(adminWorkspace,/admin-home\.js\?v=8/);
+  assert.match(adminHome,/id='adminDesktopWorkspaceFixCss'/);
+  assert.match(adminHome,/desktop-workspace-fix\.css\?v=2/);
+  assert.doesNotMatch(adminHome,/setInterval\(/);
+  assert.doesNotMatch(adminHome,/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/);
+  assert.doesNotThrow(()=>new Function(adminHome));
 });
