@@ -44,6 +44,8 @@ jobs:
               r'(^|/)(auth|security|permissions?|migrations?|guardian)(/|$)|'
               r'^\.github/workflows/|^\.github/CODEOWNERS$|'
               r'^supabase/(migrations/|functions/)|'
+              r'^ota/|(^|/)(release|releases|release[-_]?metadata|ota)(/|$)|'
+              r'(^|/)(privileged[-_]?roles?|role[-_]?grants?|pricing[-_]?approval|price[-_]?approval)(/|$)|'
               r'(^|/)AndroidManifest\.xml$|(^|/)build\.gradle$', re.I)
 
           critical_path=re.compile(
@@ -90,10 +92,10 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr comment "$PR" --repo "$REPO" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically. All ordinary and guarded-sensitive changes remain autonomous.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
+          gh pr comment "$PR" --repo "$REPO" --body "🛑 **Critical autonomy stop.**\n\nThis PR contains a destructive, credential/signing, or trust-boundary change that Morley Autopilot will not merge automatically.\n\nDetected:\n\`\`\`\n${{ steps.risk.outputs.critical }}\n\`\`\`"
           exit 1
 
-      - name: Record guarded autonomous review
+      - name: Record guarded manual-review boundary
         if: steps.risk.outputs.level == 'guarded'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,22 +103,21 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          gh pr comment "$PR" --repo "$REPO" --body "🛡️ **Guarded autonomous change.** Sensitive paths are present, but no destructive/trust-breaking pattern was detected. Existing security, Guardian, parity, release and branch checks remain authoritative; auto-merge is armed only behind those checks."
+          gh pr comment "$PR" --repo "$REPO" --body "🛡️ **Protected change detected. Manual approval required.** Sensitive auth/authorization, RLS/migration, workflow security, release/OTA, privileged-role, pricing-approval, Guardian, manifest or build paths are not auto-approved or auto-merged. Existing security, parity, release and branch checks remain authoritative."
 
-      - name: Automatic approval when repository permits bot approval
-        if: steps.risk.outputs.level != 'critical'
+      - name: Automatic approval for routine changes only
+        if: steps.risk.outputs.level == 'routine'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
-          RISK_LEVEL: ${{ steps.risk.outputs.level }}
         shell: bash
         run: |
-          gh pr review "$PR" --repo "$REPO" --approve --body "✅ Morley Autopilot policy review passed (${RISK_LEVEL}). Required checks and branch protections remain authoritative."
+          gh pr review "$PR" --repo "$REPO" --approve --body "✅ Morley Autopilot routine-change policy review passed. Required checks and branch protections remain authoritative."
 
-      - name: Enable auto-merge for all non-critical changes
-        if: steps.risk.outputs.level != 'critical'
+      - name: Enable auto-merge for routine changes only
+        if: steps.risk.outputs.level == 'routine'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -131,6 +132,8 @@ jobs:
           echo "### Morley Autopilot risk: ${{ steps.risk.outputs.level }}" >> "$GITHUB_STEP_SUMMARY"
           if [[ "${{ steps.risk.outputs.level }}" == "critical" ]]; then
             echo "Automatic merge blocked because the change can alter trust, credentials/signing, or production data destructively." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "${{ steps.risk.outputs.level }}" == "guarded" ]]; then
+            echo "Manual approval required. Protected changes are neither auto-approved nor auto-merged." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Auto-merge armed. Existing required checks and repository protections must still pass." >> "$GITHUB_STEP_SUMMARY"
+            echo "Routine change: auto-merge may be armed, but required checks and repository protections must still pass." >> "$GITHUB_STEP_SUMMARY"
           fi
