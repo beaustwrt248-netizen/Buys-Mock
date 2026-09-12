@@ -12,7 +12,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -39,11 +39,11 @@ jobs:
 
           let response;
           try {
-            response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:45000});
+            response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
             console.log(`ADMIN_HTTP=${response?.status()||0}`);
             console.log(`ADMIN_URL=${page.url()}`);
             console.log(`ADMIN_TITLE=${await page.title()}`);
-            await page.waitForTimeout(12000);
+            await page.waitForTimeout(10000);
 
             const frame=page.frames().find(f=>f.url().includes('/admin/turnstile.html'));
             console.log(`TURNSTILE_FRAME=${frame?.url()||'missing'}`);
@@ -69,16 +69,26 @@ jobs:
             for(const line of consoleLines) console.log(line);
             console.log('=== REQUEST FAILURES ===');
             for(const line of requestFailures) console.log(line);
-            await page.screenshot({path:'admin-live-auth-probe.png',fullPage:true}).catch(()=>{});
-            await browser.close();
+            await Promise.race([
+              page.screenshot({path:'admin-live-auth-probe.png',fullPage:true}).catch(()=>{}),
+              new Promise(resolve=>setTimeout(resolve,5000))
+            ]);
+            await Promise.race([
+              browser.close().catch(()=>{}),
+              new Promise(resolve=>setTimeout(resolve,3000))
+            ]);
           }
           EOF
-          node probe.mjs | tee "$RUNNER_TEMP/probe.log"
+          set +e
+          timeout 70s node probe.mjs 2>&1 | tee "$RUNNER_TEMP/probe.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -eq 124 ]; then echo 'PROBE_ERROR=browser probe timed out'; fi
           if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
             echo '::error::Turnstile configuration failure detected on the live custom domain.'
             exit 1
           fi
-          if grep -Eq 'TURNSTILE_FRAME=missing|ADMIN_HTTP=0|PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
+          if [ "$rc" -ne 0 ] || grep -Eq 'TURNSTILE_FRAME=missing|ADMIN_HTTP=0|PROBE_ERROR=' "$RUNNER_TEMP/probe.log"; then
             echo '::error::Live Admin auth bootstrap failed before challenge validation.'
             exit 1
           fi
