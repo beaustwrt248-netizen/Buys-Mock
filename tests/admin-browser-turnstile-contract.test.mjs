@@ -29,6 +29,8 @@ test('browser Admin never hangs forever and can retry either transport after mob
   assert.match(loginSecurity, /challengeWatchdog=setTimeout/);
   assert.match(loginSecurity, /Security check unavailable\. Tap here to retry\./);
   assert.match(loginSecurity, /script\.onerror/);
+  assert.match(loginSecurity, /function startFallback[\s\S]*?loadingApi=false/);
+  assert.match(loginSecurity, /function resetChallenge[\s\S]*?loadingApi=false[\s\S]*?loadApi/);
   assert.match(loginSecurity, /resetChallenge/);
   assert.match(loginSecurity, /visibilitychange/);
   assert.match(loginSecurity, /pageshow/);
