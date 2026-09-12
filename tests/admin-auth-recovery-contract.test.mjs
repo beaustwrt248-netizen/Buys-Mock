@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
-const adminApp = readFileSync(new URL('../admin/app.js', import.meta.url), 'utf8');
-const workspaceLoaderUrl = new URL('../admin/workspace-loader.js', import.meta.url);
-const workspaceLoader = existsSync(workspaceLoaderUrl) ? readFileSync(workspaceLoaderUrl, 'utf8') : '';
+const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
+const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
+const workspaceTemplate = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
 const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
@@ -15,6 +15,8 @@ const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/
 
 test('Admin browser login has direct and isolated fallback Turnstile recovery on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
+  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=1/);
+  assert.match(adminIndex, /login-security\.js\?v=11/);
   assert.match(webSecurity, /adminTurnstileWidget/);
   assert.match(webSecurity, /legacyFrame\.replaceWith\(widget\)/);
   assert.match(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
@@ -32,29 +34,37 @@ test('Admin browser login has direct and isolated fallback Turnstile recovery on
   assert.match(webSecurity, /payload\.type===['"]token['"]/);
 });
 
-test('logged-out Admin browser keeps workspace code off the authentication critical path', () => {
+test('logged-out Admin browser is a minimal auth-only document and workspace code is authorization-gated', () => {
   const workspaceScripts = [
+    'user-management-policy.js',
+    'app.js',
+    'auth-boundary.js',
     'release-control.js',
     'targeted-notifications.js',
     'invites.js',
     'download-invites.js',
     'support-tickets.js',
     'audit-triage.js',
-    'control-governance.js',
     'pricing-management.js',
     'admin-v2.js',
+    'control-governance.js',
     'admin-home.js'
   ];
-  assert.match(adminIndex, /user-management-policy\.js\?v=2/);
-  assert.match(adminIndex, /workspace-loader\.js\?v=1/);
   for (const script of workspaceScripts) {
-    assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute before Admin authorization`);
-    assert.match(workspaceLoader, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available through the authenticated workspace loader`);
+    assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute in the logged-out auth document`);
+    assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available in the authorized workspace`);
   }
-  assert.match(adminApp, /await\s+window\.loadAdminWorkspace\(\)/);
-  assert.ok(adminApp.indexOf('await window.loadAdminWorkspace()') < adminApp.indexOf('await refreshAll()'), 'workspace must finish loading before the first privileged refresh');
-  assert.match(workspaceLoader, /window\.loadAdminWorkspace\s*=/);
-  assert.match(workspaceLoader, /workspacePromise/);
+  assert.match(browserAuthBootstrap, /from\('profiles'\)/);
+  assert.match(browserAuthBootstrap, /\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(browserAuthBootstrap, /location\.replace\(`workspace\.html\?auth=/);
+  assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
+  assert.match(workspaceShell, /from\('profiles'\)/);
+  assert.match(workspaceShell, /!\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /workspace-template\.html\?v=1/);
+  assert.match(workspaceShell, /for\(const entry of scripts\)await loadScript\(entry\)/);
+  assert.doesNotMatch(workspaceShell, /login-security\.js/);
+  assert.match(workspaceTemplate, /id="appView"/);
+  assert.match(workspaceTemplate, /id="logoutBtn"/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
