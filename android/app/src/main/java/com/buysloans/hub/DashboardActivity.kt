@@ -72,7 +72,6 @@ private fun RootApp(showUpdatedInitially: Boolean) {
     MaterialTheme(colorScheme = MorleyColorScheme) { DashboardApp(showUpdatedInitially) }
 }
 
-// Compact phone navigation follows the approved mobile reference.
 private enum class BottomDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
     CATALOGUE("Catalogue", MorleyIcons.Categories),
@@ -80,8 +79,6 @@ private enum class BottomDestination(val label: String, val icon: ImageVector) {
     TRADE("Trade", MorleyIcons.Money)
 }
 
-// Larger screens keep the established Categories and General Buys routes instead of
-// losing functionality just because the compact phone navigation is scan-first.
 private enum class ExpandedDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
     CATEGORIES("Categories", MorleyIcons.Categories),
@@ -259,12 +256,19 @@ private fun ParityHome(onGp: () -> Unit) {
         context.startActivity(Intent(context, MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE, feature))
     }
 
+    fun openSearch(mode: UniversalBuySearchMode) {
+        context.startActivity(
+            Intent(context, UniversalBuySearchActivity::class.java)
+                .putExtra(UniversalBuySearchMode.EXTRA_MODE, mode.wireValue)
+        )
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Surface(
-            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },
+            onClick = { openSearch(UniversalBuySearchMode.QUICK_SEARCH) },
             color = Color.White,
             border = BorderStroke(1.dp, LensHomeBorder),
             shape = RoundedCornerShape(999.dp),
@@ -273,7 +277,7 @@ private fun ParityHome(onGp: () -> Unit) {
             Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("⌕", color = ReferenceBlue, fontSize = 22.sp, fontWeight = FontWeight.Black)
                 Spacer(Modifier.width(10.dp))
-                Text("Search devices, stock or scan...", color = MorleyTextSecondary, fontSize = 14.sp)
+                Text("Quick search devices, stock or codes...", color = MorleyTextSecondary, fontSize = 14.sp)
             }
         }
 
@@ -288,9 +292,9 @@ private fun ParityHome(onGp: () -> Unit) {
             ReferenceQuickTile(
                 icon = "⌕",
                 title = "Manual Search",
-                subtitle = "Find by model",
+                subtitle = "Guided model lookup",
                 modifier = Modifier.weight(1f),
-                onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
+                onClick = { openSearch(UniversalBuySearchMode.MANUAL_SEARCH) }
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -304,9 +308,9 @@ private fun ParityHome(onGp: () -> Unit) {
             ReferenceQuickTile(
                 icon = "$",
                 title = "Price Check",
-                subtitle = "Compare prices",
+                subtitle = "Valuation shortcut",
                 modifier = Modifier.weight(1f),
-                onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
+                onClick = { openSearch(UniversalBuySearchMode.PRICE_CHECK) }
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -326,29 +330,9 @@ private fun ParityHome(onGp: () -> Unit) {
             )
         }
 
-        Card(
-            onClick = { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) },
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, LensHomeBorder),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(12.dp), color = ReferencePaleBlue, modifier = Modifier.size(46.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text("G", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 21.sp) }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Google camera search", color = MorleyTextPrimary, fontWeight = FontWeight.Black, fontSize = 15.sp)
-                    Text("Scan a barcode, QR code or encoded model/stock label", color = MorleyTextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
-                }
-                Text("›", color = ReferenceBlue, fontWeight = FontWeight.Black, fontSize = 24.sp)
-            }
-        }
-
         Surface(color = ReferencePaleBlue, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
             Text(
-                "Device Scan uses Morley Vision for the two-photo model, condition and damage assessment. Google Play services is used separately for code scanning in Morley Search.",
+                "Search is now purpose-specific: Quick Search is fastest, Manual Search guides identification, Price Check focuses on valuation, and Device Scan uses Morley Vision AI. Google camera code scanning remains available inside Morley Search instead of taking another dashboard slot.",
                 Modifier.padding(11.dp),
                 color = Color(0xFF28577E),
                 fontSize = 10.sp,
@@ -407,6 +391,10 @@ private fun MoreHub(onSignOut: () -> Unit) {
         context.startActivity(Intent(context, MenuFeatureActivity::class.java).putExtra(MenuFeatureActivity.EXTRA_FEATURE, feature))
     }
 
+    fun openSearch(mode: UniversalBuySearchMode) {
+        context.startActivity(Intent(context, UniversalBuySearchActivity::class.java).putExtra(UniversalBuySearchMode.EXTRA_MODE, mode.wireValue))
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -414,7 +402,8 @@ private fun MoreHub(onSignOut: () -> Unit) {
         Text("More", fontSize = 30.sp, fontWeight = FontWeight.Black, color = MorleyTextPrimary)
         MenuSection("Workspace") {
             MenuRow("◉", "Device scan", "Take front and back photos for model, damage and condition analysis.") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
-            MenuRow("⌕", "Morley search", "Search by name/model or scan a code with the Google camera.") { context.startActivity(Intent(context, UniversalBuySearchActivity::class.java)) }
+            MenuRow("⌕", "Manual search", "Guided category and model lookup with Google code scanning available inside the search flow.") { openSearch(UniversalBuySearchMode.MANUAL_SEARCH) }
+            MenuRow("$", "Price check", "Identify an item and jump directly into price-focused evidence.") { openSearch(UniversalBuySearchMode.PRICE_CHECK) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
             MenuRow("▣", "Stock", "Current inventory, costs and resale values.") { open("inventory") }
