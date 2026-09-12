@@ -65,21 +65,6 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
 });
 
 test('live Admin browser auth controller actually executes instead of leaving the static placeholder', {timeout:50000}, ()=>{
-  const url=`https://buyshub.me/admin/?morley_runtime_diag=${Date.now()}`;
-  const curl=spawnSync('curl',['--fail','--silent','--show-error','--location','--max-time','20','-H','Cache-Control: no-cache','-H','Pragma: no-cache',url],{encoding:'utf8',timeout:25000,maxBuffer:8*1024*1024});
-  assert.equal(curl.status,0,`Direct live Admin fetch failed. stderr: ${curl.stderr}`);
-  assert.match(curl.stdout,/login-security\.js\?v=10/,`Live Admin HTML is not serving the expected v10 auth controller. HTML: ${curl.stdout.slice(0,4000)}`);
-
-  const lookup=spawnSync('bash',['-lc','command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser'],{encoding:'utf8'});
-  assert.equal(lookup.status,0,`No headless Chrome/Chromium available on runner: ${lookup.stderr||lookup.stdout}`);
-  const chrome=lookup.stdout.trim().split(/\r?\n/)[0];
-  const result=spawnSync(chrome,[
-    '--headless=new','--disable-gpu','--no-sandbox','--disable-dev-shm-usage','--ignore-certificate-errors',
-    '--enable-logging=stderr','--virtual-time-budget=18000','--dump-dom',url
-  ],{encoding:'utf8',timeout:30000,maxBuffer:16*1024*1024});
-  assert.equal(result.status,0,`Headless Admin load failed. stderr: ${result.stderr}`);
-  const dom=result.stdout;
-  assert.ok(dom.length>0,`Headless Chrome returned an empty DOM despite curl succeeding. stderr: ${result.stderr}`);
-  assert.doesNotMatch(dom,/id="adminTurnstileFrame"/,`Admin auth controller never replaced its static iframe placeholder, so login-security.js did not execute. stderr: ${result.stderr}\nDOM: ${dom.slice(0,5000)}`);
-  assert.doesNotMatch(dom,/id="challengeStatus"[^>]*>Security check loading…<\/div>/,`Admin auth controller remained stuck in its initial loading state after 18s. stderr: ${result.stderr}\nDOM: ${dom.slice(0,5000)}`);
+  const result=spawnSync(process.execPath,['tests/admin-browser-live-runtime.js'],{cwd:process.cwd(),encoding:'utf8',timeout:45000,maxBuffer:16*1024*1024,env:process.env});
+  assert.equal(result.status,0,`Live Admin browser auth diagnostic failed\nSTDOUT:\n${result.stdout||''}\nSTDERR:\n${result.stderr||''}`);
 });
