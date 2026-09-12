@@ -404,6 +404,7 @@ private fun MoreHub(onSignOut: () -> Unit) {
             MenuRow("◉", "Device scan", "Take front and back photos for model, damage and condition analysis.") { context.startActivity(Intent(context, DeviceLensActivity::class.java)) }
             MenuRow("⌕", "Manual search", "Guided category and model lookup with Google code scanning available inside the search flow.") { openSearch(UniversalBuySearchMode.MANUAL_SEARCH) }
             MenuRow("$", "Price check", "Identify an item and jump directly into price-focused evidence.") { openSearch(UniversalBuySearchMode.PRICE_CHECK) }
+            MenuRow("◴", "AI scan history", "Resume, retry or review retained Morley Vision scans.") { context.startActivity(Intent(context, AiScanHistoryActivity::class.java)) }
             MenuRow("◷", "Valuations & deals", "Saved valuations and deal history.") { context.startActivity(Intent(context, ValuationHistoryActivity::class.java)) }
             MenuRow("✓", "Test & buy", "Run a hardware checklist and compare the seller ask with Max Buy guidance.") { context.startActivity(Intent(context, TestBuyActivity::class.java)) }
             MenuRow("▣", "Stock", "Current inventory, costs and resale values.") { open("inventory") }
