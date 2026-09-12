@@ -1,1 +1,0 @@
-The `admin-user-control` Edge Function authenticates the caller with a real access-token JWT. Target-user session revocation is performed by the service-role-only `public.admin_revoke_user_sessions(uuid)` database helper. Do not pass a target user UUID to `supabase.auth.admin.signOut()`: that API expects a logged-in JWT, not a user ID.
