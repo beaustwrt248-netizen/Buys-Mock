@@ -3,17 +3,25 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
+const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
 const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
 const sessionStore = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminSessionStore.kt', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
-test('Admin web renders Turnstile directly instead of nesting the challenge in another iframe', () => {
-  assert.match(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/);
-  assert.match(webSecurity, /turnstile\.render\(challengeHost/);
+test('Admin web uses the isolated same-origin Turnstile page on mobile and desktop', () => {
+  assert.match(adminIndex, /id="adminTurnstileFrame"/);
+  assert.match(webSecurity, /challengeBase=['"]turnstile\.html\?v=\d+&browser=1['"]/);
+  assert.match(webSecurity, /frame\.src=challengeUrl\(['"]load['"]\)/);
+  assert.match(webSecurity, /event\.source===frame\.contentWindow/);
+  assert.match(webSecurity, /event\.origin===window\.location\.origin/);
+  assert.match(webSecurity, /window\.location\.origin===['"]null['"]&&event\.origin===['"]null['"]/);
+  assert.match(webSecurity, /payload\.source!==['"]morley-turnstile['"]/);
+  assert.match(webSecurity, /payload\.type===['"]token['"]/);
   assert.match(webSecurity, /challengeWatchdog/);
-  assert.doesNotMatch(webSecurity, /frame\.src=['"]turnstile\.html/);
+  assert.doesNotMatch(webSecurity, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
+  assert.doesNotMatch(webSecurity, /turnstile\.render\(/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {

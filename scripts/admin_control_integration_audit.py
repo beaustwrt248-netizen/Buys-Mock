@@ -31,6 +31,7 @@ def semantic_version(value: str) -> tuple[int, int, int] | None:
 admin_html = read("admin/index.html")
 admin_app = read("admin/app.js")
 login_security = read("admin/login-security.js")
+turnstile_html = read("admin/turnstile.html")
 release_control = read("admin/release-control.js")
 support_tickets = read("admin/support-tickets.js")
 targeted_notifications = read("admin/targeted-notifications.js")
@@ -69,9 +70,17 @@ for section, ids in web_sections.items():
         require(f'id="{element_id}"' in admin_html, f"Admin web {section} control missing: {element_id}")
 
 require("captchaToken:token" in login_security, "Admin web login is not submitting the Turnstile token")
-require("turnstile.render(challengeHost" in login_security, "Admin web Turnstile is not rendered directly on the login surface")
-require("challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" in login_security, "Admin web Turnstile API source is missing")
+require("challengeBase='turnstile.html?v=7&browser=1'" in login_security, "Admin web is not using the isolated same-origin Turnstile page")
+require("frame.src=challengeUrl('load')" in login_security, "Admin web does not start/retry the isolated Turnstile challenge")
+require("event.source===frame.contentWindow" in login_security, "Admin web Turnstile source validation is missing")
+require("event.origin===window.location.origin" in login_security, "Admin web Turnstile origin validation is missing")
+require("payload.source!=='morley-turnstile'" in login_security, "Admin web Turnstile message identity validation is missing")
+require("payload.type==='token'" in login_security, "Admin web Turnstile token bridge is missing")
 require("challengeWatchdog" in login_security, "Admin web Turnstile loading is not bounded by a recovery watchdog")
+require("challenges.cloudflare.com/turnstile/v0/api.js" not in login_security, "Admin parent page must not inject Cloudflare Turnstile directly")
+require("window.turnstile.render" not in login_security and "turnstile.render(" not in login_security, "Admin parent page must not render Turnstile directly")
+require("window.parent.postMessage" in turnstile_html and "source:'morley-turnstile'" in turnstile_html, "Isolated Turnstile page does not post challenge state to its trusted parent")
+
 require("loadUsers" in admin_app and "admin-user-control" in admin_app, "Accounts/user-control wiring is incomplete")
 require("loadDevices" in admin_app and "app_version" in admin_app, "Device/version visibility wiring is incomplete")
 require("ticketReplyBtn" in support_tickets and "support_ticket_messages" in support_tickets, "Support reply wiring is incomplete")
@@ -198,4 +207,4 @@ if errors:
     sys.exit(1)
 
 print("Admin Control integration audit PASSED")
-print("Verified web Admin independence, native Android session ownership/workspaces, privileged API contracts and OTA governance.")
+print("Verified isolated browser Admin auth, native Android session ownership/workspaces, privileged API contracts and OTA governance.")
