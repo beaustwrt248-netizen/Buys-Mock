@@ -14,6 +14,7 @@ const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url
 const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
+const autoReviewWorkflow=fs.readFileSync(new URL('../.github/workflows/auto-review-merge.yml',import.meta.url),'utf8');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
   assert.match(source,/id:'morley-buys'/);
@@ -91,4 +92,21 @@ test('Admin app download invite is emailed through the existing audited mail ser
   assert.match(morleyEmail,/action === "send_download_invite"/);
   assert.match(morleyEmail,/app_download_invite_sent/);
   assert.match(morleyEmail,/Download \/ Open invitation/);
+});
+
+test('guarded auto review ignores negative or sanitizer-only service-role references while retaining a critical stop for real usage',()=>{
+  assert.match(autoReviewWorkflow,/service\[_-\]\?role/);
+  assert.match(autoReviewWorkflow,/safe_security_reference/);
+  assert.match(autoReviewWorkflow,/tests\//);
+  assert.match(autoReviewWorkflow,/docs\//);
+  assert.match(autoReviewWorkflow,/assertFalse|doesNotMatch/);
+  assert.match(autoReviewWorkflow,/blockedMetadataKeys|SECRET_KEY_RE/);
+  assert.match(autoReviewWorkflow,/if safe_security_reference\(name, line\):\s*continue/);
+});
+
+test('guarded auto review evaluates critical added text per file',()=>{
+  assert.match(autoReviewWorkflow,/for file in files:/);
+  assert.match(autoReviewWorkflow,/name=file\.get\('filename',''\)/);
+  assert.match(autoReviewWorkflow,/for line in \(file\.get\('patch'\) or ''\)\.splitlines\(\):/);
+  assert.match(autoReviewWorkflow,/critical\.append\(f'diff:\{pattern\}'\)/);
 });
