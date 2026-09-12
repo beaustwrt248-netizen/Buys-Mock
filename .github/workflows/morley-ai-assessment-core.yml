@@ -1,0 +1,58 @@
+name: Morley AI Assessment Core
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'morley-ai-assessment-core.js'
+      - 'morley-ai-assessment-client.js'
+      - 'nova/command-registry.js'
+      - 'admin/device-testing-centre.js'
+      - 'android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt'
+      - 'android/app/src/main/java/com/buysloans/hub/MorleyAssessmentBridge.kt'
+      - 'tests/morley-ai-assessment-core.test.mjs'
+      - 'tests/morley-ai-assessment-client.test.mjs'
+      - 'tests/morley-ai-device-lens-integration.test.mjs'
+      - 'tests/morley-ai-damage-review-contract.test.mjs'
+      - 'tests/morley-ai-diagnostics-condition.test.mjs'
+      - 'tests/morley-ai-valuation-repair.test.mjs'
+      - 'tests/morley-ai-risk-passport.test.mjs'
+      - 'tests/morley-ai-orchestration-nova.test.mjs'
+      - 'tests/nova-assessment-capabilities.test.mjs'
+      - 'tests/morley-ai-admin-condition-ui.test.mjs'
+      - '.github/workflows/morley-ai-assessment-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run assessment core contract
+        run: node --test tests/morley-ai-assessment-core.test.mjs
+      - name: Run authenticated assessment persistence client contract
+        run: node --test tests/morley-ai-assessment-client.test.mjs
+      - name: Run Device Lens assessment integration contract
+        run: node --test tests/morley-ai-device-lens-integration.test.mjs
+      - name: Run AI damage review contract
+        run: node --test tests/morley-ai-damage-review-contract.test.mjs
+      - name: Run staff diagnostics and Condition Score contract
+        run: node --test tests/morley-ai-diagnostics-condition.test.mjs
+      - name: Run valuation and repair decision contract
+        run: node --test tests/morley-ai-valuation-repair.test.mjs
+      - name: Run deal-risk and Device Passport contract
+        run: node --test tests/morley-ai-risk-passport.test.mjs
+      - name: Run stock orchestration customer-safe and Nova command contracts
+        run: node --test tests/morley-ai-orchestration-nova.test.mjs
+      - name: Run canonical Nova assessment capability contract
+        run: node --test tests/nova-assessment-capabilities.test.mjs
+      - name: Run staff Condition Score presentation contract
+        run: node --test tests/morley-ai-admin-condition-ui.test.mjs
