@@ -16,6 +16,8 @@ assert.equal(calls[0].init.method,'POST');
 assert.equal(calls[0].init.headers.apikey,'pk_test');
 assert.equal(calls[0].init.headers.Authorization,'Bearer access');
 assert.deepEqual(JSON.parse(calls[0].init.body),{prompt:'Hi'});
+await assert.rejects(()=>client.invoke('guardian-repair-executor',{}),/EDGE_FUNCTION_BLOCKED/);
+assert.equal(calls.length,1);
 
 const unauth=createEdgeFunctionClient({baseUrl:'https://example.supabase.co',publishableKey:'pk',getAccessToken:()=>'',fetchImpl:async()=>response(200,{})});
 await assert.rejects(()=>unauth.invoke('nova-orchestrator',{}),/AUTH_REQUIRED/);
