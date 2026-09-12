@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 const webSecurity = readFileSync(new URL('../admin/login-security.js', import.meta.url), 'utf8');
 const turnstileHtml = readFileSync(new URL('../admin/turnstile.html', import.meta.url), 'utf8');
 const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url), 'utf8');
+const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
+const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
+const workspaceTemplate = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
 const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
@@ -13,6 +16,8 @@ const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/
 
 test('Admin browser login uses one isolated same-origin Turnstile transport on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
+  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=1/);
+  assert.match(adminIndex, /login-security\.js\?v=11/);
   assert.match(webSecurity, /turnstile\.html\?v=8&browser=1/);
   assert.match(webSecurity, /captchaToken:token/);
   assert.match(webSecurity, /bootstrapTimer=setTimeout/);
@@ -26,6 +31,39 @@ test('Admin browser login uses one isolated same-origin Turnstile transport on m
   assert.match(turnstileHtml, /MAX_API_ATTEMPTS=3/);
   assert.match(turnstileHtml, /callback:function\(token\)/);
   assert.match(turnstileHtml, /window\.parent\.postMessage/);
+});
+
+test('logged-out Admin browser is auth-only and privileged workspace runtime is authorization-gated', () => {
+  const workspaceScripts = [
+    'user-management-policy.js',
+    'app.js',
+    'auth-boundary.js',
+    'release-control.js',
+    'targeted-notifications.js',
+    'invites.js',
+    'download-invites.js',
+    'support-tickets.js',
+    'audit-triage.js',
+    'pricing-management.js',
+    'admin-v2.js',
+    'control-governance.js',
+    'admin-home.js'
+  ];
+  for (const script of workspaceScripts) {
+    assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute in the logged-out auth document`);
+    assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available in the authorized workspace`);
+  }
+  assert.match(browserAuthBootstrap, /from\('profiles'\)/);
+  assert.match(browserAuthBootstrap, /\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(browserAuthBootstrap, /location\.replace\(`workspace\.html\?auth=/);
+  assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
+  assert.match(workspaceShell, /from\('profiles'\)/);
+  assert.match(workspaceShell, /!\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /workspace-template\.html\?v=2/);
+  assert.match(workspaceShell, /for\(const entry of scripts\)await loadScript\(entry\)/);
+  assert.doesNotMatch(workspaceShell, /login-security\.js/);
+  assert.match(workspaceTemplate, /id="appView"/);
+  assert.match(workspaceTemplate, /id="logoutBtn"/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
