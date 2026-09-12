@@ -128,6 +128,7 @@ jobs:
 
       - name: Enable auto-merge for routine changes only
         if: steps.risk.outputs.level == 'routine'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -145,5 +146,5 @@ jobs:
           elif [[ "${{ steps.risk.outputs.level }}" == "guarded" ]]; then
             echo "Manual approval required. Protected changes are neither auto-approved nor auto-merged." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Routine change: auto-merge may be armed, but required checks and repository protections must still pass." >> "$GITHUB_STEP_SUMMARY"
+            echo "Routine change: auto-merge arming is best-effort under the least-privilege workflow token; required checks and repository protections remain authoritative." >> "$GITHUB_STEP_SUMMARY"
           fi
