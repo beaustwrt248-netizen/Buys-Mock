@@ -25,7 +25,7 @@ jobs:
       - name: Probe buyshub.me Admin challenge
         shell: bash
         run: |
-          cat > "$RUNNER_TEMP/probe.mjs" <<'EOF'
+          cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
 
           const target='https://buyshub.me/admin/';
@@ -73,7 +73,7 @@ jobs:
             await browser.close();
           }
           EOF
-          node "$RUNNER_TEMP/probe.mjs" | tee "$RUNNER_TEMP/probe.log"
+          node probe.mjs | tee "$RUNNER_TEMP/probe.log"
           if grep -Eq '110200|Domain not authorized|Invalid sitekey|110100|110110|400020|400070' "$RUNNER_TEMP/probe.log"; then
             echo '::error::Turnstile configuration failure detected on the live custom domain.'
             exit 1
