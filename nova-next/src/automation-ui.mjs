@@ -11,9 +11,9 @@ export function createAutomationUi({documentObj=globalThis.document,automationRu
     const title=documentObj.createElement('input');title.required=true;title.maxLength=120;title.placeholder='Job title';title.value=existing?.title||'';
     const prompt=documentObj.createElement('textarea');prompt.required=true;prompt.rows=5;prompt.placeholder='What should this local job describe?';prompt.value=existing?.prompt||'';
     const schedule=documentObj.createElement('input');schedule.placeholder='Schedule description, e.g. Every morning';schedule.value=existing?.scheduleText||'';
-    const snap=workspaceRuntime?.snapshot?.()||{tasks:[],projects:[]};
-    const task=documentObj.createElement('select');task.append(option('','No linked task'),...(snap.tasks||[]).map(x=>option(x.id,x.title)));task.value=existing?.taskId||'';
-    const project=documentObj.createElement('select');project.append(option('','No linked project'),...(snap.projects||[]).map(x=>option(x.id,x.title)));project.value=existing?.projectId||'';
+    const tasks=workspaceRuntime?.listTasks?.('all')||[],projects=workspaceRuntime?.listProjects?.()||[];
+    const task=documentObj.createElement('select');task.append(option('','No linked task'),...tasks.map(x=>option(x.id,x.title)));task.value=existing?.taskId||'';
+    const project=documentObj.createElement('select');project.append(option('','No linked project'),...projects.map(x=>option(x.id,x.name||x.title)));project.value=existing?.projectId||'';
     const submit=el(documentObj,'button','primary-button',existing?'Save changes':'Save local job');submit.type='submit';
     form.append(el(documentObj,'p','feature-boundary','Local-only metadata. Enabling a job does not start a timer, scheduler, background worker or protected action.'),title,prompt,schedule,task,project,submit);
     form.addEventListener('submit',e=>{e.preventDefault();try{automationRuntime.save({id:existing?.id,title:title.value,prompt:prompt.value,scheduleText:schedule.value,taskId:task.value,projectId:project.value,state:existing?.state||'draft'});back.remove();render();onToast('Local automation job saved.');}catch(err){onToast(err?.message==='AUTOMATION_PROTECTED_INTENT'?'Protected execution intent cannot be stored as an automation job.':'Automation job could not be saved.','error');}});
@@ -25,6 +25,7 @@ export function createAutomationUi({documentObj=globalThis.document,automationRu
     const add=el(documentObj,'button','small-primary','＋ New Local Job');add.type='button';add.addEventListener('click',()=>openForm());root.append(add);
     for(const job of automationRuntime.list()){
       const card=el(documentObj,'article','feature-status-card');const status=automationRuntime.status(job);card.append(el(documentObj,'small','',`${status.badge} · ${job.state}`),el(documentObj,'strong','',job.title||'Untitled job'),el(documentObj,'p','',job.scheduleText||'No schedule description'));
+      const links=[job.taskId?'Task linked':'',job.projectId?'Project linked':''].filter(Boolean).join(' · ');if(links)card.append(el(documentObj,'small','workspace-meta',links));
       const actions=el(documentObj,'div','workspace-actions');const toggle=el(documentObj,'button','secondary-button',job.state==='enabled'?'Disable':'Enable');toggle.type='button';toggle.addEventListener('click',()=>{const r=automationRuntime.setEnabled(job.id,job.state!=='enabled');onToast(r.message);render();});const edit=el(documentObj,'button','secondary-button','Edit');edit.type='button';edit.addEventListener('click',()=>openForm(job));actions.append(toggle,edit);card.append(actions);root.append(card);
     }
   }
