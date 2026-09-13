@@ -25,39 +25,74 @@ auth_html = read("admin/index.html")
 browser_auth = read("admin/browser-auth-bootstrap.js")
 workspace_html = read("admin/workspace.html")
 workspace_template = read("admin/workspace-template.html")
+parity_runtime = read("admin/admin-app-parity.js")
+support_runtime = read("admin/admin-support-only-runtime.js")
+user_access_runtime = read("admin/admin-user-access-parity.js")
 admin_user_control = read("supabase/functions/admin-user-control/index.ts")
 session_revoke_migration = read("supabase/migrations/20260912122323_admin_revoke_user_sessions.sql")
 
-workspace_scripts = [
+full_access_scripts = [
     "user-management-policy.js",
     "app.js",
+    "admin-app-parity.js",
+    "admin-user-access-parity.js",
     "auth-boundary.js",
     "release-control.js",
     "targeted-notifications.js",
-    "invites.js",
     "download-invites.js",
     "support-tickets.js",
     "audit-triage.js",
     "pricing-management.js",
-    "admin-v2.js",
     "control-governance.js",
-    "admin-home.js",
 ]
+support_only_scripts = [
+    "admin-support-only-runtime.js",
+    "admin-app-parity.js",
+    "auth-boundary.js",
+    "support-tickets.js",
+]
+legacy_visual_loaders = ["admin-v2.js", "admin-home.js", "invites.js"]
 
 require('id="adminTurnstileFrame"' in auth_html, "Admin browser auth document is missing its isolated Turnstile frame")
 require("browser-auth-bootstrap.js?v=2" in auth_html, "Admin browser auth bootstrap is missing")
 require("login-security.js?v=11" in auth_html, "Admin browser auth controller cache key is stale")
-for script in workspace_scripts:
+for script in full_access_scripts + support_only_scripts + legacy_visual_loaders:
     require(f'src="{script}' not in auth_html and f"src='{script}" not in auth_html, f"Logged-out Admin auth document executes workspace script: {script}")
-    require(script in workspace_html, f"Authorized Admin workspace loader is missing: {script}")
-require("from('profiles')" in browser_auth and "['admin','manager'].includes(profile.role)" in browser_auth, "Admin browser auth bootstrap does not verify privileged profile authorization")
+for script in full_access_scripts:
+    require(script in workspace_html, f"Authorized full-access Admin workspace loader is missing: {script}")
+for script in support_only_scripts:
+    require(script in workspace_html, f"Authorized support-only Admin workspace loader is missing: {script}")
+for script in legacy_visual_loaders:
+    executable_marker = f"['adminV2Script','{script}" if script == "admin-v2.js" else f"['adminHome','{script}" if script == "admin-home.js" else f"['adminInvites','{script}"
+    require(executable_marker not in workspace_html, f"Legacy Admin visual/runtime loader must stay disabled: {script}")
+
+require("from('profiles')" in browser_auth, "Admin browser auth bootstrap does not verify the profile")
+require("FULL_ACCESS_ROLES=['admin','manager']" in browser_auth, "Admin browser auth bootstrap is missing full-access roles")
+require("ENTRY_ROLES=[...FULL_ACCESS_ROLES,'staff']" in browser_auth, "Admin browser auth bootstrap does not mirror native staff support entry")
+require("ENTRY_ROLES.includes(profile.role)" in browser_auth, "Admin browser auth bootstrap does not enforce native entry roles")
 require("workspace.html?auth=" in browser_auth, "Admin browser auth bootstrap does not enter the isolated workspace after authorization")
+
 require("client.auth.getSession()" in workspace_html, "Admin workspace does not independently verify the Supabase session")
-require("from('profiles')" in workspace_html and "!['admin','manager'].includes(profile.role)" in workspace_html, "Admin workspace does not independently enforce privileged profile authorization")
+require("from('profiles')" in workspace_html, "Admin workspace does not independently verify the profile")
+require("FULL_ACCESS_ROLES=['admin','manager']" in workspace_html, "Admin workspace is missing full-access roles")
+require("ENTRY_ROLES=[...FULL_ACCESS_ROLES,'staff']" in workspace_html, "Admin workspace does not mirror native staff support entry")
+require("ENTRY_ROLES.includes(profile.role)" in workspace_html, "Admin workspace does not enforce native entry roles")
+require("profile.role==='staff'" in workspace_html, "Admin workspace does not split staff into support-only mode")
+require("supportOnly?supportOnlyScripts:fullAccessScripts" in workspace_html, "Admin workspace does not isolate the support-only runtime")
 require("workspace-template.html?v=2" in workspace_html, "Admin workspace does not load the preserved workspace template")
 require("for(const entry of scripts)await loadScript(entry)" in workspace_html, "Admin workspace scripts are not loaded behind the authorization gate")
 require("login-security.js" not in workspace_html, "Authenticated Admin workspace must not start a second browser Turnstile flow")
+
+require('data-admin-shell="app-parity"' in workspace_template, "Admin workspace template is not using the native-parity shell")
 require('id="appView"' in workspace_template and 'id="logoutBtn"' in workspace_template, "Admin workspace template is incomplete")
+for workspace in ["overview", "support", "catalogue", "health", "guardian", "notifications", "users-devices", "staff-alerts", "controls", "audit", "release"]:
+    require(f'data-workspace="{workspace}"' in workspace_template, f"Admin parity navigation is missing workspace: {workspace}")
+    require(f'data-workspace-panel="{workspace}"' in workspace_template, f"Admin parity panel is missing workspace: {workspace}")
+
+require("supportOnly" in parity_runtime and "name!='support'" in parity_runtime.replace('!==', '!='), "Admin parity runtime does not force staff into Support")
+require("tab-tickets" in parity_runtime, "Admin parity runtime does not expose the staff Support panel")
+require("support-only" in support_runtime, "Admin support-only runtime is missing its least-privilege marker")
+require("reset_password" in user_access_runtime and "create_user" in user_access_runtime, "Admin native-parity user access controls are incomplete")
 
 # Supabase admin.signOut expects a logged-in JWT, not a target user UUID. The
 # server-side user-control path must revoke target sessions through the locked
@@ -75,8 +110,8 @@ if errors:
     sys.exit(1)
 
 # Preserve the full existing governance, native-Admin, OTA and backend checks. The
-# only compatibility adjustment is that browser workspace controls now live in
-# workspace-template.html instead of the logged-out authentication document.
+# browser workspace surface now lives in workspace-template.html and its runtime is
+# split between full-access and staff support-only loaders above.
 core_path = ROOT / "scripts/admin_control_integration_audit_core.py"
 source = core_path.read_text(encoding="utf-8")
 needle = 'admin_html = read("admin/index.html")'
