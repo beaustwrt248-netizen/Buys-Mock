@@ -22,6 +22,7 @@ const MAX_EMBEDDING_BATCH = 20;
 const MAX_INGEST_BATCH = 20;
 const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
 const F = "id,category,title,content,source_type,source_label,source_filename,mime_type,version_label,trust_level,status,content_hash,revision,metadata,created_by,updated_by,created_at,updated_at";
+const SENSITIVE_DIAGNOSTIC = /(authorization|cookie|password|secret|token|api[_-]?key)\s*[:=]\s*([^\s,;]+)/gi;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 const bounded = (value: unknown, fallback: number, max: number) => Math.min(Math.max(Number(value) || fallback, 1), max);
@@ -32,6 +33,27 @@ const validIso = (value: unknown) => {
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
 };
+
+function normalizeMaintenanceError(error: unknown, max = 400) {
+  const redact = (value: unknown) => clean(value, max).replace(SENSITIVE_DIAGNOSTIC, "$1=[redacted]");
+  if (error instanceof Error) return redact(error.message) || error.name || "Maintenance error";
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const parts = ["code", "message", "details", "hint"]
+      .map((key) => record[key] == null ? "" : `${key}=${redact(record[key])}`)
+      .filter(Boolean);
+    return redact(parts.join(" | ")) || "Structured maintenance error";
+  }
+  return redact(error) || "Unknown maintenance error";
+}
+
+function isOptionalSourcePermissionError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const record = error as Record<string, unknown>;
+  const code = clean(record.code, 40);
+  const message = clean(record.message, 240).toLowerCase();
+  return code === "42501" || message.includes("permission denied");
+}
 
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -93,11 +115,23 @@ async function finishRun(
   if (error) throw error;
 }
 
-async function fetchRows(table: string, columns: string, limit: number, configure?: (query: any) => any) {
+async function fetchRows(
+  table: string,
+  columns: string,
+  limit: number,
+  configure?: (query: any) => any,
+  options: { optional?: boolean } = {},
+) {
   let query: any = admin.from(table).select(columns).limit(limit);
   if (configure) query = configure(query);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    if (options.optional && isOptionalSourcePermissionError(error)) {
+      console.warn(`[nova-knowledge-maintenance] optional source unavailable: ${table}`);
+      return [];
+    }
+    throw error;
+  }
   return data || [];
 }
 
@@ -142,6 +176,7 @@ async function safeDocuments(limit: number) {
     "status,acquired_price,expected_sale_price,acquired_at,listed_at,retired_at,created_at,updated_at",
     Math.min(limit * 5, 100),
     (query) => query.order("updated_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("inventory", inventory)) documents.push({ adapter: "inventory_aggregate", sourceIdentity: "latest", document });
 
@@ -150,6 +185,7 @@ async function safeDocuments(limit: number) {
     "acquired_cost,sold_price,fees,other_costs,realised_profit,sales_channel,sold_at,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("sold_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("sales", sales)) documents.push({ adapter: "sales_aggregate", sourceIdentity: "latest", document });
 
@@ -164,6 +200,7 @@ async function safeDocuments(limit: number) {
     "proposed_buy_cents,target_resale_cents,expected_margin_cents,confidence,recommendation,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("created_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("valuation", [...history, ...quotes])) documents.push({ adapter: "valuation_aggregate", sourceIdentity: "latest", document });
 
@@ -375,7 +412,7 @@ async function ingestInternal(limit: number, stats: any) {
       else stats.ingested_skipped += 1;
     } catch (error) {
       stats.ingested_error += 1;
-      console.error("[nova-knowledge-maintenance] ingestion item failed", clean(error instanceof Error ? error.message : error, 240));
+      console.error("[nova-knowledge-maintenance] ingestion item failed", normalizeMaintenanceError(error, 240));
     }
   }
 }
@@ -430,13 +467,13 @@ async function embedPending(limit: number, stats: any) {
       if (updateError) throw updateError;
       stats.embedded_ready += 1;
     } catch (error) {
-      const message = clean(error instanceof Error ? error.message : error, 400);
+      const message = normalizeMaintenanceError(error, 400);
       const { error: updateError } = await admin.from("nova_knowledge_chunks").update({
         embedding_status: "error",
         embedding_error: message,
         updated_at: new Date().toISOString(),
       }).eq("id", chunk.id);
-      if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", clean(updateError.message, 240));
+      if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", normalizeMaintenanceError(updateError, 240));
       stats.embedded_error += 1;
       console.error("[nova-knowledge-maintenance] embedding failed", message);
     }
@@ -480,7 +517,7 @@ Deno.serve(async (req: Request) => {
       duration_ms: Date.now() - started,
     });
   } catch (error) {
-    const message = clean(error instanceof Error ? error.message : error, 400);
+    const message = normalizeMaintenanceError(error, 400);
     if (runId) {
       try { await finishRun(runId, "failed", stats, message); } catch { /* preserve original error */ }
     }

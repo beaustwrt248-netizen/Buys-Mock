@@ -86,3 +86,30 @@ test('maintenance migration preserves lexical fallback and extends aggregate hea
   assert.doesNotMatch(sql, /drop\s+(table|function).*nova_search_knowledge_chunks/i);
   assert.doesNotMatch(sql, /alter\s+table\s+nova_knowledge_chunks\s+drop/i);
 });
+
+test('maintenance serializes structured failures without leaking secret-bearing fields', () => {
+  const source = read(workerPath);
+  assert.match(source, /function\s+normalizeMaintenanceError\s*\(/);
+  assert.match(source, /code/);
+  assert.match(source, /details/);
+  assert.match(source, /message/);
+  assert.match(source, /hint/);
+  assert.match(source, /password|secret|token|authorization|cookie/i);
+  assert.doesNotMatch(source, /error instanceof Error \? error\.message : error/);
+  assert.match(source, /normalizeMaintenanceError\(error/);
+});
+
+test('optional operational sources cannot abort maintenance when service-role SELECT is unavailable', () => {
+  const source = read(workerPath);
+  const sourceWindow = (table) => {
+    const start = source.indexOf(`"${table}"`);
+    assert.ok(start >= 0, `${table} source must exist`);
+    return source.slice(start, start + 700);
+  };
+  assert.match(source, /function\s+isOptionalSourcePermissionError\s*\(/);
+  assert.match(source, /42501/);
+  assert.match(sourceWindow('inventory_items'), /optional:\s*true/);
+  assert.match(sourceWindow('sales_records'), /optional:\s*true/);
+  assert.match(sourceWindow('valuation_quotes'), /optional:\s*true/);
+  assert.doesNotMatch(source, /grant\s+select\s+on\s+(?:public\.)?(?:inventory_items|sales_records|valuation_quotes)/i);
+});
