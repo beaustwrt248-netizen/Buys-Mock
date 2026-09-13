@@ -115,7 +115,7 @@ jobs:
             'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=1','login-security.js?v=11'],
             'admin/browser-auth-bootstrap.js':['loadSession','profiles','is_enabled',"['admin','manager']",'workspace.html?auth='],
             'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="releaseName" readonly','id="rolloutCurrent"','id="rolloutOutdated"'],
-            'admin/workspace.html':['workspace-template.html?v=2','app.js?v=5','release-control.js?v=3','invites.js?v=4',"dataset.adminWorkspace='ready'"],
+            'admin/workspace.html':['workspace-template.html?v=2','app.js?v=','release-control.js?v=3','invites.js?v=4',"dataset.adminWorkspace='ready'"],
             'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
             'admin/invites.js':['send-morley-email',"action:'create_invite'",'display_name:name','inviteName'],
             'admin/turnstile.html':["const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",'postMessage(payload,postMessageOrigin)'],
