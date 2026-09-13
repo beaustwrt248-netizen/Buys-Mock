@@ -23,7 +23,10 @@ export function createSessionStore({ storage, key = 'nova-next.session.v1' } = {
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || !parsed.access_token || !parsed.user?.id) return null;
+      if (!parsed || typeof parsed !== 'object' || !parsed.access_token || !parsed.user?.id) {
+        clear();
+        return null;
+      }
       return parsed;
     } catch {
       clear();
