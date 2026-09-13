@@ -24,6 +24,8 @@ const CORE = [
   `${APP_PREFIX}src/safe-services.mjs`,
   `${APP_PREFIX}src/session-store.mjs`,
   `${APP_PREFIX}src/turnstile.mjs`,
+  `${APP_PREFIX}src/voice-input.mjs`,
+  `${APP_PREFIX}src/voice-ui.mjs`,
   `${APP_PREFIX}src/workspace-runtime.mjs`,
   `${APP_PREFIX}src/workspace-store.mjs`,
   `${APP_PREFIX}src/workspace-ui.mjs`,
