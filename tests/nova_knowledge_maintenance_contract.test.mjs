@@ -101,10 +101,15 @@ test('maintenance serializes structured failures without leaking secret-bearing 
 
 test('optional operational sources cannot abort maintenance when service-role SELECT is unavailable', () => {
   const source = read(workerPath);
+  const sourceWindow = (table) => {
+    const start = source.indexOf(`"${table}"`);
+    assert.ok(start >= 0, `${table} source must exist`);
+    return source.slice(start, start + 700);
+  };
   assert.match(source, /function\s+isOptionalSourcePermissionError\s*\(/);
   assert.match(source, /42501/);
-  assert.match(source, /fetchRows\([^)]*inventory_items[^)]*true/s);
-  assert.match(source, /fetchRows\([^)]*sales_records[^)]*true/s);
-  assert.match(source, /fetchRows\([^)]*valuation_quotes[^)]*true/s);
+  assert.match(sourceWindow('inventory_items'), /optional:\s*true/);
+  assert.match(sourceWindow('sales_records'), /optional:\s*true/);
+  assert.match(sourceWindow('valuation_quotes'), /optional:\s*true/);
   assert.doesNotMatch(source, /grant\s+select\s+on\s+(?:public\.)?(?:inventory_items|sales_records|valuation_quotes)/i);
 });
