@@ -8,6 +8,7 @@ import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
 import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
 import { createProductSearchUi } from './src/product-search-ui.mjs';
+import { createVoiceUi } from './src/voice-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -41,6 +42,7 @@ let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
 let productSearchUi = null;
+let voiceUi = null;
 let workspaceUi = null;
 let toastTimer = null;
 
@@ -194,6 +196,13 @@ async function bootstrap() {
     onError: error => console.error('nova-next product search', error)
   });
   productSearchUi.bind();
+
+  voiceUi = createVoiceUi({
+    documentObj: document,
+    windowObj: window,
+    onToast: showToast
+  });
+  voiceUi.bind();
 
   featureUi = createFeatureUi({
     featureRuntime,
