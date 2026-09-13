@@ -259,6 +259,43 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     }
   }
 
+  async function renderHelp() {
+    const page = documentObj.querySelector('.page[data-route="help"]');
+    if (!page) return;
+    clear(page);
+    const head = el(documentObj, 'div', 'page-title-row');
+    const copy = el(documentObj, 'div');
+    copy.append(el(documentObj, 'h1', '', 'Help & Support'), el(documentObj, 'p', '', 'Diagnostics and safe support shortcuts'));
+    head.append(copy);
+    page.append(head);
+
+    const grid = el(documentObj, 'div', 'feature-status-grid');
+    let integrations = [];
+    try {
+      integrations = await featureRuntime.integrationStatus();
+    } catch (error) {
+      onError(error);
+    }
+    const session = integrations.find(item => item.id === 'nova_session');
+    const github = integrations.find(item => item.id === 'github_broker');
+    grid.append(
+      statusCard('Diagnostics', session?.state === 'connected' ? 'Admin session active' : 'Session unavailable', session?.detail || 'Authentication state is checked by the existing guarded runtime.', session?.state === 'connected' ? '' : 'warning'),
+      statusCard('GitHub status', github?.state || 'unavailable', github?.detail || 'Read-only broker status is unavailable.', github?.state === 'connected' ? '' : 'warning'),
+      statusCard('Local workspace', 'Device-local', 'Tasks and projects use only the isolated Nova Next workspace store.'),
+      statusCard('Files', 'Session-only', 'Selected files remain local unless you explicitly send supported content to Vision or Chat.')
+    );
+    page.append(grid);
+
+    const actions = el(documentObj, 'div', 'workspace-actions');
+    for (const [label, route] of [['Open Integrations','integrations'],['Open Automation','automation'],['Open Control Centre','more']]) {
+      const button = el(documentObj, 'button', route === 'more' ? 'primary-button' : 'secondary-button', label);
+      button.type = 'button';
+      button.addEventListener('click', () => onNavigate(route));
+      actions.append(button);
+    }
+    page.append(actions, el(documentObj, 'p', 'feature-boundary', 'Support diagnostics are read-only. Protected Guardian, pricing, release, deployment, OTA, signing and user-role actions are not exposed here.'));
+  }
+
   function bindTools() {
     const page = documentObj.querySelector('.page[data-route="tools"]');
     if (!page) return;
@@ -286,7 +323,8 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
   async function routeChanged(route) {
     if (route === 'knowledge') await loadKnowledge();
     if (route === 'more') await loadControlCentre();
+    if (route === 'help') await renderHelp();
   }
 
-  return Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal, renderVision });
+  return Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal, renderVision, renderHelp });
 }
