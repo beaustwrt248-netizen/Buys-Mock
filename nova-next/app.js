@@ -9,6 +9,13 @@ import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
 import { createPreferencesStore } from './src/preferences-store.mjs';
 import { createSettingsUi } from './src/settings-ui.mjs';
+import { createResearchUi } from './src/research-ui.mjs';
+import { createVoiceInput } from './src/voice-input.mjs';
+import { createVoiceUi } from './src/voice-ui.mjs';
+import { createAutomationStore } from './src/automation-store.mjs';
+import { createAutomationRuntime } from './src/automation-runtime.mjs';
+import { createAutomationUi } from './src/automation-ui.mjs';
+import { createCoordinationUi } from './src/coordination-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -25,7 +32,7 @@ const subtitle = document.getElementById('topbarSubtitle');
 const ROUTE_LABELS = {
   home: 'Your AI-Powered Assistant', chat: 'Your AI Assistant', tools: 'AI Utilities', tasks: 'Stay organised',
   more: 'More from Nova', projects: 'Manage and build', knowledge: 'Saved knowledge', files: 'Your files',
-  automation: 'Capability status', calendar: 'Plan your work', integrations: 'Verified connections',
+  automation: 'Local jobs and capability status', calendar: 'Plan your work', integrations: 'Verified connections',
   settings: 'Customise Nova', help: 'Help & Support'
 };
 
@@ -43,6 +50,10 @@ let featureRuntime = null;
 let featureUi = null;
 let workspaceUi = null;
 let settingsUi = null;
+let researchUi = null;
+let voiceUi = null;
+let automationUi = null;
+let coordinationUi = null;
 let currentAccount = null;
 let toastTimer = null;
 
@@ -75,6 +86,7 @@ function buildNavigation() {
 }
 
 function renderRoute(currentRoute, { closeDrawer = true } = {}) {
+  if (currentRoute !== 'chat') voiceUi?.stop();
   for (const page of pages) page.classList.toggle('is-active', page.dataset.route === currentRoute);
   for (const button of document.querySelectorAll('[data-route-target]')) {
     if (button.closest('.bottom-nav, .drawer-nav')) {
@@ -86,6 +98,8 @@ function renderRoute(currentRoute, { closeDrawer = true } = {}) {
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
   workspaceUi?.routeChanged(currentRoute);
+  automationUi?.routeChanged(currentRoute);
+  coordinationUi?.routeChanged(currentRoute);
   featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
 }
 
@@ -182,6 +196,13 @@ async function bootstrap() {
     showToast('Local preferences are unavailable. Nova will use system appearance.', 'error');
   }
 
+  researchUi = createResearchUi({
+    documentObj: document,
+    onNavigate: route => setRoute(route),
+    getComposer: () => document.getElementById('novaNextChatInput'),
+    onToast: showToast
+  });
+
   liveRuntime = createLiveRuntime({
     callbacks: {
       onAuthenticated(session, { restored } = {}) {
@@ -189,15 +210,19 @@ async function bootstrap() {
         showOnly(restored ? shell : allSetView);
         if (restored) {
           workspaceUi?.routeChanged(router.current());
+          automationUi?.routeChanged(router.current());
+          coordinationUi?.routeChanged(router.current());
           featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
         }
       },
       onLocked(reason) {
         currentAccount = null;
+        voiceUi?.stop();
         showOnly(loginView);
         if (reason === 'AUTH_REQUIRED') showToast('Your Nova session expired. Sign in again.', 'error');
       },
       onChatResult(result) {
+        researchUi?.renderEvidence(result);
         if (result.degraded) showToast('Nova answered in degraded mode. Review the response evidence carefully.');
       },
       onRuntimeError(error) {
@@ -230,13 +255,25 @@ async function bootstrap() {
       onVisionResult: result => featureUi.renderVision(result)
     });
     workspaceUi.bind();
+
+    const automationStore = createAutomationStore({ storage: window.localStorage });
+    const automationRuntime = createAutomationRuntime({ store: automationStore, workspaceRuntime });
+    automationUi = createAutomationUi({ documentObj: document, automationRuntime, workspaceRuntime, onToast: showToast });
+    coordinationUi = createCoordinationUi({
+      documentObj: document,
+      workspaceRuntime,
+      featureRuntime,
+      onError: error => console.error('nova-next coordination', error)
+    });
   } catch (error) {
     console.error('nova-next workspace boot', error);
-    showToast('Local workspace storage is unavailable. Tasks and projects remain unchanged.', 'error');
+    showToast('Local workspace storage is unavailable. Tasks, projects and local jobs remain unchanged.', 'error');
   }
 
   try {
     await liveRuntime.start();
+    voiceUi = createVoiceUi({ documentObj: document, voiceInput: createVoiceInput(), onToast: showToast });
+    voiceUi.bind();
   } catch (error) {
     console.error('nova-next boot', error);
     showOnly(loginView);
@@ -259,6 +296,7 @@ document.addEventListener('click', event => {
     const input = document.querySelector('input[name="password"]');
     input.type = input.type === 'password' ? 'text' : 'password';
   } else if (action === 'signout') {
+    voiceUi?.stop();
     setDrawer(false, { restoreFocus: false });
     liveRuntime?.signOut();
   } else if (action === 'finish-intro') {
@@ -272,12 +310,7 @@ document.addEventListener('click', event => {
   if (tool === 'camera') {
     featureUi?.pickImages();
   } else if (tool === 'research') {
-    setRoute('chat');
-    const input = document.getElementById('novaNextChatInput');
-    if (input) {
-      input.value = 'Research this with evidence and clearly separate facts, uncertainty and recommendations: ';
-      input.focus();
-    }
+    researchUi?.open();
   } else if (tool === 'create') {
     setRoute('chat');
     const input = document.getElementById('novaNextChatInput');
