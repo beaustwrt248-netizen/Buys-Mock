@@ -22,3 +22,13 @@ Pre-flight scan:
 | 7 | protected merge/deploy | Clean; merge remains a stop condition if protected. |
 
 Task 1 RED commit: `725e407b5f736709f0a6d1e489f02d037594090b` — new capability ownership contract added before production changes.
+
+Task 1: complete — explicit capability resolver owns desktop feature handoff.
+Task 2: complete — Search & Scan and category routing use truthful search/scanner/catalogue paths.
+Task 3: complete — AI Insights, Reports, notifications, account and support have explicit behavior and no hard-coded notification badge.
+Task 4: complete — desktop-owned KPI/activity/account/notification state refreshes without replacing parked legacy Home DOM; focus-visible and insight styling added.
+Task 5: complete — boot, observer and shell/dashboard binding are idempotent while the >=1000px and physical-phone exclusions remain intact.
+
+Ruling: reconcile the hardening branch with current `main` before final PR gates — latest main added Nova/operations files only and did not touch the seven desktop hardening paths, so carrying the hardening blobs onto the current main tree preserves both lines of work without conflict.
+
+Task 6 gate pass on reconciled head `72541050d8fa7c3cb6bfc6be74b1397fe28da7ed`: B&L Morley Quality Gate, Web Release Smoke Checks, Morley UI Consistency and Morley Ultimate Parity Gate passed. Repository Security Audit and Full Feature Contract Audit ended with GitHub Actions `startup_failure` before any job ran; GitHub rejected failed-job rerun because startup-failure runs have no retryable job. This ledger-only commit intentionally retriggers exact-head CI without changing production behavior.
