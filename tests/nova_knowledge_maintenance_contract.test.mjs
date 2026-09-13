@@ -48,7 +48,7 @@ test('maintenance response never returns chunk content, vectors or credentials',
   assert.match(source, /ingested_created/);
   assert.match(source, /ingested_updated/);
   assert.match(source, /duration_ms/);
-  const successStart = source.indexOf('ok: true');
+  const successStart = source.lastIndexOf('ok: true');
   assert.ok(successStart >= 0, 'success response must exist');
   const successWindow = source.slice(successStart, successStart + 700);
   assert.doesNotMatch(successWindow, /content\s*:/);
