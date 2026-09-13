@@ -13,7 +13,8 @@ test('camera assessment outcome exposes storage and battery-health inputs',()=>{
 });
 
 test('camera pricing reuses the central Morley valuation rules',()=>{
-  assert.match(source,/MorleyAssessmentCore\?\.buildValuationQuote/);
+  assert.match(source,/MorleyAssessmentCore/);
+  assert.match(source,/core\?\.buildValuationQuote/);
   assert.match(source,/batteryHealthPct/);
   assert.match(source,/marketBaselineStorageSpecific:true/);
   assert.match(source,/storageAdjustment:0/);
