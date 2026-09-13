@@ -108,28 +108,15 @@
         </section>
 
         <section class="page" data-route="tasks" aria-labelledby="tasks-title">
-          <div class="page-title-row"><div><h1 id="tasks-title">My Tasks</h1><p>Stay organised and get things done</p></div><button class="icon-button" type="button" aria-label="Search tasks">⌕</button></div>
-          <div class="filter-tabs" role="tablist" aria-label="Task filters"><button class="is-selected">All</button><button>Today</button><button>Upcoming</button><button>Done</button></div>
-          <div class="task-list">
-            <label><input type="checkbox" /><span><strong>Update Morley Buys app</strong><small>Today</small></span><em class="priority high">High</em></label>
-            <label><input type="checkbox" /><span><strong>Review new device data</strong><small>Today</small></span><em class="priority medium">Medium</em></label>
-            <label><input type="checkbox" /><span><strong>Check GitHub builds</strong><small>Tomorrow</small></span><em class="priority medium">Medium</em></label>
-            <label><input type="checkbox" /><span><strong>Plan next feature release</strong><small>Tomorrow</small></span><em class="priority low">Low</em></label>
-            <label><input type="checkbox" /><span><strong>Research new AI tools</strong><small>Thu, 12 Sep</small></span><em class="priority low">Low</em></label>
-            <label><input type="checkbox" /><span><strong>Backup important files</strong><small>Thu, 12 Sep</small></span><em class="priority medium">Medium</em></label>
-            <label><input type="checkbox" /><span><strong>Update documentation</strong><small>Fri, 13 Sep</small></span><em class="priority low">Low</em></label>
-          </div>
-          <button class="primary-button sticky-action" type="button">＋ Add Task</button>
+          <div class="page-title-row"><div><h1 id="tasks-title">My Tasks</h1><p>Stay organised and get things done</p></div></div>
+          <div id="novaNextTaskFilters" class="filter-tabs" role="group" aria-label="Task filters"></div>
+          <div id="novaNextTaskList" class="task-list"></div>
+          <button id="novaNextAddTask" class="primary-button sticky-action" type="button">＋ Add Task</button>
         </section>
 
         <section class="page" data-route="projects" aria-labelledby="projects-title">
-          <div class="page-title-row"><div><h1 id="projects-title">Projects</h1><p>Manage and build your ideas</p></div><button class="small-primary" type="button">＋ New Project</button></div>
-          <div class="project-list">
-            <article><div class="project-head"><span class="project-icon green">▣</span><div><strong>Morley Buys</strong><small>App, website and ecosystem</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:75%"></span></div><em>75%</em></article>
-            <article><div class="project-head"><span class="project-icon blue">N</span><div><strong>Nova AI</strong><small>AI assistant and automation</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:60%"></span></div><em>60%</em></article>
-            <article><div class="project-head"><span class="project-icon coral">▤</span><div><strong>Device Database</strong><small>Mobile, tablet, laptop, console data</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:45%"></span></div><em>45%</em></article>
-            <article><div class="project-head"><span class="project-icon violet">▥</span><div><strong>Admin Tools</strong><small>Management and automation</small></div><b>›</b></div><p>In Progress</p><div class="progress-track"><span style="width:30%"></span></div><em>30%</em></article>
-          </div>
+          <div class="page-title-row"><div><h1 id="projects-title">Projects</h1><p>Manage and build your ideas</p></div><button id="novaNextAddProject" class="small-primary" type="button">＋ New Project</button></div>
+          <div id="novaNextProjectList" class="project-list"></div>
         </section>
 
         <section class="page" data-route="settings" aria-labelledby="settings-title">
@@ -148,7 +135,10 @@
         <section class="page" data-route="knowledge"><div class="placeholder"><span class="placeholder-icon violet">◇</span><h1>Knowledge Base</h1><p>Saved information, evidence, memory and learning controls will live here.</p></div></section>
         <section class="page" data-route="files"><div class="placeholder"><span class="placeholder-icon cyan">▤</span><h1>Files</h1><p>Browse and work with Nova-authorised files.</p></div></section>
         <section class="page" data-route="automation"><div class="placeholder"><span class="placeholder-icon indigo">⌘</span><h1>Automation</h1><p>Schedules, jobs and multi-step workflows.</p></div></section>
-        <section class="page" data-route="calendar"><div class="placeholder"><span class="placeholder-icon blue">▦</span><h1>Calendar</h1><p>Planned work, due dates and automation timing.</p></div></section>
+        <section class="page" data-route="calendar" aria-labelledby="calendar-title">
+          <div class="page-title-row"><div><h1 id="calendar-title">Calendar</h1><p>Dates from your Nova Next workspace</p></div></div>
+          <div id="novaNextCalendarList" class="feature-stack"></div>
+        </section>
         <section class="page" data-route="integrations"><div class="placeholder"><span class="placeholder-icon green">⌁</span><h1>Integrations</h1><p>Permissioned connections to Morley systems and external services.</p></div></section>
         <section class="page" data-route="help"><div class="placeholder"><span class="placeholder-icon blue">?</span><h1>Help & Support</h1><p>Guides, diagnostics and support workflows.</p></div></section>
         <section class="page" data-route="more"><div class="placeholder"><span class="placeholder-icon violet">•••</span><h1>More</h1><p>Control Centre, Guardian, release readiness, alerts, diagnostics and advanced Nova capabilities.</p><button class="secondary-button" type="button" data-route-target="settings">Open Settings</button></div></section>
