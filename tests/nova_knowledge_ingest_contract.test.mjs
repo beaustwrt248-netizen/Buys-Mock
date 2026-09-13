@@ -22,6 +22,14 @@ test('support ingestion selects structured safe fields only', async () => {
   assert.doesNotMatch(supportSelect, /user_id|assigned_to|subject|description|diagnostics/);
 });
 
+test('catalogue ingestion adopts existing live-catalogue seeds instead of duplicating them', async () => {
+  const text = await source();
+  assert.match(text, /generated_from_live_catalogue/);
+  assert.match(text, /device_catalog_id/);
+  assert.match(text, /adopted_count/);
+  assert.match(text, /return\s+['"]adopted['"]/);
+});
+
 test('internal ingestion never invents empty operational datasets', async () => {
   const text = await source();
   assert.match(text, /adaptOperationalRows/);
