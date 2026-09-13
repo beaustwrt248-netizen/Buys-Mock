@@ -50,11 +50,10 @@ test('rejects unknown task filter', () => {
   assert.throws(() => runtime.listTasks('later-ish'), /TASK_FILTER_INVALID/);
 });
 
-test('calendar combines dated tasks and projects sorted by date and label', () => {
+test('calendar combines only today and upcoming dated tasks and projects sorted by date and label', () => {
   const { store } = makeStore();
   const runtime = createWorkspaceRuntime({ store, today: () => '2026-09-13' });
   assert.deepEqual(runtime.calendarItems().map(x => [x.kind, x.id, x.date, x.completed]), [
-    ['task','c','2026-09-12',true],
     ['task','a','2026-09-13',false],
     ['task','b','2026-09-15',false],
     ['project','p1','2026-09-20',false]
