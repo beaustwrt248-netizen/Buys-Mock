@@ -1,11 +1,19 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  MAX_INGESTION_BATCH,
+  SAFE_INGESTION_ADAPTERS,
+  latestIngestion,
+  runInternalIngestion,
+} from "../_shared/nova_internal_ingestion.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MAINTENANCE_TOKEN = Deno.env.get("NOVA_KNOWLEDGE_MAINTENANCE_TOKEN") || "";
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
 const MAX_EMBEDDING_BATCH = 20;
+const INGESTION_INTERVAL_MS = 60 * 60 * 1000;
+const INGESTION_ADAPTERS = SAFE_INGESTION_ADAPTERS.filter((adapter) => adapter !== "all");
 
 const clean = (value: unknown, max = 240) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 const bounded = (value: unknown, fallback: number, max: number) => Math.min(Math.max(Number(value) || fallback, 1), max);
@@ -67,6 +75,22 @@ async function health() {
   return data;
 }
 
+async function maybeRunIngestion() {
+  const now = Date.now();
+  for (const adapter of INGESTION_ADAPTERS) {
+    const latest = await latestIngestion(admin, adapter);
+    const lastAtRaw = latest?.completed_at || latest?.started_at || null;
+    const lastAt = lastAtRaw ? Date.parse(lastAtRaw) : 0;
+    if (Number.isFinite(lastAt) && lastAt > 0 && now - lastAt < INGESTION_INTERVAL_MS) continue;
+
+    const checkpointOffset = Number(latest?.checkpoint?.next_offset);
+    const offset = Number.isFinite(checkpointOffset) && checkpointOffset >= 0 ? checkpointOffset : 0;
+    const limit = Math.min(MAX_INGESTION_BATCH, 50);
+    return await runInternalIngestion({ admin, adapter, limit, offset, actorId: null });
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   const headers = { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -80,10 +104,21 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return reply({ error: "Invalid JSON request" }, 400); }
   if (clean(body.action, 40).toLowerCase() !== "embed_pending") return reply({ error: "Unsupported action" }, 400);
 
+  let ingestion: unknown = null;
+  let ingestion_error: string | null = null;
+  if (body.ingest !== false) {
+    try {
+      ingestion = await maybeRunIngestion();
+    } catch (error) {
+      ingestion_error = clean(error instanceof Error ? error.message : error, 300);
+      console.warn("[nova-knowledge-maintenance] bounded ingestion failed; continuing embedding", ingestion_error);
+    }
+  }
+
   const requestedLimit = bounded(body.limit, MAX_EMBEDDING_BATCH, MAX_EMBEDDING_BATCH);
   const limit = Math.min(requestedLimit, 20);
   const { data: claimed, error: claimError } = await admin.rpc("nova_claim_embedding_chunks", { p_limit: limit });
-  if (claimError) return reply({ error: "Unable to claim embedding work" }, 500);
+  if (claimError) return reply({ error: "Unable to claim embedding work", ingestion, ingestion_error }, 500);
 
   const chunks = Array.isArray(claimed) ? claimed.slice(0, MAX_EMBEDDING_BATCH) : [];
   let processed = 0;
@@ -109,5 +144,14 @@ Deno.serve(async (req: Request) => {
 
   let snapshot: unknown = null;
   try { snapshot = await health(); } catch (error) { console.warn("[nova-knowledge-maintenance] health unavailable", clean(error instanceof Error ? error.message : error)); }
-  return reply({ ok: true, claimed: chunks.length, processed, failed, deferred: Math.max(0, chunks.length - processed - failed), health: snapshot });
+  return reply({
+    ok: true,
+    claimed: chunks.length,
+    processed,
+    failed,
+    deferred: Math.max(0, chunks.length - processed - failed),
+    ingestion,
+    ingestion_error,
+    health: snapshot,
+  });
 });
