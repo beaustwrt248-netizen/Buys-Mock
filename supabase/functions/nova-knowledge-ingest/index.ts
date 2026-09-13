@@ -78,7 +78,7 @@ async function finishRun(runId: string, status: "completed" | "partial" | "faile
     skipped_count: stats.skipped_count,
     error_count: stats.error_count,
     error_summary: errorSummary,
-    checkpoint: stats.checkpoint || {},
+    checkpoint: { ...stats.checkpoint, adopted_count: stats.adopted_count },
     completed_at: new Date().toISOString(),
   }).eq("id", runId);
   if (error) throw error;
@@ -207,6 +207,19 @@ async function snap(row: any, userId: string) {
   if (error) throw error;
 }
 
+async function hasLegacyCatalogueCoverage(sourceIdentity: string) {
+  const deviceCatalogId = Number(sourceIdentity);
+  if (!Number.isSafeInteger(deviceCatalogId) || deviceCatalogId <= 0) return false;
+  const { data, error } = await admin.from("nova_knowledge_items")
+    .select("id")
+    .eq("category", "catalogue")
+    .eq("status", "active")
+    .contains("metadata", { generated_from_live_catalogue: true, device_catalog_id: deviceCatalogId })
+    .limit(1);
+  if (error) throw error;
+  return Boolean(data?.length);
+}
+
 async function upsertSourceAndChunks(row: any, normalized: any, refreshOnly = false) {
   const metadata = normalized.metadata || {};
   const observedAt = validIso(metadata.observed_at) || row.updated_at || new Date().toISOString();
@@ -283,6 +296,8 @@ async function upsertSourceAndChunks(row: any, normalized: any, refreshOnly = fa
 }
 
 async function persistDocument(entry: { adapter: string; sourceIdentity: string; document: any }, userId: string) {
+  if (entry.adapter === "device_catalog" && await hasLegacyCatalogueCoverage(entry.sourceIdentity)) return "adopted" as const;
+
   const adapterKey = await sha256Hex(`${entry.adapter}:${entry.sourceIdentity}`);
   const normalized = await normalizeKnowledgeDocument({
     ...entry.document,
@@ -381,7 +396,15 @@ Deno.serve(async (req: Request) => {
   const offset = Math.max(Number(body.offset) || 0, 0);
 
   let runId: string | null = null;
-  const stats = { scanned_count: 0, created_count: 0, updated_count: 0, skipped_count: 0, error_count: 0, checkpoint: { offset, limit, next_offset: null as number | null } };
+  const stats = {
+    scanned_count: 0,
+    created_count: 0,
+    updated_count: 0,
+    skipped_count: 0,
+    adopted_count: 0,
+    error_count: 0,
+    checkpoint: { offset, limit, next_offset: null as number | null },
+  };
   try {
     runId = await beginRun(adapter, authorized.user.id, offset, limit);
     const documents = await fetchDocuments(adapter, limit, offset);
@@ -391,7 +414,10 @@ Deno.serve(async (req: Request) => {
         const outcome = await persistDocument(entry, authorized.user.id);
         if (outcome === "created") stats.created_count += 1;
         else if (outcome === "updated") stats.updated_count += 1;
-        else stats.skipped_count += 1;
+        else if (outcome === "adopted") {
+          stats.adopted_count += 1;
+          stats.skipped_count += 1;
+        } else stats.skipped_count += 1;
       } catch (error) {
         stats.error_count += 1;
         console.error("[nova-knowledge-ingest] document failed", error);
