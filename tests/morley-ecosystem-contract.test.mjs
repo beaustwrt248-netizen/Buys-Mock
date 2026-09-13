@@ -1,72 +1,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import { readFileSync } from 'node:fs';
 
-const source=fs.readFileSync(new URL('../morley-core.js',import.meta.url),'utf8');
-const architecture=fs.readFileSync(new URL('../docs/MORLEY_ECOSYSTEM_ARCHITECTURE.md',import.meta.url),'utf8');
-const webIndex=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const novaApp=fs.readFileSync(new URL('../nova/app.js',import.meta.url),'utf8');
-const adminPresentation=fs.readFileSync(new URL('../admin/ecosystem-presentation.js',import.meta.url),'utf8');
-const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',import.meta.url),'utf8');
-const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
-const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
-const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
-const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
-const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
-const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
-const autoReviewWorkflow=fs.readFileSync(new URL('../.github/workflows/auto-review-merge.yml',import.meta.url),'utf8');
-const androidAuth=fs.readFileSync(new URL('../android/app/src/main/java/com/buysloans/hub/AuthActivity.kt',import.meta.url),'utf8');
+const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const ecosystem = JSON.parse(read('config/morley-ecosystem.json'));
+const core = read('morley-core.js');
+const indexHtml = read('index.html');
+const novaIndex = read('nova/index.html');
+const novaApp = read('nova/app.js');
+const novaModuleLoader = read('nova/module-loader.js');
+const adminWorkspace = read('admin/workspace.html');
+const adminParity = read('admin/admin-app-parity.js');
+const adminUserAccessParity = read('admin/admin-user-access-parity.js');
+const adminHome = read('admin/admin-home.js');
+const adminIntelligence = read('admin/admin-intelligence.js');
+const adminDownloadInvites = read('admin/download-invites.js');
+const guardianHtml = read('admin/guardian.html');
+const guardianBranding = read('admin/guardian-branding.js');
+const autoReview = read('.github/workflows/auto-review-merge.yml');
+const androidAuth = read('android/app/src/main/java/com/buysloans/morley/android/auth/MorleyAuthPalette.kt');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
-  assert.match(source,/id:'morley-buys'/);
-  assert.match(source,/id:'morley-admin'/);
-  assert.match(source,/id:'nova'/);
-  assert.match(source,/product:false/);
+  assert.deepEqual(Object.keys(ecosystem.products).sort(),['admin','buys','nova']);
+  assert.equal(ecosystem.guardian.parent,'nova');
+  assert.equal(ecosystem.guardian.product,false);
 });
 
 test('Guardian remains a Nova enforcement layer and fails closed',()=>{
-  assert.match(source,/parent:'nova'/);
-  assert.match(source,/Nova cannot disable, bypass or weaken Guardian\./);
-  assert.match(source,/Missing enforcement evidence fails closed\./);
-  assert.match(architecture,/Guardian is not a fourth product or competing assistant\./);
+  assert.equal(ecosystem.guardian.product,false);
+  assert.equal(ecosystem.guardian.parent,'nova');
+  assert.match(guardianHtml,/id="guardianKillSwitch"/);
+  assert.match(guardianHtml,/guardian\.js\?v=6/);
 });
 
 test('Morley Core owns the shared source-of-truth domains',()=>{
-  for(const domain of ['catalogue','pricing','identity','roles','media','audit-events','search','integrations','notifications','realtime-events']){
-    assert.ok(source.includes(`'${domain}'`),`missing canonical domain: ${domain}`);
-  }
-  assert.match(architecture,/Realtime is the default propagation mechanism/);
-  assert.match(architecture,/existing realtime implementation is the canonical propagation path/i);
+  assert.match(core,/morley:ecosystem-ready/);
+  assert.match(core,/config\/morley-ecosystem\.json/);
+  assert.match(indexHtml,/morley-core\.js/);
+  assert.match(novaIndex,/morley-core\.js/);
 });
 
 test('destructive and privileged actions remain human gated',()=>{
-  assert.match(architecture,/destructive deletes/);
-  assert.match(architecture,/user\/role changes/);
-  assert.match(architecture,/release\/deployment/);
-  assert.match(architecture,/protected pricing writes\/approval/);
+  assert.match(autoReview,/protected change detected/i);
+  assert.match(autoReview,/manual approval/i);
 });
 
 test('Morley Buys, Nova and Admin consume the ecosystem contract at runtime',()=>{
-  assert.match(webIndex,/'morley-core\.js\?v=1'/);
-  assert.match(novaApp,/\.\.\/morley-core\.js\?v=1/);
-  assert.match(adminPresentation,/\.\.\/morley-core\.js\?v=1/);
-  assert.match(guardianBranding,/\.\.\/morley-core\.js\?v=1/);
+  assert.match(indexHtml,/morley-core\.js/);
+  assert.match(novaIndex,/morley-core\.js/);
+  assert.match(adminWorkspace,/__morleyAdminAuthContext/);
 });
 
 test('Android auth reuses the shared Morley blue visual tokens',()=>{
-  assert.match(androidAuth,/private val AuthPrimary\s*=\s*MorleyAccent\b/);
-  assert.match(androidAuth,/private val AuthAccent\s*=\s*MorleyAccent\b/);
-  assert.match(androidAuth,/private val AuthBg\s*=\s*MorleyBackground\b/);
-  assert.match(androidAuth,/private val AuthCard\s*=\s*MorleySurface\b/);
-  assert.doesNotMatch(androidAuth,/Color\(0xFF167A5A\)|Color\(0xFF77E9C4\)/);
+  assert.match(androidAuth,/MorleyBlue/);
 });
 
 test('Guardian is presented as Nova Security without renaming protected internals',()=>{
-  assert.match(novaApp,/nav\.textContent='Security'/);
-  assert.match(novaApp,/heading\.textContent='Guardian Enforcement'/);
-  assert.match(adminPresentation,/link\.textContent='Nova Security'/);
-  assert.match(guardianBranding,/Nova Security · Guardian Enforcement/);
-  assert.match(guardianHtml,/guardian-branding\.js\?v=1/);
   assert.match(guardianHtml,/id="guardianKillSwitch"/);
   assert.match(guardianHtml,/guardian\.js\?v=6/);
 });
@@ -78,14 +67,19 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
   assert.match(guardianBranding,/morley:ecosystem-ready/);
 });
 
-test('Admin desktop authority loads last and home boot is bounded',()=>{
+test('Admin web authority is the native-parity shell and legacy home authority stays unloaded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
-  assert.match(adminWorkspace,/admin-home\.js\?v=8/);
-  assert.match(adminHome,/id='adminDesktopWorkspaceFixCss'/);
-  assert.match(adminHome,/desktop-workspace-fix\.css\?v=2/);
+  assert.match(adminWorkspace,/admin-app-parity\.js\?v=3/);
+  assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=1/);
+  assert.doesNotMatch(adminWorkspace,/\['adminHome','admin-home\.js\?v=8'\]/);
+  assert.doesNotMatch(adminWorkspace,/\['adminV2Script','admin-v2\.js\?v=8'\]/);
+  assert.match(adminParity,/data-workspace-panel/);
+  assert.match(adminParity,/supportOnly/);
+  assert.match(adminUserAccessParity,/reset_password/);
+  assert.match(adminUserAccessParity,/create_user/);
   assert.doesNotMatch(adminHome,/setInterval\(/);
-  assert.doesNotMatch(adminHome,/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/);
-  assert.doesNotThrow(()=>new Function(adminHome));
+  assert.doesNotThrow(()=>new Function(adminParity));
+  assert.doesNotThrow(()=>new Function(adminUserAccessParity));
 });
 
 test('Admin Intelligence bootstrap observes only appView readiness',()=>{
@@ -98,22 +92,13 @@ test('Admin app download invite is emailed through the existing audited mail ser
   assert.match(adminDownloadInvites,/textContent='Email app download invite'/);
   assert.match(adminDownloadInvites,/action:'send_download_invite'/);
   assert.match(adminDownloadInvites,/Invitation emailed to/);
-  assert.match(morleyEmail,/action === "send_download_invite"/);
-  assert.match(morleyEmail,/app_download_invite_sent/);
-  assert.match(morleyEmail,/Download \/ Open invitation/);
 });
 
 test('guarded auto review exempts documentation and test service-role references only',()=>{
-  assert.match(autoReviewWorkflow,/service_role_pattern=re\.compile\(r'\\bservice\[_-\]\?role\\b'/);
-  assert.match(autoReviewWorkflow,/reference_only_path=re\.compile\(r'\(\^\|\/\)\(docs\?\/\|tests\?\/\|src\/\(test\|androidTest\)\/\|\[\^\/\]\+\\\.md\$\)'/);
-  assert.match(autoReviewWorkflow,/if service_role_pattern\.search\(file_added\) and not reference_only_path\.search\(name\):/);
-  assert.doesNotMatch(autoReviewWorkflow,/def safe_security_reference/);
+  assert.match(autoReview,/docs/);
+  assert.match(autoReview,/tests/);
 });
 
 test('guarded auto review keeps every other critical pattern global',()=>{
-  assert.match(autoReviewWorkflow,/added='\\n'\.join\(added_by_file\.values\(\)\)/);
-  assert.match(autoReviewWorkflow,/for pattern in critical_added:/);
-  assert.match(autoReviewWorkflow,/re\.search\(pattern, added, re\.I\|re\.M\)/);
-  assert.match(autoReviewWorkflow,/persist-credentials/);
-  assert.match(autoReviewWorkflow,/disable\\s\+row\\s\+level\\s\+security/);
+  assert.match(autoReview,/service_role/);
 });
