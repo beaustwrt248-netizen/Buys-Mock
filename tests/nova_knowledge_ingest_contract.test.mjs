@@ -4,15 +4,21 @@ import { readFile } from 'node:fs/promises';
 
 const sourceUrl = new URL('../supabase/functions/nova-knowledge-ingest/index.ts', import.meta.url);
 const sharedUrl = new URL('../supabase/functions/_shared/nova_internal_ingestion.mjs', import.meta.url);
-const source = async () => `${await readFile(sourceUrl, 'utf8')}\n${await readFile(sharedUrl, 'utf8')}`;
+const wrapper = () => readFile(sourceUrl, 'utf8');
+const source = async () => `${await wrapper()}\n${await readFile(sharedUrl, 'utf8')}`;
 
 test('internal ingestion remains admin-only and hashes source identities', async () => {
+  const wrapperText = await wrapper();
   const text = await source();
-  assert.match(text, /p\.role\s*!==\s*['"]admin['"]/);
+  assert.match(wrapperText, /Authorization/);
+  assert.match(wrapperText, /admin\.auth\.getUser\(token\)/);
+  assert.match(wrapperText, /p\.role\s*!==\s*['"]admin['"]/);
+  assert.match(wrapperText, /!p\?\.is_enabled/);
   assert.match(text, /sha256Hex/);
   assert.match(text, /managed_by:\s*['"]nova_internal_adapter['"]/);
   assert.match(text, /nova_knowledge_ingestion_runs/);
-  assert.doesNotMatch(text, /SERVICE_ROLE[^\n]+return|service_role[^\n]+reply/i);
+  assert.doesNotMatch(wrapperText, /x-maintenance-secret/i);
+  assert.doesNotMatch(wrapperText, /morley_backup_scheduler_secret_matches/);
 });
 
 test('support ingestion selects structured safe fields only', async () => {
