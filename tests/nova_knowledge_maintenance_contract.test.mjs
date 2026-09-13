@@ -98,3 +98,13 @@ test('maintenance serializes structured failures without leaking secret-bearing 
   assert.doesNotMatch(source, /error instanceof Error \? error\.message : error/);
   assert.match(source, /normalizeMaintenanceError\(error/);
 });
+
+test('optional operational sources cannot abort maintenance when service-role SELECT is unavailable', () => {
+  const source = read(workerPath);
+  assert.match(source, /function\s+isOptionalSourcePermissionError\s*\(/);
+  assert.match(source, /42501/);
+  assert.match(source, /fetchRows\([^)]*inventory_items[^)]*true/s);
+  assert.match(source, /fetchRows\([^)]*sales_records[^)]*true/s);
+  assert.match(source, /fetchRows\([^)]*valuation_quotes[^)]*true/s);
+  assert.doesNotMatch(source, /grant\s+select\s+on\s+(?:public\.)?(?:inventory_items|sales_records|valuation_quotes)/i);
+});
