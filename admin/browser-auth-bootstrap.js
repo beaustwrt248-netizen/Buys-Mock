@@ -2,6 +2,8 @@
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
 const AUTH_TIMEOUT_MS=12000;
+const FULL_ACCESS_ROLES=['admin','manager'];
+const ENTRY_ROLES=[...FULL_ACCESS_ROLES,'staff'];
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 window.sb=sb;
 let bootstrapPromise=null;
@@ -34,7 +36,7 @@ function loadSession({retry=false}={}){
       const profileResult=await withTimeout(sb.from('profiles').select('id,email,display_name,role,is_enabled').eq('id',session.user.id).single(),'Admin profile check');
       const profile=profileResult?.data,error=profileResult?.error;
       if(error){setBootstrapState(classifyRecoverable(error),error.message||'Admin profile check failed.');return false}
-      if(!profile||!profile.is_enabled||!['admin','manager','staff'].includes(profile.role)){
+      if(!profile||!profile.is_enabled||!ENTRY_ROLES.includes(profile.role)){
         await withTimeout(sb.auth.signOut(),'Sign out').catch(()=>{});
         setBootstrapState('signed_out','This account is not authorised for Admin Control.');
         return false;
