@@ -21,3 +21,9 @@ test('migration bridge detects repeatedly pending tagged GitLab jobs and records
   assert.match(workflow, /blocked_runner/);
   assert.match(workflow, /tag_list/);
 });
+
+test('blocked-runner diagnostics use a safe JSON handoff instead of a fragile Python f-string one-liner', () => {
+  assert.match(workflow, /DETECTOR_JSON="\$detector" python3 - <<'PY'/);
+  assert.match(workflow, /json\.loads\(os\.environ\['DETECTOR_JSON'\]\)/);
+  assert.doesNotMatch(workflow, /python3 -c 'import json,sys; d=json\.load\(sys\.stdin\); \[print\(f/);
+});
