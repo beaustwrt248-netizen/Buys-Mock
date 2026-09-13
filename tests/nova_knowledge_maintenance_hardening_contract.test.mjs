@@ -50,6 +50,22 @@ test('admin and scheduled ingestion share one privacy-preserving ingestion engin
   assert.match(shared, /adaptOperationalRows/);
 });
 
+test('hardening migration restores the missing five-minute Vault-backed schedule idempotently', () => {
+  const sql = read(migrationPath).toLowerCase();
+  assert.match(sql, /nova-knowledge-maintenance-every-5-minutes/);
+  assert.match(sql, /cron\.unschedule/);
+  assert.match(sql, /cron\.schedule/);
+  assert.match(sql, /\*\/5 \* \* \* \*/);
+  assert.match(sql, /vault\.decrypted_secrets/);
+  assert.match(sql, /morley_backup_scheduler_secret/);
+  assert.match(sql, /net\.http_post/);
+  assert.match(sql, /functions\/v1\/nova-knowledge-maintenance/);
+  assert.match(sql, /x-maintenance-secret/);
+  assert.match(sql, /\{\"action\":\"run\",\"embedding_limit\":20,\"ingest_limit\":12\}/);
+  assert.doesNotMatch(sql, /service_role_key/);
+  assert.doesNotMatch(sql, /eyj[a-z0-9_-]{20,}/i);
+});
+
 test('embedding hardening does not remove lexical fallback or knowledge content', () => {
   const sql = read(migrationPath).toLowerCase();
   assert.doesNotMatch(sql, /drop\s+(table|function).*nova_search_knowledge_chunks/);
