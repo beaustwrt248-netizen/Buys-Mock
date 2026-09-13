@@ -1,0 +1,354 @@
+.node-python-job:
+  stage: test
+  image: node:22-bookworm
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 curl unzip ca-certificates >/dev/null
+
+validate:web-auth-origin:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node tests/buyshub-web-auth-origin.test.js
+
+validate:private-distribution-readiness:
+  stage: validate
+  image: python:3.12-bookworm
+  script:
+    - python3 scripts/build_private_distribution_readiness.py
+    - cd dist/private-distribution-readiness && sha256sum --check SHA256SUMS && cd ../..
+    - |
+      set -euo pipefail
+      python3 - <<'PY'
+      import json
+      from pathlib import Path
+      root = Path('dist/private-distribution-readiness')
+      inventory = json.loads((root / 'public-resource-dependencies.json').read_text(encoding='utf-8'))
+      contract = json.loads((root / 'private-origin-contract.json').read_text(encoding='utf-8'))
+      manifest = json.loads((root / 'distribution-manifest.json').read_text(encoding='utf-8'))
+      deps = inventory['dependencies']
+      assert inventory['blockingDependencyCount'] == len(deps)
+      assert inventory['migrationReady'] == (len(deps) == 0)
+      assert manifest['blockingPublicResourceCount'] == len(deps)
+      assert manifest['migrationReady'] == inventory['migrationReady']
+      assert inventory['repositoryVisibilityChanged'] is False
+      assert inventory['liveOtaChanged'] is False
+      assert contract['status'] == 'prepared-not-enabled'
+      assert contract['requirements']['transport'] == 'https-only'
+      assert contract['requirements']['secretsInClient'] is False
+      assert contract['requirements']['serviceRoleInClient'] is False
+      for dep in deps:
+          assert dep['blockingPrivateRepositoryCutover'] is True
+          assert str(dep['url']).startswith('https://')
+      admin_update_source = 'android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt'
+      assert any(dep['source'] == admin_update_source and dep['type'] == 'github_pages' for dep in deps)
+      PY
+    - |
+      set -euo pipefail
+      grep -q 'permissions:' .github/workflows/admin-apk-build.yml
+      grep -q 'contents: read' .github/workflows/admin-apk-build.yml
+      grep -q 'persist-credentials: false' .github/workflows/admin-apk-build.yml
+      grep -q 'sha256sum --check dist/Morley-Admin-readonly.apk.sha256' .github/workflows/admin-apk-build.yml
+      grep -q 'actions/upload-artifact@' .github/workflows/admin-apk-build.yml
+      grep -q 'publish-admin-ota:' .github/workflows/admin-apk-build.yml
+      grep -q 'contents: write' .github/workflows/admin-apk-build.yml
+      grep -q 'releases/download' .github/workflows/admin-apk-build.yml
+      ! grep -Eq 'raw\.githubusercontent\.com|github\.io' .github/workflows/admin-apk-build.yml
+      grep -q 'raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/ota/latest.json' admin/release-control.js
+      python3 - <<'PY'
+      import json
+      from pathlib import Path
+      data=json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+      assert str(data['apkUrl']).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/')
+      PY
+  artifacts:
+    expire_in: 14 days
+    paths:
+      - dist/private-distribution-readiness/
+
+test:morley-ai-assessment-core:
+  extends: .node-python-job
+  script:
+    - node --test tests/morley-ai-assessment-core.test.mjs
+    - node --test tests/morley-ai-assessment-client.test.mjs
+    - node --test tests/morley-ai-device-lens-integration.test.mjs
+    - node --test tests/morley-ai-damage-review-contract.test.mjs
+    - node --test tests/morley-ai-diagnostics-condition.test.mjs
+    - node --test tests/morley-ai-valuation-repair.test.mjs
+    - node --test tests/morley-ai-risk-passport.test.mjs
+    - node --test tests/morley-ai-orchestration-nova.test.mjs
+    - node --test tests/nova-assessment-capabilities.test.mjs
+    - node --test tests/morley-ai-admin-condition-ui.test.mjs
+
+test:nova-next-ci:
+  stage: test
+  tags:
+    - morley-android
+  script:
+    - node --version
+    - java -version
+    - gradle --version
+    - node --test nova-next/tests/*.test.mjs
+    - node --check nova-next/app.js
+    - |
+      set -euo pipefail
+      while IFS= read -r -d '' file; do node --check "$file"; done < <(find nova-next/src -type f -name '*.mjs' -print0 | sort -z)
+      grep -q "applicationId 'com.buysloans.novanext'" nova-next/android/app/build.gradle
+      grep -q "applicationIdSuffix '.debug'" nova-next/android/app/build.gradle
+      if grep -RIn "applicationId 'com.buysloans.nova'" nova-next/android; then exit 1; fi
+      gradle --no-daemon --project-dir nova-next/android :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace --console=plain
+      APK='nova-next/android/app/build/outputs/apk/debug/app-debug.apk'
+      test -s "$APK"
+      mkdir -p dist
+      cp "$APK" dist/Nova-Next-0.1.0-dev-debug.apk
+      (cd dist && sha256sum Nova-Next-0.1.0-dev-debug.apk > Nova-Next-0.1.0-dev-debug.apk.sha256 && sha256sum --check Nova-Next-0.1.0-dev-debug.apk.sha256)
+  artifacts:
+    expire_in: 14 days
+    paths:
+      - dist/Nova-Next-0.1.0-dev-debug.apk
+      - dist/Nova-Next-0.1.0-dev-debug.apk.sha256
+
+test:ui-consistency:
+  extends: .node-python-job
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        mkdir -p .tmp
+        python3 - <<'PY'
+      import json, os
+      from pathlib import Path
+      payload={'pull_request':{'body':os.environ.get('CI_MERGE_REQUEST_DESCRIPTION',''),'base':{'sha':os.environ.get('CI_MERGE_REQUEST_DIFF_BASE_SHA','')},'head':{'sha':os.environ.get('CI_COMMIT_SHA','')}}}
+      Path('.tmp/github-event.json').write_text(json.dumps(payload), encoding='utf-8')
+      PY
+        export GITHUB_EVENT_PATH="$CI_PROJECT_DIR/.tmp/github-event.json"
+        python3 scripts/ui_pr_checklist_gate.py
+      fi
+    - node --check morley-ui-baseline.js
+    - node --check mobile-readability-fix.js
+    - node --check web-initial-render-fix.js
+    - python3 scripts/ui_consistency_audit.py
+
+test:ultimate-parity:
+  stage: test
+  tags:
+    - morley-android
+  script:
+    - python3 scripts/ultimate_parity_audit.py
+    - python3 scripts/final_product_audit.py
+    - node --check ultimate-parity.js
+    - node --check admin/guardian-health.js
+    - |
+      cat > android/app/google-services.json <<'JSON'
+      {
+        "project_info":{"project_number":"123456789012","project_id":"morley-ci-placeholder","storage_bucket":"morley-ci-placeholder.appspot.com"},
+        "client":[{"client_info":{"mobilesdk_app_id":"1:123456789012:android:0000000000000000","android_client_info":{"package_name":"com.buysloans.hub"}},"api_key":[{"current_key":"AIzaSyMorleyCiPlaceholderKey000000000"}]}],
+        "configuration_version":"1"
+      }
+      JSON
+      python3 -m json.tool android/app/google-services.json >/dev/null
+    - gradle --no-daemon --project-dir android :app:testDebugUnitTest --tests 'com.buysloans.hub.NfcScanLogicTest' --tests 'com.buysloans.hub.TestBuyNfcEvidenceBoundaryTest' --tests 'com.buysloans.hub.Valuation3FinalSmokeTest' --tests 'com.buysloans.hub.ValuationDecisionEngineTest' --tests 'com.buysloans.hub.Valuation3FinancialInvariantTest' --tests 'com.buysloans.hub.Valuation3RegressionSentinelTest' --tests 'com.buysloans.hub.Valuation3CompletionRegressionTest'
+
+test:quality-gate:
+  extends: .node-python-job
+  script:
+    - python3 scripts/release_audit.py
+    - |
+      set -euo pipefail
+      for file in app.js global-device-filter.js match-quality.js workflow.js desktop-oem.js oem-live-fix.js oem-row-guard.js desktop-results.js deal-workflow.js dashboard-cleanup.js quick-deal-grade.js reliability-polish.js desktop-parity.js web-auth.js signed-in-user.js premium-motion.js web-a11y.js ultimate-parity.js product-parity-v3.js morley-core.js morley-auth-client.js nova/app.js nova/module-loader.js nova/live-support.js nova/control-centre.js admin/app.js admin/guardian.js admin/guardian-health.js admin/invites.js admin/download-invites.js admin/targeted-notifications.js; do
+        test -s "$file"; node --check "$file";
+      done
+    - node --test tests/guardian-runtime-regression.test.js
+    - node --test tests/morley-ecosystem-contract.test.mjs
+    - node --test tests/nova-module-loader-contract.test.mjs
+    - node --test tests/morley-auth-client-contract.test.mjs
+    - |
+      set -euo pipefail
+      python3 -m py_compile android/apply_morley_brand_palette.py
+      python3 android/apply_morley_brand_palette.py
+      if grep -RInE '0xFFFFD400|0xFFC99A27|0xFFDDB347|0xFF2F7CFF|0xFF12C9FF' android/app/src/main/java/com/buysloans/hub --include='*.kt'; then exit 1; fi
+      for needle in '0xFF0878F9' '0xFFF5F8FC' '0xFFFFFFFF' '0xFF102A43' '0xFF52677C' 'lightColorScheme'; do grep -q "$needle" android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt; done
+      grep -q 'CATEGORIES("Categories", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'GP("General Buys", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'Page.Laptop -> CategoriesPricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'Page.Desktop -> ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'val adaptiveSize = morleyAdaptiveSize()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'AdaptiveBackHandler(enabled = showMenu || page != Page.Home)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'AdaptiveContentFrame' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      ! grep -q 'NavCard(MorleyIcons.Categories' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      ! grep -q 'NavCard(MorleyIcons.Console' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'MobilePhonePricingScreen()' android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt
+      grep -q 'SAMSUNG(MobilePhonePricingCatalog.SAMSUNG' android/app/src/main/java/com/buysloans/hub/MobilePhonePricingScreen.kt
+      grep -q 'AuthManager.validAccessToken(MorleyApplication.instance)' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+      grep -q 'setRequestProperty("Authorization","Bearer $token")' android/app/src/main/java/com/buysloans/hub/MainActivity.kt
+      grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'fun accountLabel' android/app/src/main/java/com/buysloans/hub/AuthManager.kt
+      grep -q 'itemGrade = grade' android/app/src/main/java/com/buysloans/hub/SmartWorkspaceSection.kt
+      grep -q 'put("item_grade",it)' android/app/src/main/java/com/buysloans/hub/ValuationHistoryManager.kt
+      find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > /tmp/palette-before.sha
+      python3 android/apply_morley_brand_palette.py
+      find android/app/src/main/java/com/buysloans/hub -name '*.kt' -print0 | sort -z | xargs -0 sha256sum > /tmp/palette-after.sha
+      diff -u /tmp/palette-before.sha /tmp/palette-after.sha
+    - |
+      set -euo pipefail
+      grep -q 'AuthActivity' android/app/src/main/AndroidManifest.xml
+      grep -q 'android.intent.category.LAUNCHER' android/app/src/main/AndroidManifest.xml
+      grep -q 'AuthManager.validAccessToken(this@AuthActivity)' android/app/src/main/java/com/buysloans/hub/AuthActivity.kt
+      grep -q 'AuthManager.isSignedIn(this)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      grep -q 'AuthManager.accountLabel(context)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+      ! grep -RInE 'AuthManager\.signIn\([^,]+,[^,]+,[^,]+\)' android/app/src/main/java/com/buysloans/hub --include='*.kt'
+      grep -q "tasks.register('verifyReleaseSigning')" android/app/build.gradle
+      grep -q 'preReleaseBuild' android/app/build.gradle
+      grep -q 'B_AND_L_KEYSTORE_PATH' android/app/build.gradle
+      grep -q 'B_AND_L_STORE_PASSWORD' android/app/build.gradle
+      grep -q 'B_AND_L_KEY_ALIAS' android/app/build.gradle
+      ! grep -q 'signingConfigs\.debug' android/app/build.gradle
+      grep -q 'EXPECTED_CERT_SHA256=' .github/workflows/build-apk.yml
+      grep -q 'Verify release APK signature and signer' .github/workflows/build-apk.yml
+    - |
+      set -euo pipefail
+      BASE='https://ghdhairijqjqivqriigi.supabase.co/functions/v1'
+      assert_protected() { endpoint="$1"; body="$2"; code="$(curl --silent --show-error --output "/tmp/${endpoint}.json" --write-out '%{http_code}' --max-time 20 -X POST "$BASE/$endpoint" -H 'Content-Type: application/json' --data "$body")"; test "$code" = '401' || { cat "/tmp/${endpoint}.json" || true; exit 1; }; }
+      assert_protected ebay-search '{"query":"RTX 4070","limit":5}'
+      assert_protected oem-search '{"query":"Dell OptiPlex 7090"}'
+      assert_protected send-admin-notification '{"job_id":"00000000-0000-0000-0000-000000000000"}'
+      assert_protected admin-user-control '{"action":"set_display_name","target_user_id":"00000000-0000-0000-0000-000000000000","display_name":"Test User"}'
+      python3 -m json.tool ota/latest.json >/dev/null
+      ZIP=morley_buys_login_bg_app_hq.zip; if [ ! -f "$ZIP" ]; then ZIP=morley_buys_login_bg_app.zip; fi
+      unzip -t "$ZIP" >/dev/null
+      unzip -l "$ZIP" | grep -Ei '\.mp4$' >/dev/null
+      for ref in reference-theme.css morley-light-web.css no-gold.css web-auth.js signed-in-user.js premium-motion.js web-a11y.js quick-deal-grade.js ultimate-parity.js product-parity-v3.js; do grep -q "$ref" index.html; done
+
+test:web-no-blue-filter:
+  extends: .node-python-job
+  script:
+    - node tests/desktop-dashboard-contract.test.js
+    - node --test tests/mobile-app-parity-v4.test.js
+    - node --test tests/mobile-app-parity-v5.test.js
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      forbidden=['#2f7cff','#1f5fd8','#12c9ff','#2468dd','#2875ff','#16c7ff','#70dfff','#7bdfff','rgba(47,124,255','rgba(18,201,255','rgb(47,124,255','rgb(18,201,255']
+      active=['cyber-ui.css','cyber-spectrum.css','reference-theme.css','morley-light-web.css','web-apk-light-visual-lock.css','mobile-menu-theme-lock.css','morley-desktop-dashboard.css','mobile-app-parity-v4.css','mobile-app-parity-v5.css']
+      failures=[]
+      for file in active:
+          text=Path(file).read_text(encoding='utf-8').lower(); found=[token for token in forbidden if token in text]
+          if found: failures.append(f'{file}: {", ".join(found)}')
+      if failures: raise SystemExit('Retired electric blue/cyan theme token detected:\n'+'\n'.join(failures))
+      for legacy in ['cyber-ui.css','cyber-spectrum.css','reference-theme.css']:
+          if 'Retired production theme shim' not in Path(legacy).read_text(encoding='utf-8'): raise SystemExit(f'{legacy} must remain retired and neutral')
+      mobile=Path('mobile-viewport-lock.css').read_text(encoding='utf-8')
+      for needle in ['html.morley-physical-phone','max-height:60px','grid-template-columns:repeat(4,minmax(0,1fr))','padding-bottom:calc(82px + env(safe-area-inset-bottom))']:
+          if needle not in mobile: raise SystemExit('Mobile contract missing: '+needle)
+      lock=Path('web-apk-light-visual-lock.css').read_text(encoding='utf-8')
+      for needle in ['#inventory #addItem','#scanner #startScan','#scanner #findCode','#morleyMenuDialog button','#morleyMoreBackBar button','nav[aria-label="Primary navigation"]','button.secondary','button.danger']:
+          if needle not in lock: raise SystemExit('Shared component coverage missing: '+needle)
+      desktop=Path('morley-desktop-dashboard.css').read_text(encoding='utf-8')
+      for needle in ['@media (min-width:1000px)','#morleyDesktopShell','margin:0 0 0 272px','--morley-dash-emerald','#home>.stats','.desktop-more-grid','table{width:100%','#morleyMenuTrigger','.desktop-header-actions{display:none!important','.msi-fill{background:linear-gradient(90deg,#087a55','.desktop-side-status{margin-top:auto!important','.morley-dashboard-nav-icon svg{display:block!important','#desktopPricingState','color:#7fe2bb!important','.morley-web-signout{background:#b44552!important','.morley-menu-signout{background:#b44552!important']:
+          if needle not in desktop: raise SystemExit('Desktop finance dashboard contract missing: '+needle)
+      if '@media (max-width:760px)' in desktop: raise SystemExit('Desktop dashboard must not override the <=760px mobile contract')
+      dashboard_js=Path('morley-desktop-dashboard.js').read_text(encoding='utf-8')
+      for route in ['Dashboard','Universal Search','Categories','General Buys','Saved Deals','Inventory','Scanner','Sales','More']:
+          if route not in dashboard_js: raise SystemExit(f'Desktop navigation route missing: {route}')
+      for category in ['Laptops','Desktops','Mobile Phones','Gaming Consoles']:
+          if category not in dashboard_js: raise SystemExit(f'Desktop Categories destination missing: {category}')
+      for retired in ["['phones',","['computer',","['console',"]:
+          if retired in dashboard_js: raise SystemExit(f'Retired top-level desktop pricing route returned: {retired}')
+      if "home|categories|general|settings" not in dashboard_js: raise SystemExit('Desktop primary navigation contract missing')
+      index=Path('index.html').read_text(encoding='utf-8')
+      if index.index('morley-desktop-dashboard.css') < index.index('mobile-viewport-lock.css'): raise SystemExit('Desktop dashboard must load after mobile lock')
+      for needle in ['morley-desktop-dashboard.css?v=2','quick-deal-grade.js?v=3','morley-desktop-dashboard.js?v=2','morley-light-web.css?v=2']:
+          if needle not in index: raise SystemExit('Required cache/version contract missing: '+needle)
+      if index.index('mobile-app-parity-v5.css?v=202609072') < index.index('mobile-app-parity-v4.css?v=202609044'): raise SystemExit('Mobile parity v5 stylesheet must load after v4')
+      if index.index('mobile-app-parity-v5.js?v=202609041&route=2') < index.index('mobile-app-parity-v4.js?v=202609044'): raise SystemExit('Mobile parity v5 runtime must load after v4')
+      auth_theme=Path('morley-light-web.css').read_text(encoding='utf-8')
+      for needle in ['#morleyWebAuth video{opacity:.82!important','brightness(.82)','rgba(5,24,18,.38)','background:rgba(255,255,255,.90)']:
+          if needle not in auth_theme: raise SystemExit('Login video visibility contract missing: '+needle)
+      loader=Path('mobile-menu-theme-lock.css').read_text(encoding='utf-8')
+      for needle in ['.morley-menu-dialog-close{','place-items:center!important','padding:0!important','line-height:1!important','#morleySessionSnapshot','#morleyNotificationStatus','#morleyDiagnosticsSnapshot','background:#edf5f1!important','#morleyWebDiagnostics .morley-settings-body button','#morleyWebDiagnostics .morley-settings-body button:disabled','-webkit-text-fill-color:#fff!important','web-apk-light-visual-lock.css?v=20260902-3']:
+          if needle not in loader: raise SystemExit('Dialog/visual lock contract missing: '+needle)
+      smart=Path('smart-workspace.js').read_text(encoding='utf-8')
+      for needle in ['function paintDealVerdict(panel,verdict)','#e7f6ee','#0f684c','#fff7dd','#755600','#fff0f1','#a83242',"verdict==='MARGINAL'?'warning'","verdict==='AVOID'?'danger'"]:
+          if needle not in smart: raise SystemExit('Quick Deal verdict colour contract missing: '+needle)
+      q=Path('quick-deal-grade.js').read_text(encoding='utf-8')
+      for needle in ['MAX_BUY_FACTOR=Object.freeze({A:.70,B:.50,C:.30,Luxury:.70})','max.readOnly=true',"addEventListener('input',()=>syncMaxBuy(d))","addEventListener('change',()=>syncMaxBuy(d))"]:
+          if needle not in q: raise SystemExit('Quick Deal grade/max-buy contract missing: '+needle)
+      diagnostics=Path('web-diagnostics.js').read_text(encoding='utf-8')
+      for needle in ['id="morleyDiagRefresh"','id="morleyDiagCopy"','color:#fff!important;-webkit-text-fill-color:#fff!important']:
+          if needle not in diagnostics: raise SystemExit('Guardian diagnostics contrast missing: '+needle)
+      PY
+
+test:web-smoke:
+  extends: .node-python-job
+  script:
+    - |
+      python3 - <<'PY'
+      import re
+      from pathlib import Path
+      root=Path('.')
+      html=Path('index.html').read_text(encoding='utf-8')
+      refs=re.findall(r'(?:href|src)=\\?"([^"?]+)',html)
+      missing=[]
+      for ref in refs:
+          if ref.startswith(('http://','https://','data:','#')): continue
+          if not (root/ref.lstrip('./')).exists(): missing.append(ref)
+      if missing: raise SystemExit('Missing local assets: '+', '.join(missing))
+      required=['secure-pricing.js','web-auth.js','signed-in-user.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','smart-input-polish.js','connection-status.js','web-diagnostics.js','menu-parity-polish.js','menu-dialog-a11y.js','web-notification-centre.js','web-display-parity.js','web-issue-report.js','reference-theme.css','no-gold.css','premium-motion.css','morley-light-web.css','admin/index.html','admin/browser-auth-bootstrap.js','admin/workspace.html','admin/workspace-template.html','admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html','admin/login-security.js']
+      absent=[p for p in required if not Path(p).is_file()]
+      if absent: raise SystemExit('Required production web assets missing: '+', '.join(absent))
+      if 'no-gold.css' not in html or html.rfind('no-gold.css') < html.rfind('reference-theme.css'): raise SystemExit('no-gold.css load order invalid')
+      if html.rfind('morley-light-web.css') < html.rfind('mobile-parity-v3.css'): raise SystemExit('morley-light-web.css must be final visual theme layer')
+      for asset in ['secure-pricing.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','smart-input-polish.js','connection-status.js','web-diagnostics.js','web-notification-centre.js','web-display-parity.js','web-issue-report.js']:
+          if asset not in html: raise SystemExit('Production shell missing '+asset)
+      if html.find('smart-workspace.js') > html.find('smart-workspace-plus.js'): raise SystemExit('smart-workspace.js must load before smart-workspace-plus.js')
+      PY
+    - |
+      set -euo pipefail
+      for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-insights.js smart-input-polish.js connection-status.js web-diagnostics.js menu-parity-polish.js menu-dialog-a11y.js account-refresh-parity.js web-notification-centre.js web-display-parity.js web-issue-report.js admin/browser-auth-bootstrap.js admin/app.js admin/invites.js admin/targeted-notifications.js admin/login-security.js; do test -s "$file"; node --check "$file"; done
+    - python3 scripts/web_asset_cache_audit.py
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      active=['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','morley-light-web.css','web-auth.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','web-issue-report.js','admin/styles.css','admin/index.html','admin/workspace.html','admin/workspace-template.html','admin/app.js']
+      forbidden=['#ffd400','#ffe65b','#ffd000','#ffc800','#ffe95a','#c99a27','#ddb347','#cda51d','#e0bb39','#caa21c','#e1bd3d','rgba(255,212,0','rgb(255,212,0']
+      failures=[]
+      for file in active:
+          text=Path(file).read_text(encoding='utf-8').lower(); found=[t for t in forbidden if t in text]
+          if found: failures.append(f'{file}: {", ".join(found)}')
+      if failures: raise SystemExit('Legacy gold detected:\n'+'\n'.join(failures))
+      checks={
+        'web-auth.js':['morley-web-signout','clearSession()','verifyAuthorised','redeem-app-invite'],
+        'signed-in-user.js':['display_name','morley-web-user'],
+        'desktop-parity.js':['morleyDesktopGo','morley-section-back'],
+        'secure-pricing.js':["localStorage.getItem(STORE)","'Authorization':'Bearer '+s.access_token",'window.market=secureMarket','refreshSession'],
+        'smart-workspace.js':['morleySmartWorkspace','Quick Deal Mode','morley-watchlist-updated','morley-valuation-history-updated','GREAT BUY','GOOD BUY'],
+        'smart-workspace-plus.js':['morleySmartWorkspacePlus','OFFLINE · CACHED','Potential margin','data-remove'],
+        'smart-insights.js':['morleySmartInsights'],
+        'connection-status.js':['navigator.onLine'],
+        'web-diagnostics.js':['Diagnostics',"includes('Report an Issue')",'insertBefore(row,report)'],
+        'web-notification-centre.js':['Notification Centre','clearRead','morleyClearRead','MorleyNotifications',"insertAdjacentElement('beforebegin',row)"],
+        'web-display-parity.js':['mmKeepAwake','mmReducedMotion','mmCompactInterface','morley-reduced-motion','morley-compact-interface','syncWakeLock'],
+        'web-issue-report.js':['support_tickets','support_ticket_attachments','support-ticket-attachments','diagnostics_opt_in','Submit Support Ticket','morley_web_auth','MAX_ATTACHMENT_BYTES'],
+        'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
+        'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=2','login-security.js?v=11'],
+        'admin/browser-auth-bootstrap.js':['loadSession','profiles','is_enabled',"['admin','manager']",'workspace.html?auth='],
+        'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="releaseName" readonly','id="rolloutCurrent"','id="rolloutOutdated"'],
+        'admin/workspace.html':['workspace-template.html?v=2','app.js?v=','release-control.js?v=3','invites.js?v=4',"dataset.adminWorkspace='ready'"],
+        'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
+        'admin/invites.js':['send-morley-email',"action:'create_invite'",'display_name:name','inviteName'],
+        'admin/turnstile.html':["const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",'postMessage(payload,postMessageOrigin)'],
+        'admin/login-security.js':['event.source===frame.contentWindow','event.origin===window.location.origin',"window.location.origin==='null'&&event.origin==='null'"],
+      }
+      for file,needles in checks.items():
+          text=Path(file).read_text(encoding='utf-8'); missing=[n for n in needles if n not in text]
+          if missing: raise SystemExit(f'{file} missing expected production hooks: {missing}')
+      auth_html=Path('admin/index.html').read_text(encoding='utf-8')
+      for forbidden_token in ('id="inviteName"','id="releaseName"','app.js?v=4','invites.js?v=3'):
+          if forbidden_token in auth_html: raise SystemExit('Admin auth document contains privileged workspace hook: '+forbidden_token)
+      invites=Path('admin/invites.js').read_text(encoding='utf-8')
+      for forbidden_token in ('crypto.getRandomValues','sha256Hex','admin_create_team_invite'):
+          if forbidden_token in invites: raise SystemExit('Admin invite UI still creates/hashes invite secrets client-side: '+forbidden_token)
+      turnstile=Path('admin/turnstile.html').read_text(encoding='utf-8')
+      if "postMessage(payload,'*')" in turnstile or 'postMessage(payload,"*")' in turnstile: raise SystemExit('Turnstile bridge broadcasts CAPTCHA tokens')
+      if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'): raise SystemExit('Admin role changes bypass hardened Edge Function')
+      PY
