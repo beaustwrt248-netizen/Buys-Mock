@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-14 (Australia/Perth)
 Canonical repository baseline: the current protected `main` branch.
-Last observed `main` head before this ledger reconciliation: `63a20a3ecdc32a6793236ff3a25c9b09f735e542`.
+Last observed `main` head before this ledger reconciliation: `190b1964c3e3159f41f71330acfae7d16188dcaf`.
 
 This file is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. It records work that is active, blocked, completed, paused for safety, or awaiting protected approval. It must be reconciled against the live repository and connected production services before each automated work pass.
 
@@ -27,11 +27,14 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 - Run snapshot: **12 completed / 16 queued / 1 running**.
 - The enqueue-only catalogue cron is intentionally paused because no live database/Edge consumer currently drains the queue. Do not re-enable enqueueing until a tracked consumer is implemented and verified.
 - Preserve unresolved model-number gaps as unresolved/blocked rather than guessing identifiers or specifications.
+- Data-integrity audit: **1,777 active devices**, **14 duplicate brand+model-number groups covering 32 rows**, **232 missing model numbers**, and **0 missing categories**. Duplicate groups include legitimate retail/storage/region configurations mixed with suspicious collisions, so no destructive merge/delete was applied automatically.
 
 ### Backup / recovery
 
 - Last successful full-system Google Drive backup audit: **2026-09-10 19:00 UTC**.
-- The scheduled full-system Google Drive backup cron is intentionally paused after the server-side OAuth refresh token began returning `expired or revoked` at the `google-auth` phase.
+- Latest measured full-system backup age: **74.11 hours**, therefore **stale** against the 36-hour readiness threshold.
+- `recovery-readiness` production Edge Function v5 now exposes independent fail-closed full-system backup freshness (`healthy`, `stale`, `missing`, or `unknown`) from the audit trail. This read-only observability fix was merged via #1975 after CI passed; auth/authorization behavior was unchanged.
+- The scheduled full-system Google Drive backup cron remains intentionally paused after the server-side OAuth refresh token began returning `expired or revoked` at the `google-auth` phase.
 - Android/manual user backup uses a separate fresh access-token path and must not be treated as proof that the server scheduler credential is healthy.
 - Production credential replacement and OAuth publishing-state changes require explicit approval.
 - Hourly recovery-health monitoring remains active.
@@ -42,6 +45,10 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 - `morley-recovery-health-hourly`
 
 The catalogue enqueue and full-system Google Drive backup jobs are intentionally absent while their root causes remain unresolved.
+
+### Operational history note
+
+- Supabase migration history contains `20260913210621 noop` with the sole statement `select 1;`. It introduced no schema or data change and should not be treated as a functional migration.
 
 ## Active repository work
 
@@ -56,17 +63,20 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 ## Completed material transitions
 
 - #1973 merged: introduced this durable non-sensitive work-state ledger on `main` after required `audit` and security checks passed.
+- #1974 merged: reconciled the ledger so protected `main`, rather than a self-referential old SHA, is canonical.
+- #1975 merged and deployed: full-system backup freshness is now visible through `recovery-readiness` without changing authorization, credentials, restore behavior, schema, or cron state.
 - #1954 moved from draft to ready-for-review after current-head CI completed without failures; merge remains protected by pricing-policy approval boundaries.
 
 ## High-priority unfinished lanes
 
 1. **Production-first reliability:** login/temp-password freezes, Admin access, catalogue/sync integrity, Guardian incidents, release failures, Nova availability, backup health, serious security/privacy regressions.
 2. **Catalogue processor recovery:** implement a tracked consumer for `nova_catalog_audit_queue` with safe claiming, retries, evidence recording, unresolved blocking, and run finalisation before re-enabling enqueue cron.
-3. **Backup recovery:** permanently repair the scheduled server OAuth path and extend recovery monitoring so missing full-system backup audits are detected independently from user backup health.
-4. **Morley Admin parity:** finish #1958 validation and hold protected auth/role merge for approval.
-5. **Morley AI / valuation:** hold #1954 for protected approval after completed verification; continue adjacent non-protected valuation tests/data-quality work independently.
-6. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact.
-7. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
+3. **Backup recovery:** permanently repair the scheduled server OAuth path; freshness visibility is fixed, but the credential-dependent backup itself remains paused and stale.
+4. **Catalogue integrity:** classify the 14 duplicate brand/model groups as legitimate configurations versus true canonical collisions before any merge/deactivation proposal.
+5. **Morley Admin parity:** finish #1958 validation and hold protected auth/role merge for approval.
+6. **Morley AI / valuation:** hold #1954 for protected approval after completed verification; continue adjacent non-protected valuation tests/data-quality work independently.
+7. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact.
+8. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
 
 ## Protected blockers requiring Beau action
 
