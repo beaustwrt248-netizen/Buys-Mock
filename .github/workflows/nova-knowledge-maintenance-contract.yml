@@ -5,15 +5,23 @@ on:
     branches: [ main ]
     paths:
       - 'supabase/functions/nova-knowledge-maintenance/**'
-      - 'supabase/migrations/*nova_knowledge_maintenance_pipeline.sql'
+      - 'supabase/functions/nova-knowledge-ingest/**'
+      - 'supabase/functions/_shared/nova_internal_ingestion.mjs'
+      - 'supabase/migrations/*nova_knowledge_maintenance*.sql'
+      - 'tests/nova_knowledge_ingest_contract.test.mjs'
       - 'tests/nova_knowledge_maintenance_contract.test.mjs'
+      - 'tests/nova_knowledge_maintenance_hardening_contract.test.mjs'
       - '.github/workflows/nova-knowledge-maintenance-contract.yml'
   push:
     branches: [ main ]
     paths:
       - 'supabase/functions/nova-knowledge-maintenance/**'
-      - 'supabase/migrations/*nova_knowledge_maintenance_pipeline.sql'
+      - 'supabase/functions/nova-knowledge-ingest/**'
+      - 'supabase/functions/_shared/nova_internal_ingestion.mjs'
+      - 'supabase/migrations/*nova_knowledge_maintenance*.sql'
+      - 'tests/nova_knowledge_ingest_contract.test.mjs'
       - 'tests/nova_knowledge_maintenance_contract.test.mjs'
+      - 'tests/nova_knowledge_maintenance_hardening_contract.test.mjs'
       - '.github/workflows/nova-knowledge-maintenance-contract.yml'
   workflow_dispatch:
 
@@ -29,5 +37,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Run Nova knowledge maintenance contract
-        run: node --test tests/nova_knowledge_maintenance_contract.test.mjs
+      - name: Run Nova knowledge maintenance contracts
+        run: |
+          node --test tests/nova_knowledge_ingest_contract.test.mjs
+          node --test tests/nova_knowledge_maintenance_contract.test.mjs
+          node --test tests/nova_knowledge_maintenance_hardening_contract.test.mjs
