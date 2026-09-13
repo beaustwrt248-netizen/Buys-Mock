@@ -269,7 +269,7 @@ jobs:
           fetch_until_contains "$BASE/admin/browser-auth-bootstrap.js" "$RUNNER_TEMP/admin-browser-auth-bootstrap.js" "['admin','manager']"
           node --check "$RUNNER_TEMP/admin-browser-auth-bootstrap.js"
           fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'workspace-template.html?v=2'
-          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'app.js?v=5'
+          fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'app.js?v=6'
           fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'release-control.js?v=3'
           fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" 'invites.js?v=4'
           fetch_until_contains "$BASE/admin/workspace.html" "$RUNNER_TEMP/admin-workspace.html" "dataset.adminWorkspace='ready'"
