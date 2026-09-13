@@ -1,0 +1,97 @@
+name: Nova Next Isolated Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - nova/next-live-adapters
+    paths:
+      - 'nova-next/**'
+      - '.github/workflows/nova-next-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-next-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-nova-next:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact review source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Java 17
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Run complete Nova Next contract suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --test nova-next/tests/*.test.mjs
+
+      - name: Check Nova Next JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check nova-next/app.js
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find nova-next/src -type f -name '*.mjs' -print0 | sort -z)
+
+      - name: Verify isolated Android identity before build
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "applicationId 'com.buysloans.novanext'" nova-next/android/app/build.gradle
+          grep -q "applicationIdSuffix '.debug'" nova-next/android/app/build.gradle
+          if grep -RIn "applicationId 'com.buysloans.nova'" nova-next/android; then
+            echo 'Nova Next must not use the production Nova package identity.' >&2
+            exit 1
+          fi
+
+      - name: Test lint and build Nova Next debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --project-dir nova-next/android \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:assembleDebug \
+            --stacktrace --console=plain
+
+      - name: Stage and hash isolated debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='nova-next/android/app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$APK"
+          mkdir -p dist
+          cp "$APK" dist/Nova-Next-0.1.0-dev-debug.apk
+          (cd dist && sha256sum Nova-Next-0.1.0-dev-debug.apk > Nova-Next-0.1.0-dev-debug.apk.sha256)
+          (cd dist && sha256sum --check Nova-Next-0.1.0-dev-debug.apk.sha256)
+
+      - name: Upload isolated debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nova-next-debug-apk
+          path: |
+            dist/Nova-Next-0.1.0-dev-debug.apk
+            dist/Nova-Next-0.1.0-dev-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
