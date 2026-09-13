@@ -1,9 +1,12 @@
 # Morley Autopilot Work-State Ledger
 
 Last reconciled: 2026-09-14 (Australia/Perth)
-Canonical repository baseline: `main` at `7b7c6316addfc5e45a1561b704d5148c017a1fbd`
+Canonical repository baseline: the current protected `main` branch.
+Last observed `main` head before this ledger reconciliation: `63a20a3ecdc32a6793236ff3a25c9b09f735e542`.
 
 This file is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. It records work that is active, blocked, completed, paused for safety, or awaiting protected approval. It must be reconciled against the live repository and connected production services before each automated work pass.
+
+The exact `main` SHA is recorded as an observation rather than as a permanent baseline because merging a ledger-only update advances `main` itself. The protected `main` ref, not an old ledger SHA, remains canonical.
 
 ## Operating rules
 
@@ -44,11 +47,16 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 
 | PR | Lane | State | Safety / next action |
 | --- | --- | --- | --- |
-| #1958 | Morley Admin web/mobile web parity rebuild | Open, mergeable | Authentication/bootstrap and role-aware Admin surfaces are changed. Treat merge as protected; require Beau approval after all required checks are green. |
-| #1954 | Morley AI battery/storage assessment pricing | Draft, mergeable | Continue CI and valuation-contract verification. Preserve protected authoritative-price/max-buy/min-margin boundaries. |
+| #1958 | Morley Admin web/mobile web parity rebuild | Open, mergeable; CI green at last check | Authentication/bootstrap and role-aware Admin surfaces are changed. Treat merge as protected; require Beau approval after final review. |
+| #1954 | Morley AI battery/storage assessment pricing | Ready for review, mergeable; CI green at last check | Protected pricing behavior is involved even though existing approval/max-buy/min-margin boundaries are preserved. Require Beau approval before merge. |
 | #1950 | Repository path stability guard | Draft, mergeable | GitHub workflow/security boundary. Keep draft and require explicit approval before merge. |
 | #1949 | Morley AI assessment runtime loader | Open, mergeable | Includes GitHub Actions workflow change; explicit approval required before merge. |
 | #1947 | Staged GitLab migration parity | Draft, mergeable | Keep GitHub as canonical baseline until same-SHA GitLab parity, protections, rollback and cutover checks are proven. |
+
+## Completed material transitions
+
+- #1973 merged: introduced this durable non-sensitive work-state ledger on `main` after required `audit` and security checks passed.
+- #1954 moved from draft to ready-for-review after current-head CI completed without failures; merge remains protected by pricing-policy approval boundaries.
 
 ## High-priority unfinished lanes
 
@@ -56,19 +64,19 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 2. **Catalogue processor recovery:** implement a tracked consumer for `nova_catalog_audit_queue` with safe claiming, retries, evidence recording, unresolved blocking, and run finalisation before re-enabling enqueue cron.
 3. **Backup recovery:** permanently repair the scheduled server OAuth path and extend recovery monitoring so missing full-system backup audits are detected independently from user backup health.
 4. **Morley Admin parity:** finish #1958 validation and hold protected auth/role merge for approval.
-5. **Morley AI / valuation:** finish #1954 verification without weakening protected pricing controls.
+5. **Morley AI / valuation:** hold #1954 for protected approval after completed verification; continue adjacent non-protected valuation tests/data-quality work independently.
 6. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact.
 7. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
 
 ## Protected blockers requiring Beau action
 
-- Merge approval for PRs that cross protected boundaries, including authentication/authorization or GitHub workflow/repository-security changes.
+- Merge approval for PRs that cross protected boundaries, including authentication/authorization, protected pricing behavior, or GitHub workflow/repository-security changes.
 - Server Google OAuth credential/publishing-state correction for scheduled full-system Drive backups.
 - Any production restore/overwrite, protected RLS/schema/security mutation, signing credential, repository visibility, billing, or equivalent high-risk action.
 
 ## Reconciliation checklist for each run
 
-1. Confirm live `main` SHA and compare it to this ledger.
+1. Confirm live `main` SHA and compare it to the last observed head in this ledger; treat live protected `main` as canonical.
 2. Read open PRs and reuse existing branches instead of duplicating work.
 3. Check CI/check-run state for active high-priority PRs.
 4. Check production catalogue queue/run counts and ensure runaway enqueueing has not resumed.
