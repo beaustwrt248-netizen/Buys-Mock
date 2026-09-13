@@ -15,21 +15,36 @@ if (!github.sha || !gitlab.sha || github.sha !== gitlab.sha) {
   process.exit(1);
 }
 
-for (const provider of [github, gitlab]) {
-  if (!Array.isArray(provider.jobs)) {
-    console.error('Each provider input must contain a jobs array');
-    process.exit(1);
+const validateProvider = (name, provider) => {
+  if (!Array.isArray(provider.jobs)) throw new Error(`${name} input must contain a jobs array`);
+  const names = new Set();
+  for (const job of provider.jobs) {
+    if (!job || typeof job.name !== 'string' || typeof job.status !== 'string') throw new Error(`${name} contains an invalid job record`);
+    if (names.has(job.name)) throw new Error(`${name} contains duplicate job result: ${job.name}`);
+    names.add(job.name);
+    if (job.artifacts !== undefined && (!Array.isArray(job.artifacts) || job.artifacts.some((x) => typeof x !== 'string'))) {
+      throw new Error(`${name} job ${job.name} has an invalid artifacts list`);
+    }
   }
+};
+try {
+  validateProvider('GitHub', github);
+  validateProvider('GitLab', gitlab);
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
 }
 
 const byName = (provider) => new Map(provider.jobs.map((job) => [job.name, job]));
 const githubJobs = byName(github);
 const gitlabJobs = byName(gitlab);
 let failed = false;
+let checked = 0;
 
 for (const item of manifest.workflows.filter((entry) => entry.required === true)) {
   const gh = githubJobs.get(item.githubWorkflow) ?? githubJobs.get(item.id);
   const gl = gitlabJobs.get(item.gitlabJob);
+  checked += 1;
 
   if (!gh) {
     console.error(`Missing GitHub result for required workflow: ${item.githubWorkflow}`);
@@ -52,14 +67,12 @@ for (const item of manifest.workflows.filter((entry) => entry.required === true)
 
   const ghArtifacts = [...(gh.artifacts ?? [])].sort();
   const glArtifacts = [...(gl.artifacts ?? [])].sort();
-  if (ghArtifacts.length > 0) {
-    const missing = ghArtifacts.filter((name) => !glArtifacts.includes(name));
-    if (missing.length > 0) {
-      console.error(`GitLab artifacts missing for ${item.id}: ${missing.join(', ')}`);
-      failed = true;
-    }
+  const missing = ghArtifacts.filter((name) => !glArtifacts.includes(name));
+  if (missing.length > 0) {
+    console.error(`GitLab artifacts missing for ${item.id}: ${missing.join(', ')}`);
+    failed = true;
   }
 }
 
 if (failed) process.exit(1);
-console.log(`CI parity PASS for ${github.sha}`);
+console.log(`CI parity PASS for ${github.sha}: ${checked} required mappings succeeded on both providers.`);
