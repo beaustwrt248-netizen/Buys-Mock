@@ -2,11 +2,11 @@ const PROTECTED=/\b(deploy|release|ota|sign(?:ing)?|guardian\s+repair|pricing\s+
 
 export function createAutomationRuntime({ store, workspaceRuntime }={}){
   if(!store) throw new TypeError('AUTOMATION_STORE_REQUIRED');
-  const snapshot=()=>workspaceRuntime?.snapshot?.() || { tasks:[],projects:[] };
+  const tasks=()=>workspaceRuntime?.listTasks?.('all') || [];
+  const projects=()=>workspaceRuntime?.listProjects?.() || [];
   const validateLinks=input=>{
-    const state=snapshot();
-    if(input.taskId && !(state.tasks||[]).some(x=>x.id===input.taskId)) throw new Error('AUTOMATION_TASK_NOT_FOUND');
-    if(input.projectId && !(state.projects||[]).some(x=>x.id===input.projectId)) throw new Error('AUTOMATION_PROJECT_NOT_FOUND');
+    if(input.taskId && !tasks().some(x=>x.id===input.taskId)) throw new Error('AUTOMATION_TASK_NOT_FOUND');
+    if(input.projectId && !projects().some(x=>x.id===input.projectId)) throw new Error('AUTOMATION_PROJECT_NOT_FOUND');
   };
   const validateIntent=input=>{
     const joined=[input.title,input.prompt,input.scheduleText].filter(Boolean).join(' ');
