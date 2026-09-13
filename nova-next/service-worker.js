@@ -16,6 +16,7 @@ const CORE = [
   `${APP_PREFIX}src/file-session.mjs`,
   `${APP_PREFIX}src/live-runtime.mjs`,
   `${APP_PREFIX}src/navigation.mjs`,
+  `${APP_PREFIX}src/product-search-ui.mjs`,
   `${APP_PREFIX}src/promotion-config.mjs`,
   `${APP_PREFIX}src/router.mjs`,
   `${APP_PREFIX}src/runtime-config.mjs`,
