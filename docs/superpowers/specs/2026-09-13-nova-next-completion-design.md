@@ -1,7 +1,7 @@
 # Nova Next Completion Design
 
 Date: 2026-09-13
-Status: Approved in chat for design direction; awaiting written-spec review before implementation planning.
+Status: Approved in chat for implementation planning.
 
 ## Goal
 
@@ -216,7 +216,7 @@ Security boundaries are enforced in more than one place: client allowlists and v
 - Tasks/projects remain isolated local workspace data unless explicitly redesigned later.
 - Files remain session-only unless the user explicitly hands supported content to an approved service.
 - UI preferences such as appearance may use isolated Nova Next local storage.
-- No password, service-role key, provider secret, or third-party raw credential may be persisted by Nova Next.
+- No password, backend privileged key, provider secret, or third-party raw credential may be persisted by Nova Next.
 
 ## Error handling and trust UX
 
@@ -252,7 +252,7 @@ Use TDD for every implementation slice.
 
 - Current `nova/**` remains unchanged for Nova Next-only slices.
 - No privileged function is added to the safe client allowlist without an approved design.
-- No secrets or service-role credentials enter client bundles.
+- No secrets or backend privileged credentials enter client bundles.
 - Protected strings/paths/actions remain rejected where applicable.
 
 ### Integration and build gates
