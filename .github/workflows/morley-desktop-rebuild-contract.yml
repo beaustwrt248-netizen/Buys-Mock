@@ -1,0 +1,38 @@
+name: Morley Desktop Rebuild Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'morley-desktop-dashboard.js'
+      - 'morley-desktop-rebuild.js'
+      - 'morley-desktop-rebuild.css'
+      - 'tests/morley-desktop-rebuild-contract.test.mjs'
+      - '.github/workflows/web-desktop-live-contract.yml'
+      - '.github/workflows/morley-desktop-rebuild-contract.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'morley-desktop-dashboard.js'
+      - 'morley-desktop-rebuild.js'
+      - 'morley-desktop-rebuild.css'
+      - 'tests/morley-desktop-rebuild-contract.test.mjs'
+      - '.github/workflows/web-desktop-live-contract.yml'
+      - '.github/workflows/morley-desktop-rebuild-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-rebuild-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: JavaScript syntax
+        run: node --check morley-desktop-rebuild.js
+      - name: Desktop rebuild regression contract
+        run: node --test tests/morley-desktop-rebuild-contract.test.mjs
