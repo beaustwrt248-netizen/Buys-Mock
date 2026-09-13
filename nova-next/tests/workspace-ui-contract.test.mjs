@@ -36,3 +36,7 @@ test('app wires the local workspace store runtime and UI', () => {
   assert.ok(app.includes('workspaceUi.bind()'));
   assert.ok(app.includes('workspaceUi?.routeChanged(currentRoute)'));
 });
+
+test('dynamic task filters are owned only by workspace UI', () => {
+  assert.ok(app.includes("if (tabList.id === 'novaNextTaskFilters') continue;"));
+});
