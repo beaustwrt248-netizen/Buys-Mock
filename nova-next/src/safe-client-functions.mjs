@@ -6,7 +6,9 @@ export const SAFE_CLIENT_FUNCTIONS = Object.freeze([
   'nova-ai-metrics',
   'nova-vision',
   'nova-code-proposal',
-  'nova-github'
+  'nova-github',
+  'app-pricing-catalogue',
+  'market-search-v2'
 ]);
 
 const BLOCKED = new Set([
