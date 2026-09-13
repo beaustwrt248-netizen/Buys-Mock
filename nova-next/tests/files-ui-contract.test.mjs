@@ -27,6 +27,10 @@ test('Files UI contains exact limit feedback and does not claim upload or sync',
   assert.equal(/uploaded|synced|cloud upload/i.test(html), false);
 });
 
+test('Files UI displays all required session metadata including added time', () => {
+  for (const token of ['file.name', 'file.type', 'file.size', 'file.addedAt']) assert.ok(ui.includes(token), token);
+});
+
 test('text handoff prefills guarded Chat without auto-send', () => {
   assert.ok(ui.includes('Please analyse this file content:'));
   assert.ok(ui.includes("onNavigate('chat')"));
