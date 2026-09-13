@@ -10,8 +10,10 @@ on:
       - '*.js'
       - 'admin/**'
       - 'nova/**'
+      - 'nova-next/**'
       - 'web-assets/**'
       - 'scripts/release_audit.py'
+      - 'scripts/nova_next_pages_deploy_contract.py'
       - '.github/workflows/deploy-admin-pages.yml'
   workflow_dispatch:
 
@@ -41,6 +43,9 @@ jobs:
       - name: Release readiness audit
         run: python3 scripts/release_audit.py
 
+      - name: Nova Next Pages deployment contract
+        run: python3 scripts/nova_next_pages_deploy_contract.py
+
       - name: Web JavaScript syntax checks
         shell: bash
         run: |
@@ -49,6 +54,16 @@ jobs:
             test -s "$file"
             node --check "$file"
           done
+
+      - name: Nova Next JavaScript syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s nova-next/app.js
+          node --check nova-next/app.js
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find nova-next/src -type f -name '*.mjs' -print0 | sort -z)
 
       - name: Build static web bundle
         shell: bash
@@ -62,6 +77,7 @@ jobs:
           cp -v ./*.js site/
           cp -R admin site/admin
           cp -R nova site/nova
+          cp -R nova-next site/nova-next
           if [ -d web-assets ]; then cp -R web-assets site/web-assets; fi
           touch site/.nojekyll
           test -f site/.nojekyll
@@ -105,6 +121,10 @@ jobs:
           test -s site/nova/app-core.js
           test -s site/nova/styles.css
           test -s site/nova/manifest.webmanifest
+          test -s site/nova-next/index.html
+          test -s site/nova-next/app.js
+          test -s site/nova-next/styles.css
+          test -s site/nova-next/live.css
           test -s site/web-assets/morley_buys_login_bg_app.mp4
           test "$(stat -c%s site/web-assets/morley_buys_login_bg_app.mp4)" -gt 1000000
 
@@ -272,3 +292,6 @@ jobs:
           fetch_until_contains "$BASE/nova/app-core.js" "$RUNNER_TEMP/nova-app-core.js" "const REPO='beaustwrt248-netizen/Buys-Mock'"
           node --check "$RUNNER_TEMP/nova-app.js"
           node --check "$RUNNER_TEMP/nova-app-core.js"
+          fetch_until_contains "$BASE/nova-next/" "$RUNNER_TEMP/nova-next-index.html" "<title>Nova Next</title>"
+          fetch_until_contains "$BASE/nova-next/app.js" "$RUNNER_TEMP/nova-next-app.js" "createLiveRuntime"
+          node --check "$RUNNER_TEMP/nova-next-app.js"
