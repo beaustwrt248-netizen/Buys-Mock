@@ -19,12 +19,32 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MiB`;
+}
+
+function fileErrorMessage(error) {
+  const code = String(error?.message || error || '');
+  if (code.includes('FILE_SESSION_LIMIT')) return 'Maximum 20 files per session.';
+  if (code.includes('FILE_TOO_LARGE')) return 'Files must be 20 MiB or smaller.';
+  if (code.includes('FILE_TEXT_TOO_LARGE')) return 'Text handoff is limited to 1 MiB.';
+  if (code.includes('FILE_TEXT_UNSUPPORTED')) return 'This file type cannot be sent to Chat as text.';
+  if (code.includes('FILE_IMAGE_UNSUPPORTED')) return 'This file type cannot be analysed as an image.';
+  return 'That file action could not be completed.';
+}
+
 export function createWorkspaceUi({
   workspaceRuntime,
+  fileSession = null,
+  featureRuntime = null,
   documentObj = globalThis.document,
   windowObj = globalThis.window,
   onToast = () => {},
-  onNavigate = () => {}
+  onNavigate = () => {},
+  onVisionResult = () => {}
 } = {}) {
   if (!workspaceRuntime) throw new TypeError('WORKSPACE_RUNTIME_REQUIRED');
   if (!documentObj) throw new TypeError('DOCUMENT_REQUIRED');
@@ -355,11 +375,124 @@ export function createWorkspaceUi({
     }
   }
 
+  async function analyseFileImage(id) {
+    if (!fileSession || !featureRuntime) {
+      onToast('Image analysis is unavailable.', 'error');
+      return;
+    }
+    onToast('Analysing selected image with Nova Vision…');
+    try {
+      const dataUrl = await fileSession.toVisionDataUrl(id);
+      const result = await featureRuntime.analyseImages([dataUrl], { hint: 'Analyse this selected file conservatively.' });
+      onVisionResult(result);
+    } catch (error) {
+      onToast(fileErrorMessage(error), 'error');
+      console.error('nova-next file vision', error);
+    }
+  }
+
+  async function sendFileTextToChat(id) {
+    if (!fileSession) {
+      onToast('File text handoff is unavailable.', 'error');
+      return;
+    }
+    try {
+      const text = await fileSession.toChatText(id);
+      onNavigate('chat');
+      const input = documentObj.getElementById('novaNextChatInput');
+      if (!input) throw new Error('CHAT_INPUT_UNAVAILABLE');
+      input.value = `Please analyse this file content:\n\n${text}`;
+      input.focus();
+      onToast('File text is ready in Chat. Review it before sending.');
+    } catch (error) {
+      onToast(fileErrorMessage(error), 'error');
+      console.error('nova-next file chat handoff', error);
+    }
+  }
+
+  function removeFile(id) {
+    if (!fileSession) return;
+    fileSession.remove(id);
+    renderFiles();
+    onToast('File removed from this session.');
+  }
+
+  function renderFiles() {
+    const list = documentObj.getElementById('novaNextFilesList');
+    if (!list) return;
+    clear(list);
+    if (!fileSession) {
+      list.append(el(documentObj, 'div', 'workspace-empty', 'File session is unavailable.'));
+      return;
+    }
+    const files = fileSession.list();
+    if (!files.length) {
+      const empty = el(documentObj, 'div', 'workspace-empty');
+      empty.append(el(documentObj, 'strong', '', 'No session files yet'), el(documentObj, 'p', '', 'Choose files to inspect locally. Nothing is sent to Nova until you choose an action.'));
+      list.append(empty);
+      return;
+    }
+    for (const file of files) {
+      const card = el(documentObj, 'article', 'file-card');
+      const head = el(documentObj, 'div', 'file-card-head');
+      const badge = el(documentObj, 'span', 'file-type-badge', file.canAnalyseImage ? 'Image' : file.canReadText ? 'Text' : 'File');
+      const copy = el(documentObj, 'div', 'file-card-copy');
+      copy.append(el(documentObj, 'strong', '', file.name), el(documentObj, 'small', 'file-meta', `${file.type || 'Unknown type'} · ${formatBytes(file.size)}`));
+      head.append(badge, copy);
+      const actions = el(documentObj, 'div', 'file-card-actions');
+      if (file.canAnalyseImage) {
+        const analyse = el(documentObj, 'button', 'small-primary', 'Analyse image');
+        analyse.type = 'button';
+        analyse.addEventListener('click', () => analyseFileImage(file.id));
+        actions.append(analyse);
+      }
+      if (file.canReadText) {
+        const send = el(documentObj, 'button', 'secondary-button', 'Send text to Chat');
+        send.type = 'button';
+        send.addEventListener('click', () => sendFileTextToChat(file.id));
+        actions.append(send);
+      } else if (/\.(txt|md|markdown|json|csv)$/i.test(file.name) || /^(text\/|application\/json)/i.test(file.type || '')) {
+        actions.append(el(documentObj, 'small', 'file-meta', 'Text handoff is limited to 1 MiB.'));
+      }
+      const remove = el(documentObj, 'button', 'link-button', 'Remove');
+      remove.type = 'button';
+      remove.addEventListener('click', () => removeFile(file.id));
+      actions.append(remove);
+      card.append(head, actions);
+      list.append(card);
+    }
+  }
+
+  function addSelectedFiles(files) {
+    if (!fileSession) return;
+    try {
+      fileSession.addFiles(files);
+      renderFiles();
+      onToast(`${files.length} file${files.length === 1 ? '' : 's'} added to this session.`);
+    } catch (error) {
+      onToast(fileErrorMessage(error), 'error');
+    }
+  }
+
+  function bindFiles() {
+    const add = documentObj.getElementById('novaNextAddFiles');
+    const picker = documentObj.getElementById('novaNextFilePicker');
+    if (!add || !picker) return;
+    add.addEventListener('click', () => picker.click());
+    picker.addEventListener('change', () => {
+      const selected = [...(picker.files || [])];
+      picker.value = '';
+      if (selected.length) addSelectedFiles(selected);
+    });
+    renderFiles();
+  }
+
   function bind() {
     if (bound) return;
     bound = true;
     documentObj.getElementById('novaNextAddTask')?.addEventListener('click', () => openTaskForm());
     documentObj.getElementById('novaNextAddProject')?.addEventListener('click', () => openProjectForm());
+    bindFiles();
     const recovery = workspaceRuntime.consumeRecoveryNotice();
     if (recovery) onToast(recovery, 'error');
     refreshWorkspaceViews();
@@ -369,7 +502,8 @@ export function createWorkspaceUi({
     if (route === 'tasks') renderTasks();
     if (route === 'projects') renderProjects();
     if (route === 'calendar') renderCalendar();
+    if (route === 'files') renderFiles();
   }
 
-  return Object.freeze({ bind, routeChanged, renderTasks, renderProjects, renderCalendar, openTaskForm, openProjectForm });
+  return Object.freeze({ bind, routeChanged, renderTasks, renderProjects, renderCalendar, renderFiles, openTaskForm, openProjectForm, analyseFileImage, sendFileTextToChat, removeFile });
 }
