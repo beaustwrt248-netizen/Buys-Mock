@@ -133,7 +133,12 @@
         </section>
 
         <section class="page" data-route="knowledge"><div class="placeholder"><span class="placeholder-icon violet">◇</span><h1>Knowledge Base</h1><p>Saved information, evidence, memory and learning controls will live here.</p></div></section>
-        <section class="page" data-route="files"><div class="placeholder"><span class="placeholder-icon cyan">▤</span><h1>Files</h1><p>Browse and work with Nova-authorised files.</p></div></section>
+        <section class="page" data-route="files" aria-labelledby="files-title">
+          <div class="page-title-row"><div><h1 id="files-title">Files</h1><p>Session files for Nova tools</p></div><button id="novaNextAddFiles" class="small-primary" type="button">＋ Add files</button></div>
+          <input id="novaNextFilePicker" class="sr-only" type="file" multiple />
+          <p class="feature-boundary">Files stay on this device unless you explicitly send a supported file to Nova Vision or Chat.</p>
+          <div id="novaNextFilesList" class="feature-stack"></div>
+        </section>
         <section class="page" data-route="automation"><div class="placeholder"><span class="placeholder-icon indigo">⌘</span><h1>Automation</h1><p>Schedules, jobs and multi-step workflows.</p></div></section>
         <section class="page" data-route="calendar" aria-labelledby="calendar-title">
           <div class="page-title-row"><div><h1 id="calendar-title">Calendar</h1><p>Dates from your Nova Next workspace</p></div></div>
