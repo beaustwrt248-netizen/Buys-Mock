@@ -1,5 +1,5 @@
 import { PRIMARY_NAV, DRAWER_NAV, resolveRoute } from './src/navigation.mjs';
-import { createRouter } from './src/router.mjs';
+import { createBrowserHistoryAdapter, createRouter } from './src/router.mjs';
 import { createLiveRuntime } from './src/live-runtime.mjs';
 import { createFeatureRuntime } from './src/feature-runtime.mjs';
 import { createFeatureUi } from './src/feature-ui.mjs';
@@ -25,7 +25,13 @@ const ROUTE_LABELS = {
 
 const DRAWER_ICONS = ['⌂','◉','⌘','☑','▣','◇','▤','◴','▦','⌁','⚙','?'];
 const BOTTOM_ICONS = { Home: '⌂', Chat: '◉', Tools: '⌘', Tasks: '☑', More: '•••' };
-const router = createRouter({ initialRoute: 'home' });
+const router = createRouter({
+  initialRoute: 'home',
+  history: createBrowserHistoryAdapter(window),
+  onRoute(route, _previous, meta) {
+    if (meta?.source === 'history') renderRoute(route, { closeDrawer: true });
+  }
+});
 let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
@@ -59,9 +65,7 @@ function buildNavigation() {
   }));
 }
 
-function setRoute(route, { closeDrawer = true } = {}) {
-  router.go(route);
-  const currentRoute = router.current();
+function renderRoute(currentRoute, { closeDrawer = true } = {}) {
   for (const page of pages) page.classList.toggle('is-active', page.dataset.route === currentRoute);
   for (const button of document.querySelectorAll('[data-route-target]')) {
     if (button.closest('.bottom-nav, .drawer-nav')) {
@@ -73,6 +77,11 @@ function setRoute(route, { closeDrawer = true } = {}) {
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
   featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
+}
+
+function setRoute(route, { closeDrawer = true } = {}) {
+  router.go(route);
+  renderRoute(router.current(), { closeDrawer });
 }
 
 function getDrawerFocusable() {
@@ -143,7 +152,7 @@ function markAuthenticatedSession(session) {
 async function bootstrap() {
   ensureIsolatedAssets();
   buildNavigation();
-  setRoute('home', { closeDrawer: false });
+  setRoute(router.current(), { closeDrawer: false });
   registerIsolatedServiceWorker();
 
   liveRuntime = createLiveRuntime({
