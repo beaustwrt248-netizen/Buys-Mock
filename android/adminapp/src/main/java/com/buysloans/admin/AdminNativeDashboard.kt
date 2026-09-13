@@ -19,6 +19,7 @@ import java.time.Instant
 
 private const val WORKSPACE_OVERVIEW = "Overview"
 private const val WORKSPACE_SUPPORT = "Support"
+private const val WORKSPACE_CATALOGUE = "Catalogue"
 private const val WORKSPACE_HEALTH = "Health"
 private const val WORKSPACE_GUARDIAN = "Guardian"
 private const val WORKSPACE_NOTIFICATIONS = "Notifications"
@@ -157,6 +158,7 @@ internal fun AdminNativeDashboard(
                 busy = busy,
                 onUpdated = ::refresh
             )
+            WORKSPACE_CATALOGUE -> if (fullAccess) CatalogueNativePanel(session) else RestrictedWorkspace()
             WORKSPACE_HEALTH -> AdminNativeHealth(snapshot)
             WORKSPACE_GUARDIAN -> if (fullAccess) GuardianPanel(session) else RestrictedWorkspace()
             WORKSPACE_NOTIFICATIONS -> if (fullAccess) ManualNotificationPanel(session, snapshot?.profiles, busy) else RestrictedWorkspace()
@@ -243,6 +245,7 @@ private fun AdminNativeOverview(session: AdminSession, snapshot: AdminSnapshot?,
     }
 
     WorkspaceButton("Support", "Support queue, replies, notes and triage") { onOpen(WORKSPACE_SUPPORT) }
+    WorkspaceButton("Catalogue", "Live active device catalogue (read-only)") { onOpen(WORKSPACE_CATALOGUE) }
     WorkspaceButton("Guardian", "Guardian control centre and repair boundaries") { onOpen(WORKSPACE_GUARDIAN) }
     WorkspaceButton("Notifications", "Send audited app notifications") { onOpen(WORKSPACE_NOTIFICATIONS) }
     WorkspaceButton("Users & devices", "User access, invites, reset tools and registered devices") { onOpen(WORKSPACE_USERS) }
