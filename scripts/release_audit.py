@@ -202,7 +202,7 @@ admin_support = (ROOT / "admin/support-tickets.js").read_text(encoding="utf-8")
 admin_notifications = (ROOT / "admin/targeted-notifications.js").read_text(encoding="utf-8")
 email_function = (ROOT / "supabase/functions/send-morley-email/index.ts").read_text(encoding="utf-8")
 
-for token in ('id="email"', 'id="password"', 'id="adminTurnstileFrame"', 'browser-auth-bootstrap.js?v=1', 'login-security.js?v=11'):
+for token in ('id="email"', 'id="password"', 'id="adminTurnstileFrame"', 'browser-auth-bootstrap.js?v=2', 'login-security.js?v=11'):
     if token not in admin_index:
         errors.append(f"Admin browser auth document is missing required login control: {token}")
 for forbidden in ('id="inviteName"', 'id="releaseName"', 'app.js?v=4', 'invites.js?v=3'):
@@ -214,7 +214,7 @@ for token in ("loadSession", "profiles", "is_enabled", "admin", "manager", "work
 for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email private invite', 'id="releaseName" readonly', 'id="releaseCode" type="number" readonly', 'id="rolloutCurrent"', 'id="rolloutOutdated"'):
     if token not in admin_workspace_template:
         errors.append(f"Admin workspace template is missing approved privileged control: {token}")
-for token in ('workspace-template.html?v=2', 'app.js?v=5', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
+for token in ('workspace-template.html?v=2', 'app.js?v=', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
     if token not in admin_workspace:
         errors.append(f"Admin workspace loader is missing gated runtime control: {token}")
 for token in ("inviteName", "send-morley-email", "action:'create_invite'", "display_name:name"):

@@ -16,7 +16,7 @@ const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/
 
 test('Admin browser login uses one isolated same-origin Turnstile transport on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
-  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=1/);
+  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=2/);
   assert.match(adminIndex, /login-security\.js\?v=11/);
   assert.match(webSecurity, /turnstile\.html\?v=8&browser=1/);
   assert.match(webSecurity, /captchaToken:token/);

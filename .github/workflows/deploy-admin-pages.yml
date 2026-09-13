@@ -261,7 +261,7 @@ jobs:
           fetch_until_contains "$BASE/admin/turnstile.html" "$RUNNER_TEMP/turnstile.html" 'postMessage(payload,postMessageOrigin)'
           fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'styles.css?v=3'
           fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'id="adminTurnstileFrame"'
-          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'browser-auth-bootstrap.js?v=1'
+          fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'browser-auth-bootstrap.js?v=2'
           fetch_until_contains "$BASE/admin/index.html" "$RUNNER_TEMP/admin-index.html" 'login-security.js?v=11'
           ! grep -Fq 'id="inviteName"' "$RUNNER_TEMP/admin-index.html"
           ! grep -Fq 'id="releaseName"' "$RUNNER_TEMP/admin-index.html"
