@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const source = await readFile(new URL('../src/workspace-ui.mjs', import.meta.url), 'utf8').catch(() => '');
+const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 
 test('hard-coded demo task and project data is removed', () => {
   for (const token of ['Update Morley Buys app', 'Review new device data', 'Device Database', 'Admin Tools']) {
@@ -26,4 +27,12 @@ test('workspace UI owns task project and calendar behavior', () => {
 test('workspace UI reports persistence failure without fake success', () => {
   assert.ok(source.includes("Workspace changes could not be saved."));
   assert.ok(source.includes("onToast"));
+});
+
+test('app wires the local workspace store runtime and UI', () => {
+  assert.ok(app.includes('createWorkspaceStore'));
+  assert.ok(app.includes('createWorkspaceRuntime'));
+  assert.ok(app.includes('createWorkspaceUi'));
+  assert.ok(app.includes('workspaceUi.bind()'));
+  assert.ok(app.includes('workspaceUi?.routeChanged(currentRoute)'));
 });
