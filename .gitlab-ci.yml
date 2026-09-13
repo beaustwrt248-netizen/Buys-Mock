@@ -14,6 +14,18 @@ include:
   - local: .gitlab/ci/admin.yml
   - local: .gitlab/ci/release.yml
 
+# The dedicated governance:ui-pr-checklist job fetches the complete merge-request
+# description through GitLab's read-only Merge Requests API. Override the included
+# UI consistency job here so it does not run the legacy GitHub-event adapter with
+# GitLab's truncated CI_MERGE_REQUEST_DESCRIPTION variable.
+test:ui-consistency:
+  extends: .node-python-job
+  script:
+    - node --check morley-ui-baseline.js
+    - node --check mobile-readability-fix.js
+    - node --check web-initial-render-fix.js
+    - python3 scripts/ui_consistency_audit.py
+
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
