@@ -26,9 +26,10 @@ export function createWorkspaceRuntime({
 
   function calendarItems() {
     const state = current();
+    const day = today();
     return [
       ...state.tasks
-        .filter(task => Boolean(task.dueDate))
+        .filter(task => Boolean(task.dueDate) && task.dueDate >= day)
         .map(task => ({
           kind: 'task',
           id: task.id,
@@ -37,7 +38,7 @@ export function createWorkspaceRuntime({
           completed: task.completed
         })),
       ...state.projects
-        .filter(project => Boolean(project.targetDate))
+        .filter(project => Boolean(project.targetDate) && project.targetDate >= day)
         .map(project => ({
           kind: 'project',
           id: project.id,
