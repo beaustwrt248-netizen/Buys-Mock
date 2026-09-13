@@ -24,6 +24,9 @@ const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
 const F = "id,category,title,content,source_type,source_label,source_filename,mime_type,version_label,trust_level,status,content_hash,revision,metadata,created_by,updated_by,created_at,updated_at";
 const SENSITIVE_DIAGNOSTIC = /(authorization|cookie|password|secret|token|api[_-]?key)\s*[:=]\s*([^\s,;]+)/gi;
 
+type MaintenanceAuthReason = "missing_config" | "missing_header" | "env_match" | "rpc_match" | "rpc_error" | "mismatch";
+type MaintenanceAuthResult = { ok: boolean; reason: MaintenanceAuthReason };
+
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 const bounded = (value: unknown, fallback: number, max: number) => Math.min(Math.max(Number(value) || fallback, 1), max);
 const authorityFor = (trust: string) => trust === "verified" ? 1 : trust === "reviewed" ? 0.82 : 0.65;
@@ -73,16 +76,20 @@ function constantTimeEqual(left: string, right: string) {
   return diff === 0;
 }
 
-async function authorized(req: Request) {
-  if (!SUPABASE_URL || !SERVICE_ROLE) return false;
+async function authorized(req: Request): Promise<MaintenanceAuthResult> {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return { ok: false, reason: "missing_config" };
   const supplied = clean(req.headers.get("x-maintenance-secret"), 512);
-  if (!supplied) return false;
-  if (SCHEDULER_SECRET && constantTimeEqual(supplied, SCHEDULER_SECRET)) return true;
+  if (!supplied) return { ok: false, reason: "missing_header" };
+  if (SCHEDULER_SECRET && constantTimeEqual(supplied, SCHEDULER_SECRET)) {
+    return { ok: true, reason: "env_match" };
+  }
   try {
     const { data, error } = await admin.rpc("morley_backup_scheduler_secret_matches", { candidate: supplied });
-    return !error && data === true;
+    if (error) return { ok: false, reason: "rpc_error" };
+    if (data === true) return { ok: true, reason: "rpc_match" };
+    return { ok: false, reason: "mismatch" };
   } catch {
-    return false;
+    return { ok: false, reason: "rpc_error" };
   }
 }
 
@@ -482,7 +489,11 @@ async function embedPending(limit: number, stats: any) {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return reply({ error: "POST required" }, 405);
-  if (!(await authorized(req))) return reply({ error: "Maintenance authorization required" }, 401);
+  const auth = await authorized(req);
+  if (!auth.ok) {
+    console.warn("[nova-knowledge-maintenance] authorization rejected", { auth_reason: auth.reason });
+    return reply({ error: "Maintenance authorization required" }, 401);
+  }
 
   let body: any = {};
   try { body = await req.json(); } catch { return reply({ error: "Invalid JSON request" }, 400); }

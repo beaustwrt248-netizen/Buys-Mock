@@ -48,7 +48,7 @@ test('maintenance response never returns chunk content, vectors or credentials',
   assert.match(source, /ingested_created/);
   assert.match(source, /ingested_updated/);
   assert.match(source, /duration_ms/);
-  const successStart = source.indexOf('ok: true');
+  const successStart = source.lastIndexOf('ok: true');
   assert.ok(successStart >= 0, 'success response must exist');
   const successWindow = source.slice(successStart, successStart + 700);
   assert.doesNotMatch(successWindow, /content\s*:/);
@@ -112,4 +112,18 @@ test('optional operational sources cannot abort maintenance when service-role SE
   assert.match(sourceWindow('sales_records'), /optional:\s*true/);
   assert.match(sourceWindow('valuation_quotes'), /optional:\s*true/);
   assert.doesNotMatch(source, /grant\s+select\s+on\s+(?:public\.)?(?:inventory_items|sales_records|valuation_quotes)/i);
+});
+
+test('scheduler authorization emits bounded reason codes without exposing credential material', () => {
+  const source = read(workerPath);
+  assert.match(source, /type\s+MaintenanceAuthReason/);
+  assert.match(source, /missing_header/);
+  assert.match(source, /env_match/);
+  assert.match(source, /rpc_match/);
+  assert.match(source, /rpc_error/);
+  assert.match(source, /mismatch/);
+  assert.match(source, /auth_reason/);
+  assert.match(source, /console\.warn\([^\n]*auth/i);
+  assert.doesNotMatch(source, /console\.(?:log|warn|error)\([^\n]*(?:supplied|SCHEDULER_SECRET|MORLEY_BACKUP_SECRET)/i);
+  assert.doesNotMatch(source, /auth_reason[^\n]*(?:secret|token|authorization|cookie)/i);
 });
