@@ -1,6 +1,8 @@
 import { PRIMARY_NAV, DRAWER_NAV, resolveRoute } from './src/navigation.mjs';
 import { createRouter } from './src/router.mjs';
 import { createLiveRuntime } from './src/live-runtime.mjs';
+import { createFeatureRuntime } from './src/feature-runtime.mjs';
+import { createFeatureUi } from './src/feature-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -25,6 +27,8 @@ const DRAWER_ICONS = ['⌂','◉','⌘','☑','▣','◇','▤','◴','▦','⌁
 const BOTTOM_ICONS = { Home: '⌂', Chat: '◉', Tools: '⌘', Tasks: '☑', More: '•••' };
 const router = createRouter({ initialRoute: 'home' });
 let liveRuntime = null;
+let featureRuntime = null;
+let featureUi = null;
 let toastTimer = null;
 
 function labelToRoute(label) {
@@ -68,6 +72,7 @@ function setRoute(route, { closeDrawer = true } = {}) {
   }
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
+  featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
 }
 
 function setDrawer(open) {
@@ -135,6 +140,7 @@ async function bootstrap() {
       onAuthenticated(session, { restored } = {}) {
         markAuthenticatedSession(session);
         showOnly(restored ? shell : allSetView);
+        if (restored) featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
       },
       onLocked(reason) {
         showOnly(loginView);
@@ -148,6 +154,15 @@ async function bootstrap() {
       }
     }
   });
+
+  featureRuntime = createFeatureRuntime({ getAccessToken: () => liveRuntime.getAccessToken() });
+  featureUi = createFeatureUi({
+    featureRuntime,
+    onNavigate: route => setRoute(route),
+    onToast: showToast,
+    onError: error => console.error('nova-next feature', error)
+  });
+  featureUi.bind();
 
   try {
     await liveRuntime.start();
@@ -180,9 +195,23 @@ document.addEventListener('click', event => {
     setRoute('home');
   }
 
-  const tool = event.target.closest('[data-tool]');
-  if (tool) {
-    showToast('This Nova tool is staged in the new interface but its live adapter is not connected in this security phase yet.');
+  const tool = event.target.closest('[data-tool]')?.dataset.tool;
+  if (tool === 'camera') {
+    featureUi?.pickImages();
+  } else if (tool === 'research') {
+    setRoute('chat');
+    const input = document.getElementById('novaNextChatInput');
+    if (input) {
+      input.value = 'Research this with evidence and clearly separate facts, uncertainty and recommendations: ';
+      input.focus();
+    }
+  } else if (tool === 'create') {
+    setRoute('chat');
+    const input = document.getElementById('novaNextChatInput');
+    if (input) {
+      input.value = 'Help me create: ';
+      input.focus();
+    }
   }
 });
 
