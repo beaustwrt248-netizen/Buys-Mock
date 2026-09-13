@@ -47,9 +47,10 @@ export function createFeatureRuntime({
       { id: 'guarded_chat', label: 'Guarded Chat', state: safe('nova-orchestrator') ? 'available' : 'staged', mode: 'interactive', detail: 'Admin-authenticated Nova orchestration is available through the guarded chat runtime.' },
       { id: 'vision', label: 'Nova Vision', state: safe('nova-vision') ? 'available' : 'staged', mode: 'interactive', detail: 'Supported images can be analysed only after an explicit user action.' },
       { id: 'knowledge', label: 'Knowledge', state: safe('nova-knowledge') ? 'available' : 'staged', mode: 'read-only', detail: 'Summary, list, search and get are exposed; mutation is not exposed to Nova Next.' },
+      { id: 'product_search', label: 'Product & price search', state: safe('app-pricing-catalogue') && safe('market-search-v2') ? 'available' : 'staged', mode: 'read-only', detail: 'Authenticated catalogue and market search are available without pricing write or approval authority.' },
       { id: 'github_broker', label: 'GitHub broker', state: safe('nova-github') ? 'available' : 'staged', mode: 'status-only', detail: 'Nova Next can read broker status only; merge, deploy, release and workflow mutation are not exposed.' },
       { id: 'code_proposal', label: 'Code proposals', state: safe('nova-code-proposal') ? 'available' : 'staged', mode: 'proposal-only', detail: 'Nova can prepare Nova Next code proposals, but cannot apply, merge or deploy them.' },
-      { id: 'scheduling', label: 'Scheduling', state: 'staged', mode: 'staged', detail: 'No scheduler or background workflow executor is connected in this slice.' },
+      { id: 'scheduling', label: 'Scheduling', state: 'staged', mode: 'staged', detail: 'No server scheduler or background workflow executor is connected in this slice.' },
       { id: 'guardian_repair', label: 'Guardian repair', state: 'protected', mode: 'unavailable', detail: 'Repair execution and approval remain outside the Nova Next client.' },
       { id: 'release_ota', label: 'Release & OTA', state: 'protected', mode: 'unavailable', detail: 'Release, deployment, signing and OTA authority remain protected.' },
       { id: 'pricing_write', label: 'Pricing writes', state: 'protected', mode: 'unavailable', detail: 'Pricing approval and write authority are not exposed.' }
@@ -121,6 +122,8 @@ export function createFeatureRuntime({
     githubStatus: () => services.github.status(),
     analyseImages: (images, options) => services.vision.analyse(images, options),
     proposeCode: input => services.codeProposal.propose(input),
+    productCatalogue: (query, options) => services.productSearch.catalogue(query, options),
+    marketSearch: (query, options) => services.productSearch.market(query, options),
     controlCentre,
     automationStatus,
     integrationStatus
