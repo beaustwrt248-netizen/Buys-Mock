@@ -7,6 +7,7 @@ const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.me
 const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
 const parityCss = readFileSync(new URL('../admin/admin-app-parity.css', import.meta.url), 'utf8');
 const parityJs = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
+const supportOnlyRuntime = readFileSync(new URL('../admin/admin-support-only-runtime.js', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
 const requiredWorkspaces = [
@@ -51,12 +52,17 @@ test('desktop and mobile web share one responsive app shell', () => {
 test('web authorization matches Android entry policy and keeps staff support-only', () => {
   assert.match(browserAuthBootstrap, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
+  assert.match(workspaceShell, /admin-support-only-runtime\.js/);
   assert.match(parityJs, /role===['"]staff['"]/);
   assert.match(parityJs, /supportOnly/);
   assert.match(parityJs, /openWorkspace\(['"]support['"]\)/);
+  assert.match(supportOnlyRuntime, /support-only/i);
+  assert.match(supportOnlyRuntime, /auth\.signOut\(\)/);
+  assert.doesNotMatch(supportOnlyRuntime, /profiles.*select\('\*'\)|admin_set_config|notification_jobs|app_config/);
 });
 
-test('authorized workspace loads app-parity runtime without weakening auth ordering', () => {
+test('full-access workspace loads app-parity runtime after core app runtime', () => {
   assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
   assert.match(workspaceShell, /from\('profiles'\)/);
   assert.match(workspaceShell, /admin-app-parity\.js/);
