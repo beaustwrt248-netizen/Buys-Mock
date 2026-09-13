@@ -16,7 +16,7 @@ import {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const MAINTENANCE_SECRET = Deno.env.get("NOVA_KNOWLEDGE_MAINTENANCE_SECRET") || "";
+const SCHEDULER_SECRET = Deno.env.get("MORLEY_BACKUP_SECRET") || "";
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
 const MAX_EMBEDDING_BATCH = 20;
 const MAX_INGEST_BATCH = 20;
@@ -36,34 +36,57 @@ const validIso = (value: unknown) => {
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 }
 
-function authorized(req: Request) {
-  if (!SUPABASE_URL || !SERVICE_ROLE || !MAINTENANCE_SECRET) return false;
-  const header = req.headers.get("Authorization") || "";
-  const supplied = header.replace(/^Bearer\s+/i, "");
-  if (!supplied || supplied.length !== MAINTENANCE_SECRET.length) return false;
+function constantTimeEqual(left: string, right: string) {
+  if (!left || !right || left.length !== right.length) return false;
   let diff = 0;
-  for (let i = 0; i < supplied.length; i += 1) diff |= supplied.charCodeAt(i) ^ MAINTENANCE_SECRET.charCodeAt(i);
+  for (let i = 0; i < left.length; i += 1) diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
   return diff === 0;
 }
 
+async function authorized(req: Request) {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return false;
+  const supplied = clean(req.headers.get("x-maintenance-secret"), 512);
+  if (!supplied) return false;
+  if (SCHEDULER_SECRET && constantTimeEqual(supplied, SCHEDULER_SECRET)) return true;
+  try {
+    const { data, error } = await admin.rpc("morley_backup_scheduler_secret_matches", { candidate: supplied });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
 async function beginRun() {
-  const { data, error } = await admin.from("nova_knowledge_maintenance_runs").insert({ status: "running" }).select("id").single();
+  const { data, error } = await admin.from("nova_knowledge_maintenance_runs")
+    .insert({ status: "running" })
+    .select("id")
+    .single();
   if (error) throw error;
   return data.id as string;
 }
 
-async function finishRun(runId: string, status: "completed" | "partial" | "failed", stats: Record<string, unknown>, errorSummary: string | null = null) {
+async function finishRun(
+  runId: string,
+  status: "completed" | "partial" | "failed",
+  stats: Record<string, unknown>,
+  errorSummary: string | null = null,
+) {
   const { error } = await admin.from("nova_knowledge_maintenance_runs").update({
     status,
     embedded_ready: Number(stats.embedded_ready || 0),
-    embedded_failed: Number(stats.embedded_failed || 0),
+    embedded_error: Number(stats.embedded_error || 0),
     ingested_created: Number(stats.ingested_created || 0),
     ingested_updated: Number(stats.ingested_updated || 0),
     ingested_skipped: Number(stats.ingested_skipped || 0),
+    ingested_error: Number(stats.ingested_error || 0),
     error_summary: errorSummary,
     completed_at: new Date().toISOString(),
   }).eq("id", runId);
@@ -114,24 +137,85 @@ async function safeDocuments(limit: number) {
   );
   for (const row of tickets) documents.push({ adapter: "support_tickets", sourceIdentity: String(row.id), document: adaptSupportTicketRow(row) });
 
-  const inventory = await fetchRows("inventory_items", "status,acquired_price,expected_sale_price,acquired_at,listed_at,retired_at,created_at,updated_at", Math.min(limit * 5, 100), (query) => query.order("updated_at", { ascending: false }));
+  const inventory = await fetchRows(
+    "inventory_items",
+    "status,acquired_price,expected_sale_price,acquired_at,listed_at,retired_at,created_at,updated_at",
+    Math.min(limit * 5, 100),
+    (query) => query.order("updated_at", { ascending: false }),
+  );
   for (const document of adaptOperationalRows("inventory", inventory)) documents.push({ adapter: "inventory_aggregate", sourceIdentity: "latest", document });
-  const sales = await fetchRows("sales_records", "acquired_cost,sold_price,fees,other_costs,realised_profit,sales_channel,sold_at,created_at", Math.min(limit * 5, 100), (query) => query.order("sold_at", { ascending: false }));
+
+  const sales = await fetchRows(
+    "sales_records",
+    "acquired_cost,sold_price,fees,other_costs,realised_profit,sales_channel,sold_at,created_at",
+    Math.min(limit * 5, 100),
+    (query) => query.order("sold_at", { ascending: false }),
+  );
   for (const document of adaptOperationalRows("sales", sales)) documents.push({ adapter: "sales_aggregate", sourceIdentity: "latest", document });
-  const history = await fetchRows("valuation_history", "asking_price,market_value,max_buy,expected_profit,status,bought_price,sold_price,actual_profit,created_at,updated_at", Math.min(limit * 5, 100), (query) => query.order("updated_at", { ascending: false }));
-  const quotes = await fetchRows("valuation_quotes", "proposed_buy_cents,target_resale_cents,expected_margin_cents,confidence,recommendation,created_at", Math.min(limit * 5, 100), (query) => query.order("created_at", { ascending: false }));
+
+  const history = await fetchRows(
+    "valuation_history",
+    "asking_price,market_value,max_buy,expected_profit,status,bought_price,sold_price,actual_profit,created_at,updated_at",
+    Math.min(limit * 5, 100),
+    (query) => query.order("updated_at", { ascending: false }),
+  );
+  const quotes = await fetchRows(
+    "valuation_quotes",
+    "proposed_buy_cents,target_resale_cents,expected_margin_cents,confidence,recommendation,created_at",
+    Math.min(limit * 5, 100),
+    (query) => query.order("created_at", { ascending: false }),
+  );
   for (const document of adaptOperationalRows("valuation", [...history, ...quotes])) documents.push({ adapter: "valuation_aggregate", sourceIdentity: "latest", document });
 
   return documents.slice(0, limit);
 }
 
-async function upsertSourceAndChunks(row: any, normalized: any, adapterKey: string) {
+async function hasLegacyCatalogueCoverage(sourceIdentity: string) {
+  const deviceCatalogId = Number(sourceIdentity);
+  if (!Number.isSafeInteger(deviceCatalogId) || deviceCatalogId <= 0) return false;
+  const { data, error } = await admin.from("nova_knowledge_items")
+    .select("id")
+    .eq("category", "catalogue")
+    .eq("status", "active")
+    .contains("metadata", { generated_from_live_catalogue: true, device_catalog_id: deviceCatalogId })
+    .limit(1);
+  if (error) throw error;
+  return Boolean(data?.length);
+}
+
+async function snap(row: any) {
+  const { error } = await admin.from("nova_knowledge_revisions").upsert({
+    knowledge_id: row.id,
+    revision: row.revision,
+    snapshot: {
+      category: row.category,
+      title: row.title,
+      content: row.content,
+      source_type: row.source_type,
+      source_label: row.source_label,
+      source_filename: row.source_filename,
+      mime_type: row.mime_type,
+      version_label: row.version_label,
+      trust_level: row.trust_level,
+      status: row.status,
+      content_hash: row.content_hash,
+      revision: row.revision,
+      metadata: sanitizeMetadata(row.metadata || {}),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    },
+    changed_by: null,
+  }, { onConflict: "knowledge_id,revision", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+async function upsertSourceAndChunks(row: any, normalized: any, adapterKey: string, refreshOnly = false) {
   const metadata = normalized.metadata || {};
   const observedAt = validIso(metadata.observed_at) || row.updated_at || new Date().toISOString();
   const staleAfter = validIso(metadata.stale_after);
   const confidence = Math.min(Math.max(Number(metadata.confidence) || 0.7, 0), 1);
   const sourcePayload = {
-    source_key: `maintenance:${adapterKey}`,
+    source_key: `internal:${adapterKey}`,
     domain: clean(metadata.domain, 80).toLowerCase() || normalized.category,
     source_type: "import",
     source_label: normalized.source_label,
@@ -146,13 +230,34 @@ async function upsertSourceAndChunks(row: any, normalized: any, adapterKey: stri
     metadata: sanitizeMetadata(metadata),
     updated_at: new Date().toISOString(),
   };
-  const { data: source, error: sourceError } = await admin.from("nova_knowledge_sources").upsert(sourcePayload, { onConflict: "source_key" }).select("id").single();
+  const { data: source, error: sourceError } = await admin.from("nova_knowledge_sources")
+    .upsert(sourcePayload, { onConflict: "source_key" })
+    .select("id")
+    .single();
   if (sourceError) throw sourceError;
 
+  if (refreshOnly) {
+    const { error } = await admin.from("nova_knowledge_chunks").update({
+      source_id: source.id,
+      trust_level: normalized.trust_level,
+      confidence,
+      observed_at: observedAt,
+      stale_after: staleAfter,
+      metadata: { domain: sourcePayload.domain, adapter_key: adapterKey },
+      updated_at: new Date().toISOString(),
+    }).eq("knowledge_id", row.id).eq("knowledge_revision", Number(row.revision || 1)).eq("status", "active");
+    if (error) throw error;
+    return;
+  }
+
   const chunks = await chunkKnowledgeDocument(normalized);
-  const { error: supersedeError } = await admin.from("nova_knowledge_chunks").update({ status: "superseded", updated_at: new Date().toISOString() }).eq("knowledge_id", row.id).eq("status", "active");
+  const { error: supersedeError } = await admin.from("nova_knowledge_chunks")
+    .update({ status: "superseded", updated_at: new Date().toISOString() })
+    .eq("knowledge_id", row.id)
+    .eq("status", "active");
   if (supersedeError) throw supersedeError;
   if (!chunks.length) return;
+
   const rows = chunks.map((chunk: any) => ({
     knowledge_id: row.id,
     source_id: source.id,
@@ -173,36 +278,67 @@ async function upsertSourceAndChunks(row: any, normalized: any, adapterKey: stri
     metadata: { domain: sourcePayload.domain, adapter_key: adapterKey },
     updated_at: new Date().toISOString(),
   }));
-  const { error } = await admin.from("nova_knowledge_chunks").upsert(rows, { onConflict: "knowledge_id,knowledge_revision,chunk_index" });
+  const { error } = await admin.from("nova_knowledge_chunks")
+    .upsert(rows, { onConflict: "knowledge_id,knowledge_revision,chunk_index" });
   if (error) throw error;
 }
 
 async function persistDocument(entry: { adapter: string; sourceIdentity: string; document: any }) {
+  if (entry.adapter === "device_catalog" && await hasLegacyCatalogueCoverage(entry.sourceIdentity)) return "adopted" as const;
+
   const adapterKey = await sha256Hex(`${entry.adapter}:${entry.sourceIdentity}`);
   const normalized = await normalizeKnowledgeDocument({
     ...entry.document,
-    metadata: { ...(entry.document.metadata || {}), managed_by: "nova_maintenance", adapter: entry.adapter, adapter_key: adapterKey },
+    metadata: {
+      ...(entry.document.metadata || {}),
+      managed_by: "nova_internal_adapter",
+      adapter: entry.adapter,
+      adapter_key: adapterKey,
+    },
   });
   if (!normalized.title || !normalized.content) return "skipped" as const;
-  const { data: existing, error: findError } = await admin.from("nova_knowledge_items").select(F).eq("source_type", "import").contains("metadata", { managed_by: "nova_maintenance", adapter_key: adapterKey }).limit(1).maybeSingle();
+
+  const { data: existing, error: findError } = await admin.from("nova_knowledge_items")
+    .select(F)
+    .eq("source_type", "import")
+    .contains("metadata", { managed_by: "nova_internal_adapter", adapter_key: adapterKey })
+    .limit(1)
+    .maybeSingle();
   if (findError) throw findError;
   const now = new Date().toISOString();
-  if (existing && existing.content_hash === normalized.content_hash && existing.status === "active") return "skipped" as const;
+
+  if (existing && existing.content_hash === normalized.content_hash && existing.status === "active") {
+    const { data: refreshed, error: refreshError } = await admin.from("nova_knowledge_items").update({
+      metadata: normalized.metadata,
+      trust_level: normalized.trust_level,
+      source_label: normalized.source_label,
+      updated_at: now,
+    }).eq("id", existing.id).select(F).single();
+    if (refreshError) throw refreshError;
+    await upsertSourceAndChunks(refreshed, normalized, adapterKey, true);
+    return "skipped" as const;
+  }
 
   if (existing) {
+    await snap(existing);
     const { data: updated, error } = await admin.from("nova_knowledge_items").update({
       category: normalized.category,
       title: normalized.title,
       content: normalized.content,
+      source_type: normalized.source_type,
       source_label: normalized.source_label,
+      source_filename: normalized.source_filename,
+      version_label: normalized.version_label,
       trust_level: normalized.trust_level,
+      status: "active",
       content_hash: normalized.content_hash,
       revision: Number(existing.revision || 1) + 1,
       metadata: normalized.metadata,
+      updated_by: null,
       updated_at: now,
     }).eq("id", existing.id).select(F).single();
     if (error) throw error;
-    await upsertSourceAndChunks(updated, normalized, adapterKey);
+    await upsertSourceAndChunks(updated, normalized, adapterKey, false);
     return "updated" as const;
   }
 
@@ -210,18 +346,22 @@ async function persistDocument(entry: { adapter: string; sourceIdentity: string;
     category: normalized.category,
     title: normalized.title,
     content: normalized.content,
-    source_type: "import",
+    source_type: normalized.source_type,
     source_label: normalized.source_label,
+    source_filename: normalized.source_filename,
+    version_label: normalized.version_label,
     trust_level: normalized.trust_level,
     status: "active",
     content_hash: normalized.content_hash,
     revision: 1,
     metadata: normalized.metadata,
+    created_by: null,
+    updated_by: null,
     created_at: now,
     updated_at: now,
   }).select(F).single();
   if (error) throw error;
-  await upsertSourceAndChunks(created, normalized, adapterKey);
+  await upsertSourceAndChunks(created, normalized, adapterKey, false);
   return "created" as const;
 }
 
@@ -234,24 +374,45 @@ async function ingestInternal(limit: number, stats: any) {
       else if (result === "updated") stats.ingested_updated += 1;
       else stats.ingested_skipped += 1;
     } catch (error) {
-      stats.ingested_failed += 1;
+      stats.ingested_error += 1;
       console.error("[nova-knowledge-maintenance] ingestion item failed", clean(error instanceof Error ? error.message : error, 240));
     }
   }
 }
 
-async function embedPending(limit: number, stats: any) {
+async function pendingEmbeddingRows(limit: number) {
+  const { data, error } = await admin.from("nova_knowledge_chunks")
+    .select("id,content")
+    .eq("status", "active")
+    .eq("embedding_status", "pending")
+    .order("updated_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+async function retryableEmbeddingRows(limit: number) {
+  if (limit <= 0) return [];
   const retryBefore = new Date(Date.now() - RETRY_COOLDOWN_MS).toISOString();
   const { data, error } = await admin.from("nova_knowledge_chunks")
-    .select("id,content,embedding_status,updated_at")
+    .select("id,content")
     .eq("status", "active")
-    .or(`embedding_status.eq.pending,and(embedding_status.eq.failed,updated_at.lt.${retryBefore})`)
+    .eq("embedding_status", "error")
+    .lt("updated_at", retryBefore)
     .order("updated_at", { ascending: true })
-    .limit(Math.min(limit, MAX_EMBEDDING_BATCH));
+    .limit(limit);
   if (error) throw error;
+  return data || [];
+}
 
+async function embedPending(limit: number, stats: any) {
+  const boundedLimit = Math.min(limit, MAX_EMBEDDING_BATCH);
+  const pending = await pendingEmbeddingRows(boundedLimit);
+  const retryable = await retryableEmbeddingRows(boundedLimit - pending.length);
+  const rows = [...pending, ...retryable].slice(0, boundedLimit);
   const model = new Supabase.ai.Session("gte-small");
-  for (const chunk of data || []) {
+
+  for (const chunk of rows) {
     try {
       const result = await model.run(String(chunk.content || ""), { mean_pool: true, normalize: true });
       const vector = Array.from(result as ArrayLike<number>);
@@ -270,12 +431,13 @@ async function embedPending(limit: number, stats: any) {
       stats.embedded_ready += 1;
     } catch (error) {
       const message = clean(error instanceof Error ? error.message : error, 400);
-      await admin.from("nova_knowledge_chunks").update({
-        embedding_status: "failed",
+      const { error: updateError } = await admin.from("nova_knowledge_chunks").update({
+        embedding_status: "error",
         embedding_error: message,
         updated_at: new Date().toISOString(),
       }).eq("id", chunk.id);
-      stats.embedded_failed += 1;
+      if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", clean(updateError.message, 240));
+      stats.embedded_error += 1;
       console.error("[nova-knowledge-maintenance] embedding failed", message);
     }
   }
@@ -283,22 +445,22 @@ async function embedPending(limit: number, stats: any) {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return reply({ error: "POST required" }, 405);
-  if (!authorized(req)) return reply({ error: "Maintenance authorization required" }, 401);
+  if (!(await authorized(req))) return reply({ error: "Maintenance authorization required" }, 401);
 
   let body: any = {};
   try { body = await req.json(); } catch { return reply({ error: "Invalid JSON request" }, 400); }
   if (clean(body.action, 40).toLowerCase() !== "run") return reply({ error: "Unsupported action" }, 400);
 
-  const embeddingLimit = Math.min(bounded(body.embedding_limit, 20, MAX_EMBEDDING_BATCH), 20);
+  const embeddingLimit = bounded(body.embedding_limit, 20, MAX_EMBEDDING_BATCH);
   const ingestLimit = bounded(body.ingest_limit, 12, MAX_INGEST_BATCH);
   const started = Date.now();
   const stats = {
     embedded_ready: 0,
-    embedded_failed: 0,
+    embedded_error: 0,
     ingested_created: 0,
     ingested_updated: 0,
     ingested_skipped: 0,
-    ingested_failed: 0,
+    ingested_error: 0,
   };
   let runId: string | null = null;
 
@@ -306,12 +468,12 @@ Deno.serve(async (req: Request) => {
     runId = await beginRun();
     await ingestInternal(ingestLimit, stats);
     await embedPending(embeddingLimit, stats);
-    const partial = stats.embedded_failed > 0 || stats.ingested_failed > 0;
+    const partial = stats.embedded_error > 0 || stats.ingested_error > 0;
     await finishRun(runId, partial ? "partial" : "completed", stats);
     return reply({
       ok: true,
       embedded_ready: stats.embedded_ready,
-      embedded_failed: stats.embedded_failed,
+      embedded_error: stats.embedded_error,
       ingested_created: stats.ingested_created,
       ingested_updated: stats.ingested_updated,
       ingested_skipped: stats.ingested_skipped,
