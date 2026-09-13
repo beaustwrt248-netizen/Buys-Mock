@@ -139,12 +139,20 @@
           <p class="feature-boundary">Files stay on this device unless you explicitly send a supported file to Nova Vision or Chat.</p>
           <div id="novaNextFilesList" class="feature-stack"></div>
         </section>
-        <section class="page" data-route="automation"><div class="placeholder"><span class="placeholder-icon indigo">⌘</span><h1>Automation</h1><p>Schedules, jobs and multi-step workflows.</p></div></section>
+        <section class="page" data-route="automation" aria-labelledby="automation-title">
+          <div class="page-title-row"><div><h1 id="automation-title">Automation</h1><p>Current safe capabilities and protected boundaries</p></div></div>
+          <p class="feature-boundary">No scheduling, release, Guardian repair or pricing authority is granted here.</p>
+          <div id="novaNextAutomationList" class="feature-status-grid" aria-live="polite"></div>
+        </section>
         <section class="page" data-route="calendar" aria-labelledby="calendar-title">
           <div class="page-title-row"><div><h1 id="calendar-title">Calendar</h1><p>Dates from your Nova Next workspace</p></div></div>
           <div id="novaNextCalendarList" class="feature-stack"></div>
         </section>
-        <section class="page" data-route="integrations"><div class="placeholder"><span class="placeholder-icon green">⌁</span><h1>Integrations</h1><p>Permissioned connections to Morley systems and external services.</p></div></section>
+        <section class="page" data-route="integrations" aria-labelledby="integrations-title">
+          <div class="page-title-row"><div><h1 id="integrations-title">Integrations</h1><p>Verified connection status only</p></div></div>
+          <p class="feature-boundary">No credentials are entered or stored on this screen.</p>
+          <div id="novaNextIntegrationsList" class="feature-status-grid" aria-live="polite"></div>
+        </section>
         <section class="page" data-route="help"><div class="placeholder"><span class="placeholder-icon blue">?</span><h1>Help & Support</h1><p>Guides, diagnostics and support workflows.</p></div></section>
         <section class="page" data-route="more"><div class="placeholder"><span class="placeholder-icon violet">•••</span><h1>More</h1><p>Control Centre, Guardian, release readiness, alerts, diagnostics and advanced Nova capabilities.</p><button class="secondary-button" type="button" data-route-target="settings">Open Settings</button></div></section>
       </div>
