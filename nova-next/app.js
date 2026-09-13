@@ -31,7 +31,7 @@ const subtitle = document.getElementById('topbarSubtitle');
 const ROUTE_LABELS = {
   home: 'Your AI-Powered Assistant', chat: 'Your AI Assistant', tools: 'AI Utilities', tasks: 'Stay organised',
   more: 'More from Nova', projects: 'Manage and build', knowledge: 'Saved knowledge', files: 'Your files',
-  automation: 'Local jobs and capability status', calendar: 'Plan your work', integrations: 'Verified connections',
+  automation: 'Capability status', calendar: 'Plan your work', integrations: 'Verified connections',
   settings: 'Customise Nova', help: 'Help & Support'
 };
 
