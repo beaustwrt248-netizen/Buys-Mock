@@ -8,6 +8,13 @@ test('migration bridge cancels stale observations when a newer migration commit 
   assert.match(workflow, /cancel-in-progress:\s*true/);
 });
 
+test('migration bridge fails closed when GitLab main differs from GitHub main', () => {
+  assert.match(
+    workflow,
+    /if \[\[ "\$github_main" != "\$gitlab_main" \]\]; then[\s\S]*?GitLab main does not currently match GitHub main[\s\S]*?exit 1[\s\S]*?fi/,
+  );
+});
+
 test('migration bridge detects repeatedly pending tagged GitLab jobs and records evidence', () => {
   assert.match(workflow, /detect-gitlab-runner-block\.mjs/);
   assert.match(workflow, /PENDING_TAGGED_THRESHOLD=8/);
