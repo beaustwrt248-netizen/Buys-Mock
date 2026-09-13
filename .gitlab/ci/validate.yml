@@ -3,3 +3,97 @@ validate:parity-manifest:
   image: node:22-bookworm
   script:
     - node scripts/ci/check-gitlab-parity-manifest.mjs
+
+.parity-blocked:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - echo "MIGRATION BLOCKED — this GitHub workflow has not yet been ported command-for-command to GitLab."
+    - exit 1
+
+validate:web-auth-origin:
+  extends: .parity-blocked
+
+validate:private-distribution-readiness:
+  extends: .parity-blocked
+
+test:morley-ai-assessment-core:
+  extends: .parity-blocked
+
+test:nova-next-ci:
+  extends: .parity-blocked
+
+test:quality-gate:
+  extends: .parity-blocked
+
+test:ui-consistency:
+  extends: .parity-blocked
+
+test:ultimate-parity:
+  extends: .parity-blocked
+
+test:web-no-blue-filter:
+  extends: .parity-blocked
+
+test:web-smoke:
+  extends: .parity-blocked
+
+governance:admin-device:
+  extends: .parity-blocked
+
+governance:admin-support-audit:
+  extends: .parity-blocked
+
+governance:admin-support:
+  extends: .parity-blocked
+
+governance:admin-support-reconcile:
+  extends: .parity-blocked
+
+governance:full-feature-contract:
+  extends: .parity-blocked
+
+governance:admin-mode-removal:
+  extends: .parity-blocked
+
+governance:morley-ai-assessment-schema:
+  extends: .parity-blocked
+
+governance:nova-knowledge-maintenance:
+  extends: .parity-blocked
+
+governance:resend-email-contract:
+  extends: .parity-blocked
+
+governance:support-ticket-query:
+  extends: .parity-blocked
+
+governance:ui-pr-checklist:
+  extends: .parity-blocked
+
+governance:web-bootstrap-live:
+  extends: .parity-blocked
+
+governance:web-desktop-live:
+  extends: .parity-blocked
+
+# Provider-specific write automations remain disabled/manual until parity validation.
+governance:auto-review-merge:
+  extends: .parity-blocked
+  when: manual
+  allow_failure: true
+
+governance:catalogue-live-sync:
+  extends: .parity-blocked
+  when: manual
+  allow_failure: true
+
+governance:ecosystem-autopilot:
+  extends: .parity-blocked
+  when: manual
+  allow_failure: true
+
+validate:restore-point:
+  extends: .parity-blocked
+  when: manual
+  allow_failure: true
