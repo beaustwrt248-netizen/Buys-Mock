@@ -65,9 +65,11 @@ test('web authorization matches Android entry policy and keeps staff support-onl
   assert.match(workspaceShell, /ENTRY_ROLES\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
   assert.match(workspaceShell, /admin-support-only-runtime\.js/);
+  assert.match(workspaceShell, /openWorkspace\?\.\(supportOnly\?['"]support['"]:['"]overview['"]\)/);
   assert.match(parityJs, /role===['"]staff['"]/);
   assert.match(parityJs, /supportOnly/);
-  assert.match(parityJs, /openWorkspace\(['"]support['"]\)/);
+  assert.match(parityJs, /if\(supportOnly&&name!==['"]support['"]\)name=['"]support['"]/);
+  assert.match(parityJs, /let initial=supportOnly\?['"]support['"]:['"]overview['"]/);
   assert.match(parityJs, /getElementById\(['"]tab-tickets['"]\)\?\.classList\.remove\(['"]hidden['"]\)/);
   assert.match(supportOnlyRuntime, /support-only/i);
   assert.match(supportOnlyRuntime, /auth\.signOut\(\)/);
@@ -76,8 +78,8 @@ test('web authorization matches Android entry policy and keeps staff support-onl
 
 test('full-access runtime keeps native user-access behavior and removes legacy shell rewrites', () => {
   assert.match(workspaceShell, /admin-user-access-parity\.js/);
-  assert.doesNotMatch(workspaceShell, /admin-home\.js/);
-  assert.doesNotMatch(workspaceShell, /admin-v2\.js/);
+  assert.doesNotMatch(workspaceShell, /admin-home\.js\?v=8[^\n]*\]/);
+  assert.doesNotMatch(workspaceShell, /admin-v2\.js\?v=8[^\n]*\]/);
   assert.match(workspaceShell, /invites\.js\?v=4/);
   assert.match(workspaceShell, /legacy invite renderer is intentionally not loaded/);
   assert.doesNotMatch(workspaceShell, /\['adminInvites','invites\.js\?v=4'\]/);
