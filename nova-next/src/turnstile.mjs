@@ -19,6 +19,7 @@ export async function loadTurnstile({ windowObj = globalThis.window, documentObj
     if (existing) {
       existing.addEventListener('load', () => finish(), { once: true });
       existing.addEventListener('error', () => finish(new Error('TURNSTILE_LOAD_FAILED')), { once: true });
+      if (windowObj.turnstile) finish();
       return;
     }
     const script = documentObj.createElement('script');
@@ -41,6 +42,10 @@ export function createTurnstileController({ siteKey, loader = () => loadTurnstil
   async function mount(container, { onToken = () => {}, onExpired = () => {}, onError = () => {} } = {}) {
     api = await loader();
     if (!api || typeof api.render !== 'function') throw new Error('TURNSTILE_API_INVALID');
+    if (widgetId !== null) {
+      if (typeof api.reset === 'function') api.reset(widgetId);
+      return widgetId;
+    }
     widgetId = api.render(container, {
       sitekey: siteKey,
       theme: 'dark',
