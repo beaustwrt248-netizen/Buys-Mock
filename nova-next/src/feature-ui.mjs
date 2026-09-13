@@ -288,5 +288,5 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     if (route === 'more') await loadControlCentre();
   }
 
-  return Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal });
+  return Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal, renderVision });
 }
