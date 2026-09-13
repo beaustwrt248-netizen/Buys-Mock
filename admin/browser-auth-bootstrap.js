@@ -34,7 +34,7 @@ function loadSession({retry=false}={}){
       const profileResult=await withTimeout(sb.from('profiles').select('id,email,display_name,role,is_enabled').eq('id',session.user.id).single(),'Admin profile check');
       const profile=profileResult?.data,error=profileResult?.error;
       if(error){setBootstrapState(classifyRecoverable(error),error.message||'Admin profile check failed.');return false}
-      if(!profile||!profile.is_enabled||!['admin','manager'].includes(profile.role)){
+      if(!profile||!profile.is_enabled||!['admin','manager','staff'].includes(profile.role)){
         await withTimeout(sb.auth.signOut(),'Sign out').catch(()=>{});
         setBootstrapState('signed_out','This account is not authorised for Admin Control.');
         return false;
