@@ -38,12 +38,25 @@ test('desktop rebuild is isolated from physical phone and sub-1000px layouts', a
   assert.match(css, /@media \(min-width:1000px\)/);
 });
 
+test('desktop resize preserves legacy Morley DOM nodes and runtime listeners', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /function parkLegacyHome/);
+  assert.match(source, /legacy\.appendChild\(node\)/);
+  assert.match(source, /function restoreLegacyHome/);
+  assert.match(source, /home\.insertBefore\(legacy\.firstChild,legacy\)/);
+  assert.doesNotMatch(source, /home\.dataset\.morleyOriginal/);
+  assert.doesNotMatch(source, /home\.innerHTML=dashboardMarkup/);
+});
+
 test('desktop search, scanner, reporting and accessibility affordances exist', async () => {
   const source = await read('morley-desktop-rebuild.js');
   assert.match(source, /morleyDesktopGlobalSearch/);
   assert.match(source, /globalSearch\(\)/);
+  assert.match(source, /aria-label="Search Morley Buys"/);
   assert.match(source, /aria-label="Search"/);
   assert.match(source, /aria-label="Notifications"/);
+  assert.match(source, /aria-label="Open account menu"/);
   assert.match(source, /routeMap=.*scanner/s);
   assert.match(source, /text\/csv/);
+  assert.match(source, /safeArray/);
 });
