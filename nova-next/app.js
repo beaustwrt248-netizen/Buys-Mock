@@ -6,6 +6,7 @@ import { createFeatureUi } from './src/feature-ui.mjs';
 import { createWorkspaceStore } from './src/workspace-store.mjs';
 import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
 import { createWorkspaceUi } from './src/workspace-ui.mjs';
+import { createFileSession } from './src/file-session.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -186,12 +187,16 @@ async function bootstrap() {
   try {
     const workspaceStore = createWorkspaceStore();
     const workspaceRuntime = createWorkspaceRuntime({ store: workspaceStore });
+    const fileSession = createFileSession();
     workspaceUi = createWorkspaceUi({
       workspaceRuntime,
+      fileSession,
+      featureRuntime,
       documentObj: document,
       windowObj: window,
       onNavigate: route => setRoute(route),
-      onToast: showToast
+      onToast: showToast,
+      onVisionResult: result => featureUi.renderVision(result)
     });
     workspaceUi.bind();
   } catch (error) {
