@@ -56,7 +56,19 @@ test('desktop search, scanner, reporting and accessibility affordances exist', a
   assert.match(source, /aria-label="Search"/);
   assert.match(source, /aria-label="Notifications"/);
   assert.match(source, /aria-label="Open account menu"/);
-  assert.match(source, /routeMap=.*scanner/s);
+  assert.match(source, /scanner/);
   assert.match(source, /text\/csv/);
   assert.match(source, /safeArray/);
+});
+
+test('desktop capabilities resolve explicitly instead of masquerading as unrelated routes', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /const capabilities=/);
+  assert.match(source, /function resolveCapability/);
+  assert.match(source, /function openCapability/);
+  for (const name of ['search','scanner','catalogue','inventory','sales','trade','price','ai','reports','settings','notifications','account','support']) {
+    assert.ok(source.includes(`${name}:`), `missing capability: ${name}`);
+  }
+  assert.doesNotMatch(source, /ai:'home'/);
+  assert.doesNotMatch(source, /reports:'sales'/);
 });
