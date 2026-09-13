@@ -18,9 +18,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const SCHEDULER_SECRET = Deno.env.get("MORLEY_BACKUP_SECRET") || "";
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
-const MAX_EMBEDDING_BATCH = 20;
-const MAX_INGEST_BATCH = 20;
-const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
+const MAX_EMBEDDING_BATCH = 4;
+const MAX_INGEST_BATCH = 4;
 const F = "id,category,title,content,source_type,source_label,source_filename,mime_type,version_label,trust_level,status,content_hash,revision,metadata,created_by,updated_by,created_at,updated_at";
 const SENSITIVE_DIAGNOSTIC = /(authorization|cookie|password|secret|token|api[_-]?key)\s*[:=]\s*([^\s,;]+)/gi;
 
@@ -56,6 +55,19 @@ function isOptionalSourcePermissionError(error: unknown) {
   const code = clean(record.code, 40);
   const message = clean(record.message, 240).toLowerCase();
   return code === "42501" || message.includes("permission denied");
+}
+
+function embeddingErrorCode(error: unknown) {
+  const message = normalizeMaintenanceError(error, 180).toLowerCase();
+  if (message.includes("dimension")) return "INVALID_DIMENSIONS";
+  if (message.includes("timeout")) return "EMBED_TIMEOUT";
+  if (message.includes("429") || message.includes("rate")) return "EMBED_RATE_LIMIT";
+  return "EMBED_FAILED";
+}
+
+function embeddingRetryAt(attempt: number) {
+  const minutes = Math.min(24 * 60, 5 * (2 ** Math.max(0, Math.min(attempt - 1, 8))));
+  return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
 function reply(body: unknown, status = 200) {
@@ -424,36 +436,11 @@ async function ingestInternal(limit: number, stats: any) {
   }
 }
 
-async function pendingEmbeddingRows(limit: number) {
-  const { data, error } = await admin.from("nova_knowledge_chunks")
-    .select("id,content")
-    .eq("status", "active")
-    .eq("embedding_status", "pending")
-    .order("updated_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
-  return data || [];
-}
-
-async function retryableEmbeddingRows(limit: number) {
-  if (limit <= 0) return [];
-  const retryBefore = new Date(Date.now() - RETRY_COOLDOWN_MS).toISOString();
-  const { data, error } = await admin.from("nova_knowledge_chunks")
-    .select("id,content")
-    .eq("status", "active")
-    .eq("embedding_status", "error")
-    .lt("updated_at", retryBefore)
-    .order("updated_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
-  return data || [];
-}
-
 async function embedPending(limit: number, stats: any) {
   const boundedLimit = Math.min(limit, MAX_EMBEDDING_BATCH);
-  const pending = await pendingEmbeddingRows(boundedLimit);
-  const retryable = await retryableEmbeddingRows(boundedLimit - pending.length);
-  const rows = [...pending, ...retryable].slice(0, boundedLimit);
+  const { data, error } = await admin.rpc("nova_claim_embedding_chunks", { p_limit: boundedLimit });
+  if (error) throw error;
+  const rows = Array.isArray(data) ? data.slice(0, MAX_EMBEDDING_BATCH) : [];
   const model = new Supabase.ai.Session("gte-small");
 
   for (const chunk of rows) {
@@ -468,18 +455,23 @@ async function embedPending(limit: number, stats: any) {
         embedding_dimensions: 384,
         embedding_status: "ready",
         embedding_error: null,
+        embedding_last_error_code: null,
+        embedding_next_retry_at: null,
         embedded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }).eq("id", chunk.id);
+      }).eq("id", chunk.id).eq("status", "active");
       if (updateError) throw updateError;
       stats.embedded_ready += 1;
     } catch (error) {
       const message = normalizeMaintenanceError(error, 400);
+      const attempt = Number(chunk.embedding_attempt_count || 1);
       const { error: updateError } = await admin.from("nova_knowledge_chunks").update({
         embedding_status: "error",
         embedding_error: message,
+        embedding_last_error_code: embeddingErrorCode(error),
+        embedding_next_retry_at: embeddingRetryAt(attempt),
         updated_at: new Date().toISOString(),
-      }).eq("id", chunk.id);
+      }).eq("id", chunk.id).eq("status", "active");
       if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", normalizeMaintenanceError(updateError, 240));
       stats.embedded_error += 1;
       console.error("[nova-knowledge-maintenance] embedding failed", message);
@@ -499,8 +491,8 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return reply({ error: "Invalid JSON request" }, 400); }
   if (clean(body.action, 40).toLowerCase() !== "run") return reply({ error: "Unsupported action" }, 400);
 
-  const embeddingLimit = bounded(body.embedding_limit, 20, MAX_EMBEDDING_BATCH);
-  const ingestLimit = bounded(body.ingest_limit, 12, MAX_INGEST_BATCH);
+  const embeddingLimit = bounded(body.embedding_limit, 4, MAX_EMBEDDING_BATCH);
+  const ingestLimit = bounded(body.ingest_limit, 4, MAX_INGEST_BATCH);
   const started = Date.now();
   const stats = {
     embedded_ready: 0,
