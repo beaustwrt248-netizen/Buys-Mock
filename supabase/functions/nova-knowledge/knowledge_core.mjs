@@ -1,4 +1,4 @@
-const SENSITIVE_KEY = /(?:^|_)(?:api[_-]?key|authorization|cookie|password|secret|token|access[_-]?token|refresh[_-]?token|session|imei|serial(?:[_-]?number)?)(?:$|_)/i;
+const SENSITIVE_KEY = /(?:^|_)(?:api[_-]?key|authorization|cookie|password|secret|token|access[_-]?token|refresh[_-]?token|session|imei|serial(?:[_-]?number)?|user[_-]?id|account[_-]?id|device[_-]?id|ticket[_-]?id|assigned[_-]?to|approved[_-]?by|created[_-]?by|updated[_-]?by|dispatch[_-]?token)(?:$|_)/i;
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, Number(value) || 0));
 const cleanInline = (value, max = 220) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
