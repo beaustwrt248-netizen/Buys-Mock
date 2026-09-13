@@ -123,5 +123,8 @@ export function createFileSession({
     });
   }
 
-  return Object.freeze({ addFiles, list, get, remove, clear, readText, readDataUrl });
+  const toChatText = id => readText(id);
+  const toVisionDataUrl = id => readDataUrl(id);
+
+  return Object.freeze({ addFiles, list, get, remove, clear, readText, readDataUrl, toChatText, toVisionDataUrl });
 }
