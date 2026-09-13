@@ -1,0 +1,311 @@
+import { PRIMARY_NAV, DRAWER_NAV, resolveRoute } from './src/navigation.mjs';
+import { createBrowserHistoryAdapter, createRouter } from './src/router.mjs';
+import { createLiveRuntime } from './src/live-runtime.mjs';
+import { createFeatureRuntime } from './src/feature-runtime.mjs';
+import { createFeatureUi } from './src/feature-ui.mjs';
+import { createWorkspaceStore } from './src/workspace-store.mjs';
+import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
+import { createWorkspaceUi } from './src/workspace-ui.mjs';
+import { createFileSession } from './src/file-session.mjs';
+
+const splashView = document.getElementById('splashView');
+const loginView = document.getElementById('loginView');
+const shell = document.getElementById('shell');
+const allSetView = document.getElementById('allSetView');
+const drawer = document.getElementById('drawer');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const menuButton = document.getElementById('menuButton');
+const drawerNav = document.getElementById('drawerNav');
+const bottomNav = document.getElementById('bottomNav');
+const pages = [...document.querySelectorAll('.page[data-route]')];
+const subtitle = document.getElementById('topbarSubtitle');
+
+const ROUTE_LABELS = {
+  home: 'Your AI-Powered Assistant', chat: 'Your AI Assistant', tools: 'AI Utilities', tasks: 'Stay organised',
+  more: 'More from Nova', projects: 'Manage and build', knowledge: 'Saved knowledge', files: 'Your files',
+  automation: 'Capability status', calendar: 'Plan your work', integrations: 'Verified connections',
+  settings: 'Customise Nova', help: 'Help & Support'
+};
+
+const DRAWER_ICONS = ['⌂','◉','⌘','☑','▣','◇','▤','◴','▦','⌁','⚙','?'];
+const BOTTOM_ICONS = { Home: '⌂', Chat: '◉', Tools: '⌘', Tasks: '☑', More: '•••' };
+const router = createRouter({
+  initialRoute: 'home',
+  history: createBrowserHistoryAdapter(window),
+  onRoute(route, _previous, meta) {
+    if (meta?.source === 'history') renderRoute(route, { closeDrawer: true });
+  }
+});
+let liveRuntime = null;
+let featureRuntime = null;
+let featureUi = null;
+let workspaceUi = null;
+let toastTimer = null;
+
+function labelToRoute(label) {
+  return resolveRoute(label);
+}
+
+function buildNavigation() {
+  drawerNav.replaceChildren(...DRAWER_NAV.map((label, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.routeTarget = labelToRoute(label);
+    button.dataset.icon = DRAWER_ICONS[index] || '•';
+    return button;
+  }));
+
+  bottomNav.replaceChildren(...PRIMARY_NAV.map(label => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.routeTarget = labelToRoute(label);
+    const icon = document.createElement('span');
+    icon.className = 'nav-icon';
+    icon.textContent = BOTTOM_ICONS[label];
+    const text = document.createElement('span');
+    text.textContent = label;
+    button.append(icon, text);
+    return button;
+  }));
+}
+
+function renderRoute(currentRoute, { closeDrawer = true } = {}) {
+  for (const page of pages) page.classList.toggle('is-active', page.dataset.route === currentRoute);
+  for (const button of document.querySelectorAll('[data-route-target]')) {
+    if (button.closest('.bottom-nav, .drawer-nav')) {
+      const selected = resolveRoute(button.dataset.routeTarget) === currentRoute;
+      button.toggleAttribute('aria-current', selected);
+      if (selected) button.setAttribute('aria-current', 'page');
+    }
+  }
+  subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
+  if (closeDrawer) setDrawer(false);
+  workspaceUi?.routeChanged(currentRoute);
+  featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
+}
+
+function setRoute(route, { closeDrawer = true } = {}) {
+  router.go(route);
+  renderRoute(router.current(), { closeDrawer });
+}
+
+function getDrawerFocusable() {
+  return [...drawer.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter(element => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+}
+
+function setDrawer(open, { restoreFocus = true } = {}) {
+  const wasOpen = drawer.classList.contains('is-open');
+  drawer.classList.toggle('is-open', open);
+  drawer.setAttribute('aria-hidden', String(!open));
+  menuButton.setAttribute('aria-expanded', String(open));
+  drawerBackdrop.hidden = !open;
+  if (open) {
+    const target = drawer.querySelector('[aria-current="page"]') || getDrawerFocusable()[0];
+    target?.focus({ preventScroll: true });
+  } else if (wasOpen && restoreFocus) {
+    menuButton.focus({ preventScroll: true });
+  }
+}
+
+function showOnly(view) {
+  for (const item of [splashView, loginView, shell, allSetView]) item.classList.toggle('is-hidden', item !== view);
+}
+
+function showToast(message, tone = '') {
+  document.querySelector('.runtime-toast')?.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+  const toast = document.createElement('div');
+  toast.className = `runtime-toast${tone ? ` ${tone}` : ''}`;
+  toast.setAttribute('role', 'status');
+  toast.textContent = message;
+  document.body.append(toast);
+  toastTimer = setTimeout(() => toast.remove(), 3600);
+}
+
+function ensureHeadLink(rel, href, id) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = rel;
+  link.href = href;
+  document.head.append(link);
+}
+
+function ensureIsolatedAssets() {
+  ensureHeadLink('manifest', './manifest.webmanifest', 'novaNextManifest');
+  ensureHeadLink('stylesheet', './live.css', 'novaNextLiveStyles');
+}
+
+function registerIsolatedServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const base = new URL('./', window.location.href);
+  if (!base.pathname.endsWith('/nova-next/')) return;
+  navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(error => {
+    console.warn('nova-next service worker registration failed', error);
+  });
+}
+
+function markAuthenticatedSession(session) {
+  const email = String(session?.user?.email || '');
+  const online = document.querySelector('.assistant-row p');
+  if (online) online.innerHTML = '<span class="online-dot"></span> Guarded · Admin session';
+  const preview = document.getElementById('previewNote');
+  if (preview && email) preview.textContent = `Signed in securely as ${email}.`;
+}
+
+async function bootstrap() {
+  ensureIsolatedAssets();
+  buildNavigation();
+  setRoute(router.current(), { closeDrawer: false });
+  registerIsolatedServiceWorker();
+
+  liveRuntime = createLiveRuntime({
+    callbacks: {
+      onAuthenticated(session, { restored } = {}) {
+        markAuthenticatedSession(session);
+        showOnly(restored ? shell : allSetView);
+        if (restored) {
+          workspaceUi?.routeChanged(router.current());
+          featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
+        }
+      },
+      onLocked(reason) {
+        showOnly(loginView);
+        if (reason === 'AUTH_REQUIRED') showToast('Your Nova session expired. Sign in again.', 'error');
+      },
+      onChatResult(result) {
+        if (result.degraded) showToast('Nova answered in degraded mode. Review the response evidence carefully.');
+      },
+      onRuntimeError(error) {
+        console.error('nova-next runtime', error);
+      }
+    }
+  });
+
+  featureRuntime = createFeatureRuntime({ getAccessToken: () => liveRuntime.getAccessToken() });
+  featureUi = createFeatureUi({
+    featureRuntime,
+    onNavigate: route => setRoute(route),
+    onToast: showToast,
+    onError: error => console.error('nova-next feature', error)
+  });
+  featureUi.bind();
+
+  try {
+    const workspaceStore = createWorkspaceStore();
+    const workspaceRuntime = createWorkspaceRuntime({ store: workspaceStore });
+    const fileSession = createFileSession();
+    workspaceUi = createWorkspaceUi({
+      workspaceRuntime,
+      fileSession,
+      featureRuntime,
+      documentObj: document,
+      windowObj: window,
+      onNavigate: route => setRoute(route),
+      onToast: showToast,
+      onVisionResult: result => featureUi.renderVision(result)
+    });
+    workspaceUi.bind();
+  } catch (error) {
+    console.error('nova-next workspace boot', error);
+    showToast('Local workspace storage is unavailable. Tasks and projects remain unchanged.', 'error');
+  }
+
+  try {
+    await liveRuntime.start();
+  } catch (error) {
+    console.error('nova-next boot', error);
+    showOnly(loginView);
+    showToast('Secure Nova startup failed. Access remains locked.', 'error');
+  }
+}
+
+menuButton.addEventListener('click', () => setDrawer(!drawer.classList.contains('is-open')));
+drawerBackdrop.addEventListener('click', () => setDrawer(false));
+
+document.addEventListener('click', event => {
+  const routeButton = event.target.closest('[data-route-target]');
+  if (routeButton) {
+    setRoute(routeButton.dataset.routeTarget);
+    return;
+  }
+
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (action === 'toggle-password') {
+    const input = document.querySelector('input[name="password"]');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  } else if (action === 'signout') {
+    setDrawer(false, { restoreFocus: false });
+    liveRuntime?.signOut();
+  } else if (action === 'finish-intro') {
+    showOnly(shell);
+    setRoute('home');
+  }
+
+  const tool = event.target.closest('[data-tool]')?.dataset.tool;
+  if (tool === 'camera') {
+    featureUi?.pickImages();
+  } else if (tool === 'research') {
+    setRoute('chat');
+    const input = document.getElementById('novaNextChatInput');
+    if (input) {
+      input.value = 'Research this with evidence and clearly separate facts, uncertainty and recommendations: ';
+      input.focus();
+    }
+  } else if (tool === 'create') {
+    setRoute('chat');
+    const input = document.getElementById('novaNextChatInput');
+    if (input) {
+      input.value = 'Help me create: ';
+      input.focus();
+    }
+  }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && drawer.classList.contains('is-open')) {
+    event.preventDefault();
+    setDrawer(false);
+    return;
+  }
+
+  if (event.key === 'Tab' && drawer.classList.contains('is-open')) {
+    const focusable = getDrawerFocusable();
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !drawer.contains(active))) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!event.shiftKey && (active === last || !drawer.contains(active))) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
+});
+
+for (const tabList of document.querySelectorAll('.filter-tabs')) {
+  if (tabList.id === 'novaNextTaskFilters') continue;
+  tabList.setAttribute('role', 'group');
+  for (const candidate of tabList.querySelectorAll('button')) {
+    candidate.setAttribute('aria-pressed', String(candidate.classList.contains('is-selected')));
+  }
+
+  tabList.addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    for (const candidate of tabList.querySelectorAll('button')) {
+      const selected = candidate === button;
+      candidate.classList.toggle('is-selected', selected);
+      candidate.setAttribute('aria-pressed', String(selected));
+    }
+  });
+}
+
+bootstrap();

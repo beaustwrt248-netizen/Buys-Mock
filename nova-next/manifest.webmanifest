@@ -1,0 +1,10 @@
+{
+  "name": "Nova Next",
+  "short_name": "Nova Next",
+  "description": "Isolated successor candidate for Nova AI",
+  "start_url": "/nova-next/",
+  "scope": "/nova-next/",
+  "display": "standalone",
+  "background_color": "#030914",
+  "theme_color": "#06101e"
+}

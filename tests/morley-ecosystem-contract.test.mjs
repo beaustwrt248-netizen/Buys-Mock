@@ -15,6 +15,7 @@ const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-c
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
 const autoReviewWorkflow=fs.readFileSync(new URL('../.github/workflows/auto-review-merge.yml',import.meta.url),'utf8');
+const androidAuth=fs.readFileSync(new URL('../android/app/src/main/java/com/buysloans/hub/AuthActivity.kt',import.meta.url),'utf8');
 
 test('ecosystem exposes exactly three user-facing product definitions',()=>{
   assert.match(source,/id:'morley-buys'/);
@@ -50,6 +51,14 @@ test('Morley Buys, Nova and Admin consume the ecosystem contract at runtime',()=
   assert.match(novaApp,/\.\.\/morley-core\.js\?v=1/);
   assert.match(adminPresentation,/\.\.\/morley-core\.js\?v=1/);
   assert.match(guardianBranding,/\.\.\/morley-core\.js\?v=1/);
+});
+
+test('Android auth reuses the shared Morley blue visual tokens',()=>{
+  assert.match(androidAuth,/private val AuthPrimary\s*=\s*MorleyAccent\b/);
+  assert.match(androidAuth,/private val AuthAccent\s*=\s*MorleyAccent\b/);
+  assert.match(androidAuth,/private val AuthBg\s*=\s*MorleyBackground\b/);
+  assert.match(androidAuth,/private val AuthCard\s*=\s*MorleySurface\b/);
+  assert.doesNotMatch(androidAuth,/Color\(0xFF167A5A\)|Color\(0xFF77E9C4\)/);
 });
 
 test('Guardian is presented as Nova Security without renaming protected internals',()=>{
