@@ -1,4 +1,5 @@
 (()=>{'use strict';
+// Desktop rebuild entrypoint. Keep mobile/physical-phone contracts authoritative below the rebuild boundary.
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const icon=paths=>`<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
 const navItems=[
