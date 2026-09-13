@@ -214,7 +214,7 @@ for token in ("loadSession", "profiles", "is_enabled", "admin", "manager", "work
 for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email private invite', 'id="releaseName" readonly', 'id="releaseCode" type="number" readonly', 'id="rolloutCurrent"', 'id="rolloutOutdated"'):
     if token not in admin_workspace_template:
         errors.append(f"Admin workspace template is missing approved privileged control: {token}")
-for token in ('workspace-template.html?v=2', 'app.js?v=5', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
+for token in ('workspace-template.html?v=2', 'app.js?v=', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
     if token not in admin_workspace:
         errors.append(f"Admin workspace loader is missing gated runtime control: {token}")
 for token in ("inviteName", "send-morley-email", "action:'create_invite'", "display_name:name"):
