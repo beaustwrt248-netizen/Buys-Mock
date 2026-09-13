@@ -17,7 +17,7 @@ const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/
 
 test('Admin browser login uses one isolated same-origin Turnstile transport on mobile and desktop', () => {
   assert.match(adminIndex, /id="adminTurnstileFrame"/);
-  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=3/);
+  assert.match(adminIndex, /browser-auth-bootstrap\.js\?v=2&parity=1/);
   assert.match(adminIndex, /login-security\.js\?v=11/);
   assert.match(webSecurity, /turnstile\.html\?v=8&browser=1/);
   assert.match(webSecurity, /captchaToken:token/);
@@ -44,16 +44,21 @@ test('logged-out Admin browser is auth-only and privileged workspace runtime is 
     assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute in the logged-out auth document`);
     assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available in the authorized workspace`);
   }
-  assert.doesNotMatch(workspaceShell, /admin-home\.js|admin-v2\.js|invites\.js/);
-  assert.match(browserAuthBootstrap, /from\('profiles'\)/);
-  assert.match(browserAuthBootstrap, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.doesNotMatch(workspaceShell, /admin-home\.js|admin-v2\.js/);
+  assert.match(browserAuthBootstrap, /FULL_ACCESS_ROLES=\['admin','manager'\]/);
+  assert.match(browserAuthBootstrap, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
+  assert.match(browserAuthBootstrap, /ENTRY_ROLES\.includes\(profile\.role\)/);
   assert.match(browserAuthBootstrap, /location\.replace\(`workspace\.html\?auth=/);
   assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
-  assert.match(workspaceShell, /from\('profiles'\)/);
-  assert.match(workspaceShell, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /FULL_ACCESS_ROLES=\['admin','manager'\]/);
+  assert.match(workspaceShell, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
+  assert.match(workspaceShell, /ENTRY_ROLES\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
-  assert.match(workspaceShell, /workspace-template\.html\?v=3/);
+  assert.match(workspaceShell, /workspace-template\.html\?v=2&parity=3/);
+  assert.match(workspaceShell, /invites\.js\?v=4/);
+  assert.match(workspaceShell, /legacy invite renderer is intentionally not loaded/);
   assert.match(workspaceShell, /for\(const entry of scripts\)await loadScript\(entry\)/);
+  assert.doesNotMatch(workspaceShell, /\['adminInvites','invites\.js\?v=4'\]/);
   assert.doesNotMatch(workspaceShell, /login-security\.js/);
   assert.match(workspaceTemplate, /id="appView"/);
   assert.match(workspaceTemplate, /id="logoutBtn"/);
