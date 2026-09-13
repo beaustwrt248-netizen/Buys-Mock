@@ -9,32 +9,43 @@
 
 ## Current result
 
-**Status: PENDING AUTHENTICATED VERIFICATION**
+**Status: AUTHENTICATED REF VERIFICATION IN PROGRESS**
 
-The GitLab project path has been provided and the import has been reported complete, but the private GitLab project is not readable from the current ChatGPT session because no authenticated GitLab connector is available. This document intentionally does not mark the import PASS until refs are compared.
+The private GitLab project is now reachable from the migration bridge through a short-lived, project-scoped credential stored only as a GitHub Actions secret. The bridge does not print or persist the token.
+
+Authenticated bridge evidence has confirmed:
+
+- GitLab `main` matches GitHub `main` at the time of the bridge run.
+- `migration/gitlab-staged-20260914` can be pushed to GitLab and its resulting SHA is verified after push.
+- GitLab tag refs match GitHub tag refs.
+- No force-push was used by the bridge.
+
+The first synchronized GitLab pipeline for commit `28e01a15475158994a787114f9bfe928f31ee722` could not create jobs because GitLab required account verification. Account verification has since been completed. A fresh migration-branch commit is required to trigger a new same-SHA GitLab pipeline and continue CI parity validation.
 
 ## Required ref checks
 
 Before cutover, verify all of the following against GitHub:
 
-- `main` exists in GitLab and points to the expected imported commit.
-- `migration/gitlab-staged-20260914` exists in GitLab after the migration branch is pushed/imported.
-- Release tags expected from GitHub are present in GitLab.
-- Representative recent commit SHAs exist in both providers.
-- No history rewrite or force-push occurred during import.
+- `main` exists in GitLab and points to the expected imported commit. **Verified by migration bridge.**
+- `migration/gitlab-staged-20260914` exists in GitLab and matches the pushed GitHub migration revision. **Verified by migration bridge.**
+- Release tags expected from GitHub are present in GitLab. **Verified by migration bridge.**
+- Representative recent commit SHAs exist in both providers. **Partially verified by exact migration-branch and main SHA checks; broader representative sample remains pending.**
+- No history rewrite or force-push occurred during migration. **Bridge uses non-force migration-branch pushes only.**
 
-## Expected verification commands
+## Verification commands used by the bridge
 
-Run from an authenticated checkout with both remotes configured:
+The bridge performs authenticated ref checks equivalent to:
 
 ```bash
-git fetch origin --prune --tags
-git fetch gitlab --prune --tags
-git show-ref --heads --tags | sort > /tmp/github-refs.txt
-git ls-remote --heads --tags gitlab | sort > /tmp/gitlab-refs.txt
+git fetch origin main --tags --force
+git ls-remote gitlab refs/heads/main
+git push gitlab "HEAD:refs/heads/migration/gitlab-staged-20260914"
+git ls-remote gitlab refs/heads/migration/gitlab-staged-20260914
+git ls-remote --tags origin | sort
+git ls-remote --tags gitlab | sort
 ```
 
-Normalize local/remote prefixes and compare `main`, the migration branch, all release tags, and representative recent commits.
+The bridge verifies exact SHA equality after pushing the migration branch and leaves `main` and tags untouched.
 
 ## Provider metadata
 
@@ -42,4 +53,4 @@ GitHub-specific Actions run history, workflow artifacts, review metadata, and ot
 
 ## Conclusion
 
-**NO-GO until authenticated ref verification is completed.** GitHub remains the authoritative rollback source and production baseline.
+**NO-GO until the fresh post-verification GitLab pipeline runs and same-SHA CI parity is established.** GitHub remains the authoritative rollback source and production baseline.
