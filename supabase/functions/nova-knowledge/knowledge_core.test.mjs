@@ -9,12 +9,16 @@ import {
   sha256Hex,
 } from './knowledge_core.mjs';
 
-test('sanitizeMetadata removes secrets and sensitive device identifiers recursively', () => {
+test('sanitizeMetadata removes secrets and sensitive identifiers recursively', () => {
   const input = {
     safe: 'keep',
     api_key: 'remove',
+    user_id: 'remove-user',
+    assigned_to: 'remove-assignee',
+    ticket_id: 'remove-ticket',
     nested: {
       authorization: 'remove',
+      approved_by: 'remove-actor',
       model: 'Pixel',
       identifiers: [{ imei: '123456789012345', note: 'ok' }, { serial_number: 'ABC123' }],
     },
