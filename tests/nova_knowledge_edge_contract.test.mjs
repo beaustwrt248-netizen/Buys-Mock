@@ -19,6 +19,6 @@ test('expanded Nova knowledge endpoint wires deterministic chunks, semantic fall
   assert.match(text, /action\s*===\s*['"]reindex['"]/);
   assert.match(text, /action\s*===\s*['"]embed_pending['"]/);
   assert.match(text, /gte-small/);
-  assert.match(text, /Math\.min\([^\n]+20/);
+  assert.match(text, /bounded\(body\.limit,\s*8,\s*20\)/);
   assert.match(text, /textSearch\(['"]search_vector['"]/);
 });
