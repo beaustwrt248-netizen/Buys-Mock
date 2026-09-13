@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs';
 const template = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
 const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
 const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
-const coreApp = readFileSync(new URL('../admin/app.js', import.meta.url), 'utf8');
 const parityCss = readFileSync(new URL('../admin/admin-app-parity.css', import.meta.url), 'utf8');
 const parityJs = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
 const userAccessParity = readFileSync(new URL('../admin/admin-user-access-parity.js', import.meta.url), 'utf8');
@@ -74,8 +73,9 @@ test('full-access runtime keeps native user-access behavior and removes legacy s
   assert.match(userAccessParity, /create_user/);
   assert.match(userAccessParity, /reissue_invite/);
   assert.match(userAccessParity, /admin_revoke_team_invite/);
-  assert.doesNotMatch(coreApp, /data-user-action="force_signout"/);
-  assert.doesNotMatch(coreApp, /data-user-action="delete"/);
+  assert.match(userAccessParity, /data-user-action="force_signout"/);
+  assert.match(userAccessParity, /data-user-action="delete"/);
+  assert.match(userAccessParity, /remove\(\)/);
 });
 
 test('full-access workspace loads app-parity runtime after core app runtime', () => {
