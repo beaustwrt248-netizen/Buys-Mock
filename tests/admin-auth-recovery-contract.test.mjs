@@ -35,30 +35,21 @@ test('Admin browser login uses one isolated same-origin Turnstile transport on m
 
 test('logged-out Admin browser is auth-only and privileged workspace runtime is authorization-gated', () => {
   const workspaceScripts = [
-    'user-management-policy.js',
-    'app.js',
-    'auth-boundary.js',
-    'release-control.js',
-    'targeted-notifications.js',
-    'invites.js',
-    'download-invites.js',
-    'support-tickets.js',
-    'audit-triage.js',
-    'pricing-management.js',
-    'admin-v2.js',
-    'control-governance.js',
-    'admin-home.js'
+    'user-management-policy.js', 'app.js', 'auth-boundary.js', 'release-control.js',
+    'targeted-notifications.js', 'invites.js', 'download-invites.js', 'support-tickets.js',
+    'audit-triage.js', 'pricing-management.js', 'admin-v2.js', 'control-governance.js', 'admin-home.js'
   ];
   for (const script of workspaceScripts) {
     assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute in the logged-out auth document`);
     assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available in the authorized workspace`);
   }
   assert.match(browserAuthBootstrap, /from\('profiles'\)/);
-  assert.match(browserAuthBootstrap, /\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(browserAuthBootstrap, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
   assert.match(browserAuthBootstrap, /location\.replace\(`workspace\.html\?auth=/);
   assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
   assert.match(workspaceShell, /from\('profiles'\)/);
-  assert.match(workspaceShell, /!\['admin','manager'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
   assert.match(workspaceShell, /workspace-template\.html\?v=2/);
   assert.match(workspaceShell, /for\(const entry of scripts\)await loadScript\(entry\)/);
   assert.doesNotMatch(workspaceShell, /login-security\.js/);
