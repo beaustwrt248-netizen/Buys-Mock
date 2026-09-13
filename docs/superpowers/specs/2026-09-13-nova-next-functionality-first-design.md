@@ -13,7 +13,7 @@ Tasks become a real local-first workspace instead of hard-coded demo rows.
 - Create, edit, complete/reopen and delete Nova Next tasks.
 - Fields: title, notes, due date, priority, project link, completed state, created/updated timestamps.
 - Filters: All, Today, Upcoming, Done.
-- Persist in an isolated Nova Next storage namespace so no current Nova data or other Morley storage keys are modified.
+- Persist in isolated storage key `nova-next.workspace.v1`; no current Nova data or other Morley storage keys are modified.
 - Task writes remain device-local in this slice; no server mutation surface is introduced merely to make the UI interactive.
 - Empty, loading, validation and storage-failure states are explicit.
 
@@ -30,11 +30,14 @@ Projects become a real local-first organiser rather than fixed progress cards.
 Files becomes a usable session-oriented file workspace without inventing backend storage.
 
 - Pick files from Android/browser file chooser.
+- A Nova Next session may track at most 20 selected files.
+- Files larger than 20 MiB are rejected before reading or handoff.
 - Show file name, MIME/type, size and session-added time.
 - Allow removing files from the current Nova Next session.
 - File content remains local to the browser/WebView unless the user explicitly sends a supported file/image into an existing Nova capability.
-- Image files can hand off to Nova Vision.
-- Text-like files can hand off to guarded Chat through extracted text only when browser APIs can read them safely within conservative size limits.
+- Image files can hand off to Nova Vision and are additionally subject to the existing Vision adapter image count/type/payload limits.
+- UTF-8 text, Markdown, JSON and CSV files up to 1 MiB may be read locally and handed to guarded Chat only on explicit user action.
+- Other supported metadata-only files remain selectable/listed but are never silently read or uploaded.
 - Unsupported or oversized files are shown honestly; no fake upload/sync indicator.
 - No persistent cloud file store is added in this slice.
 
@@ -66,10 +69,10 @@ Add a small isolated module under `nova-next/src/` responsible only for Tasks an
 
 Responsibilities:
 - schema/version validation;
-- load/save using a Nova Next-specific storage key;
+- load/save using `nova-next.workspace.v1` only;
 - immutable CRUD operations;
 - date/priority/status validation;
-- safe recovery from corrupt storage by failing closed to an empty workspace while surfacing an error state.
+- safe recovery from corrupt storage by clearing only the invalid Nova Next workspace payload, returning an empty valid workspace and surfacing a recovery notice to the UI.
 
 The UI does not manipulate raw `localStorage` directly.
 
@@ -77,7 +80,7 @@ The UI does not manipulate raw `localStorage` directly.
 Add a runtime facade that exposes task/project operations and derived calendar data to the UI. It depends on the local workspace store only and has no privileged network authority.
 
 ### 3. File session service
-Add a session-only service that validates files, tracks metadata/object references during the current app session, reads supported text files conservatively, and routes supported images into the already-approved Vision adapter. It must never claim persistence or cloud upload.
+Add a session-only service that validates the 20-file session cap, 20 MiB per-file cap, supported local-text types and 1 MiB text-read cap; tracks metadata/object references during the current app session; and routes supported images into the already-approved Vision adapter. It must never claim persistence or cloud upload.
 
 ### 4. Workspace UI controller
 Keep `feature-ui.mjs` focused by moving Tasks, Projects, Files, Calendar, Automation and Integrations rendering/binding into a dedicated workspace UI module. Existing Knowledge, Vision, Code Proposal and Control Centre behavior remains separate.
@@ -121,7 +124,7 @@ Tasks and Projects must feel native to the current shell rather than separate ad
 - Existing Admin authentication remains required before protected/network-backed Nova Next capabilities are used.
 - Task/project local storage contains no authentication tokens or credentials.
 - Files are session-local by default; no silent upload.
-- No service-role/provider/signing secrets in client source.
+- No privileged backend/provider/signing credential is stored in client source.
 - No Guardian repair execution or approval action.
 - No pricing approval/write path.
 - No user/role mutation.
@@ -131,9 +134,9 @@ Tasks and Projects must feel native to the current shell rather than separate ad
 
 ## Error Handling
 
-- Corrupt local workspace data: quarantine/reset the invalid payload, present a recovery notice, and continue with an empty valid state.
-- Storage unavailable/quota failure: keep the in-memory operation from being falsely shown as persisted; surface a clear save failure.
-- File too large/unsupported: reject before reading or invoking any adapter and explain the limit.
+- Corrupt local workspace data: clear only `nova-next.workspace.v1`, present a recovery notice, and continue with an empty valid state.
+- Storage unavailable/quota failure: do not report the operation as persisted; leave canonical persisted state unchanged and surface a clear save failure.
+- File count/size/type violation: reject before reading or invoking any adapter and explain the exact limit.
 - Vision/chat handoff failure: retain the file/list state and show retry-safe feedback.
 - Safe status endpoint failure: show that integration/status card as unavailable while other cards continue to render.
 
@@ -144,10 +147,11 @@ Use TDD for every new behavior.
 Required contract coverage:
 - task CRUD, validation, filtering and completion;
 - project CRUD, confirmation-safe deletion behavior and task unlinking;
-- isolated storage namespace and corrupt-data recovery;
+- exact isolated storage namespace and corrupt-data recovery;
 - calendar derivation from task/project dates;
-- file type/size/count validation;
-- text-read and image-handoff boundaries;
+- 20-file session cap and 20 MiB per-file validation;
+- 1 MiB text-read boundary plus supported text MIME/extensions;
+- image-handoff delegation to existing Vision validation;
 - no silent file upload/persistence claim;
 - truthful integration status behavior under partial failure;
 - UI contract tests for empty, populated, validation and failure states;
@@ -161,7 +165,7 @@ This slice is complete when:
 
 1. Tasks no longer depend on hard-coded demo rows and all core local CRUD/filter interactions work after reload.
 2. Projects no longer depend on hard-coded demo cards and core local CRUD/progress interactions work after reload.
-3. Files can be selected and honestly managed within the session, with explicit supported handoffs to Vision/Chat.
+3. Files can be selected and honestly managed within the session, with explicit supported handoffs to Vision/Chat and the exact limits above enforced.
 4. Calendar reflects local dated Tasks/Projects rather than placeholder copy.
 5. Automation and Integrations show truthful supported/staged/read-only states and never fake connectivity or authority.
 6. Existing Chat, Auth, Vision, Knowledge, Code Proposal and Control Centre behavior does not regress.
