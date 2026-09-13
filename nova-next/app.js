@@ -7,6 +7,11 @@ import { createWorkspaceStore } from './src/workspace-store.mjs';
 import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
 import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
+import { createProductSearchUi } from './src/product-search-ui.mjs';
+import { createVoiceUi } from './src/voice-ui.mjs';
+import { createResearchUi } from './src/research-ui.mjs';
+import { createLocalPreferences } from './src/local-preferences.mjs';
+import { createSettingsUi } from './src/settings-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -39,6 +44,10 @@ const router = createRouter({
 let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
+let productSearchUi = null;
+let voiceUi = null;
+let researchUi = null;
+let settingsUi = null;
 let workspaceUi = null;
 let toastTimer = null;
 
@@ -185,6 +194,25 @@ async function bootstrap() {
   });
 
   featureRuntime = createFeatureRuntime({ getAccessToken: () => liveRuntime.getAccessToken() });
+  productSearchUi = createProductSearchUi({
+    featureRuntime,
+    documentObj: document,
+    onToast: showToast,
+    onError: error => console.error('nova-next product search', error)
+  });
+  productSearchUi.bind();
+
+  voiceUi = createVoiceUi({
+    documentObj: document,
+    windowObj: window,
+    onToast: showToast
+  });
+  researchUi = createResearchUi({
+    documentObj: document,
+    onNavigate: route => setRoute(route),
+    onToast: showToast
+  });
+
   featureUi = createFeatureUi({
     featureRuntime,
     onNavigate: route => setRoute(route),
@@ -215,6 +243,16 @@ async function bootstrap() {
 
   try {
     await liveRuntime.start();
+    voiceUi.bind();
+    researchUi.bind();
+    try {
+      const preferences = createLocalPreferences({ storage: window.localStorage });
+      settingsUi = createSettingsUi({ preferences, documentObj: document, onToast: showToast });
+      settingsUi.bind();
+    } catch (error) {
+      console.error('nova-next settings boot', error);
+      showToast('Local Settings storage is unavailable. Existing preferences remain unchanged.', 'error');
+    }
   } catch (error) {
     console.error('nova-next boot', error);
     showOnly(loginView);
