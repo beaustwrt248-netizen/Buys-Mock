@@ -1,21 +1,213 @@
-.admin-parity-blocked:
+admin:android-check:
+  stage: test
+  tags:
+    - morley-android
+  script:
+    - java -version
+    - gradle --version
+    - test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+    - |
+      set -euxo pipefail
+      ROOT=android/adminapp/src/main/java/com/buysloans/admin
+      ACTIVITY="$ROOT/AdminActivity.kt"
+      LOGIN="$ROOT/AdminLoginActivity.kt"
+      CAPTCHA="$ROOT/CaptchaChallenge.kt"
+      DASHBOARD="$ROOT/AdminNativeDashboard.kt"
+      STORE="$ROOT/AdminSessionStore.kt"
+      grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
+      grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
+      grep -q 'AdminSessionStore.current()' "$ACTIVITY"
+      grep -q 'AdminSessionStore.hasAuthorizedSession()' "$ACTIVITY"
+      grep -q 'AdminNativeDashboard' "$ACTIVITY"
+      ! grep -Eq 'android\.webkit|WebView|CookieManager|evaluateJavascript|loadUrl\(|AdminWebParityPolicy|installNativeAdminSession|native-logout|EXTRA_ACCESS_TOKEN|EXTRA_REFRESH_TOKEN|addJavascriptInterface' "$ACTIVITY"
+      ! grep -Eq 'android\.webkit|WebView|evaluateJavascript|installNativeAdminSession|addJavascriptInterface' "$DASHBOARD"
+      grep -q 'NATIVE CONTROL MODE' "$DASHBOARD"
+      grep -q 'SupportOperationsPanel' "$DASHBOARD"
+      grep -q 'GuardianPanel' "$DASHBOARD"
+      grep -q 'ManualNotificationPanel' "$DASHBOARD"
+      grep -q 'UserManagementPanel' "$DASHBOARD"
+      grep -q 'AuditTimelinePanel' "$DASHBOARD"
+      grep -q 'AdminAppAccessPolicy.canReadFullSnapshot(session)' "$DASHBOARD"
+      grep -q 'AdminSessionStore.set(session)' "$LOGIN"
+      grep -q 'Intent(this, AdminActivity::class.java)' "$LOGIN"
+      ! grep -Eq 'EXTRA_ACCESS_TOKEN|EXTRA_REFRESH_TOKEN|putExtra\(AdminActivity' "$LOGIN"
+      grep -q 'private var active: AdminSession?' "$STORE"
+      grep -q 'fun clear()' "$STORE"
+      grep -q 'active?.accessToken = ""' "$STORE"
+      grep -q 'active?.refreshToken = ""' "$STORE"
+      test "$(grep -Rho 'addJavascriptInterface(' "$ROOT" | wc -l)" = "1"
+      grep -q 'addJavascriptInterface(' "$CAPTCHA"
+      grep -q '"AndroidBridge"' "$CAPTCHA"
+      grep -q 'domStorageEnabled = false' "$CAPTCHA"
+      grep -q 'allowFileAccess = false' "$CAPTCHA"
+      grep -q 'allowContentAccess = false' "$CAPTCHA"
+      grep -q 'databaseEnabled = false' "$CAPTCHA"
+      grep -q 'MIXED_CONTENT_NEVER_ALLOW' "$CAPTCHA"
+      grep -q '/rest/v1/rpc/admin_set_config' "$ROOT/AdminApi.kt"
+      test "$(grep -Rho '/rest/v1/rpc/admin_set_config' "$ROOT" | wc -l)" = "1"
+      grep -q '/rest/v1/support_tickets?id=eq.' "$ROOT/AdminApi.kt"
+      grep -q 'authorizedRequest(session, path, "PATCH", payload, preferMinimal = true)' "$ROOT/AdminApi.kt"
+      grep -q 'grant_type=refresh_token' "$ROOT/AdminApi.kt"
+      test "$(grep -Rho 'PATCH' "$ROOT" | wc -l)" = "1"
+      test "$(grep -Rlo '/functions/v1/admin-user-control' "$ROOT" | wc -l)" = "2"
+      grep -q '/functions/v1/admin-user-control' "$ROOT/UserControlApi.kt"
+      grep -q '/functions/v1/admin-user-control' "$ROOT/TeamInviteApi.kt"
+      ! grep -REq 'force_signout|queueNotif|/rest/v1/app_config.*(PATCH|PUT|DELETE)|request\([^,]+, "(PUT|DELETE)"' "$ROOT"
+      ! grep -REqi 'service[_-]?role|SUPABASE_SECRET_KEY' android/adminapp
+      grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
+      grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
+      grep -q "admin_audit_log" supabase/migrations/*safe_remote_feature_flags.sql
+    - node --test tests/admin-webview-input-focus.test.mjs tests/admin-auth-recovery-contract.test.mjs
+    - gradle -p android :adminapp:testDebugUnitTest :adminapp:lintDebug :adminapp:assembleDebug
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - android/adminapp/build/outputs/apk/debug/*.apk
+
+admin:control-integration:
+  stage: test
+  image: python:3.12-bookworm
+  script:
+    - python3 scripts/admin_control_integration_audit.py
+
+admin:release-check:
   stage: test
   image: node:22-bookworm
   script:
-    - echo "MIGRATION BLOCKED — Admin parity command set has not been fully ported yet."
-    - exit 1
-
-admin:android-check:
-  extends: .admin-parity-blocked
-
-admin:control-integration:
-  extends: .admin-parity-blocked
+    - node --check admin/browser-auth-bootstrap.js
+    - node --check admin/app.js
+    - node --check admin/release-control.js
+    - node --check admin/invites.js
+    - node --check admin/targeted-notifications.js
+    - |
+      set -euo pipefail
+      grep -q 'release-control.js?v=3' admin/workspace.html
+      grep -q 'id="releaseName" readonly' admin/workspace-template.html
+      grep -q 'id="releaseCode" type="number" readonly' admin/workspace-template.html
+      grep -q 'id="rolloutCurrent"' admin/workspace-template.html
+      grep -q 'id="rolloutOutdated"' admin/workspace-template.html
+      ! grep -q 'release-control.js' admin/index.html
+      ! grep -q 'id="releaseName"' admin/index.html
+      grep -q 'OTA_METADATA_URL' admin/release-control.js
+      grep -q 'SOURCE_BUILD_URL' admin/release-control.js
+      grep -q 'isVerifiedOtaShape' admin/release-control.js
+      grep -q 'loadReleaseRollout' admin/release-control.js
+      grep -q 'loadSourceBuild' admin/release-control.js
+      grep -q 'PENDING RELEASE' admin/release-control.js
+      grep -q 'RELEASE DRIFT WARNING' admin/release-control.js
+      grep -q "config_key:'minimum_supported_version'" admin/release-control.js
+      grep -q "config_key:'current_release'" admin/release-control.js
+      grep -q 'minimum.versionCode>current.versionCode' admin/release-control.js
+    - |
+      set -euo pipefail
+      grep -q 'android:name=".AdminUpdateGateActivity"' android/adminapp/src/main/AndroidManifest.xml
+      grep -q 'AdminUpdateGateActivity' android/adminapp/src/main/AndroidManifest.xml
+      grep -q 'METADATA_URL = "https://beaustwrt248-netizen.github.io/Buys-Mock/admin/admin-update.json"' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt
+      grep -q 'releases/download/admin-v' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdatePolicy.kt
+      grep -q 'Downloaded update failed SHA-256 verification' android/adminapp/src/main/java/com/buysloans/admin/AdminUpdateManager.kt
+      grep -q 'publish-admin-ota:' .github/workflows/admin-apk-build.yml
+      grep -q 'ADMIN_RELEASE_FILE=Morley-Admin-' .github/workflows/admin-apk-build.yml
+      grep -q 'admin/admin-update.json' .github/workflows/admin-apk-build.yml
+      grep -q 'EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b' .github/workflows/admin-apk-build.yml
+      python3 - <<'PY'
+      import re
+      from pathlib import Path
+      text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+      code=re.search(r'\bversionCode\s+(\d+)',text)
+      name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]",text)
+      assert code and int(code.group(1)) >= 6
+      assert name and name.group(1).strip()
+      p=Path('admin/admin-update.json')
+      if p.exists():
+          import json
+          d=json.loads(p.read_text(encoding='utf-8'))
+          assert isinstance(d.get('versionCode'),int) and d['versionCode'] > 0
+          assert str(d.get('versionName','')).strip()
+          assert str(d.get('apkUrl','')).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/admin-v')
+          assert re.fullmatch(r'[0-9a-f]{64}',str(d.get('sha256','')))
+      PY
+    - |
+      set -euo pipefail
+      migration='supabase/migrations/20260827225000_isolate_admin_set_config.sql'
+      if [ -f "$migration" ]; then
+        grep -q 'private.admin_set_config_impl' "$migration"
+        grep -q 'security definer' "$migration"
+        grep -q "set search_path = ''" "$migration"
+        grep -q 'security invoker' "$migration"
+        grep -q 'private.is_admin_or_manager()' "$migration"
+        grep -q "'config_updated'" "$migration"
+        grep -q 'revoke all on function public.admin_set_config(text,jsonb) from public, anon' "$migration"
+        ! grep -Eqi 'disable[[:space:]]+row[[:space:]]+level[[:space:]]+security|drop[[:space:]]+table|drop[[:space:]]+policy' "$migration"
+      fi
+    - |
+      python3 - <<'PY'
+      import json, re
+      from pathlib import Path
+      data=json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+      assert isinstance(data.get('versionCode'), int) and data['versionCode'] > 0
+      assert str(data.get('versionName','')).strip()
+      assert str(data.get('apkUrl','')).startswith('https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/')
+      assert re.fullmatch(r'[0-9a-fA-F]{64}', str(data.get('sha256','')))
+      gradle=Path('android/app/build.gradle').read_text(encoding='utf-8')
+      code=re.search(r'\bversionCode\s+(\d+)',gradle)
+      name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]",gradle)
+      assert code and int(code.group(1)) > 0
+      assert name and name.group(1).strip()
+      print(f"Verified OTA {data['versionName']} ({data['versionCode']}); source {name.group(1)} ({code.group(1)})")
+      PY
 
 admin:recovery-apk:
-  extends: .admin-parity-blocked
-
-admin:release-check:
-  extends: .admin-parity-blocked
+  stage: build
+  tags:
+    - morley-android
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+    - when: never
+  allow_failure: false
+  script:
+    - test -n "${BL_KEYSTORE_BASE64:-}" || { echo 'BL_KEYSTORE_BASE64 is required'; exit 1; }
+    - test -n "${BL_KEYSTORE_PASSWORD:-}" || { echo 'BL_KEYSTORE_PASSWORD is required'; exit 1; }
+    - test -n "${BL_KEY_ALIAS:-}" || { echo 'BL_KEY_ALIAS is required'; exit 1; }
+    - test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}" || { echo 'Android SDK is required'; exit 1; }
+    - |
+      set -euo pipefail
+      mkdir -p .tmp dist
+      KEYSTORE_PATH="$CI_PROJECT_DIR/.tmp/bl-morley-admin-recovery.jks"
+      printf '%s' "$BL_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > "$KEYSTORE_PATH"
+      keytool -list -keystore "$KEYSTORE_PATH" -storepass "$BL_KEYSTORE_PASSWORD" -alias "$BL_KEY_ALIAS" >/dev/null
+      export B_AND_L_KEYSTORE_PATH="$KEYSTORE_PATH"
+      export B_AND_L_STORE_PASSWORD="$BL_KEYSTORE_PASSWORD"
+      export B_AND_L_KEY_ALIAS="$BL_KEY_ALIAS"
+      gradle -p android :adminapp:testDebugUnitTest :adminapp:lintDebug :adminapp:assembleRecovery
+      ADMIN_RECOVERY_VERSION="$(python3 - <<'PY'
+      import re
+      from pathlib import Path
+      text=Path('android/adminapp/build.gradle').read_text(encoding='utf-8')
+      name=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+      if not name or not name.group(1).strip(): raise SystemExit('Invalid Admin recovery versionName')
+      print(name.group(1).strip())
+      PY
+      )"
+      SAFE="$(printf '%s' "$ADMIN_RECOVERY_VERSION" | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+|-+$//g')"
+      FILE="Morley-Admin-Recovery-${SAFE}.apk"
+      cp android/adminapp/build/outputs/apk/recovery/adminapp-recovery.apk "dist/$FILE"
+      AAPT="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+      APKSIGNER="$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+      test -n "$AAPT" && test -n "$APKSIGNER"
+      BADGING="$("$AAPT" dump badging "dist/$FILE")"
+      printf '%s\n' "$BADGING" | grep -q "package: name='com.buysloans.admin.recovery'"
+      printf '%s\n' "$BADGING" | grep -q "application-label:'Morley Admin Recovery'"
+      EXPECTED_CERT_SHA256=c919385ba51d241cd932b44c1fcfcda48529aef5fd4dda0f3b5f8c5f6056ab7b
+      SIGNATURE_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "dist/$FILE")"
+      ACTUAL_CERT_SHA256="$(printf '%s\n' "$SIGNATURE_OUTPUT" | sed -n -E 's/^(V2 Signer: |Signer #1 )?certificate SHA-256 digest: ([0-9a-fA-F]+)$/\2/p' | head -n 1 | tr '[:upper:]' '[:lower:]')"
+      test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+      sha256sum "dist/$FILE" | tee "dist/$FILE.sha256"
+  artifacts:
+    expire_in: 14 days
+    paths:
+      - dist/Morley-Admin-Recovery-*.apk
+      - dist/Morley-Admin-Recovery-*.apk.sha256
 
 admin:apk-build:
   stage: build
