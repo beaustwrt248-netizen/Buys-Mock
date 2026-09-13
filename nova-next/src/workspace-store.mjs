@@ -33,6 +33,14 @@ function optionalText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function requireUniqueIds(items) {
+  const ids = new Set();
+  for (const item of items) {
+    if (ids.has(item.id)) throw new Error('WORKSPACE_SCHEMA_INVALID');
+    ids.add(item.id);
+  }
+}
+
 function normalizeTask(input, { existing = null, nowIso, projectIds = null } = {}) {
   const title = requiredText(input?.title ?? existing?.title, 'TASK_TITLE_REQUIRED');
   const notes = optionalText(input?.notes ?? existing?.notes ?? '');
@@ -94,6 +102,7 @@ function validateLoadedState(parsed) {
     }
     return normalizeProject(project, { existing: project, nowIso: project.updatedAt });
   });
+  requireUniqueIds(projects);
   const projectIds = new Set(projects.map(project => project.id));
 
   const tasks = parsed.tasks.map(task => {
@@ -102,6 +111,7 @@ function validateLoadedState(parsed) {
     }
     return normalizeTask(task, { existing: task, nowIso: task.updatedAt, projectIds });
   });
+  requireUniqueIds(tasks);
 
   return { version: 1, tasks, projects };
 }
@@ -150,7 +160,7 @@ export function createWorkspaceStore({
   function createTask(input = {}) {
     const nowIso = timestamp(now);
     const id = String(idFactory() || '').trim();
-    if (!id) throw new Error('TASK_ID_INVALID');
+    if (!id || state.tasks.some(task => task.id === id)) throw new Error('TASK_ID_INVALID');
     const task = normalizeTask({ ...input, id }, { nowIso, projectIds: projectIdSet() });
     commit({ ...state, tasks: [...state.tasks, task] });
     return clone(task);
@@ -182,7 +192,7 @@ export function createWorkspaceStore({
   function createProject(input = {}) {
     const nowIso = timestamp(now);
     const id = String(idFactory() || '').trim();
-    if (!id) throw new Error('PROJECT_ID_INVALID');
+    if (!id || state.projects.some(project => project.id === id)) throw new Error('PROJECT_ID_INVALID');
     const project = normalizeProject({ ...input, id }, { nowIso });
     commit({ ...state, projects: [...state.projects, project] });
     return clone(project);
