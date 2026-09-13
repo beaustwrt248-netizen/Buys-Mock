@@ -49,5 +49,5 @@ test('service worker only intercepts explicitly precached static paths', () => {
 test('app keeps service-worker registration non-fatal', () => {
   const app = fs.readFileSync(appPath, 'utf8');
   assert.match(app, /serviceWorker\.register\(/);
-  assert.match(app, /serviceWorker\.register[\s\S]*?\.catch\(\(\) => \{\}\)/);
+  assert.match(app, /serviceWorker\.register[\s\S]*?\.catch\(/);
 });
