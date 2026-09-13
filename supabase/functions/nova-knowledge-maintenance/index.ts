@@ -47,6 +47,14 @@ function normalizeMaintenanceError(error: unknown, max = 400) {
   return redact(error) || "Unknown maintenance error";
 }
 
+function isOptionalSourcePermissionError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const record = error as Record<string, unknown>;
+  const code = clean(record.code, 40);
+  const message = clean(record.message, 240).toLowerCase();
+  return code === "42501" || message.includes("permission denied");
+}
+
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -107,11 +115,23 @@ async function finishRun(
   if (error) throw error;
 }
 
-async function fetchRows(table: string, columns: string, limit: number, configure?: (query: any) => any) {
+async function fetchRows(
+  table: string,
+  columns: string,
+  limit: number,
+  configure?: (query: any) => any,
+  options: { optional?: boolean } = {},
+) {
   let query: any = admin.from(table).select(columns).limit(limit);
   if (configure) query = configure(query);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    if (options.optional && isOptionalSourcePermissionError(error)) {
+      console.warn(`[nova-knowledge-maintenance] optional source unavailable: ${table}`);
+      return [];
+    }
+    throw error;
+  }
   return data || [];
 }
 
@@ -156,6 +176,7 @@ async function safeDocuments(limit: number) {
     "status,acquired_price,expected_sale_price,acquired_at,listed_at,retired_at,created_at,updated_at",
     Math.min(limit * 5, 100),
     (query) => query.order("updated_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("inventory", inventory)) documents.push({ adapter: "inventory_aggregate", sourceIdentity: "latest", document });
 
@@ -164,6 +185,7 @@ async function safeDocuments(limit: number) {
     "acquired_cost,sold_price,fees,other_costs,realised_profit,sales_channel,sold_at,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("sold_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("sales", sales)) documents.push({ adapter: "sales_aggregate", sourceIdentity: "latest", document });
 
@@ -178,6 +200,7 @@ async function safeDocuments(limit: number) {
     "proposed_buy_cents,target_resale_cents,expected_margin_cents,confidence,recommendation,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("created_at", { ascending: false }),
+    { optional: true },
   );
   for (const document of adaptOperationalRows("valuation", [...history, ...quotes])) documents.push({ adapter: "valuation_aggregate", sourceIdentity: "latest", document });
 
