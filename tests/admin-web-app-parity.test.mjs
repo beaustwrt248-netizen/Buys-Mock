@@ -25,6 +25,12 @@ const retainedFeatureIds = [
   'auditList', 'logoutBtn'
 ];
 
+test('rebuilt Admin parity runtimes are syntactically valid JavaScript', () => {
+  assert.doesNotThrow(() => new Function(parityJs));
+  assert.doesNotThrow(() => new Function(userAccessParity));
+  assert.doesNotThrow(() => new Function(supportOnlyRuntime));
+});
+
 test('web workspace mirrors every primary Android Admin workspace', () => {
   assert.match(template, /data-admin-shell="app-parity"/);
   for (const [key, label] of requiredWorkspaces) {
@@ -58,6 +64,7 @@ test('web authorization matches Android entry policy and keeps staff support-onl
   assert.match(parityJs, /role===['"]staff['"]/);
   assert.match(parityJs, /supportOnly/);
   assert.match(parityJs, /openWorkspace\(['"]support['"]\)/);
+  assert.match(parityJs, /getElementById\(['"]tab-tickets['"]\)\?\.classList\.remove\(['"]hidden['"]\)/);
   assert.match(supportOnlyRuntime, /support-only/i);
   assert.match(supportOnlyRuntime, /auth\.signOut\(\)/);
   assert.doesNotMatch(supportOnlyRuntime, /profiles.*select\('\*'\)|admin_set_config|notification_jobs|app_config/);
