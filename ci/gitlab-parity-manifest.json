@@ -21,6 +21,7 @@
     {"id":"deploy-admin-pages","githubWorkflow":"deploy-admin-pages.yml","category":"ota-release","required":false,"gitlabJob":"release:deploy-admin-pages"},
     {"id":"full-feature-contract","githubWorkflow":"full-feature-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:full-feature-contract"},
     {"id":"gitlab-migration-bridge","githubWorkflow":"gitlab-migration-bridge.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-migration-bridge"},
+    {"id":"gitlab-project-validation","githubWorkflow":"gitlab-project-validation.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-project-validation"},
     {"id":"guardian-platform-check","githubWorkflow":"guardian-platform-check.yml","category":"guardian-security","required":true,"gitlabJob":"security:guardian-platform"},
     {"id":"main-admin-mode-removal-contract","githubWorkflow":"main-admin-mode-removal-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:admin-mode-removal"},
     {"id":"morley-ai-assessment-core","githubWorkflow":"morley-ai-assessment-core.yml","category":"quality","required":true,"gitlabJob":"test:morley-ai-assessment-core"},
