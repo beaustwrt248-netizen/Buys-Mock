@@ -39,3 +39,15 @@ test('service worker precaches the complete static module graph used by app.js',
   const missing = modules.filter(modulePath => !isPrecached(worker, modulePath));
   assert.deepEqual(missing, [], `missing runtime modules from CORE: ${missing.join(', ')}`);
 });
+
+test('service worker only intercepts explicitly precached static paths', () => {
+  const worker = fs.readFileSync(workerPath, 'utf8');
+  assert.match(worker, /STATIC_PATHS\.has\(url\.pathname\)/);
+  assert.doesNotMatch(worker, /cache\.put\(request/);
+});
+
+test('app keeps service-worker registration non-fatal', () => {
+  const app = fs.readFileSync(appPath, 'utf8');
+  assert.match(app, /serviceWorker\.register\(/);
+  assert.match(app, /serviceWorker\.register[\s\S]*?\.catch\(\(\) => \{\}\)/);
+});
