@@ -5,8 +5,10 @@ import { readFileSync } from 'node:fs';
 const template = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
 const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
 const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
+const coreApp = readFileSync(new URL('../admin/app.js', import.meta.url), 'utf8');
 const parityCss = readFileSync(new URL('../admin/admin-app-parity.css', import.meta.url), 'utf8');
 const parityJs = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
+const userAccessParity = readFileSync(new URL('../admin/admin-user-access-parity.js', import.meta.url), 'utf8');
 const supportOnlyRuntime = readFileSync(new URL('../admin/admin-support-only-runtime.js', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
@@ -60,6 +62,20 @@ test('web authorization matches Android entry policy and keeps staff support-onl
   assert.match(supportOnlyRuntime, /support-only/i);
   assert.match(supportOnlyRuntime, /auth\.signOut\(\)/);
   assert.doesNotMatch(supportOnlyRuntime, /profiles.*select\('\*'\)|admin_set_config|notification_jobs|app_config/);
+});
+
+test('full-access runtime keeps native user-access behavior and removes legacy shell rewrites', () => {
+  assert.match(workspaceShell, /admin-user-access-parity\.js/);
+  assert.doesNotMatch(workspaceShell, /admin-home\.js/);
+  assert.doesNotMatch(workspaceShell, /admin-v2\.js/);
+  assert.match(template, /id="adminResetUser"/);
+  assert.match(template, /id="teamInviteTemporary"/);
+  assert.match(userAccessParity, /reset_password/);
+  assert.match(userAccessParity, /create_user/);
+  assert.match(userAccessParity, /reissue_invite/);
+  assert.match(userAccessParity, /admin_revoke_team_invite/);
+  assert.doesNotMatch(coreApp, /data-user-action="force_signout"/);
+  assert.doesNotMatch(coreApp, /data-user-action="delete"/);
 });
 
 test('full-access workspace loads app-parity runtime after core app runtime', () => {
