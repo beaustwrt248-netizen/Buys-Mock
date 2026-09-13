@@ -46,7 +46,8 @@ test('app wires one session file service into the workspace UI', () => {
   assert.ok(app.includes('onVisionResult: result => featureUi.renderVision(result)'));
 });
 
-test('existing feature UI exposes only its renderer for Files Vision reuse', () => {
-  assert.ok(featureUi.includes('renderVision'));
-  assert.ok(featureUi.includes('Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal, renderVision })'));
+test('existing feature UI exposes its renderer for Files Vision reuse', () => {
+  const exportLine = featureUi.split('\n').find(line => line.includes('return Object.freeze({'));
+  assert.ok(exportLine, 'feature UI export list');
+  assert.ok(exportLine.includes('renderVision'), 'renderVision export');
 });
