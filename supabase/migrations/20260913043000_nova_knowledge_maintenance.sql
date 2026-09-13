@@ -1,6 +1,10 @@
 -- Nova knowledge maintenance loop.
 -- Additive only. Existing knowledge content and lexical retrieval remain intact.
 
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+create extension if not exists vault;
+
 alter table public.nova_knowledge_chunks
   add column if not exists embedding_attempt_count integer not null default 0,
   add column if not exists embedding_last_attempt_at timestamptz,
@@ -12,11 +16,7 @@ create index if not exists nova_knowledge_chunks_embedding_retry_idx
   where status = 'active' and embedding_status <> 'ready';
 
 create or replace function public.nova_claim_embedding_chunks(p_limit integer default 20)
-returns table (
-  id uuid,
-  content text,
-  embedding_attempt_count integer
-)
+returns table (id uuid, content text, embedding_attempt_count integer)
 language plpgsql
 volatile
 security invoker
@@ -33,16 +33,11 @@ begin
       and c.embedding_status <> 'ready'
       and (
         c.embedding_status = 'pending'
-        or (
-          c.embedding_status = 'error'
-          and c.embedding_attempt_count < 8
-          and coalesce(c.embedding_next_retry_at, '-infinity'::timestamptz) <= now()
-        )
+        or (c.embedding_status = 'error' and c.embedding_attempt_count < 8
+            and coalesce(c.embedding_next_retry_at, '-infinity'::timestamptz) <= now())
       )
-    order by
-      case when c.embedding_status = 'pending' then 0 else 1 end,
-      coalesce(c.embedding_next_retry_at, c.created_at),
-      c.id
+    order by case when c.embedding_status = 'pending' then 0 else 1 end,
+             coalesce(c.embedding_next_retry_at, c.created_at), c.id
     limit v_limit
     for update skip locked
   ), claimed as (
@@ -55,8 +50,7 @@ begin
     where c.id = q.id
     returning c.id, c.content, c.embedding_attempt_count
   )
-  select claimed.id, claimed.content, claimed.embedding_attempt_count
-  from claimed;
+  select claimed.id, claimed.content, claimed.embedding_attempt_count from claimed;
 end;
 $$;
 
@@ -80,27 +74,11 @@ as $$
     'embedding_ready', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'ready'),
     'embedding_pending', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'pending'),
     'embedding_error', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'error'),
-    'embedding_retryable', (
-      select count(*) from public.nova_knowledge_chunks
-      where status = 'active' and embedding_status = 'error' and embedding_attempt_count < 8
-        and coalesce(embedding_next_retry_at, '-infinity'::timestamptz) <= now()
-    ),
+    'embedding_retryable', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'error' and embedding_attempt_count < 8 and coalesce(embedding_next_retry_at, '-infinity'::timestamptz) <= now()),
     'embedding_attempted', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_attempt_count > 0),
     'latest_embedding_attempt_at', (select max(embedding_last_attempt_at) from public.nova_knowledge_chunks where status = 'active'),
-    'embedding_coverage', (
-      select case when count(*) = 0 then 0::numeric else round(count(*) filter (where embedding_status = 'ready')::numeric / count(*)::numeric, 4) end
-      from public.nova_knowledge_chunks where status = 'active'
-    ),
-    'sources_by_domain', (
-      select coalesce(jsonb_object_agg(domain, source_count), '{}'::jsonb)
-      from (
-        select domain, count(*) as source_count
-        from public.nova_knowledge_sources
-        where status = 'active'
-        group by domain
-        order by domain
-      ) d
-    ),
+    'embedding_coverage', (select case when count(*) = 0 then 0::numeric else round(count(*) filter (where embedding_status = 'ready')::numeric / count(*)::numeric, 4) end from public.nova_knowledge_chunks where status = 'active'),
+    'sources_by_domain', (select coalesce(jsonb_object_agg(domain, source_count), '{}'::jsonb) from (select domain, count(*) as source_count from public.nova_knowledge_sources where status = 'active' group by domain order by domain) d),
     'ingestion_runs', (select count(*) from public.nova_knowledge_ingestion_runs),
     'ingestion_failures', (select count(*) from public.nova_knowledge_ingestion_runs where status in ('failed','partial')),
     'latest_ingestion_at', (select max(coalesce(completed_at, started_at)) from public.nova_knowledge_ingestion_runs)
@@ -112,3 +90,32 @@ grant execute on function public.nova_knowledge_health() to service_role;
 
 comment on function public.nova_knowledge_health() is
   'Content-free service-role Nova knowledge health summary including bounded embedding retry state.';
+
+-- Schedule only when both protected Vault values already exist. No credential value is stored in this migration.
+do $$
+declare
+  v_project_url text;
+  v_token text;
+  v_job_id bigint;
+begin
+  select decrypted_secret into v_project_url from vault.decrypted_secrets where name = 'project_url' limit 1;
+  select decrypted_secret into v_token from vault.decrypted_secrets where name = 'nova_knowledge_maintenance_token' limit 1;
+
+  select jobid into v_job_id from cron.job where jobname = 'nova-knowledge-maintenance' limit 1;
+  if v_job_id is not null then perform cron.unschedule(v_job_id); end if;
+
+  if nullif(btrim(v_project_url), '') is not null and nullif(btrim(v_token), '') is not null then
+    perform cron.schedule(
+      'nova-knowledge-maintenance',
+      '* * * * *',
+      format($cron$
+        select net.http_post(
+          url := %L || '/functions/v1/nova-knowledge-maintenance',
+          headers := jsonb_build_object('Content-Type','application/json','x-nova-maintenance-token',%L),
+          body := '{"action":"embed_pending","limit":20}'::jsonb
+        );
+      $cron$, rtrim(v_project_url, '/'), v_token)
+    );
+  end if;
+end;
+$$;
