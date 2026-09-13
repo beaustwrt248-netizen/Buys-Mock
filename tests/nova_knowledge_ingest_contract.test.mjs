@@ -16,9 +16,10 @@ test('internal ingestion remains admin-only and hashes source identities', async
 
 test('support ingestion selects structured safe fields only', async () => {
   const text = await source();
-  const supportSelect = text.match(/from\(['"]support_tickets['"]\)[\s\S]{0,500}?\.select\(([^\n]+)\)/)?.[1] || '';
+  const supportSelect = text.match(/fetchRows\(\s*['"]support_tickets['"]\s*,\s*['"]([^'"]+)['"]/m)?.[1] || '';
   assert.match(supportSelect, /category/);
   assert.match(supportSelect, /app_version/);
+  assert.match(supportSelect, /device_model/);
   assert.doesNotMatch(supportSelect, /user_id|assigned_to|subject|description|diagnostics/);
 });
 
