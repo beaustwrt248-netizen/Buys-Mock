@@ -487,6 +487,63 @@ export function createWorkspaceUi({
     renderFiles();
   }
 
+  function renderStatusItem(item, { integration = false } = {}) {
+    const state = String(item?.state || 'unavailable');
+    const tone = state === 'unavailable' ? ' error' : (state === 'protected' || state === 'staged' || state === 'disconnected' ? ' warning' : '');
+    const card = el(documentObj, 'article', `feature-status-card${tone}`);
+    const label = el(documentObj, 'strong', '', String(item?.label || 'Capability'));
+    const meta = integration
+      ? (item?.readOnly ? `Read-only · ${titleCase(state)}` : titleCase(state))
+      : `${titleCase(item?.mode || 'status')} · ${titleCase(state)}`;
+    card.append(el(documentObj, 'small', '', meta), label, el(documentObj, 'p', '', String(item?.detail || 'No status detail available.')));
+    return card;
+  }
+
+  function renderAutomation() {
+    const list = documentObj.getElementById('novaNextAutomationList');
+    if (!list) return;
+    clear(list);
+    if (!featureRuntime?.automationStatus) {
+      list.append(el(documentObj, 'div', 'workspace-empty', 'Automation capability status is unavailable.'));
+      return;
+    }
+    const items = featureRuntime.automationStatus();
+    if (!items.length) {
+      list.append(el(documentObj, 'div', 'workspace-empty', 'No safe automation capabilities are exposed.'));
+      return;
+    }
+    for (const item of items) list.append(renderStatusItem(item));
+  }
+
+  async function renderIntegrations() {
+    const list = documentObj.getElementById('novaNextIntegrationsList');
+    if (!list) return;
+    clear(list);
+    if (!featureRuntime?.integrationStatus) {
+      list.append(el(documentObj, 'div', 'workspace-empty', 'Integration status is unavailable.'));
+      return;
+    }
+    list.append(el(documentObj, 'div', 'workspace-empty', 'Checking verified connection status…'));
+    try {
+      const items = await featureRuntime.integrationStatus();
+      clear(list);
+      if (!items.length) {
+        list.append(el(documentObj, 'div', 'workspace-empty', 'No identifiable integrations are available.'));
+        return;
+      }
+      for (const item of items) {
+        const state = String(item?.state || 'unavailable');
+        if (state === 'connected') list.append(renderStatusItem(item, { integration: true }));
+        else if (state === 'unavailable') list.append(renderStatusItem(item, { integration: true }));
+        else list.append(renderStatusItem(item, { integration: true }));
+      }
+    } catch (error) {
+      clear(list);
+      list.append(el(documentObj, 'article', 'feature-status-card error', 'Integration status could not be verified.'));
+      console.error('nova-next integration status', error);
+    }
+  }
+
   function bind() {
     if (bound) return;
     bound = true;
@@ -503,7 +560,9 @@ export function createWorkspaceUi({
     if (route === 'projects') renderProjects();
     if (route === 'calendar') renderCalendar();
     if (route === 'files') renderFiles();
+    if (route === 'automation') renderAutomation();
+    if (route === 'integrations') renderIntegrations().catch(error => console.error('nova-next integration route', error));
   }
 
-  return Object.freeze({ bind, routeChanged, renderTasks, renderProjects, renderCalendar, renderFiles, openTaskForm, openProjectForm, analyseFileImage, sendFileTextToChat, removeFile });
+  return Object.freeze({ bind, routeChanged, renderTasks, renderProjects, renderCalendar, renderFiles, renderAutomation, renderIntegrations, openTaskForm, openProjectForm, analyseFileImage, sendFileTextToChat, removeFile });
 }
