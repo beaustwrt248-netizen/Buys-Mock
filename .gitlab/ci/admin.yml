@@ -1,0 +1,21 @@
+.admin-parity-blocked:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - echo "MIGRATION BLOCKED — Admin parity command set has not been fully ported yet."
+    - exit 1
+
+admin:android-check:
+  extends: .admin-parity-blocked
+
+admin:apk-build:
+  extends: .admin-parity-blocked
+
+admin:control-integration:
+  extends: .admin-parity-blocked
+
+admin:recovery-apk:
+  extends: .admin-parity-blocked
+
+admin:release-check:
+  extends: .admin-parity-blocked
