@@ -20,7 +20,7 @@
 ## Constraints
 
 - No edits under existing `nova/`, `supabase/`, `android/novaapp/`, `.github/` or production deployment files.
-- No service-role/provider/signing secret in Nova Next client source.
+- No privileged backend/provider/signing secret in Nova Next client source.
 - No new Supabase schema/RLS/function changes.
 - No direct protected-table access beyond the existing Admin profile validation contract.
 - Unknown actions fail closed.
@@ -98,6 +98,6 @@
 
 - [ ] Run all Nova Next tests, including bootstrap tests.
 - [ ] Run syntax checks on all new modules.
-- [ ] Static-scan Nova Next for service-role/provider secrets and imports from `../nova/`.
+- [ ] Static-scan Nova Next for privileged backend/provider secrets and imports from `../nova/`.
 - [ ] Compare branch to `nova-next/bootstrap`; expected changes only under Nova Next docs/source/tests.
 - [ ] Open a **high-risk draft PR** stacked on `nova-next/bootstrap` and leave merge blocked pending explicit conversational approval for that exact PR/head.
