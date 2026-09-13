@@ -57,8 +57,12 @@ test('desktop and mobile web share one responsive app shell', () => {
 });
 
 test('web authorization matches Android entry policy and keeps staff support-only', () => {
-  assert.match(browserAuthBootstrap, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
-  assert.match(workspaceShell, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(browserAuthBootstrap, /FULL_ACCESS_ROLES=\['admin','manager'\]/);
+  assert.match(browserAuthBootstrap, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
+  assert.match(browserAuthBootstrap, /ENTRY_ROLES\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /FULL_ACCESS_ROLES=\['admin','manager'\]/);
+  assert.match(workspaceShell, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
+  assert.match(workspaceShell, /ENTRY_ROLES\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
   assert.match(workspaceShell, /admin-support-only-runtime\.js/);
   assert.match(parityJs, /role===['"]staff['"]/);
@@ -74,6 +78,9 @@ test('full-access runtime keeps native user-access behavior and removes legacy s
   assert.match(workspaceShell, /admin-user-access-parity\.js/);
   assert.doesNotMatch(workspaceShell, /admin-home\.js/);
   assert.doesNotMatch(workspaceShell, /admin-v2\.js/);
+  assert.match(workspaceShell, /invites\.js\?v=4/);
+  assert.match(workspaceShell, /legacy invite renderer is intentionally not loaded/);
+  assert.doesNotMatch(workspaceShell, /\['adminInvites','invites\.js\?v=4'\]/);
   assert.match(template, /id="adminResetUser"/);
   assert.match(template, /id="teamInviteTemporary"/);
   assert.match(userAccessParity, /reset_password/);
