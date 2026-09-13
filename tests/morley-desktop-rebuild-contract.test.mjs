@@ -56,7 +56,7 @@ test('desktop search, scanner, reporting and accessibility affordances exist', a
   assert.match(source, /aria-label="Search"/);
   assert.match(source, /aria-label="Notifications"/);
   assert.match(source, /aria-label="Open account menu"/);
-  assert.match(source, /scanner/);
+  assert.match(source, /scanner:/);
   assert.match(source, /text\/csv/);
   assert.match(source, /safeArray/);
 });
@@ -71,4 +71,55 @@ test('desktop capabilities resolve explicitly instead of masquerading as unrelat
   }
   assert.doesNotMatch(source, /ai:'home'/);
   assert.doesNotMatch(source, /reports:'sales'/);
+});
+
+test('search and device categories use truthful desktop capabilities', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /Search & Scan/);
+  assert.match(source, /data-mdr-capability="scanner"/);
+  assert.match(source, /globalSearch\(\)/);
+  assert.match(source, /openCapability\('search'\)/);
+  assert.doesNotMatch(source, /\['Tablets','mobilePhones'/);
+  assert.doesNotMatch(source, /\['Smartwatches','general'/);
+  assert.doesNotMatch(source, /\['Headphones','general'/);
+  assert.doesNotMatch(source, /\['Cameras','general'/);
+  assert.match(source, /applyCatalogueQuery/);
+});
+
+test('desktop shell controls expose real state and explicit behavior', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /function refreshDesktopState/);
+  assert.match(source, /MorleyNotifications/);
+  assert.match(source, /data-mdr-capability="notifications"/);
+  assert.match(source, /data-mdr-capability="account"/);
+  assert.match(source, /data-mdr-capability="support"/);
+  assert.match(source, /function openInsightsPanel/);
+  assert.match(source, /handler:exportReport/);
+  assert.doesNotMatch(source, /class="mdr-notify"[^>]*>[\s\S]*?<i>3<\/i>/);
+  assert.doesNotMatch(source, /ai:'home'/);
+  assert.doesNotMatch(source, /reports:'sales'/);
+});
+
+test('desktop dashboard values refresh without replacing parked legacy content', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  for (const target of ['units','avg','cost','sold','deals']) assert.ok(source.includes(`data-mdr-kpi=\\"${target}\\"`) || source.includes(`data-mdr-kpi="${target}"`));
+  assert.match(source, /data-mdr-market=/);
+  assert.match(source, /Current Stock Snapshot/);
+  assert.match(source, /refreshDesktopState\(\)/);
+  assert.doesNotMatch(source, /home\.innerHTML=dashboardMarkup/);
+});
+
+test('desktop lifecycle owns boot and observer state idempotently', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /let booted=false/);
+  assert.match(source, /let mainObserver=null/);
+  assert.match(source, /if\(booted\)return/);
+  assert.match(source, /if\(main&&!mainObserver\)/);
+  assert.match(source, /root\.dataset\.mdrBound==='1'/);
+});
+
+test('desktop hardening includes visible keyboard focus and insights styling', async () => {
+  const css = await read('morley-desktop-rebuild.css');
+  assert.match(css, /:focus-visible/);
+  assert.match(css, /\.mdr-insights-panel/);
 });
