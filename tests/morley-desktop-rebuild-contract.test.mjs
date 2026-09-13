@@ -60,3 +60,20 @@ test('desktop search, scanner, reporting and accessibility affordances exist', a
   assert.match(source, /text\/csv/);
   assert.match(source, /safeArray/);
 });
+
+test('desktop account and notification controls are functional and never show a fake unread count', async () => {
+  const source = await read('morley-desktop-rebuild.js');
+  assert.match(source, /closest\('\.mdr-profile'\)/);
+  assert.match(source, /go\('settings'\)/);
+  assert.doesNotMatch(source, /class="mdr-notify"[^>]*>[\s\S]*?<i>3<\/i>/);
+});
+
+test('live desktop contract verifies the rebuilt production assets, not only the legacy dashboard shim', async () => {
+  const workflow = await read('.github/workflows/web-desktop-live-contract.yml');
+  assert.match(workflow, /morley-desktop-rebuild\.js/);
+  assert.match(workflow, /morley-desktop-rebuild\.css/);
+  assert.match(workflow, /Search & Scan/);
+  assert.match(workflow, /Trade In \/ Buy/);
+  assert.match(workflow, /AI Insights/);
+  assert.match(workflow, /const DESKTOP=1000/);
+});
