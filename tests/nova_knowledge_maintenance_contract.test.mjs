@@ -113,3 +113,17 @@ test('optional operational sources cannot abort maintenance when service-role SE
   assert.match(sourceWindow('valuation_quotes'), /optional:\s*true/);
   assert.doesNotMatch(source, /grant\s+select\s+on\s+(?:public\.)?(?:inventory_items|sales_records|valuation_quotes)/i);
 });
+
+test('scheduler authorization emits bounded reason codes without exposing credential material', () => {
+  const source = read(workerPath);
+  assert.match(source, /type\s+MaintenanceAuthReason/);
+  assert.match(source, /missing_header/);
+  assert.match(source, /env_match/);
+  assert.match(source, /rpc_match/);
+  assert.match(source, /rpc_error/);
+  assert.match(source, /mismatch/);
+  assert.match(source, /auth_reason/);
+  assert.match(source, /console\.warn\([^\n]*auth/i);
+  assert.doesNotMatch(source, /console\.(?:log|warn|error)\([^\n]*(?:supplied|SCHEDULER_SECRET|MORLEY_BACKUP_SECRET)/i);
+  assert.doesNotMatch(source, /auth_reason[^\n]*(?:secret|token|authorization|cookie)/i);
+});
