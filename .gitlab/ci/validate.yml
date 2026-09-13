@@ -1,0 +1,5 @@
+validate:parity-manifest:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node scripts/ci/check-gitlab-parity-manifest.mjs
