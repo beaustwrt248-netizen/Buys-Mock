@@ -1,0 +1,42 @@
+@media (min-width:1000px){
+html.morley-desktop-rebuilt #morleyDesktopRebuildShell button:focus-visible,
+html.morley-desktop-rebuilt #morleyDesktopDashboard button:focus-visible,
+html.morley-desktop-rebuilt #morleyDesktopRebuildShell input:focus-visible{
+  outline:3px solid #ffffff!important;
+  outline-offset:2px!important;
+  box-shadow:0 0 0 5px rgba(20,111,221,.42)!important;
+}
+html.morley-desktop-rebuilt .mdr-insights-panel{
+  border:1px solid #bdd8f7!important;
+  background:linear-gradient(135deg,#eef6ff 0%,#ffffff 65%)!important;
+  box-shadow:0 12px 28px rgba(20,67,116,.12)!important;
+}
+html.morley-desktop-rebuilt .mdr-insights-panel>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+html.morley-desktop-rebuilt .mdr-insights-panel>header button{
+  min-width:36px!important;
+  min-height:36px!important;
+  border:1px solid #d8e6f5!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#17314e!important;
+  cursor:pointer!important;
+}
+html.morley-desktop-rebuilt .mdr-insight-copy{
+  margin:8px 0 10px;
+  color:#526b86;
+  line-height:1.5;
+}
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed{width:78px}
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed .mdr-brand b,
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed .mdr-nav-item>span:last-child,
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed .mdr-version span,
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed .mdr-tagline{display:none!important}
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed .mdr-nav-item{justify-content:center!important;padding-inline:8px!important}
+html.morley-desktop-rebuilt .mdr-sidebar.collapsed~.mdr-topbar{left:78px}
+html.morley-desktop-rebuilt body:has(.mdr-sidebar.collapsed)>.app{margin-left:78px!important;width:calc(100% - 78px)!important}
+}
