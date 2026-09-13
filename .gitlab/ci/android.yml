@@ -1,0 +1,12 @@
+.android-parity-blocked:
+  stage: build
+  image: gradle:9.3.1-jdk17
+  script:
+    - echo "MIGRATION BLOCKED — Android parity command set has not been fully ported yet."
+    - exit 1
+
+android:build-apk:
+  extends: .android-parity-blocked
+
+android:nova-apk-build:
+  extends: .android-parity-blocked
