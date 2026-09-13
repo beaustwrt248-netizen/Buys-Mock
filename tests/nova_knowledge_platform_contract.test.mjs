@@ -27,3 +27,15 @@ test('hybrid search RPC cannot bypass RLS or become a public privileged endpoint
   assert.match(text, /revoke all on function public\.nova_search_knowledge_chunks/);
   assert.match(text, /grant execute on function public\.nova_search_knowledge_chunks[\s\S]+to service_role/);
 });
+
+test('knowledge health telemetry reports coverage, failures, staleness and ingestion without public execute', async () => {
+  const text = await sql();
+  assert.match(text, /function public\.nova_knowledge_health\(\)/);
+  assert.match(text, /embedding_ready/);
+  assert.match(text, /embedding_error/);
+  assert.match(text, /stale_sources/);
+  assert.match(text, /latest_ingestion_at/);
+  assert.match(text, /revoke all on function public\.nova_knowledge_health\(\) from public, anon, authenticated/);
+  assert.match(text, /grant execute on function public\.nova_knowledge_health\(\) to service_role/);
+  assert.doesNotMatch(text, /security definer/);
+});
