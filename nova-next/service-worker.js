@@ -1,4 +1,4 @@
-const CACHE = 'nova-next-shell-v2';
+const CACHE = 'nova-next-shell-v3';
 const APP_PREFIX = new URL('./', self.location.href).pathname;
 const CORE = [
   APP_PREFIX,
@@ -10,6 +10,9 @@ const CORE = [
   `${APP_PREFIX}src/action-policy.mjs`,
   `${APP_PREFIX}src/auth-controller.mjs`,
   `${APP_PREFIX}src/auth-policy.mjs`,
+  `${APP_PREFIX}src/automation-runtime.mjs`,
+  `${APP_PREFIX}src/automation-store.mjs`,
+  `${APP_PREFIX}src/automation-ui.mjs`,
   `${APP_PREFIX}src/capabilities.mjs`,
   `${APP_PREFIX}src/feature-runtime.mjs`,
   `${APP_PREFIX}src/feature-ui.mjs`,
