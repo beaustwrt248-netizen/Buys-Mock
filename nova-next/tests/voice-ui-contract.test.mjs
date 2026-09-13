@@ -10,8 +10,9 @@ test('voice UI uses explicit mic control and review-before-send copy', () => {
   assert.match(source, /Voice input is not supported/i);
 });
 
-test('voice UI only writes transcript into composer and never sends chat', () => {
-  assert.match(source, /composer\.value/);
+test('voice UI only writes transcript into the chat input and never sends chat', () => {
+  assert.match(source, /input\.value\s*=/);
+  assert.match(source, /novaNextChatInput/);
   assert.doesNotMatch(source, /sendChat|submit\(|requestSubmit/);
 });
 
