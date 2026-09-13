@@ -86,3 +86,15 @@ test('maintenance migration preserves lexical fallback and extends aggregate hea
   assert.doesNotMatch(sql, /drop\s+(table|function).*nova_search_knowledge_chunks/i);
   assert.doesNotMatch(sql, /alter\s+table\s+nova_knowledge_chunks\s+drop/i);
 });
+
+test('maintenance serializes structured failures without leaking secret-bearing fields', () => {
+  const source = read(workerPath);
+  assert.match(source, /function\s+normalizeMaintenanceError\s*\(/);
+  assert.match(source, /code/);
+  assert.match(source, /details/);
+  assert.match(source, /message/);
+  assert.match(source, /hint/);
+  assert.match(source, /password|secret|token|authorization|cookie/i);
+  assert.doesNotMatch(source, /error instanceof Error \? error\.message : error/);
+  assert.match(source, /normalizeMaintenanceError\(error/);
+});
