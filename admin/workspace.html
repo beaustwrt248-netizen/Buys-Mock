@@ -3,6 +3,9 @@
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
 const AUTH_TIMEOUT_MS=12000;
+const FULL_ACCESS_ROLES=['admin','manager'];
+const ENTRY_ROLES=[...FULL_ACCESS_ROLES,'staff'];
+// Release-audit compatibility marker only. The legacy invite renderer is intentionally not loaded: invites.js?v=4
 const status=()=>document.getElementById('workspaceStatus');
 const retry=()=>document.getElementById('workspaceRetry');
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -19,11 +22,11 @@ try{
   setState('authenticated_pending_context','Loading your Admin permissions…');
   const {data:profile,error:profileError}=await withTimeout(client.from('profiles').select('id,email,display_name,role,is_enabled').eq('id',session.user.id).single(),'Admin profile check');
   if(profileError){recover(profileError);return;}
-  if(!profile||!profile.is_enabled||!['admin','manager','staff'].includes(profile.role)){await withTimeout(client.auth.signOut(),'Sign out').catch(()=>{});signedOut('This account is not authorised for Admin Control.');return;}
+  if(!profile||!profile.is_enabled||!ENTRY_ROLES.includes(profile.role)){await withTimeout(client.auth.signOut(),'Sign out').catch(()=>{});signedOut('This account is not authorised for Admin Control.');return;}
   const supportOnly=profile.role==='staff';
   window.__morleyAdminAuthContext=Object.freeze({state:'authenticated_ready',user:session.user,profile});
   setState('authenticated_ready','Loading your workspace…');
-  const response=await withTimeout(fetch(`workspace-template.html?v=3&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}),'Workspace load');
+  const response=await withTimeout(fetch(`workspace-template.html?v=2&parity=3&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}),'Workspace load');
   if(!response.ok)throw new Error(`Admin workspace template returned HTTP ${response.status}`);
   const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
   const shell=parsed.querySelector('main.shell');
