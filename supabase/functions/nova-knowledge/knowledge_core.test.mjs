@@ -51,7 +51,7 @@ test('normalizeKnowledgeDocument is deterministic and strips unsafe metadata', a
   assert.equal(first.source_key, second.source_key);
 });
 
-test('chunkKnowledgeDocument produces stable bounded chunks with overlap', async () => {
+test('chunkKnowledgeDocument produces stable bounded chunks with exact overlap', async () => {
   const content = Array.from({ length: 40 }, (_, i) => `Paragraph ${i + 1}: ${'device evidence '.repeat(8)}`).join('\n\n');
   const doc = await normalizeKnowledgeDocument({ title: 'Long device evidence', content, source_type: 'import' });
   const first = await chunkKnowledgeDocument(doc, { maxChars: 520, overlapChars: 80 });
@@ -62,7 +62,9 @@ test('chunkKnowledgeDocument produces stable bounded chunks with overlap', async
   assert.ok(first.every((chunk) => chunk.content.length <= 520));
   assert.ok(first.every((chunk, index) => chunk.chunk_index === index));
   assert.ok(first.every((chunk) => /^[a-f0-9]{64}$/.test(chunk.content_hash)));
-  assert.ok(first.slice(1).some((chunk, index) => first[index].content.slice(-40) === chunk.content.slice(0, 40)));
+  for (let i = 1; i < first.length; i += 1) {
+    assert.equal(first[i - 1].content.slice(-80), first[i].content.slice(0, 80));
+  }
 });
 
 test('sha256Hex changes when content changes', async () => {
