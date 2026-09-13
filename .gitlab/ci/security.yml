@@ -79,8 +79,14 @@ security:nova-pr-guard:
 
 security:android-pr-readonly:
   stage: security
-  image: gradle:9.3.1-jdk17
+  tags:
+    - morley-android
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
+    - java -version
+    - gradle --version
+    - test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
     - python3 scripts/release_audit.py
     - |
       if [ -n "${FIREBASE_GOOGLE_SERVICES_JSON:-}" ]; then
