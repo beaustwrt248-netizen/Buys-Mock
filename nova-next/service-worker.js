@@ -31,6 +31,7 @@ const CORE = [
   `${APP_PREFIX}src/adapters/code-proposal-adapter.mjs`,
   `${APP_PREFIX}src/adapters/edge-function-client.mjs`,
   `${APP_PREFIX}src/adapters/nova-api.mjs`,
+  `${APP_PREFIX}src/adapters/product-search-adapter.mjs`,
   `${APP_PREFIX}src/adapters/read-adapters.mjs`,
   `${APP_PREFIX}src/adapters/supabase-auth-client.mjs`,
   `${APP_PREFIX}src/adapters/vision-adapter.mjs`

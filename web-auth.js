@@ -9,29 +9,19 @@ const ROTATE_MS=6000;
 const IMAGE_TIMEOUT_MS=3000;
 const MAX_SLIDES=12;
 const CHALLENGE_DELAY_MS=450;
-const AUTH_TIMEOUT_MS=12000;
-const AUTH_STATES=Object.freeze({booting:'booting',signed_out:'signed_out',challenge_required:'challenge_required',authenticated_pending_context:'authenticated_pending_context',authenticated_ready:'authenticated_ready',offline_recoverable:'offline_recoverable',error_recoverable:'error_recoverable'});
 const $=(s,r=document)=>r.querySelector(s);
 let captchaToken='';
-let authState=AUTH_STATES.booting;
-let bootstrapPromise=null;
 
-function setAuthState(state,detail={}){authState=state;document.documentElement.dataset.morleyAuthState=state;try{window.dispatchEvent(new CustomEvent('morley:auth-state',{detail:{state,...detail}}))}catch(_e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(STORE)||'null')}catch{return null}}
 function saveSession(s){localStorage.setItem(STORE,JSON.stringify(s))}
 function clearSession(){localStorage.removeItem(STORE)}
 function jwtSub(token){try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(p+'='.repeat((4-p.length%4)%4))).sub||''}catch{return''}}
-function classifyAuthError(error){if(error?.code)return error;const e=error instanceof Error?error:new Error(String(error||'Authentication request failed.'));e.code=(error?.name==='AbortError'||/timed out/i.test(e.message))?'AUTH_TIMEOUT':'AUTH_NETWORK';return e}
-function isRecoverableAuthError(error){return error?.code==='AUTH_TIMEOUT'||error?.code==='AUTH_NETWORK'||(error?.code==='AUTH_HTTP'&&Number(error?.status)>=500)}
-function isChallengeError(error){return ['AUTH_CHALLENGE_REQUIRED','PASSWORD_RECOVERY','PASSWORD_CHANGE_REQUIRED'].includes(String(error?.code||''))}
-async function authFetch(url,opt={}){if(opt.signal||typeof AbortController!=='function'){try{return await fetch(url,opt)}catch(error){throw classifyAuthError(error)}}const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),AUTH_TIMEOUT_MS);try{return await fetch(url,{...opt,signal:controller.signal})}catch(error){if(controller.signal.aborted){const e=new Error('Authentication request timed out. Check your connection and try again.');e.code='AUTH_TIMEOUT';throw e}throw classifyAuthError(error)}finally{clearTimeout(timer)}}
-async function jsonFetch(url,opt={}){const r=await authFetch(url,opt);let body={};try{body=await r.json()}catch{}if(!r.ok){const msg=body.error_description||body.msg||body.message||body.error||`Request failed (${r.status})`;const error=new Error(msg);error.code=body.code||'AUTH_HTTP';error.status=r.status;throw error}return body}
-async function verifyAuthorised(token){const id=jwtSub(token);if(!id)return false;const r=await authFetch(`${SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${encodeURIComponent(id)}`,{headers:{apikey:API_KEY,Authorization:`Bearer ${token}`},cache:'no-store'});if(!r.ok){if([401,403,404].includes(Number(r.status)))return false;const error=new Error(`Profile validation failed (${r.status}).`);error.code='AUTH_HTTP';error.status=r.status;throw error}const a=await r.json();return !!(a[0]&&a[0].is_enabled)}
-async function refreshSession(s){if(!s?.refresh_token)return null;const b=await jsonFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify({refresh_token:s.refresh_token}),cache:'no-store'});if(!(await verifyAuthorised(b.access_token))){const error=new Error('This account is no longer authorised for B&L Morley.');error.code='AUTH_UNAUTHORISED';throw error}const n={access_token:b.access_token,refresh_token:b.refresh_token||s.refresh_token,expires_at:Date.now()+((b.expires_in||3600)*1000),email:s.email||''};saveSession(n);return n}
-async function validSession(){const s=loadSession();if(!s){setAuthState(AUTH_STATES.signed_out);return null}setAuthState(AUTH_STATES.authenticated_pending_context);try{if(s.access_token&&(!s.expires_at||s.expires_at>Date.now()+60000)){if(await verifyAuthorised(s.access_token)){setAuthState(AUTH_STATES.authenticated_ready);return s}clearSession();setAuthState(AUTH_STATES.signed_out);return null}const refreshed=await refreshSession(s);if(!refreshed){clearSession();setAuthState(AUTH_STATES.signed_out);return null}setAuthState(AUTH_STATES.authenticated_ready);return refreshed}catch(error){if(isChallengeError(error)){setAuthState(AUTH_STATES.challenge_required,{message:error.message});throw error}if(isRecoverableAuthError(error)){setAuthState(error.code==='AUTH_NETWORK'||error.code==='AUTH_TIMEOUT'?AUTH_STATES.offline_recoverable:AUTH_STATES.error_recoverable,{message:error.message});throw error}if(error?.code==='AUTH_UNAUTHORISED'||(error?.code==='AUTH_HTTP'&&[400,401,403].includes(Number(error.status)))){clearSession();setAuthState(AUTH_STATES.signed_out);return null}setAuthState(AUTH_STATES.error_recoverable,{message:error?.message||'Session restore failed.'});throw error}}
-function bootstrapAuth({retry=false}={}){if(retry)bootstrapPromise=null;if(bootstrapPromise)return bootstrapPromise;setAuthState(AUTH_STATES.booting);bootstrapPromise=(async()=>{try{return{session:await validSession(),error:null,state:authState}}catch(error){return{session:null,error,state:authState}}})();return bootstrapPromise}
+async function jsonFetch(url,opt={}){const r=await fetch(url,opt);let body={};try{body=await r.json()}catch{}if(!r.ok){const msg=body.error_description||body.msg||body.message||body.error||`Request failed (${r.status})`;throw new Error(msg)}return body}
+async function verifyAuthorised(token){const id=jwtSub(token);if(!id)return false;const r=await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=is_enabled&id=eq.${encodeURIComponent(id)}`,{headers:{apikey:API_KEY,Authorization:`Bearer ${token}`}});if(!r.ok)return false;const a=await r.json();return !!(a[0]&&a[0].is_enabled)}
+async function refreshSession(s){if(!s?.refresh_token)return null;const b=await jsonFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify({refresh_token:s.refresh_token})});if(!(await verifyAuthorised(b.access_token)))throw new Error('This account is no longer authorised for B&L Morley.');const n={access_token:b.access_token,refresh_token:b.refresh_token||s.refresh_token,expires_at:Date.now()+((b.expires_in||3600)*1000),email:s.email||''};saveSession(n);return n}
+async function validSession(){let s=loadSession();if(!s)return null;if(s.access_token&&(!s.expires_at||s.expires_at>Date.now()+60000)){if(await verifyAuthorised(s.access_token))return s;clearSession();return null}try{return await refreshSession(s)}catch{clearSession();return null}}
 function authPayload(obj){if(!captchaToken)throw new Error('Complete the security check first.');return {...obj,gotrue_meta_security:{captcha_token:captchaToken}}}
-async function signIn(email,password){const b=await jsonFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify(authPayload({email:email.trim(),password}))});if(!(await verifyAuthorised(b.access_token)))throw new Error('This account is not authorised for B&L Morley. Contact an administrator.');saveSession({access_token:b.access_token,refresh_token:b.refresh_token||'',expires_at:Date.now()+((b.expires_in||3600)*1000),email:email.trim().toLowerCase()});setAuthState(AUTH_STATES.authenticated_ready)}
+async function signIn(email,password){const b=await jsonFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify(authPayload({email:email.trim(),password}))});if(!(await verifyAuthorised(b.access_token)))throw new Error('This account is not authorised for B&L Morley. Contact an administrator.');saveSession({access_token:b.access_token,refresh_token:b.refresh_token||'',expires_at:Date.now()+((b.expires_in||3600)*1000),email:email.trim().toLowerCase()})}
 async function signUp(email,password,inviteCode){if(password.length<10)throw new Error('Password must be at least 10 characters.');if(!captchaToken)throw new Error('Complete the security check first.');await jsonFetch(`${SUPABASE_URL}/functions/v1/redeem-app-invite`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify({email:email.trim(),password,inviteCode:inviteCode.trim(),captchaToken})})}
 async function resetPassword(email){await jsonFetch(`${SUPABASE_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(SITE_BASE)}`,{method:'POST',headers:{'Content-Type':'application/json',apikey:API_KEY},body:JSON.stringify(authPayload({email:email.trim()}))})}
 function friendly(e){const m=String(e?.message||e||'Something went wrong.');const n=m.toLowerCase();if(n.includes('invalid login credentials'))return'Incorrect email address or password.';if(n.includes('captcha'))return'Security check failed or expired. Complete it again.';if(n.includes('rate')||n.includes('too many'))return'Too many attempts. Please wait a few minutes and try again.';return m}
@@ -110,20 +100,18 @@ function startCarousel(root){
   return stop;
 }
 
-function addSignOut(){if($('.morley-web-signout'))return;const b=document.createElement('button');b.className='morley-web-signout';b.type='button';b.textContent='Sign out';b.setAttribute('aria-label','Sign out of B&L Morley');document.body.appendChild(b)}
+function addSignOut(){if($('.morley-web-signout'))return;const b=document.createElement('button');b.className='morley-web-signout';b.type='button';b.textContent='Sign out';b.setAttribute('aria-label','Sign out of B&L Morley');b.onclick=()=>{clearSession();location.reload()};document.body.appendChild(b)}
 
 async function init(){
   styles();
-  const startup=await bootstrapAuth();
-  if(startup.session){addSignOut();return}
+  const existing=await validSession();
+  if(existing){addSignOut();return}
 
   const root=markup();
   const stopCarousel=startCarousel(root);
   const title=$('#waTitle',root),msg=$('#waMsg',root),primary=$('#waPrimary',root),signup=$('#waSignup',root),forgot=$('#waForgot',root),back=$('#waBack',root),invite=$('#waInvite',root),confirm=$('#waConfirm',root),passwords=$('#waPasswords',root),security=$('#waSecurity',root),securityHint=$('#waSecurityHint',root),turnstileFrame=$('#waTurnstile',root);
   const emailInput=$('#waEmail',root),passwordInput=$('#waPassword',root),confirmInput=$('#waConfirmPassword',root),inviteInput=$('#waInviteCode',root);
   let mode='signin',challengeTimer=0,challengeFingerprint='',challengeStarted=false,busy=false;
-
-  if(startup.error){msg.textContent=startup.state===AUTH_STATES.challenge_required?'Your account requires an authentication update before the workspace can open.':friendly(startup.error);msg.className='wa-msg';const retry=document.createElement('button');retry.type='button';retry.className='secondary';retry.id='waRetrySession';retry.textContent='Retry session restore';retry.onclick=async()=>{retry.disabled=true;msg.textContent='Restoring your session…';const result=await bootstrapAuth({retry:true});if(result.session){stopCarousel();root.remove();addSignOut();return}msg.textContent=result.error?friendly(result.error):'Sign in to continue.';retry.disabled=false};signup.before(retry)}
 
   const requiredReady=()=>{
     const email=emailInput.value.trim();
@@ -185,12 +173,12 @@ async function init(){
     if(mode==='signup'&&!code.trim()){msg.textContent='Enter your invite code.';inviteInput.focus();return}
     if(mode==='signup'&&password!==confirmPassword){msg.textContent='Passwords do not match.';confirmInput.focus();return}
     if(!captchaToken){msg.textContent='Complete the security check first.';startChallenge();return}
-    busy=true;refreshPrimary();msg.className='wa-msg';msg.textContent=mode==='signin'?'Signing you in…':'Please wait…';
+    busy=true;refreshPrimary();msg.className='wa-msg';msg.textContent='Please wait…';
     try{
       if(mode==='signin'){await signIn(email,password);stopCarousel();root.remove();addSignOut()}
       else if(mode==='signup'){await signUp(email,password,code);setMode('signin');msg.className='wa-msg ok';msg.textContent='Account created. You can sign in now.'}
       else{await resetPassword(email);setMode('signin');msg.className='wa-msg ok';msg.textContent='Password reset email sent. Check your inbox.'}
-    }catch(e){if(isChallengeError(e))setAuthState(AUTH_STATES.challenge_required,{message:e.message});msg.textContent=friendly(e);msg.className='wa-msg';resetCaptcha()}
+    }catch(e){msg.textContent=friendly(e);msg.className='wa-msg';resetCaptcha()}
     finally{busy=false;refreshPrimary()}
   };
 
@@ -199,6 +187,5 @@ async function init(){
   scheduleChallenge();
 }
 
-window.MorleyWebAuthReliability=Object.freeze({states:AUTH_STATES,getState:()=>authState,retry:()=>bootstrapAuth({retry:true})});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

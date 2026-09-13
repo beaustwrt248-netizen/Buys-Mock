@@ -1,28 +1,16 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf3ef"><title>B&L Morley Admin</title><link rel="stylesheet" href="styles.css?v=3"><link rel="stylesheet" href="auth-boundary.css?v=1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><main class="shell"><header class="topbar"><div><div class="eyebrow">B&L MORLEY</div><h1>Admin Control</h1></div><span class="badge">SECURE CONTROL CENTRE</span></header><section class="card auth-card"><h2>Opening Admin Control…</h2><div id="workspaceStatus" class="status" role="status" aria-live="polite">Verifying authorised session…</div><button id="workspaceRetry" type="button" hidden>Retry</button></section></main><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf3ef"><title>B&L Morley Admin</title><link rel="stylesheet" href="styles.css?v=3"><link rel="stylesheet" href="auth-boundary.css?v=1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><main class="shell"><header class="topbar"><div><div class="eyebrow">B&L MORLEY</div><h1>Admin Control</h1></div><span class="badge">SECURE CONTROL CENTRE</span></header><section class="card auth-card"><h2>Opening Admin Control…</h2><div id="workspaceStatus" class="status" role="status" aria-live="polite">Verifying authorised session…</div></section></main><script>
 (async()=>{'use strict';
 const SUPABASE_URL='https://ghdhairijqjqivqriigi.supabase.co';
 const SUPABASE_KEY='sb_publishable_ch49o8WRnDb8pPzowZH3Tg_XZcIbgvt';
-const AUTH_TIMEOUT_MS=12000;
 const status=()=>document.getElementById('workspaceStatus');
-const retry=()=>document.getElementById('workspaceRetry');
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-window.sb=client;
-function setState(state,message=''){document.documentElement.dataset.adminWorkspaceAuth=state;const node=status();if(node&&message)node.textContent=message;}
-function withTimeout(promise,label){let timer=0;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const error=new Error(`${label} timed out. Check your connection and try again.`);error.code='AUTH_TIMEOUT';reject(error)},AUTH_TIMEOUT_MS)});return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));}
-function signedOut(message){setState('signed_out',message||'Your Admin session has ended.');setTimeout(()=>location.replace('./'),500);}
-function recover(error){setState(navigator.onLine===false?'offline_recoverable':'error_recoverable',error?.message||'Admin workspace could not be opened.');const button=retry();if(button){button.hidden=false;button.onclick=()=>location.reload();}}
+function fail(message){const node=status();if(node)node.textContent=message;setTimeout(()=>location.replace('./'),250);}
 try{
-  setState('booting','Verifying authorised session…');
-  const {data:{session},error:sessionError}=await withTimeout(client.auth.getSession(),'Session check');
-  if(sessionError){recover(sessionError);return;}
-  if(!session){signedOut('Your Admin session has ended.');return;}
-  setState('authenticated_pending_context','Loading your Admin permissions…');
-  const {data:profile,error:profileError}=await withTimeout(client.from('profiles').select('id,email,display_name,role,is_enabled').eq('id',session.user.id).single(),'Admin profile check');
-  if(profileError){recover(profileError);return;}
-  if(!profile||!profile.is_enabled||!['admin','manager'].includes(profile.role)){await withTimeout(client.auth.signOut(),'Sign out').catch(()=>{});signedOut('This account is not authorised for Admin Control.');return;}
-  window.__morleyAdminAuthContext=Object.freeze({state:'authenticated_ready',user:session.user,profile});
-  setState('authenticated_ready','Loading your workspace…');
-  const response=await withTimeout(fetch(`workspace-template.html?v=2&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}),'Workspace load');
+  const {data:{session},error:sessionError}=await client.auth.getSession();
+  if(sessionError||!session){fail(sessionError?.message||'Your Admin session has ended.');return;}
+  const {data:profile,error:profileError}=await client.from('profiles').select('id,role,is_enabled').eq('id',session.user.id).single();
+  if(profileError||!profile||!profile.is_enabled||!['admin','manager'].includes(profile.role)){await client.auth.signOut();fail(profileError?.message||'This account is not authorised for Admin Control.');return;}
+  const response=await fetch(`workspace-template.html?v=2&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
   if(!response.ok)throw new Error(`Admin workspace template returned HTTP ${response.status}`);
   const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
   const shell=parsed.querySelector('main.shell');
@@ -32,7 +20,7 @@ try{
   document.getElementById('appView')?.classList.remove('hidden');
   const scripts=[
     ['adminUserPolicy','user-management-policy.js?v=3'],
-    ['adminCoreApp','app.js?v=6'],
+    ['adminCoreApp','app.js?v=5'],
     ['adminAuthBoundary','auth-boundary.js?v=2'],
     ['adminReleaseControl','release-control.js?v=3'],
     ['adminTargetedNotifications','targeted-notifications.js?v=3'],
@@ -48,6 +36,6 @@ try{
   const loadScript=([id,src])=>new Promise((resolve,reject)=>{if(document.getElementById(id)){resolve();return;}const script=document.createElement('script');script.id=id;script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error(`Failed to load ${src}`));document.body.appendChild(script);});
   for(const entry of scripts)await loadScript(entry);
   document.documentElement.dataset.adminWorkspace='ready';
-}catch(error){recover(error);}
+}catch(error){fail(error?.message||'Admin workspace could not be opened.');}
 })();
 </script></body></html>
