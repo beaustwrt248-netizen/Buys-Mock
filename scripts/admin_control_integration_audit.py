@@ -45,7 +45,7 @@ workspace_scripts = [
 ]
 
 require('id="adminTurnstileFrame"' in auth_html, "Admin browser auth document is missing its isolated Turnstile frame")
-require("browser-auth-bootstrap.js?v=1" in auth_html, "Admin browser auth bootstrap is missing")
+require("browser-auth-bootstrap.js?v=2" in auth_html, "Admin browser auth bootstrap is missing")
 require("login-security.js?v=11" in auth_html, "Admin browser auth controller cache key is stale")
 for script in workspace_scripts:
     require(f'src="{script}' not in auth_html and f"src='{script}" not in auth_html, f"Logged-out Admin auth document executes workspace script: {script}")

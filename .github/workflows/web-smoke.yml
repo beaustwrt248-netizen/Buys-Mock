@@ -112,7 +112,7 @@ jobs:
             'web-display-parity.js':['mmKeepAwake','mmReducedMotion','mmCompactInterface','morley-reduced-motion','morley-compact-interface','syncWakeLock'],
             'web-issue-report.js':['support_tickets','support_ticket_attachments','support-ticket-attachments','diagnostics_opt_in','Submit Support Ticket','morley_web_auth','MAX_ATTACHMENT_BYTES'],
             'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
-            'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=1','login-security.js?v=11'],
+            'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=2','login-security.js?v=11'],
             'admin/browser-auth-bootstrap.js':['loadSession','profiles','is_enabled',"['admin','manager']",'workspace.html?auth='],
             'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="releaseName" readonly','id="rolloutCurrent"','id="rolloutOutdated"'],
             'admin/workspace.html':['workspace-template.html?v=2','app.js?v=','release-control.js?v=3','invites.js?v=4',"dataset.adminWorkspace='ready'"],

@@ -63,7 +63,7 @@ require_markers(".github/workflows/ultimate-parity.yml", "NFC and valuation regr
 require_markers(".github/workflows/ota-version-policy.yml", "Morley OTA Version Policy")
 require_markers(".github/workflows/auto-ota-release.yml", "sha256")
 require_markers("ota/latest.json", "versionCode", "versionName", "apkUrl", "sha256")
-require_markers("admin/index.html", 'id="email"', 'id="password"', "browser-auth-bootstrap.js?v=1", "login-security.js?v=11")
+require_markers("admin/index.html", 'id="email"', 'id="password"', "browser-auth-bootstrap.js?v=2", "login-security.js?v=11")
 require_markers("admin/browser-auth-bootstrap.js", "loadSession", "profiles", "admin", "manager", "workspace.html?auth=")
 require_markers("admin/workspace-template.html", "inviteName", "First and last name", "Email private invite")
 require_markers("admin/workspace.html", "workspace-template.html?v=2", "app.js?v=", "release-control.js?v=3", "invites.js?v=4", "adminWorkspace='ready'")

@@ -202,7 +202,7 @@ admin_support = (ROOT / "admin/support-tickets.js").read_text(encoding="utf-8")
 admin_notifications = (ROOT / "admin/targeted-notifications.js").read_text(encoding="utf-8")
 email_function = (ROOT / "supabase/functions/send-morley-email/index.ts").read_text(encoding="utf-8")
 
-for token in ('id="email"', 'id="password"', 'id="adminTurnstileFrame"', 'browser-auth-bootstrap.js?v=1', 'login-security.js?v=11'):
+for token in ('id="email"', 'id="password"', 'id="adminTurnstileFrame"', 'browser-auth-bootstrap.js?v=2', 'login-security.js?v=11'):
     if token not in admin_index:
         errors.append(f"Admin browser auth document is missing required login control: {token}")
 for forbidden in ('id="inviteName"', 'id="releaseName"', 'app.js?v=4', 'invites.js?v=3'):

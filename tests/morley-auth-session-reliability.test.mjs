@@ -7,6 +7,8 @@ const signout=readFileSync(new URL('../secure-current-signout.js',import.meta.ur
 const adminBootstrap=readFileSync(new URL('../admin/browser-auth-bootstrap.js',import.meta.url),'utf8');
 const adminWorkspace=readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
 const adminApp=readFileSync(new URL('../admin/app.js',import.meta.url),'utf8');
+const webIndex=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const adminIndex=readFileSync(new URL('../admin/index.html',import.meta.url),'utf8');
 
 const states=['booting','signed_out','challenge_required','authenticated_pending_context','authenticated_ready','offline_recoverable','error_recoverable'];
 
@@ -55,4 +57,11 @@ test('Admin app consumes workspace-authorised startup context instead of bootstr
   assert.match(adminApp,/authenticated_ready/);
   assert.doesNotMatch(adminApp,/loadSession\(\);\s*$/m);
   assert.match(adminApp,/logoutInFlight/);
+});
+
+test('changed browser auth assets ship under fresh cache keys',()=>{
+  assert.match(webIndex,/web-auth\.js\?v=9/);
+  assert.match(webIndex,/secure-current-signout\.js\?v=2/);
+  assert.match(adminIndex,/browser-auth-bootstrap\.js\?v=2/);
+  assert.match(adminWorkspace,/app\.js\?v=6/);
 });
