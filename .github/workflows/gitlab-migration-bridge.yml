@@ -188,7 +188,12 @@ jobs:
             if [[ "$blocked" == "true" ]]; then
               normalize_jobs "$pipeline_id" "blocked_runner" "$jobs"
               echo "GitLab pipeline is blocked waiting for tagged runner capacity."
-              python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f"{j[\"name\"]}: tags={\",\".join(j[\"tags\"])}") for j in d["blockedJobs"]]' <<< "$detector"
+              DETECTOR_JSON="$detector" python3 - <<'PY'
+          import json, os
+          data = json.loads(os.environ['DETECTOR_JSON'])
+          for job in data['blockedJobs']:
+              print(f"{job['name']}: tags={','.join(job['tags'])}")
+          PY
               exit 1
             fi
 
