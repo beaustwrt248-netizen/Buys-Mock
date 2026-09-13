@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const sourceUrl = new URL('../supabase/functions/nova-knowledge-ingest/index.ts', import.meta.url);
-const source = () => readFile(sourceUrl, 'utf8');
+const sharedUrl = new URL('../supabase/functions/_shared/nova_internal_ingestion.mjs', import.meta.url);
+const source = async () => `${await readFile(sourceUrl, 'utf8')}\n${await readFile(sharedUrl, 'utf8')}`;
 
 test('internal ingestion remains admin-only and hashes source identities', async () => {
   const text = await source();
@@ -16,7 +17,7 @@ test('internal ingestion remains admin-only and hashes source identities', async
 
 test('support ingestion selects structured safe fields only', async () => {
   const text = await source();
-  const supportSelect = text.match(/fetchRows\(\s*['"]support_tickets['"]\s*,\s*['"]([^'"]+)['"]/m)?.[1] || '';
+  const supportSelect = text.match(/fetchRows\(admin,\s*['"]support_tickets['"]\s*,\s*['"]([^'"]+)['"]/m)?.[1] || '';
   assert.match(supportSelect, /category/);
   assert.match(supportSelect, /app_version/);
   assert.match(supportSelect, /device_model/);
