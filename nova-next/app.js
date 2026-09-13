@@ -9,6 +9,7 @@ import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
 import { createProductSearchUi } from './src/product-search-ui.mjs';
 import { createVoiceUi } from './src/voice-ui.mjs';
+import { createResearchUi } from './src/research-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -43,6 +44,7 @@ let featureRuntime = null;
 let featureUi = null;
 let productSearchUi = null;
 let voiceUi = null;
+let researchUi = null;
 let workspaceUi = null;
 let toastTimer = null;
 
@@ -202,6 +204,11 @@ async function bootstrap() {
     windowObj: window,
     onToast: showToast
   });
+  researchUi = createResearchUi({
+    documentObj: document,
+    onNavigate: route => setRoute(route),
+    onToast: showToast
+  });
 
   featureUi = createFeatureUi({
     featureRuntime,
@@ -234,6 +241,7 @@ async function bootstrap() {
   try {
     await liveRuntime.start();
     voiceUi.bind();
+    researchUi.bind();
   } catch (error) {
     console.error('nova-next boot', error);
     showOnly(loginView);
