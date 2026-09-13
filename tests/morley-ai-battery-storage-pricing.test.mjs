@@ -77,3 +77,15 @@ test('battery health below the replacement threshold reduces suggested pricing w
   assert.equal(result.targetResale, 540);
   assert.ok(result.explanation.some(line => /Battery health 78%.*-\$60\.00/i.test(line)));
 });
+
+test('excellent battery health is neutral and cannot create a valuation premium', () => {
+  const core = loadCore();
+  const result = core.buildValuationQuote(baseQuote({
+    batteryHealthPct: 95,
+    batteryHealthAdjustment: 40,
+  }));
+
+  assert.equal(result.inputs.batteryHealthBand, 'excellent');
+  assert.equal(result.inputs.batteryHealthAdjustment, 0);
+  assert.equal(result.targetResale, 600);
+});
