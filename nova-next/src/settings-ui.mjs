@@ -5,6 +5,17 @@ function el(documentObj, tag, className = '', text = '') {
   return node;
 }
 
+const APPEARANCE_CSS = `
+:root[data-appearance="light"] { color-scheme: light; --bg:#f3f7fc; --bg-deep:#e8f0fa; --panel:rgba(255,255,255,.92); --panel-strong:#ffffff; --panel-soft:#edf4fb; --line:rgba(44,84,126,.2); --line-strong:rgba(37,117,198,.42); --text:#102033; --muted:#58718a; }
+:root[data-appearance="light"] body { background:#e8f0fa; color:var(--text); }
+:root[data-appearance="light"] .app-frame { background:radial-gradient(circle at 50% -10%,#dcecff 0,#f3f7fc 36%,#e8f0fa 100%); }
+:root[data-appearance="light"] .page, :root[data-appearance="light"] .shell { color:var(--text); }
+:root[data-appearance="light"] .access-card, :root[data-appearance="light"] .suggestion-list button, :root[data-appearance="light"] .feature-card, :root[data-appearance="light"] .feature-status-card, :root[data-appearance="light"] .workspace-task, :root[data-appearance="light"] .calendar-item, :root[data-appearance="light"] .file-card { background:rgba(255,255,255,.82); color:var(--text); }
+:root[data-appearance="light"] .composer, :root[data-appearance="light"] .ask-bar { background:rgba(255,255,255,.86); }
+:root[data-appearance="light"] .composer input { color:var(--text); }
+@media (prefers-reduced-motion: reduce) { .page { animation:none!important; } *, *::before, *::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; } }
+`;
+
 export function createSettingsUi({
   documentObj = globalThis.document,
   preferences,
@@ -14,13 +25,25 @@ export function createSettingsUi({
 } = {}) {
   if (!documentObj) throw new TypeError('SETTINGS_DOCUMENT_REQUIRED');
   if (!preferences) throw new TypeError('SETTINGS_PREFERENCES_REQUIRED');
+  let returnFocus = null;
+
+  function ensureAppearanceStyles() {
+    if (documentObj.getElementById('novaNextAppearanceStyles')) return;
+    const style = el(documentObj, 'style');
+    style.id = 'novaNextAppearanceStyles';
+    style.textContent = APPEARANCE_CSS;
+    documentObj.head.append(style);
+  }
 
   function closeSheet() {
     documentObj.querySelector('.settings-sheet-backdrop')?.remove();
+    returnFocus?.focus?.({ preventScroll: true });
+    returnFocus = null;
   }
 
   function showSheet(title, body) {
     closeSheet();
+    returnFocus = documentObj.activeElement;
     const backdrop = el(documentObj, 'div', 'feature-sheet-backdrop settings-sheet-backdrop');
     const sheet = el(documentObj, 'section', 'feature-sheet');
     sheet.setAttribute('role', 'dialog');
@@ -36,6 +59,12 @@ export function createSettingsUi({
     sheet.append(head, body);
     backdrop.append(sheet);
     backdrop.addEventListener('click', event => { if (event.target === backdrop) closeSheet(); });
+    backdrop.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSheet();
+      }
+    });
     documentObj.body.append(backdrop);
     close.focus({ preventScroll: true });
     return backdrop;
@@ -52,6 +81,7 @@ export function createSettingsUi({
   }
 
   function applyAppearance(value) {
+    ensureAppearanceStyles();
     const selected = value === 'system' ? '' : value;
     if (selected) documentObj.documentElement.setAttribute('data-appearance', selected);
     else documentObj.documentElement.removeAttribute('data-appearance');
@@ -117,5 +147,5 @@ export function createSettingsUi({
     applyAppearance(preferences.get().appearance);
   }
 
-  return Object.freeze({ bind, handleAction, renderAccount, renderAppearance, renderNotifications });
+  return Object.freeze({ bind, handleAction, renderAccount, renderAppearance, renderNotifications, closeSheet });
 }
