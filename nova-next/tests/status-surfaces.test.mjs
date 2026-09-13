@@ -86,3 +86,8 @@ test('Settings and route subtitles describe status-only surfaces truthfully', ()
   assert.equal(html.includes('<strong>Integrations</strong><small>Connect your tools</small>'), false);
   assert.equal(html.includes('<strong>Automation</strong><small>Schedules and workflows</small>'), false);
 });
+
+test('Settings status rows navigate to their live surfaces', () => {
+  assert.ok(html.includes('<button data-route-target="integrations"><span>▤</span><div><strong>Integrations</strong>'));
+  assert.ok(html.includes('<button data-route-target="automation"><span>⌘</span><div><strong>Automation</strong>'));
+});
