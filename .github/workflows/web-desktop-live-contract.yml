@@ -6,6 +6,8 @@ on:
     paths:
       - 'index.html'
       - 'morley-desktop-dashboard.js'
+      - 'morley-desktop-rebuild.js'
+      - 'morley-desktop-rebuild.css'
       - '.github/workflows/web-desktop-live-contract.yml'
   workflow_run:
     workflows: ['Deploy B&L Morley Web']
@@ -20,7 +22,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Verify deployed Categories navigation owner
+      - name: Verify deployed desktop navigation and rebuild assets
         shell: bash
         run: |
           set -euo pipefail
@@ -44,25 +46,33 @@ jobs:
           }
 
           fetch_until_contains "$BASE/" "$RUNNER_TEMP/index.html" 'morley-desktop-dashboard.js?v=2'
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "home|categories|general|settings"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" "'Categories'"
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Laptops</b>'
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Desktops</b>'
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Mobile Phones</b>'
-          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop.js" '<b>Gaming Consoles</b>'
-          node --check "$RUNNER_TEMP/desktop.js"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" 'morley-desktop-rebuild.js?v=20260913'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" 'morley-desktop-rebuild.css?v=20260913'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" "home|categories|general|settings"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" "'Categories'"
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" '<b>Laptops</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" '<b>Desktops</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" '<b>Mobile Phones</b>'
+          fetch_until_contains "$BASE/morley-desktop-dashboard.js" "$RUNNER_TEMP/desktop-loader.js" '<b>Gaming Consoles</b>'
+          fetch_until_contains "$BASE/morley-desktop-rebuild.js" "$RUNNER_TEMP/desktop-rebuild.js" 'Search & Scan'
+          fetch_until_contains "$BASE/morley-desktop-rebuild.js" "$RUNNER_TEMP/desktop-rebuild.js" 'Trade In / Buy'
+          fetch_until_contains "$BASE/morley-desktop-rebuild.js" "$RUNNER_TEMP/desktop-rebuild.js" 'AI Insights'
+          fetch_until_contains "$BASE/morley-desktop-rebuild.js" "$RUNNER_TEMP/desktop-rebuild.js" 'const DESKTOP=1000'
+          fetch_until_contains "$BASE/morley-desktop-rebuild.css" "$RUNNER_TEMP/desktop-rebuild.css" '@media (min-width:1000px)'
+          node --check "$RUNNER_TEMP/desktop-loader.js"
+          node --check "$RUNNER_TEMP/desktop-rebuild.js"
 
-          if grep -Fq "['phones'," "$RUNNER_TEMP/desktop.js"; then
+          if grep -Fq "['phones'," "$RUNNER_TEMP/desktop-loader.js"; then
             echo '::error::Retired Mobile Phones top-level desktop route is live'
             exit 1
           fi
-          if grep -Fq "['computer'," "$RUNNER_TEMP/desktop.js"; then
+          if grep -Fq "['computer'," "$RUNNER_TEMP/desktop-loader.js"; then
             echo '::error::Retired Computer Pricing top-level desktop route is live'
             exit 1
           fi
-          if grep -Fq "['console'," "$RUNNER_TEMP/desktop.js"; then
+          if grep -Fq "['console'," "$RUNNER_TEMP/desktop-loader.js"; then
             echo '::error::Retired Console Pricing top-level desktop route is live'
             exit 1
           fi
 
-          echo 'Live desktop Categories navigation contract verified.'
+          echo 'Live desktop rebuild contract verified.'
