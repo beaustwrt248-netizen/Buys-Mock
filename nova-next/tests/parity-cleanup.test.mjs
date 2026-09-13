@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const ui = await readFile(new URL('../src/feature-ui.mjs', import.meta.url), 'utf8');
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+const settings = await readFile(new URL('../src/settings-ui.mjs', import.meta.url), 'utf8');
 
 test('Knowledge More and Help are runtime-owned surfaces, not placeholder-only markup', () => {
   for (const route of ['knowledge', 'more', 'help']) {
@@ -24,10 +24,11 @@ test('Help exposes diagnostics and safe navigation without privileged actions', 
   }
 });
 
-test('remaining Settings rows are explicit staged actions instead of dead buttons', () => {
+test('remaining Settings rows are runtime-owned safe actions instead of dead buttons', () => {
   for (const action of ['settings-account', 'settings-appearance', 'settings-notifications', 'settings-privacy', 'settings-about']) {
     assert.ok(html.includes(`data-action="${action}"`), action);
-    assert.ok(app.includes(`action === '${action}'`), action);
+    assert.ok(settings.includes(`action === '${action}'`), action);
   }
-  assert.ok(app.includes('not connected in Nova Next yet'));
+  assert.ok(settings.includes('read-only in Nova Next'));
+  assert.ok(settings.includes('local preference only'));
 });
