@@ -3,6 +3,9 @@ import { createRouter } from './src/router.mjs';
 import { createLiveRuntime } from './src/live-runtime.mjs';
 import { createFeatureRuntime } from './src/feature-runtime.mjs';
 import { createFeatureUi } from './src/feature-ui.mjs';
+import { createWorkspaceStore } from './src/workspace-store.mjs';
+import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
+import { createWorkspaceUi } from './src/workspace-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -29,6 +32,7 @@ const router = createRouter({ initialRoute: 'home' });
 let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
+let workspaceUi = null;
 let toastTimer = null;
 
 function labelToRoute(label) {
@@ -72,6 +76,7 @@ function setRoute(route, { closeDrawer = true } = {}) {
   }
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
+  workspaceUi?.routeChanged(currentRoute);
   featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
 }
 
@@ -151,7 +156,10 @@ async function bootstrap() {
       onAuthenticated(session, { restored } = {}) {
         markAuthenticatedSession(session);
         showOnly(restored ? shell : allSetView);
-        if (restored) featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
+        if (restored) {
+          workspaceUi?.routeChanged(router.current());
+          featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
+        }
       },
       onLocked(reason) {
         showOnly(loginView);
@@ -174,6 +182,22 @@ async function bootstrap() {
     onError: error => console.error('nova-next feature', error)
   });
   featureUi.bind();
+
+  try {
+    const workspaceStore = createWorkspaceStore();
+    const workspaceRuntime = createWorkspaceRuntime({ store: workspaceStore });
+    workspaceUi = createWorkspaceUi({
+      workspaceRuntime,
+      documentObj: document,
+      windowObj: window,
+      onNavigate: route => setRoute(route),
+      onToast: showToast
+    });
+    workspaceUi.bind();
+  } catch (error) {
+    console.error('nova-next workspace boot', error);
+    showToast('Local workspace storage is unavailable. Tasks and projects remain unchanged.', 'error');
+  }
 
   try {
     await liveRuntime.start();
