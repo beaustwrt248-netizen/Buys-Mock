@@ -202,7 +202,6 @@ async function bootstrap() {
     windowObj: window,
     onToast: showToast
   });
-  voiceUi.bind();
 
   featureUi = createFeatureUi({
     featureRuntime,
@@ -234,6 +233,7 @@ async function bootstrap() {
 
   try {
     await liveRuntime.start();
+    voiceUi.bind();
   } catch (error) {
     console.error('nova-next boot', error);
     showOnly(loginView);
