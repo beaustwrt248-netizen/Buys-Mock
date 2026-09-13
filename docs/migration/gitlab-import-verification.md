@@ -9,18 +9,21 @@
 
 ## Current result
 
-**Status: AUTHENTICATED REF VERIFICATION IN PROGRESS**
+**Status: AUTHENTICATED REF AND READ-ONLY CI VERIFICATION PASSED**
 
-The private GitLab project is now reachable from the migration bridge through a short-lived, project-scoped credential stored only as a GitHub Actions secret. The bridge does not print or persist the token.
+The private GitLab project is reachable from the migration bridge through a project-scoped credential stored only as a GitHub Actions secret. The bridge does not print or persist the token.
 
 Authenticated bridge evidence has confirmed:
 
-- GitLab `main` matches GitHub `main` at the time of the bridge run.
+- GitLab `main` matches GitHub `main` at bridge time.
 - `migration/gitlab-staged-20260914` can be pushed to GitLab and its resulting SHA is verified after push.
 - GitLab tag refs match GitHub tag refs.
-- No force-push was used by the bridge.
+- No force-push is used by the bridge.
+- A same-SHA GitLab pipeline can execute successfully on GitLab.com hosted runners without a user-managed runner.
 
-The first synchronized GitLab pipeline for commit `28e01a15475158994a787114f9bfe928f31ee722` could not create jobs because GitLab required account verification. Account verification has since been completed. A fresh migration-branch commit is required to trigger a new same-SHA GitLab pipeline and continue CI parity validation.
+The initial synchronized pipeline for `28e01a15475158994a787114f9bfe928f31ee722` was blocked by GitLab account verification. After account verification, later pipelines exposed a missing `morley-android` self-managed runner dependency. The migration was changed to use the GitLab.com hosted `saas-linux-medium-amd64` runner profile with a pinned Android/Java/Gradle/Node toolchain.
+
+For commit `f02a746440467dc406cf28cfc6c5e76e05f39f5c`, bridge run `34775843567` verified refs and tags, found GitLab pipeline `2844956840` for the exact synchronized SHA, and observed that pipeline complete with status `success`. Required hosted Android jobs including `admin:android-check`, `test:nova-next-ci`, and `test:ultimate-parity` completed successfully. Provider-specific write jobs remained manual.
 
 ## Required ref checks
 
@@ -53,4 +56,4 @@ GitHub-specific Actions run history, workflow artifacts, review metadata, and ot
 
 ## Conclusion
 
-**NO-GO until the fresh post-verification GitLab pipeline runs and same-SHA CI parity is established.** GitHub remains the authoritative rollback source and production baseline.
+**IMPORT/REF VERIFICATION: PASS. GITLAB READ-ONLY CI EXECUTION: PASS. CUTOVER: STILL NO-GO.** GitHub remains the authoritative rollback source and production baseline until protected GitLab settings/variables, normalized GitHub-vs-GitLab CI parity, rollback verification, and the final merge/cutover gate are completed.
