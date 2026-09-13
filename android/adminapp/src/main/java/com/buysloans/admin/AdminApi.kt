@@ -104,6 +104,16 @@ internal object AdminApi {
         }
     }
 
+    suspend fun loadCatalogue(session: AdminSession): JSONArray = withContext(Dispatchers.IO) {
+        require(AdminAppAccessPolicy.canReadFullSnapshot(session)) {
+            "Catalogue visibility requires an authenticated Admin or Manager session."
+        }
+        getArray(
+            "/rest/v1/device_catalog?select=*&active=eq.true&order=category.asc,brand.asc,model_name.asc&limit=250",
+            session
+        )
+    }
+
     suspend fun loadSupportMessages(session: AdminSession, ticketId: String, limit: Int = 100): JSONArray = withContext(Dispatchers.IO) {
         require(SupportMessageAccessPolicy.canReadProtectedMessages(session)) {
             "Protected support messages require an authenticated Staff, Manager or Admin session."
