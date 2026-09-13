@@ -92,3 +92,34 @@ test('failed persistence leaves canonical state unchanged', () => {
   assert.throws(() => store.createTask({ title: 'Will fail' }), /quota/);
   assert.equal(store.snapshot().tasks.length, 0);
 });
+
+test('duplicate generated task ids are rejected without mutating state', () => {
+  const { store } = makeStore({ ids: ['dup', 'dup'] });
+  store.createTask({ title: 'First' });
+  assert.throws(() => store.createTask({ title: 'Second' }), /TASK_ID_INVALID/);
+  assert.deepEqual(store.snapshot().tasks.map(task => task.title), ['First']);
+});
+
+test('duplicate generated project ids are rejected without mutating state', () => {
+  const { store } = makeStore({ ids: ['dup', 'dup'] });
+  store.createProject({ name: 'First' });
+  assert.throws(() => store.createProject({ name: 'Second' }), /PROJECT_ID_INVALID/);
+  assert.deepEqual(store.snapshot().projects.map(project => project.name), ['First']);
+});
+
+test('duplicate persisted workspace ids are treated as corrupt data', () => {
+  const storage = new MemoryStorage();
+  const stamp = '2026-09-13T01:00:00.000Z';
+  storage.setItem(WORKSPACE_KEY, JSON.stringify({
+    version: 1,
+    projects: [],
+    tasks: [
+      { id: 'dup', title: 'One', notes: '', dueDate: null, priority: 'medium', projectId: null, completed: false, createdAt: stamp, updatedAt: stamp },
+      { id: 'dup', title: 'Two', notes: '', dueDate: null, priority: 'medium', projectId: null, completed: false, createdAt: stamp, updatedAt: stamp }
+    ]
+  }));
+  const store = createWorkspaceStore({ storage });
+  assert.deepEqual(store.snapshot(), { version: 1, tasks: [], projects: [] });
+  assert.equal(storage.getItem(WORKSPACE_KEY), null);
+  assert.match(store.consumeRecoveryNotice(), /reset/i);
+});
