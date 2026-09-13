@@ -20,14 +20,17 @@ export function createAutomationUi({documentObj=globalThis.document,automationRu
     sheet.append(head,form);back.append(sheet);documentObj.body.append(back);title.focus();
   }
   function render(){
-    const root=documentObj.getElementById('novaNextAutomationList');if(!root)return;root.replaceChildren();
-    const intro=el(documentObj,'article','feature-status-card');intro.append(el(documentObj,'small','','Execution mode'),el(documentObj,'strong','','Local-only'),el(documentObj,'p','','Jobs are stored on this device; no background runner is connected.'));root.append(intro);
-    const add=el(documentObj,'button','small-primary','＋ New Local Job');add.type='button';add.addEventListener('click',()=>openForm());root.append(add);
+    const root=documentObj.getElementById('novaNextAutomationList');if(!root)return;
+    root.querySelector('.automation-local-jobs')?.remove();
+    const local=el(documentObj,'section','automation-local-jobs');
+    const intro=el(documentObj,'article','feature-status-card');intro.append(el(documentObj,'small','','Execution mode'),el(documentObj,'strong','','Local-only'),el(documentObj,'p','','Jobs are stored on this device; no background runner is connected.'));local.append(intro);
+    const add=el(documentObj,'button','small-primary','＋ New Local Job');add.type='button';add.addEventListener('click',()=>openForm());local.append(add);
     for(const job of automationRuntime.list()){
       const card=el(documentObj,'article','feature-status-card');const status=automationRuntime.status(job);card.append(el(documentObj,'small','',`${status.badge} · ${job.state}`),el(documentObj,'strong','',job.title||'Untitled job'),el(documentObj,'p','',job.scheduleText||'No schedule description'));
       const links=[job.taskId?'Task linked':'',job.projectId?'Project linked':''].filter(Boolean).join(' · ');if(links)card.append(el(documentObj,'small','workspace-meta',links));
-      const actions=el(documentObj,'div','workspace-actions');const toggle=el(documentObj,'button','secondary-button',job.state==='enabled'?'Disable':'Enable');toggle.type='button';toggle.addEventListener('click',()=>{const r=automationRuntime.setEnabled(job.id,job.state!=='enabled');onToast(r.message);render();});const edit=el(documentObj,'button','secondary-button','Edit');edit.type='button';edit.addEventListener('click',()=>openForm(job));actions.append(toggle,edit);card.append(actions);root.append(card);
+      const actions=el(documentObj,'div','workspace-actions');const toggle=el(documentObj,'button','secondary-button',job.state==='enabled'?'Disable':'Enable');toggle.type='button';toggle.addEventListener('click',()=>{const r=automationRuntime.setEnabled(job.id,job.state!=='enabled');onToast(r.message);render();});const edit=el(documentObj,'button','secondary-button','Edit');edit.type='button';edit.addEventListener('click',()=>openForm(job));actions.append(toggle,edit);card.append(actions);local.append(card);
     }
+    root.append(local);
   }
   return Object.freeze({render,openForm,routeChanged:r=>{if(r==='automation')render();}});
 }
