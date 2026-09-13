@@ -11,9 +11,10 @@ const activity=fs.readFileSync(path.join(root,'app','src','main','java','com','b
 
 assert.match(gradle,/applicationId\s+['"]com\.buysloans\.novanext['"]/);
 assert.doesNotMatch(gradle,/applicationId\s+['"]com\.buysloans\.nova['"]/);
+assert.match(gradle,/buildConfigField\s+['"]String['"],\s*['"]NOVA_NEXT_URL['"],\s*['"]\\?"https:\/\/buyshub\.me\/nova-next\/\\?"['"]/);
 assert.match(manifest,/android\.permission\.INTERNET/);
 assert.match(manifest,/android:usesCleartextTraffic="false"/);
-assert.match(activity,/https:\/\/buyshub\.me\/nova-next\//);
+assert.match(activity,/webView\.loadUrl\(BuildConfig\.NOVA_NEXT_URL\)/);
 assert.match(activity,/setAllowFileAccess\(false\)/);
 assert.match(activity,/setAllowContentAccess\(false\)/);
 assert.match(activity,/MIXED_CONTENT_NEVER_ALLOW/);
