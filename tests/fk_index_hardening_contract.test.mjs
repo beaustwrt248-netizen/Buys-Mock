@@ -22,6 +22,10 @@ const expectedIndexes = [
   ['valuation_quotes_created_by_idx', 'valuation_quotes', 'created_by'],
 ];
 
+const withoutComments = (sql) => sql
+  .replace(/--.*$/gm, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
+
 test('FK hardening migration adds exactly the advisor-confirmed leading indexes', async () => {
   const sql = (await readFile(migrationUrl, 'utf8')).toLowerCase();
   for (const [indexName, tableName, columnName] of expectedIndexes) {
@@ -36,6 +40,6 @@ test('FK hardening migration adds exactly the advisor-confirmed leading indexes'
 });
 
 test('FK hardening migration does not change data, RLS, grants, functions or constraints', async () => {
-  const sql = (await readFile(migrationUrl, 'utf8')).toLowerCase();
+  const sql = withoutComments((await readFile(migrationUrl, 'utf8')).toLowerCase());
   assert.doesNotMatch(sql, /\b(insert|update|delete|truncate|alter\s+table|create\s+policy|drop\s+policy|grant|revoke|create\s+or\s+replace\s+function|drop\s+function)\b/);
 });
