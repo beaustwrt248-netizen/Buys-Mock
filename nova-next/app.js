@@ -12,6 +12,9 @@ import { createVoiceUi } from './src/voice-ui.mjs';
 import { createResearchUi } from './src/research-ui.mjs';
 import { createLocalPreferences } from './src/local-preferences.mjs';
 import { createSettingsUi } from './src/settings-ui.mjs';
+import { createAutomationStore } from './src/automation-store.mjs';
+import { createAutomationRuntime } from './src/automation-runtime.mjs';
+import { createAutomationUi } from './src/automation-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -49,6 +52,7 @@ let voiceUi = null;
 let researchUi = null;
 let settingsUi = null;
 let workspaceUi = null;
+let automationUi = null;
 let toastTimer = null;
 
 function labelToRoute(label) {
@@ -91,6 +95,7 @@ function renderRoute(currentRoute, { closeDrawer = true } = {}) {
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
   workspaceUi?.routeChanged(currentRoute);
+  automationUi?.routeChanged(currentRoute);
   featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
 }
 
@@ -177,6 +182,7 @@ async function bootstrap() {
         showOnly(restored ? shell : allSetView);
         if (restored) {
           workspaceUi?.routeChanged(router.current());
+          automationUi?.routeChanged(router.current());
           featureUi?.routeChanged(router.current()).catch(error => console.error('nova-next feature route', error));
         }
       },
@@ -236,9 +242,17 @@ async function bootstrap() {
       onVisionResult: result => featureUi.renderVision(result)
     });
     workspaceUi.bind();
+    const automationStore = createAutomationStore({ storage: window.localStorage });
+    const automationRuntime = createAutomationRuntime({ store: automationStore, workspaceRuntime });
+    automationUi = createAutomationUi({
+      documentObj: document,
+      automationRuntime,
+      workspaceRuntime,
+      onToast: showToast
+    });
   } catch (error) {
     console.error('nova-next workspace boot', error);
-    showToast('Local workspace storage is unavailable. Tasks and projects remain unchanged.', 'error');
+    showToast('Local workspace storage is unavailable. Tasks, projects and local jobs remain unchanged.', 'error');
   }
 
   try {
