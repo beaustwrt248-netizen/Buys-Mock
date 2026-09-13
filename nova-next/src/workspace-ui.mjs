@@ -19,6 +19,12 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(date);
+}
+
 function formatBytes(value) {
   const bytes = Number(value || 0);
   if (bytes < 1024) return `${bytes} B`;
@@ -437,7 +443,7 @@ export function createWorkspaceUi({
       const head = el(documentObj, 'div', 'file-card-head');
       const badge = el(documentObj, 'span', 'file-type-badge', file.canAnalyseImage ? 'Image' : file.canReadText ? 'Text' : 'File');
       const copy = el(documentObj, 'div', 'file-card-copy');
-      copy.append(el(documentObj, 'strong', '', file.name), el(documentObj, 'small', 'file-meta', `${file.type || 'Unknown type'} · ${formatBytes(file.size)}`));
+      copy.append(el(documentObj, 'strong', '', file.name), el(documentObj, 'small', 'file-meta', `${file.type || 'Unknown type'} · ${formatBytes(file.size)} · added ${formatDateTime(file.addedAt)}`));
       head.append(badge, copy);
       const actions = el(documentObj, 'div', 'file-card-actions');
       if (file.canAnalyseImage) {
