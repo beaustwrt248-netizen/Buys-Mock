@@ -7,6 +7,7 @@ import { createWorkspaceStore } from './src/workspace-store.mjs';
 import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
 import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
+import { createProductSearchUi } from './src/product-search-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -39,6 +40,7 @@ const router = createRouter({
 let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
+let productSearchUi = null;
 let workspaceUi = null;
 let toastTimer = null;
 
@@ -185,6 +187,14 @@ async function bootstrap() {
   });
 
   featureRuntime = createFeatureRuntime({ getAccessToken: () => liveRuntime.getAccessToken() });
+  productSearchUi = createProductSearchUi({
+    featureRuntime,
+    documentObj: document,
+    onToast: showToast,
+    onError: error => console.error('nova-next product search', error)
+  });
+  productSearchUi.bind();
+
   featureUi = createFeatureUi({
     featureRuntime,
     onNavigate: route => setRoute(route),
