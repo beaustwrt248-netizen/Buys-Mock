@@ -111,6 +111,7 @@ jobs:
           node --test tests/admin-webview-input-focus.test.mjs tests/admin-auth-recovery-contract.test.mjs tests/admin-web-app-parity.test.mjs
           node --check admin/admin-app-parity.js
           node --check admin/admin-support-only-runtime.js
+          node --check admin/admin-user-access-parity.js
       - name: Compile, test and lint Admin module only
         working-directory: android
         shell: bash
