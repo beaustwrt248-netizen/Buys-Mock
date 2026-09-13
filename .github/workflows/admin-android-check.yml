@@ -6,11 +6,10 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
-      - 'admin/index.html'
-      - 'admin/user-management-policy.js'
-      - 'admin/login-security.js'
+      - 'admin/**'
       - 'tests/admin-webview-input-focus.test.mjs'
       - 'tests/admin-auth-recovery-contract.test.mjs'
+      - 'tests/admin-web-app-parity.test.mjs'
       - 'supabase/migrations/**safe_remote_feature_flags.sql'
       - '.github/workflows/admin-android-check.yml'
   push:
@@ -18,11 +17,10 @@ on:
     paths:
       - 'android/adminapp/**'
       - 'android/settings.gradle'
-      - 'admin/index.html'
-      - 'admin/user-management-policy.js'
-      - 'admin/login-security.js'
+      - 'admin/**'
       - 'tests/admin-webview-input-focus.test.mjs'
       - 'tests/admin-auth-recovery-contract.test.mjs'
+      - 'tests/admin-web-app-parity.test.mjs'
       - 'supabase/migrations/**safe_remote_feature_flags.sql'
       - '.github/workflows/admin-android-check.yml'
   workflow_dispatch:
@@ -62,8 +60,6 @@ jobs:
           grep -q "applicationId 'com.buysloans.admin'" android/adminapp/build.gradle
           grep -Eq "versionName '[^']+'" android/adminapp/build.gradle
 
-          # Authenticated workspace is native Compose. It must never regain a browser runtime,
-          # JavaScript session handoff or web logout fallback.
           grep -q 'AdminSessionStore.current()' "$ACTIVITY"
           grep -q 'AdminSessionStore.hasAuthorizedSession()' "$ACTIVITY"
           grep -q 'AdminNativeDashboard' "$ACTIVITY"
@@ -77,8 +73,6 @@ jobs:
           grep -q 'AuditTimelinePanel' "$DASHBOARD"
           grep -q 'AdminAppAccessPolicy.canReadFullSnapshot(session)' "$DASHBOARD"
 
-          # Native login owns the authorized process session before navigation and does not put
-          # access/refresh tokens into Intents.
           grep -q 'AdminSessionStore.set(session)' "$LOGIN"
           grep -q 'Intent(this, AdminActivity::class.java)' "$LOGIN"
           ! grep -Eq 'EXTRA_ACCESS_TOKEN|EXTRA_REFRESH_TOKEN|putExtra\(AdminActivity' "$LOGIN"
@@ -87,8 +81,6 @@ jobs:
           grep -q 'active?.accessToken = ""' "$STORE"
           grep -q 'active?.refreshToken = ""' "$STORE"
 
-          # Exactly one Android JavaScript bridge is allowed in the whole Admin app, and it is
-          # the tightly-scoped Turnstile challenge only.
           test "$(grep -Rho 'addJavascriptInterface(' "$ROOT" | wc -l)" = "1"
           grep -q 'addJavascriptInterface(' "$CAPTCHA"
           grep -q '"AndroidBridge"' "$CAPTCHA"
@@ -98,7 +90,6 @@ jobs:
           grep -q 'databaseEnabled = false' "$CAPTCHA"
           grep -q 'MIXED_CONTENT_NEVER_ALLOW' "$CAPTCHA"
 
-          # Existing backend-first least-privilege API boundaries remain intact.
           grep -q '/rest/v1/rpc/admin_set_config' "$ROOT/AdminApi.kt"
           test "$(grep -Rho '/rest/v1/rpc/admin_set_config' "$ROOT" | wc -l)" = "1"
           grep -q '/rest/v1/support_tickets?id=eq.' "$ROOT/AdminApi.kt"
@@ -113,11 +104,13 @@ jobs:
           grep -q "only maintenanceMode and maintenanceMessage may be changed remotely" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "config_key='feature_flags'" supabase/migrations/*safe_remote_feature_flags.sql
           grep -q "admin_audit_log" supabase/migrations/*safe_remote_feature_flags.sql
-      - name: Verify native Admin login and session contracts
+      - name: Verify native Admin login, session and web parity contracts
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/admin-webview-input-focus.test.mjs tests/admin-auth-recovery-contract.test.mjs
+          node --test tests/admin-webview-input-focus.test.mjs tests/admin-auth-recovery-contract.test.mjs tests/admin-web-app-parity.test.mjs
+          node --check admin/admin-app-parity.js
+          node --check admin/admin-support-only-runtime.js
       - name: Compile, test and lint Admin module only
         working-directory: android
         shell: bash
