@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: gitlab-migration-bridge-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sync-and-observe:
@@ -123,6 +123,37 @@ jobs:
           api="https://gitlab.com/api/v4/projects/${project_id}"
           auth_header="PRIVATE-TOKEN: ${GITLAB_MIGRATION_TOKEN}"
 
+          normalize_jobs() {
+            local pipeline_id="$1"
+            local pipeline_status="$2"
+            local jobs_json="$3"
+            PIPELINE_ID="$pipeline_id" PIPELINE_STATUS="$pipeline_status" JOBS_JSON="$jobs_json" python3 - <<'PY'
+          import json, os
+
+          jobs = json.loads(os.environ['JOBS_JSON'])
+          normalized = {
+              'sha': os.environ['GITHUB_SHA'],
+              'pipeline_id': int(os.environ['PIPELINE_ID']),
+              'pipeline_status': os.environ['PIPELINE_STATUS'],
+              'jobs': [
+                  {
+                      'name': item.get('name', ''),
+                      'status': item.get('status', ''),
+                      'stage': item.get('stage', ''),
+                      'tags': item.get('tag_list', []),
+                      'artifacts': [
+                          item.get('artifacts_file', {}).get('filename')
+                      ] if item.get('artifacts_file', {}).get('filename') else [],
+                  }
+                  for item in jobs
+              ],
+          }
+          with open('gitlab-pipeline-result.json', 'w', encoding='utf-8') as fh:
+              json.dump(normalized, fh, indent=2, sort_keys=True)
+              fh.write('\n')
+          PY
+          }
+
           pipeline_id=""
           for attempt in $(seq 1 30); do
             response="$(curl --fail --silent --show-error --header "$auth_header" \
@@ -143,49 +174,40 @@ jobs:
 
           echo "Found GitLab pipeline $pipeline_id for $GITHUB_SHA."
           final_status=""
+          jobs="[]"
+          pending_tagged_polls=0
           for attempt in $(seq 1 90); do
             pipeline="$(curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id")"
             status="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' <<< "$pipeline")"
+            jobs="$(curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id/jobs?per_page=100")"
+
+            detector="$(PENDING_TAGGED_POLLS="$pending_tagged_polls" PENDING_TAGGED_THRESHOLD=8 node scripts/ci/detect-gitlab-runner-block.mjs <<< "$jobs")"
+            pending_tagged_polls="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["nextPendingTaggedPolls"])' <<< "$detector")"
+            blocked="$(python3 -c 'import json,sys; print("true" if json.load(sys.stdin)["blocked"] else "false")' <<< "$detector")"
+            if [[ "$blocked" == "true" ]]; then
+              normalize_jobs "$pipeline_id" "blocked_runner" "$jobs"
+              echo "GitLab pipeline is blocked waiting for tagged runner capacity."
+              python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f"{j[\"name\"]}: tags={\",\".join(j[\"tags\"])}") for j in d["blockedJobs"]]' <<< "$detector"
+              exit 1
+            fi
+
             case "$status" in
               success|failed|canceled|skipped|manual)
                 final_status="$status"
                 break
                 ;;
             esac
-            echo "GitLab pipeline status: $status (poll $attempt/90)"
+            echo "GitLab pipeline status: $status (poll $attempt/90; pending tagged polls: $pending_tagged_polls/8)"
             sleep 30
           done
 
           if [[ -z "$final_status" ]]; then
+            normalize_jobs "$pipeline_id" "timeout" "$jobs"
             echo "Timed out waiting for GitLab pipeline $pipeline_id."
             exit 1
           fi
 
-          jobs="$(curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id/jobs?per_page=100")"
-          PIPELINE_ID="$pipeline_id" PIPELINE_STATUS="$final_status" JOBS_JSON="$jobs" python3 - <<'PY'
-          import json, os
-
-          jobs = json.loads(os.environ['JOBS_JSON'])
-          normalized = {
-              'sha': os.environ['GITHUB_SHA'],
-              'pipeline_id': int(os.environ['PIPELINE_ID']),
-              'pipeline_status': os.environ['PIPELINE_STATUS'],
-              'jobs': [
-                  {
-                      'name': item.get('name', ''),
-                      'status': item.get('status', ''),
-                      'stage': item.get('stage', ''),
-                      'artifacts': [
-                          item.get('artifacts_file', {}).get('filename')
-                      ] if item.get('artifacts_file', {}).get('filename') else [],
-                  }
-                  for item in jobs
-              ],
-          }
-          with open('gitlab-pipeline-result.json', 'w', encoding='utf-8') as fh:
-              json.dump(normalized, fh, indent=2, sort_keys=True)
-              fh.write('\n')
-          PY
+          normalize_jobs "$pipeline_id" "$final_status" "$jobs"
 
           echo "GitLab pipeline completed with status: $final_status"
           if [[ "$final_status" != "success" ]]; then
