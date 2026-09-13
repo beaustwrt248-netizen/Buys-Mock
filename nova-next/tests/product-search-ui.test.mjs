@@ -14,6 +14,12 @@ await test('product search UI owns an explicit read-only search flow', () => {
   assert.match(ui, /source/i);
 });
 
+await test('product search consumes the catalogue adapter result shape', () => {
+  assert.match(ui, /response\?\.items/);
+  assert.match(ui, /entry\?\.device/);
+  assert.match(ui, /entry\?\.prices/);
+});
+
 await test('app wires Product Search without granting pricing mutation authority', () => {
   assert.match(app, /createProductSearchUi/);
   assert.match(app, /productSearchUi\.bind\(\)/);
