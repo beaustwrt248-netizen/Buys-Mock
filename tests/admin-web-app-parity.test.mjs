@@ -4,30 +4,23 @@ import { readFileSync } from 'node:fs';
 
 const template = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
 const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
+const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
 const parityCss = readFileSync(new URL('../admin/admin-app-parity.css', import.meta.url), 'utf8');
 const parityJs = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
 const nativeDashboard = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminNativeDashboard.kt', import.meta.url), 'utf8');
 
 const requiredWorkspaces = [
-  ['overview', 'Overview'],
-  ['support', 'Support'],
-  ['catalogue', 'Catalogue'],
-  ['health', 'Production health'],
-  ['guardian', 'Guardian'],
-  ['notifications', 'Notifications'],
-  ['users-devices', 'Users & devices'],
-  ['staff-alerts', 'Staff alerts'],
-  ['controls', 'Safe controls'],
-  ['audit', 'Audit'],
-  ['release', 'Release']
+  ['overview', 'Overview'], ['support', 'Support'], ['catalogue', 'Catalogue'],
+  ['health', 'Production health'], ['guardian', 'Guardian'], ['notifications', 'Notifications'],
+  ['users-devices', 'Users & devices'], ['staff-alerts', 'Staff alerts'], ['controls', 'Safe controls'],
+  ['audit', 'Audit'], ['release', 'Release']
 ];
 
 const retainedFeatureIds = [
-  'metricUsers', 'metricDevices', 'metricVersion', 'metricQueued',
-  'usersList', 'devicesList', 'ticketsList', 'ticketDetail',
-  'pricingList', 'pricingEditor', 'featureFlags', 'saveControlsBtn',
-  'releaseName', 'saveReleaseBtn', 'notifTitle', 'queueNotifBtn',
-  'annTitle', 'publishAnnBtn', 'auditList', 'logoutBtn'
+  'metricUsers', 'metricDevices', 'metricVersion', 'metricQueued', 'usersList', 'devicesList',
+  'ticketsList', 'ticketDetail', 'pricingList', 'pricingEditor', 'featureFlags', 'saveControlsBtn',
+  'releaseName', 'saveReleaseBtn', 'notifTitle', 'queueNotifBtn', 'annTitle', 'publishAnnBtn',
+  'auditList', 'logoutBtn'
 ];
 
 test('web workspace mirrors every primary Android Admin workspace', () => {
@@ -36,16 +29,13 @@ test('web workspace mirrors every primary Android Admin workspace', () => {
     assert.match(template, new RegExp(`data-workspace=["']${key}["']`), `missing workspace nav ${label}`);
     assert.match(template, new RegExp(`data-workspace-panel=["']${key}["']`), `missing workspace panel ${label}`);
   }
-
   for (const label of ['Overview', 'Support', 'Catalogue', 'Health', 'Guardian', 'Notifications', 'Users & devices', 'Staff alerts', 'Controls', 'Audit', 'Release']) {
     assert.match(nativeDashboard, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });
 
 test('rebuild preserves feature-module DOM contracts', () => {
-  for (const id of retainedFeatureIds) {
-    assert.match(template, new RegExp(`id=["']${id}["']`), `missing retained feature id ${id}`);
-  }
+  for (const id of retainedFeatureIds) assert.match(template, new RegExp(`id=["']${id}["']`), `missing retained feature id ${id}`);
 });
 
 test('desktop and mobile web share one responsive app shell', () => {
@@ -58,11 +48,18 @@ test('desktop and mobile web share one responsive app shell', () => {
   assert.match(parityJs, /data-workspace-panel/);
 });
 
+test('web authorization matches Android entry policy and keeps staff support-only', () => {
+  assert.match(browserAuthBootstrap, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(workspaceShell, /\['admin','manager','staff'\]\.includes\(profile\.role\)/);
+  assert.match(parityJs, /role===['"]staff['"]/);
+  assert.match(parityJs, /supportOnly/);
+  assert.match(parityJs, /openWorkspace\(['"]support['"]\)/);
+});
+
 test('authorized workspace loads app-parity runtime without weakening auth ordering', () => {
   assert.match(workspaceShell, /client\.auth\.getSession\(\)/);
   assert.match(workspaceShell, /from\('profiles'\)/);
-  assert.match(workspaceShell, /!\['admin','manager'\]\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /admin-app-parity\.js/);
   assert.match(workspaceShell, /app\.js/);
-  assert.ok(workspaceShell.indexOf("app.js") < workspaceShell.indexOf("admin-app-parity.js"));
+  assert.ok(workspaceShell.indexOf('app.js') < workspaceShell.indexOf('admin-app-parity.js'));
 });
