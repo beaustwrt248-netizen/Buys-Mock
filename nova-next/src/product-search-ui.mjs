@@ -59,16 +59,23 @@ export function createProductSearchUi({ featureRuntime, documentObj = globalThis
   }
 
   function appendCatalogueCards(root, response) {
-    const devices = Array.isArray(response?.devices) ? response.devices : [];
-    for (const device of devices.slice(0, 10)) {
+    const entries = Array.isArray(response?.items) ? response.items : [];
+    for (const entry of entries.slice(0, 10)) {
+      const device = entry?.device || {};
+      const prices = Array.isArray(entry?.prices) ? entry.prices : [];
       const card = el(documentObj, 'article', 'feature-card');
       card.append(el(documentObj, 'small', '', `${device.category || 'Device'} · ${device.brand || 'Unknown brand'}`));
       card.append(el(documentObj, 'strong', '', device.model_name || device.model_number || 'Catalogue device'));
       const detail = [device.model_number, device.release_year, device.market_region].filter(Boolean).join(' · ');
       if (detail) card.append(el(documentObj, 'p', '', detail));
+      const priced = prices
+        .map(price => Number(price?.price_aud))
+        .filter(price => Number.isFinite(price) && price > 0)
+        .sort((a, b) => a - b);
+      if (priced.length) card.append(el(documentObj, 'p', '', `Authoritative buy-price reference from ${money(priced[0])}`));
       root.append(card);
     }
-    return devices.length;
+    return entries.length;
   }
 
   function openSearch() {
