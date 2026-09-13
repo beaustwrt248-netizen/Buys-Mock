@@ -7,6 +7,8 @@ import { createWorkspaceStore } from './src/workspace-store.mjs';
 import { createWorkspaceRuntime } from './src/workspace-runtime.mjs';
 import { createWorkspaceUi } from './src/workspace-ui.mjs';
 import { createFileSession } from './src/file-session.mjs';
+import { createPreferencesStore } from './src/preferences-store.mjs';
+import { createSettingsUi } from './src/settings-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -40,6 +42,8 @@ let liveRuntime = null;
 let featureRuntime = null;
 let featureUi = null;
 let workspaceUi = null;
+let settingsUi = null;
+let currentAccount = null;
 let toastTimer = null;
 
 function labelToRoute(label) {
@@ -119,6 +123,7 @@ function showToast(message, tone = '') {
   const toast = document.createElement('div');
   toast.className = `runtime-toast${tone ? ` ${tone}` : ''}`;
   toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
   toast.textContent = message;
   document.body.append(toast);
   toastTimer = setTimeout(() => toast.remove(), 3600);
@@ -149,6 +154,7 @@ function registerIsolatedServiceWorker() {
 
 function markAuthenticatedSession(session) {
   const email = String(session?.user?.email || '');
+  currentAccount = Object.freeze({ email });
   const online = document.querySelector('.assistant-row p');
   if (online) online.innerHTML = '<span class="online-dot"></span> Guarded · Admin session';
   const preview = document.getElementById('previewNote');
@@ -161,6 +167,21 @@ async function bootstrap() {
   setRoute(router.current(), { closeDrawer: false });
   registerIsolatedServiceWorker();
 
+  try {
+    const preferences = createPreferencesStore({ storage: window.localStorage });
+    settingsUi = createSettingsUi({
+      documentObj: document,
+      preferences,
+      getAccount: () => currentAccount,
+      onNavigate: route => setRoute(route),
+      onToast: showToast
+    });
+    settingsUi.bind();
+  } catch (error) {
+    console.error('nova-next preferences boot', error);
+    showToast('Local preferences are unavailable. Nova will use system appearance.', 'error');
+  }
+
   liveRuntime = createLiveRuntime({
     callbacks: {
       onAuthenticated(session, { restored } = {}) {
@@ -172,6 +193,7 @@ async function bootstrap() {
         }
       },
       onLocked(reason) {
+        currentAccount = null;
         showOnly(loginView);
         if (reason === 'AUTH_REQUIRED') showToast('Your Nova session expired. Sign in again.', 'error');
       },
@@ -242,17 +264,8 @@ document.addEventListener('click', event => {
   } else if (action === 'finish-intro') {
     showOnly(shell);
     setRoute('home');
-  } else if (action === 'settings-account') {
-    showToast('Account settings are not connected in Nova Next yet.');
-  } else if (action === 'settings-appearance') {
-    showToast('Appearance settings are not connected in Nova Next yet.');
-  } else if (action === 'settings-notifications') {
-    showToast('Notification settings are not connected in Nova Next yet.');
-  } else if (action === 'settings-privacy') {
-    setRoute('files');
-    showToast('Privacy and data boundaries are shown in the Files session workspace.');
-  } else if (action === 'settings-about') {
-    setRoute('help');
+  } else if (action?.startsWith('settings-')) {
+    settingsUi?.handleAction(action);
   }
 
   const tool = event.target.closest('[data-tool]')?.dataset.tool;
