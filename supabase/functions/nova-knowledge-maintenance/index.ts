@@ -22,6 +22,7 @@ const MAX_EMBEDDING_BATCH = 20;
 const MAX_INGEST_BATCH = 20;
 const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
 const F = "id,category,title,content,source_type,source_label,source_filename,mime_type,version_label,trust_level,status,content_hash,revision,metadata,created_by,updated_by,created_at,updated_at";
+const SENSITIVE_DIAGNOSTIC = /(authorization|cookie|password|secret|token|api[_-]?key)\s*[:=]\s*([^\s,;]+)/gi;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 const bounded = (value: unknown, fallback: number, max: number) => Math.min(Math.max(Number(value) || fallback, 1), max);
@@ -32,6 +33,19 @@ const validIso = (value: unknown) => {
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
 };
+
+function normalizeMaintenanceError(error: unknown, max = 400) {
+  const redact = (value: unknown) => clean(value, max).replace(SENSITIVE_DIAGNOSTIC, "$1=[redacted]");
+  if (error instanceof Error) return redact(error.message) || error.name || "Maintenance error";
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const parts = ["code", "message", "details", "hint"]
+      .map((key) => record[key] == null ? "" : `${key}=${redact(record[key])}`)
+      .filter(Boolean);
+    return redact(parts.join(" | ")) || "Structured maintenance error";
+  }
+  return redact(error) || "Unknown maintenance error";
+}
 
 function reply(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -375,7 +389,7 @@ async function ingestInternal(limit: number, stats: any) {
       else stats.ingested_skipped += 1;
     } catch (error) {
       stats.ingested_error += 1;
-      console.error("[nova-knowledge-maintenance] ingestion item failed", clean(error instanceof Error ? error.message : error, 240));
+      console.error("[nova-knowledge-maintenance] ingestion item failed", normalizeMaintenanceError(error, 240));
     }
   }
 }
@@ -430,13 +444,13 @@ async function embedPending(limit: number, stats: any) {
       if (updateError) throw updateError;
       stats.embedded_ready += 1;
     } catch (error) {
-      const message = clean(error instanceof Error ? error.message : error, 400);
+      const message = normalizeMaintenanceError(error, 400);
       const { error: updateError } = await admin.from("nova_knowledge_chunks").update({
         embedding_status: "error",
         embedding_error: message,
         updated_at: new Date().toISOString(),
       }).eq("id", chunk.id);
-      if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", clean(updateError.message, 240));
+      if (updateError) console.error("[nova-knowledge-maintenance] failed to persist embedding error state", normalizeMaintenanceError(updateError, 240));
       stats.embedded_error += 1;
       console.error("[nova-knowledge-maintenance] embedding failed", message);
     }
@@ -480,7 +494,7 @@ Deno.serve(async (req: Request) => {
       duration_ms: Date.now() - started,
     });
   } catch (error) {
-    const message = clean(error instanceof Error ? error.message : error, 400);
+    const message = normalizeMaintenanceError(error, 400);
     if (runId) {
       try { await finishRun(runId, "failed", stats, message); } catch { /* preserve original error */ }
     }
