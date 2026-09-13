@@ -5,6 +5,7 @@ import { createFeatureRuntime } from '../src/feature-runtime.mjs';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const ui = await readFile(new URL('../src/workspace-ui.mjs', import.meta.url), 'utf8');
+const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 
 function edgeClient({ github = { ok: true, configured: true } } = {}) {
   return {
@@ -75,4 +76,13 @@ test('workspace UI renders Automation and Integrations and handles route refresh
   }
   assert.ok(ui.includes("state === 'connected'"));
   assert.ok(ui.includes("state === 'unavailable'"));
+});
+
+test('Settings and route subtitles describe status-only surfaces truthfully', () => {
+  assert.ok(html.includes('<strong>Integrations</strong><small>Verified connection status</small>'));
+  assert.ok(html.includes('<strong>Automation</strong><small>Capability status &amp; boundaries</small>'));
+  assert.ok(app.includes("automation: 'Capability status'"));
+  assert.ok(app.includes("integrations: 'Verified connections'"));
+  assert.equal(html.includes('<strong>Integrations</strong><small>Connect your tools</small>'), false);
+  assert.equal(html.includes('<strong>Automation</strong><small>Schedules and workflows</small>'), false);
 });
