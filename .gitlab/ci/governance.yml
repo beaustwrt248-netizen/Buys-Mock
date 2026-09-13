@@ -1,0 +1,248 @@
+.governance-node-python:
+  stage: test
+  image: node:22-bookworm
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 curl ca-certificates >/dev/null
+
+.governance-python:
+  stage: test
+  image: python:3.12-bookworm
+
+governance:admin-device:
+  extends: .governance-python
+  script:
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      migration=Path('supabase/migrations/20260828013000_device_admin_readonly_governance.sql').read_text()
+      admin=Path('admin/app.js').read_text()
+      registrar=Path('android/app/src/main/java/com/buysloans/hub/DeviceRegistrar.kt').read_text()
+      required=['alter table public.devices enable row level security','create policy devices_owner_manage_own','for all','using ((select auth.uid()) = user_id)','with check ((select auth.uid()) = user_id)','create policy devices_admin_manager_read','for select','using (private.is_admin_or_manager())']
+      for needle in required:
+          if needle not in migration: raise SystemExit(f'Device governance contract missing: {needle}')
+      low=migration.lower()
+      for needle in ['grant all on public.devices','to anon','for update\nto authenticated\nusing (private.is_admin_or_manager())','for delete\nto authenticated\nusing (private.is_admin_or_manager())']:
+          if needle.lower() in low: raise SystemExit(f'Unsafe device governance detected: {needle}')
+      if "sb.from('devices').select('*')" not in admin: raise SystemExit('Admin device visibility must remain read-only')
+      if 'register_device_public' not in registrar: raise SystemExit('Android registration must continue through authenticated RPC')
+      PY
+
+governance:admin-support-audit:
+  extends: .governance-python
+  script:
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      text=Path('supabase/migrations/20260828003000_support_privileged_audit.sql').read_text(encoding='utf-8')
+      lower=text.lower()
+      for needle in ['private.support_log_privileged_admin_audit()',"p.role in ('admin','manager','staff')","'support_ticket_changed'","'support_ticket'","'status'","'priority'","'assigned_to'",'revoke update, delete on table public.admin_audit_log from anon, authenticated','after update on public.support_tickets']:
+          if needle not in text: raise SystemExit(f'Missing privileged support audit contract: {needle}')
+      for needle in ['disable row level security','new.description','old.description','new.message','old.message','support_ticket_messages','grant all','to anon']:
+          if needle in lower: raise SystemExit(f'Unsafe or content-bearing support audit change detected: {needle}')
+      PY
+
+governance:admin-support:
+  extends: .governance-node-python
+  script:
+    - node --check admin/support-tickets.js
+    - node --check admin/staff-support.js
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      base=Path('supabase/migrations/20260827173000_support_ticket_system.sql').read_text()
+      sla=Path('supabase/migrations/20260827212500_support_assignment_sla.sql').read_text()
+      staff=Path('supabase/migrations/20260827231000_support_staff_assigned_access.sql').read_text()
+      admin=Path('admin/support-tickets.js').read_text()
+      staff_ui=Path('admin/staff-support.js').read_text()
+      staff_html=Path('admin/staff.html').read_text()
+      for needle in ['user_id = auth.uid() or private.is_admin_or_manager()',"user_id = auth.uid() and status = 'open' and priority = 'normal' and assigned_to is null",'private.is_admin_or_manager()) with check (private.is_admin_or_manager())','file_size_limit,allowed_mime_types',"10485760,array['image/jpeg','image/png','image/webp','application/pdf']"]:
+          if needle not in base: raise SystemExit(f'Existing support ownership/attachment contract missing: {needle}')
+      for needle in ['add column if not exists sla_due_at timestamptz','add column if not exists first_response_at timestamptz',"when 'urgent' then interval '2 hours'", "when 'high' then interval '8 hours'", "else interval '24 hours'",'support_mark_first_response']:
+          if needle not in sla: raise SystemExit(f'SLA migration contract missing: {needle}')
+      if 'disable row level security' in sla.lower(): raise SystemExit('SLA increment must not disable existing support RLS policies')
+      for needle in ['create or replace function private.is_support_staff()',"p.role = 'staff'",'private.is_support_staff() and assigned_to = auth.uid()','private.can_work_support_ticket(ticket_id)',"bucket_id = 'support-ticket-attachments'",'t.user_id = auth.uid()','private.is_admin_or_manager()']:
+          if needle not in staff: raise SystemExit(f'Assigned-staff support contract missing: {needle}')
+      low=staff.lower()
+      for needle in ['alter table public.support_tickets disable row level security','grant all on public.support_tickets','to anon']:
+          if needle in low: raise SystemExit(f'Unsafe staff support grant detected: {needle}')
+      for needle in ['ticketAssignee','assigned_to','sla_due_at','first_response_at',".in('role',['admin','manager','staff'])",'sb.auth.getUser()','author_user_id:actor']:
+          if needle not in admin: raise SystemExit(f'Admin support UI contract missing: {needle}')
+      for needle in ["p.role!=='staff'",".eq('assigned_to',me.id)","author_user_id:me.id","author_role:'admin'","const staffWritableStatuses=new Set(['in_progress','waiting_on_user','resolved'])","update({status}).eq('id',currentTicket.id).eq('assigned_to',me.id)",'No tickets are currently assigned to you.']:
+          if needle not in staff_ui: raise SystemExit(f'Staff support UI contract missing: {needle}')
+      for needle in ['assigned_to:',"from('profiles').select('*')",'admin_set_config','admin-user-control','notification_jobs',"updates={status:$('ticketStatus').value,priority:$('ticketPriority').value}",'update({status,priority','update({priority']:
+          if needle in staff_ui: raise SystemExit(f'Staff support UI must not expose privileged Admin controls: {needle}')
+      for needle in ['ASSIGNED TICKETS ONLY','My assigned tickets','staff-support.js?v=2','login-security.js?v=1']:
+          if needle not in staff_html: raise SystemExit(f'Staff support page contract missing: {needle}')
+      PY
+
+governance:admin-support-reconcile:
+  extends: .governance-python
+  script:
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      text=Path('supabase/migrations/20260828004500_reconcile_support_production.sql').read_text(encoding='utf-8')
+      lower=text.lower()
+      for needle in ['add column if not exists sla_due_at timestamptz','add column if not exists first_response_at timestamptz','private.support_touch_ticket()','private.support_mark_first_response()','private.is_support_staff()','private.can_work_support_ticket(ticket_uuid uuid)',"p.role = 'staff'",'private.is_support_staff() and assigned_to = auth.uid()',"bucket_id = 'support-ticket-attachments'",'drop function if exists public.support_touch_ticket()','drop function if exists public.support_mark_first_response()']:
+          if needle not in text: raise SystemExit(f'Missing reconciliation contract: {needle}')
+      for needle in ['alter table public.support_tickets disable row level security','grant all on public.support_tickets','to anon','service_role','create or replace function public.support_touch_ticket()','create or replace function public.support_mark_first_response()']:
+          if needle in lower: raise SystemExit(f'Unsafe reconciliation change detected: {needle}')
+      PY
+
+governance:full-feature-contract:
+  extends: .governance-python
+  script:
+    - python3 -m py_compile scripts/full_feature_contract_audit.py scripts/brave_market_search_contract.py
+    - python3 scripts/full_feature_contract_audit.py
+    - python3 scripts/brave_market_search_contract.py
+
+governance:admin-mode-removal:
+  extends: .governance-node-python
+  script:
+    - python3 scripts/main_admin_mode_removal_contract.py
+    - node --test tests/main-admin-mode-removal.test.js
+
+governance:morley-ai-assessment-schema:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - node --test tests/morley-ai-assessment-schema.test.mjs
+
+governance:nova-knowledge-maintenance:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - node --test tests/nova_knowledge_maintenance_contract.test.mjs
+
+governance:resend-email-contract:
+  extends: .governance-node-python
+  script:
+    - node --test tests/resend-email-contract.test.js
+    - python3 scripts/release_audit.py
+    - |
+      set -euo pipefail
+      code="$(curl --silent --show-error --output /tmp/send-morley-email.json --write-out '%{http_code}' --max-time 20 -X POST 'https://ghdhairijqjqivqriigi.supabase.co/functions/v1/send-morley-email' -H 'Content-Type: application/json' --data '{"action":"notification_job","job_id":"00000000-0000-0000-0000-000000000000"}')"
+      test "$code" = '401' || { cat /tmp/send-morley-email.json || true; exit 1; }
+
+governance:support-ticket-query:
+  extends: .governance-node-python
+  script:
+    - node --check admin/support-tickets.js
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      text=Path('admin/support-tickets.js').read_text(encoding='utf-8')
+      if "profiles:user_id" in text: raise SystemExit('Support admin must not embed profiles through support_tickets.user_id')
+      required=["sb.from('support_tickets').select('*')","async function attachTicketProfiles","sb.from('profiles').select('id,display_name,email').in('id',ids)","profilesById.get(t.user_id)"]
+      missing=[needle for needle in required if needle not in text]
+      if missing: raise SystemExit(f'Support ticket profile hydration contract missing: {missing}')
+      PY
+
+governance:ui-pr-checklist:
+  extends: .governance-node-python
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+  script:
+    - |
+      set -euo pipefail
+      mkdir -p .tmp
+      curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID" \
+        -o .tmp/gitlab-mr.json
+      python3 - <<'PY'
+      import json, os
+      from pathlib import Path
+      mr=json.loads(Path('.tmp/gitlab-mr.json').read_text(encoding='utf-8'))
+      payload={'pull_request':{'body':mr.get('description') or '', 'base':{'sha':os.environ.get('CI_MERGE_REQUEST_DIFF_BASE_SHA','')}, 'head':{'sha':os.environ.get('CI_COMMIT_SHA','')}}}
+      Path('.tmp/github-event.json').write_text(json.dumps(payload), encoding='utf-8')
+      PY
+      export GITHUB_EVENT_PATH="$CI_PROJECT_DIR/.tmp/github-event.json"
+      python3 scripts/ui_pr_checklist_gate.py
+
+governance:web-bootstrap-live:
+  extends: .governance-node-python
+  script:
+    - |
+      set -euo pipefail
+      test -s index.html
+      test -s web-base.html
+      test -s workspace-fetch-resilience.js
+      node --check workspace-fetch-resilience.js
+      node --test tests/mobile-app-parity-v5.test.js
+      grep -Fq 'workspace-fetch-resilience.js?v=1' index.html
+      grep -Fq "const CANDIDATE='web-base.html'" index.html
+      grep -Fq 'XMLHttpRequest' workspace-fetch-resilience.js
+      grep -Fq "sandbox','allow-same-origin" workspace-fetch-resilience.js
+      grep -Fq 'Morley workspace transport fallbacks exhausted' workspace-fetch-resilience.js
+      grep -Fq 'Buys and Loans Hub' workspace-fetch-resilience.js
+      python3 - <<'PY'
+      from pathlib import Path
+      index=Path('index.html').read_text(encoding='utf-8')
+      if index.index('workspace-fetch-resilience.js?v=1') >= index.index("const CANDIDATE='web-base.html'"): raise SystemExit('Workspace resilience must load before browser bootstrap')
+      PY
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ] || [ "$CI_PIPELINE_SOURCE" = "web" ]; then
+        set -euo pipefail
+        BASE='https://buyshub.me'
+        retry_contains() { url="$1"; out="$2"; pattern="$3"; for attempt in 1 2 3 4 5 6; do sep='?'; case "$url" in *\?*) sep='&';; esac; if curl --fail --silent --show-error --location --max-time 30 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' --output "$out" "${url}${sep}bootstrap_sha=${CI_COMMIT_SHA}&attempt=${attempt}" && grep -Fq -- "$pattern" "$out"; then return 0; fi; sleep 10; done; return 1; }
+        retry_contains "$BASE/" /tmp/index.html 'workspace-fetch-resilience.js?v=1'
+        retry_contains "$BASE/" /tmp/index.html "const CANDIDATE='web-base.html'"
+        retry_contains "$BASE/workspace-fetch-resilience.js?v=1" /tmp/workspace-fetch-resilience.js 'Morley workspace transport fallbacks exhausted'
+        retry_contains "$BASE/workspace-fetch-resilience.js?v=1" /tmp/workspace-fetch-resilience.js 'XMLHttpRequest'
+        retry_contains "$BASE/workspace-fetch-resilience.js?v=1" /tmp/workspace-fetch-resilience.js "sandbox','allow-same-origin"
+        node --check /tmp/workspace-fetch-resilience.js
+        retry_contains "$BASE/web-base.html" /tmp/web-base.html 'Buys and Loans Hub'
+      fi
+
+governance:web-desktop-live:
+  extends: .governance-node-python
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - when: never
+  script:
+    - |
+      set -euo pipefail
+      BASE='http://buyshub.me'
+      fetch_until_contains() { url="$1"; out="$2"; pattern="$3"; for attempt in 1 2 3 4 5 6; do sep='?'; case "$url" in *\?*) sep='&';; esac; if curl --fail --silent --show-error --location --max-time 30 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' --output "$out" "${url}${sep}desktop_contract=${CI_PIPELINE_ID}_${CI_JOB_ID}_${attempt}" && grep -Fq -- "$pattern" "$out"; then return 0; fi; sleep 10; done; return 1; }
+      fetch_until_contains "$BASE/" /tmp/index.html 'morley-desktop-dashboard.js?v=2'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js 'morley-desktop-rebuild.js?v=20260913'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js 'morley-desktop-rebuild.css?v=20260913'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js "home|categories|general|settings"
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js "'Categories'"
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js '<b>Laptops</b>'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js '<b>Desktops</b>'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js '<b>Mobile Phones</b>'
+      fetch_until_contains "$BASE/morley-desktop-dashboard.js" /tmp/desktop-loader.js '<b>Gaming Consoles</b>'
+      fetch_until_contains "$BASE/morley-desktop-rebuild.js" /tmp/desktop-rebuild.js 'Search & Scan'
+      fetch_until_contains "$BASE/morley-desktop-rebuild.js" /tmp/desktop-rebuild.js 'Trade In / Buy'
+      fetch_until_contains "$BASE/morley-desktop-rebuild.js" /tmp/desktop-rebuild.js 'AI Insights'
+      fetch_until_contains "$BASE/morley-desktop-rebuild.js" /tmp/desktop-rebuild.js 'const DESKTOP=1000'
+      fetch_until_contains "$BASE/morley-desktop-rebuild.css" /tmp/desktop-rebuild.css '@media (min-width:1000px)'
+      node --check /tmp/desktop-loader.js
+      node --check /tmp/desktop-rebuild.js
+      ! grep -Fq "['phones'," /tmp/desktop-loader.js
+      ! grep -Fq "['computer'," /tmp/desktop-loader.js
+      ! grep -Fq "['console'," /tmp/desktop-loader.js
+
+.pending-provider-write:
+  stage: test
+  image: alpine:3.20
+  when: manual
+  allow_failure: true
+  script:
+    - echo 'Provider-specific write automation remains disabled until authenticated GitLab cutover and protection verification.'
+    - exit 1
+
+governance:auto-review-merge:
+  extends: .pending-provider-write
+
+governance:catalogue-live-sync:
+  extends: .pending-provider-write
+
+governance:ecosystem-autopilot:
+  extends: .pending-provider-write
+
+validate:restore-point:
+  extends: .pending-provider-write
