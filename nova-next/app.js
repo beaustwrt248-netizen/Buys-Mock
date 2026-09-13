@@ -10,6 +10,8 @@ import { createFileSession } from './src/file-session.mjs';
 import { createProductSearchUi } from './src/product-search-ui.mjs';
 import { createVoiceUi } from './src/voice-ui.mjs';
 import { createResearchUi } from './src/research-ui.mjs';
+import { createLocalPreferences } from './src/local-preferences.mjs';
+import { createSettingsUi } from './src/settings-ui.mjs';
 
 const splashView = document.getElementById('splashView');
 const loginView = document.getElementById('loginView');
@@ -45,6 +47,7 @@ let featureUi = null;
 let productSearchUi = null;
 let voiceUi = null;
 let researchUi = null;
+let settingsUi = null;
 let workspaceUi = null;
 let toastTimer = null;
 
@@ -242,6 +245,14 @@ async function bootstrap() {
     await liveRuntime.start();
     voiceUi.bind();
     researchUi.bind();
+    try {
+      const preferences = createLocalPreferences({ storage: window.localStorage });
+      settingsUi = createSettingsUi({ preferences, documentObj: document, onToast: showToast });
+      settingsUi.bind();
+    } catch (error) {
+      console.error('nova-next settings boot', error);
+      showToast('Local Settings storage is unavailable. Existing preferences remain unchanged.', 'error');
+    }
   } catch (error) {
     console.error('nova-next boot', error);
     showOnly(loginView);
