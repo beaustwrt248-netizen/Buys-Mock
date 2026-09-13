@@ -214,3 +214,44 @@ grant execute on function public.nova_search_knowledge_chunks(text, extensions.v
 
 comment on function public.nova_search_knowledge_chunks(text, extensions.vector, integer, text, text, timestamptz) is
   'Service-role Nova hybrid retrieval primitive. SECURITY INVOKER by design; callers must preserve application authorization and protected-action boundaries.';
+
+create or replace function public.nova_knowledge_health()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = pg_catalog
+as $$
+  select jsonb_build_object(
+    'active_sources', (select count(*) from public.nova_knowledge_sources where status = 'active'),
+    'stale_sources', (select count(*) from public.nova_knowledge_sources where status = 'active' and stale_after is not null and stale_after < now()),
+    'active_chunks', (select count(*) from public.nova_knowledge_chunks where status = 'active'),
+    'embedding_ready', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'ready'),
+    'embedding_pending', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'pending'),
+    'embedding_error', (select count(*) from public.nova_knowledge_chunks where status = 'active' and embedding_status = 'error'),
+    'embedding_coverage', (
+      select case when count(*) = 0 then 0::numeric else round(count(*) filter (where embedding_status = 'ready')::numeric / count(*)::numeric, 4) end
+      from public.nova_knowledge_chunks
+      where status = 'active'
+    ),
+    'sources_by_domain', (
+      select coalesce(jsonb_object_agg(domain, source_count), '{}'::jsonb)
+      from (
+        select domain, count(*) as source_count
+        from public.nova_knowledge_sources
+        where status = 'active'
+        group by domain
+        order by domain
+      ) d
+    ),
+    'ingestion_runs', (select count(*) from public.nova_knowledge_ingestion_runs),
+    'ingestion_failures', (select count(*) from public.nova_knowledge_ingestion_runs where status in ('failed','partial')),
+    'latest_ingestion_at', (select max(coalesce(completed_at, started_at)) from public.nova_knowledge_ingestion_runs)
+  );
+$$;
+
+revoke all on function public.nova_knowledge_health() from public, anon, authenticated;
+grant execute on function public.nova_knowledge_health() to service_role;
+
+comment on function public.nova_knowledge_health() is
+  'Service-role-only Nova knowledge health summary covering source freshness, embedding coverage and ingestion state without exposing document content.';
