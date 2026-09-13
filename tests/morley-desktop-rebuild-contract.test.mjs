@@ -8,6 +8,7 @@ test('desktop dashboard loader keeps existing runtime and activates rebuild asse
   const source = await read('morley-desktop-dashboard.js');
   assert.match(source, /ensureUniversalAssets\(\)/);
   assert.match(source, /morley-desktop-rebuild\.css\?v=20260913/);
+  assert.match(source, /morley-desktop-hardening\.css\?v=20260913/);
   assert.match(source, /morley-desktop-rebuild\.js\?v=20260913/);
   assert.match(source, /ensureCategories\(\)/);
 });
@@ -33,9 +34,11 @@ test('desktop quick actions are wired to existing Morley workflows', async () =>
 test('desktop rebuild is isolated from physical phone and sub-1000px layouts', async () => {
   const js = await read('morley-desktop-rebuild.js');
   const css = await read('morley-desktop-rebuild.css');
+  const hardening = await read('morley-desktop-hardening.css');
   assert.match(js, /const DESKTOP=1000/);
   assert.match(js, /morley-physical-phone/);
   assert.match(css, /@media \(min-width:1000px\)/);
+  assert.match(hardening, /@media \(min-width:1000px\)/);
 });
 
 test('desktop resize preserves legacy Morley DOM nodes and runtime listeners', async () => {
@@ -102,7 +105,7 @@ test('desktop shell controls expose real state and explicit behavior', async () 
 
 test('desktop dashboard values refresh without replacing parked legacy content', async () => {
   const source = await read('morley-desktop-rebuild.js');
-  for (const target of ['units','avg','cost','sold','deals']) assert.ok(source.includes(`data-mdr-kpi=\\"${target}\\"`) || source.includes(`data-mdr-kpi="${target}"`));
+  for (const target of ['units','avg','cost','sold','deals']) assert.ok(source.includes(`data-mdr-kpi="${target}"`));
   assert.match(source, /data-mdr-market=/);
   assert.match(source, /Current Stock Snapshot/);
   assert.match(source, /refreshDesktopState\(\)/);
@@ -119,7 +122,7 @@ test('desktop lifecycle owns boot and observer state idempotently', async () => 
 });
 
 test('desktop hardening includes visible keyboard focus and insights styling', async () => {
-  const css = await read('morley-desktop-rebuild.css');
+  const css = await read('morley-desktop-hardening.css');
   assert.match(css, /:focus-visible/);
   assert.match(css, /\.mdr-insights-panel/);
 });
