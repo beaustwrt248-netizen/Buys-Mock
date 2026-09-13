@@ -282,6 +282,7 @@ document.addEventListener('keydown', event => {
 });
 
 for (const tabList of document.querySelectorAll('.filter-tabs')) {
+  if (tabList.id === 'novaNextTaskFilters') continue;
   tabList.setAttribute('role', 'group');
   for (const candidate of tabList.querySelectorAll('button')) {
     candidate.setAttribute('aria-pressed', String(candidate.classList.contains('is-selected')));
