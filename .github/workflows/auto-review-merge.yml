@@ -61,6 +61,7 @@ jobs:
               r'\bdrop\s+(table|schema|database)\b',
               r'\btruncate\s+(table\s+)?\w+',
               r'\bdelete\s+from\s+\w+\s*;?$',
+              r'\bgit\s+push\b[^\n]*\s--force(?:-with-lease)?\b',
               r'\bforce[-_ ]?push\b',
               r'authority_expansion\s*[:=]\s*true',
               r'raw_(evidence|prices|user_backups)_exposed\s*[:=]\s*true',
@@ -73,12 +74,11 @@ jobs:
           for name in names:
               if critical_path.search(name): critical.append(name)
           for name, file_added in added_by_file.items():
-              if reference_only_path.search(name):
-                  continue
-              for pattern in critical_added:
-                  if re.search(pattern, file_added, re.I|re.M):
-                      critical.append(f'diff:{name}:{pattern}')
-              if service_role_pattern.search(file_added):
+              if not reference_only_path.search(name):
+                  for pattern in critical_added:
+                      if re.search(pattern, file_added, re.I|re.M):
+                          critical.append(f'diff:{name}:{pattern}')
+              if service_role_pattern.search(file_added) and not reference_only_path.search(name):
                   critical.append(f'diff:{name}:service-role')
 
           guarded=[n for n in names if guarded_path.search(n)]
