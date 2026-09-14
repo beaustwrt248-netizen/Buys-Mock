@@ -27,6 +27,14 @@ test('migration bridge creates only missing tags and never force-overwrites an e
   assert.doesNotMatch(workflow, /git push[^\n]*--force[^\n]*refs\/tags/);
 });
 
+test('migration bridge snapshots GitLab tags once instead of doing one network lookup per local tag', () => {
+  assert.match(workflow, /git ls-remote --tags gitlab > \/tmp\/gitlab-tags-before\.txt/);
+  assert.match(workflow, /declare -A remote_tags=\(\)/);
+  const syncBlock = workflow.match(/- name: Sync missing tags without overwriting existing tags[\s\S]*?- name: Verify tag coverage after create-only synchronization/)?.[0] ?? '';
+  assert.equal((syncBlock.match(/git ls-remote --tags gitlab/g) ?? []).length, 1);
+  assert.doesNotMatch(syncBlock, /git ls-remote gitlab "refs\/tags\/\$tag"/);
+});
+
 test('migration bridge verifies full tag parity after create-only synchronization', () => {
   assert.match(workflow, /Verify tag coverage after create-only synchronization/);
   assert.match(workflow, /GitLab tag refs match GitHub/);
