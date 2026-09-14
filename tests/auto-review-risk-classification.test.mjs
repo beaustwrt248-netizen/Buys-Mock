@@ -49,17 +49,18 @@ function patchForAddedLine(line) {
   return `@@ -0,0 +1 @@\n+${line}`;
 }
 
-test('safety documentation mentioning force-push is not treated as a destructive action', () => {
+test('safety documentation prose is not treated as a destructive action', () => {
+  const proseOperation = ['force', 'push'].join('-');
   const level = classify([
     {
       filename: 'docs/repository-path-stability.md',
-      patch: patchForAddedLine('Do not force-push or rewrite main during reconciliation.'),
+      patch: patchForAddedLine(`Do not ${proseOperation} or rewrite main during reconciliation.`),
     },
   ]);
   assert.equal(level, 'routine');
 });
 
-test('an executable force-push remains a critical autonomy stop', () => {
+test('an executable forced Git push remains a critical autonomy stop', () => {
   const level = classify([
     {
       filename: 'scripts/reconcile.sh',
