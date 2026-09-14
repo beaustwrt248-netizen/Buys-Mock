@@ -10,27 +10,27 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const html = read('index.html');
 const css = read('styles.css');
 const liveCss = read('live.css');
-const app = read('app.js');
-const runtime = read('src/live-runtime.mjs');
-const featureUi = read('src/feature-ui.mjs');
+const completionCss = read('completion.css');
+const completionUi = read('src/completion-ui.mjs');
 const manifest = JSON.parse(read('manifest.webmanifest'));
 
-assert.match(css + liveCss, /safe-area-inset-top/);
-assert.match(css + liveCss, /safe-area-inset-bottom/);
-assert.match(css + liveCss, /--nova-bottom-nav-height/);
-assert.match(css + liveCss, /--nova-composer-height/);
+const styleBundle = css + liveCss + completionCss;
+assert.match(styleBundle, /safe-area-inset-top/);
+assert.match(styleBundle, /safe-area-inset-bottom/);
+assert.match(styleBundle, /--nova-bottom-nav-height/);
+assert.match(styleBundle, /--nova-composer-height/);
 assert.match(html, /class="chat-layout"/);
 assert.match(html, /class="chat-scroll"/);
-assert.match(html, /class="chat-empty-state"/);
-assert.match(runtime, /chat-empty-state/);
-assert.match(runtime, /is-active/);
-assert.doesNotMatch(liveCss, /chat-message\.assistant[^}]*#(?:[89a-fA-F][0-9a-fA-F]){5}/);
+assert.match(html, /class="chat-empty-state is-active"/);
+assert.match(completionUi, /chat-empty-state/);
+assert.match(completionUi, /is-active/);
+assert.doesNotMatch(styleBundle, /chat-message\.assistant[^}]*#(?:[89a-fA-F][0-9a-fA-F]){5}/);
 
 assert.match(html, /data-tool-category="productivity"/);
 assert.match(html, /data-tool-category="content"/);
 assert.match(html, /data-tool-category="analysis"/);
-assert.match(app, /filterTools/);
-assert.match(app, /novaNextToolSearch/);
+assert.match(completionUi, /filterTools/);
+assert.match(completionUi, /novaNextToolSearch/);
 
 const iconPurposes = manifest.icons?.map(icon => icon.purpose || '').join(' ') || '';
 assert.ok(manifest.icons?.some(icon => icon.sizes === '192x192'));
@@ -44,5 +44,17 @@ assert.match(ota, /channel/);
 assert.match(ota, /sha256/);
 assert.match(ota, /validateNovaRelease/);
 assert.doesNotMatch(ota, /com\.buysloans\.morley/);
+
+const androidManifest = read('android/app/src/main/AndroidManifest.xml');
+const gradle = read('android/app/build.gradle');
+assert.match(androidManifest, /@mipmap\/ic_launcher/);
+assert.match(androidManifest, /REQUEST_INSTALL_PACKAGES/);
+assert.match(gradle, /NOVA_OTA_MANIFEST_URL/);
+assert.match(gradle, /NOVA_OTA_CHANNEL/);
+
+const serviceWorker = read('service-worker.js');
+assert.match(serviceWorker, /nova-next-shell-v4/);
+assert.match(serviceWorker, /NOVA_WEB_UPDATE_READY/);
+assert.match(completionUi, /NOVA_WEB_UPDATE_READY/);
 
 console.log('completion-contract: ok');
