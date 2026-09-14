@@ -188,14 +188,26 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Admin release tag $ADMIN_RELEASE_TAG already exists; refusing version identity reuse." >&2
-            exit 1
+            echo "Admin release tag $ADMIN_RELEASE_TAG already exists; verifying exact immutable release identity."
+            EXISTING_NAME="$(gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json name --jq '.name')"
+            test "$EXISTING_NAME" = "Morley Admin ${ADMIN_VERSION_NAME}" || { echo 'Existing Admin release title does not match the verified build identity.' >&2; exit 1; }
+            EXISTING_NOTES="$(gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body')"
+            printf '%s' "$EXISTING_NOTES" | grep -Fq "Built from ${GITHUB_SHA};" || { echo 'Existing Admin release source provenance does not match this exact build.' >&2; exit 1; }
+            rm -rf existing-admin-release
+            mkdir -p existing-admin-release
+            gh release download "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ADMIN_RELEASE_FILE" --dir existing-admin-release
+            test -f "existing-admin-release/${ADMIN_RELEASE_FILE}" || { echo 'Existing Admin release is missing the expected APK asset.' >&2; exit 1; }
+            EXISTING_SHA="$(sha256sum "existing-admin-release/${ADMIN_RELEASE_FILE}" | awk '{print $1}')"
+            test "$EXISTING_SHA" = "$ADMIN_SHA256" || { echo 'Existing Admin release APK does not match the exact verified build.' >&2; exit 1; }
+            echo "Existing Admin release $ADMIN_RELEASE_TAG exactly matches this verified build; reusing it."
+          else
+            gh release create "$ADMIN_RELEASE_TAG" "dist/${ADMIN_RELEASE_FILE}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Morley Admin ${ADMIN_VERSION_NAME}" \
+              --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
+              --latest=false
           fi
-          gh release create "$ADMIN_RELEASE_TAG" "dist/${ADMIN_RELEASE_FILE}" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Morley Admin ${ADMIN_VERSION_NAME}" \
-            --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
-            --latest=false
       - name: Publish Admin OTA metadata through protected main
         env:
           GH_TOKEN: ${{ github.token }}
