@@ -1,7 +1,7 @@
 {
-  "versionCode": 149,
-  "versionName": "2.15.105",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.105/B-and-L-Morley-2.15.105.apk",
-  "sha256": "609722093702223cfd1261734dfce7abce77dad1db30c4d403c938b7b9ede590",
-  "notes": "fix: align adaptive Morley navigation with approved primary destinations (#2055)"
+  "versionCode": 150,
+  "versionName": "2.15.106",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.106/B-and-L-Morley-2.15.106.apk",
+  "sha256": "a6a572823fc83f55ca6ced80b4f3d37b9bee0e604d1a9ae13147c238a419b649",
+  "notes": "Refresh Morley Buys AI scan-device experience"
 }
