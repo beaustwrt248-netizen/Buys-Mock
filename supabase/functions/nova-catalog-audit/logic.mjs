@@ -19,15 +19,48 @@ export function sanitizeError(error) {
     .slice(0, MAX_ERROR_LENGTH) || 'Unknown catalogue audit error';
 }
 
-export function sourceTier(sourceUrl, sourceName = '') {
+function normalizedIdentity(value) {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function isSafePublicSourceUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return false;
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+    if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false;
+    if (host.includes(':')) {
+      return !(host === '::1' || host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd'));
+    }
+    const parts = host.split('.');
+    if (parts.length === 4 && parts.every((part) => /^\d+$/.test(part))) {
+      const octets = parts.map(Number);
+      if (octets.some((part) => part < 0 || part > 255)) return false;
+      const [a, b] = octets;
+      if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+      if (a === 100 && b >= 64 && b <= 127) return false;
+      if (a === 169 && b === 254) return false;
+      if (a === 172 && b >= 16 && b <= 31) return false;
+      if (a === 192 && (b === 0 || b === 168)) return false;
+      if (a === 198 && (b === 18 || b === 19)) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function sourceTier(sourceUrl, sourceName = '', brand = '') {
   let host = '';
   try { host = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, ''); } catch { return 5; }
   const name = String(sourceName).toLowerCase();
-  const carrier = /(telstra|optus|vodafone)/.test(`${host} ${name}`);
-  const retailer = /(kmart|bigw|big w|woolworths|cashconverters|cash converters)/.test(`${host} ${name}`);
-  if (carrier) return 3;
-  if (retailer) return 4;
-  return 2;
+  const brandKey = normalizedIdentity(brand).replace(/\s+/g, '');
+  const hostKey = host.replace(/[^a-z0-9]/g, '');
+  const nameKey = normalizedIdentity(sourceName).replace(/\s+/g, '');
+  if (brandKey && (hostKey.includes(brandKey) || nameKey === brandKey || nameKey.startsWith(`${brandKey}support`))) return 1;
+  if (/(telstra|optus|vodafone)/.test(`${host} ${name}`)) return 3;
+  if (/(kmart|bigw|big w|woolworths|cashconverters|cash converters)/.test(`${host} ${name}`)) return 4;
+  return 5;
 }
 
 export function normalizePageText(value) {
@@ -42,12 +75,8 @@ export function normalizePageText(value) {
     .toLowerCase();
 }
 
-function normalizedIdentity(value) {
-  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
 export function classifySourceEvidence(device, pageText) {
-  const text = normalizePageText(pageText);
+  const text = normalizedIdentity(normalizePageText(pageText));
   if (!text) return { outcome: 'retry', code: 'empty_source_body', field: null };
 
   const brand = normalizedIdentity(device?.brand);
