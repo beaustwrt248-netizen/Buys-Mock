@@ -53,6 +53,13 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 - Current production incident snapshot: **28 resolved / 0 unresolved**.
 - Guardian code-changing repairs remain human-approval gated even when diagnostics are clean.
 
+### Security advisor
+
+- Fresh production Supabase advisor evidence is tracked in issue **#2033**.
+- Current findings: leaked-password protection disabled (WARN), 13 authenticated-executable `SECURITY DEFINER` functions (WARN), and 17 RLS-enabled tables with no policies (INFO).
+- Read-only sampling confirmed key Guardian/Admin functions still perform explicit role checks before privileged actions; the warnings are not proof of an active bypass, but they require a least-privilege review.
+- Do not change Auth configuration, EXECUTE grants, `SECURITY DEFINER`/`SECURITY INVOKER`, RLS policy, schema exposure, or privileged-function behavior automatically. Those are protected security boundaries.
+
 ### Active cron jobs
 
 - `buys-privacy-retention-daily`
@@ -66,9 +73,10 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 
 ## Active repository work
 
-| PR | Lane | State | Safety / next action |
+| PR / issue | Lane | State | Safety / next action |
 | --- | --- | --- | --- |
 | #2029 | Nova Next route/password accessibility | Open, mergeable; exact-head CI green | Includes a new GitHub Actions workflow, so merge remains a protected repository-security change despite the low-risk product code. Require explicit Beau approval before merge. |
+| #2033 | Supabase security-advisor review | Open | Read-only evidence captured. Prepare least-privilege remediation proposal; any Auth/RLS/EXECUTE/SECURITY DEFINER mutation requires explicit approval. |
 | #1947 | Staged GitLab migration parity | Draft | Keep GitHub as canonical baseline until same-SHA GitLab parity, protections, rollback and cutover checks are proven. |
 
 ## Completed material transitions
@@ -92,15 +100,17 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 1. **Production-first reliability:** login/temp-password freezes, Admin access, catalogue/sync integrity, Guardian incidents, release failures, Nova availability, backup health, serious security/privacy regressions.
 2. **Catalogue processor recovery:** implement a tracked consumer for `nova_catalog_audit_queue` with safe claiming, retries, evidence recording, unresolved blocking, and run finalisation before re-enabling enqueue cron.
 3. **Backup recovery:** permanently repair the scheduled server OAuth path; freshness visibility and historical reachability checks are improved, but the credential-dependent backup itself remains paused and stale.
-4. **Catalogue integrity:** continue classifying shared model-number groups as legitimate configurations versus true canonical collisions before any merge/deactivation proposal.
-5. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact; #2029 is implementation-ready but protected because it adds a workflow.
-6. **Morley Admin parity:** verify post-merge deployment/runtime state where deployment visibility is available and continue non-protected parity defects from evidence.
-7. **Morley AI / valuation:** continue adjacent non-protected valuation tests, evidence quality, and regression monitoring without weakening authoritative pricing/approval boundaries.
-8. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
+4. **Security hardening:** complete #2033 read-only privilege/exposure inventory and prepare a least-privilege proposal without changing protected auth/RLS/security boundaries.
+5. **Catalogue integrity:** continue classifying shared model-number groups as legitimate configurations versus true canonical collisions before any merge/deactivation proposal.
+6. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact; #2029 is implementation-ready but protected because it adds a workflow.
+7. **Morley Admin parity:** verify post-merge deployment/runtime state where deployment visibility is available and continue non-protected parity defects from evidence.
+8. **Morley AI / valuation:** continue adjacent non-protected valuation tests, evidence quality, and regression monitoring without weakening authoritative pricing/approval boundaries.
+9. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
 
 ## Protected blockers requiring Beau action
 
 - Merge approval for PRs that cross protected boundaries, including authentication/authorization, protected pricing approval policy, or GitHub workflow/repository-security changes. Current example: #2029.
+- Security configuration changes arising from #2033, including enabling leaked-password protection or changing EXECUTE/RLS/`SECURITY DEFINER` behavior.
 - Server Google OAuth credential/publishing-state correction for scheduled full-system Drive backups.
 - Any production restore/overwrite, protected RLS/schema/security mutation, signing credential, repository visibility, billing, or equivalent high-risk action.
 
