@@ -68,4 +68,14 @@ class MorleyVisionStaffConditionAndCategoryContractTest {
         assertFalse(edge.contains("categoryGuidance(clean(body?.category_hint, 40) || \"phone\")"))
         assertTrue(edge.contains("case \"generic\""))
     }
+
+    @Test
+    fun stockEntryMustUseStaffConfirmedConditionRatherThanAiSuggestion() {
+        val activity = File("src/main/java/com/buysloans/hub/DeviceLensActivity.kt").readText()
+
+        assertFalse(activity.contains("confirmedCondition = gradeLabel(it.conditionGrade)"))
+        assertFalse(activity.contains("confirmedCondition.ifBlank { gradeLabel(result.conditionGrade) }"))
+        assertTrue(activity.contains("confirmedCondition = MorleyVisionPolicy.conditionLabel(result.staffConfirmedConditionGrade)"))
+        assertTrue(activity.contains("MorleyVisionPolicy.conditionLabel(result.staffConfirmedConditionGrade)"))
+    }
 }
