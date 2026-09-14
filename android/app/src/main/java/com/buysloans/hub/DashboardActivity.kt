@@ -81,9 +81,9 @@ private enum class BottomDestination(val label: String, val icon: ImageVector) {
 
 private enum class ExpandedDestination(val label: String, val icon: ImageVector) {
     HOME("Home", MorleyIcons.Home),
-    CATEGORIES("Categories", MorleyIcons.Categories),
-    GP("General Buys", MorleyIcons.Money),
-    MORE("More", MorleyIcons.More)
+    CATALOGUE("Catalogue", MorleyIcons.Categories),
+    SCAN("Scan", MorleyIcons.Phone),
+    TRADE("Trade", MorleyIcons.Money)
 }
 
 @Composable
@@ -150,9 +150,12 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     fun selectExpandedDestination(destination: ExpandedDestination) {
         when (destination) {
             ExpandedDestination.HOME -> { showMenu = false; page = Page.Home }
-            ExpandedDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }
-            ExpandedDestination.GP -> { showMenu = false; page = Page.GP }
-            ExpandedDestination.MORE -> openMenu()
+            ExpandedDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }
+            ExpandedDestination.SCAN -> {
+                showMenu = false
+                context.startActivity(Intent(context, DeviceLensActivity::class.java))
+            }
+            ExpandedDestination.TRADE -> { showMenu = false; page = Page.GP }
         }
     }
 
@@ -190,9 +193,9 @@ private fun DashboardApp(showUpdatedInitially: Boolean = false) {
     val adaptiveNavItems = ExpandedDestination.entries.map { destination ->
         val selected = when (destination) {
             ExpandedDestination.HOME -> !showMenu && page == Page.Home
-            ExpandedDestination.CATEGORIES -> !showMenu && page == Page.Laptop
-            ExpandedDestination.GP -> !showMenu && page == Page.GP
-            ExpandedDestination.MORE -> showMenu
+            ExpandedDestination.CATALOGUE -> !showMenu && page == Page.Laptop
+            ExpandedDestination.SCAN -> false
+            ExpandedDestination.TRADE -> !showMenu && page == Page.GP
         }
         AdaptiveNavItem(destination.label, destination.icon, selected) { selectExpandedDestination(destination) }
     }
