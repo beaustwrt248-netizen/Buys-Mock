@@ -1,11 +1,12 @@
 const SHA256_PATTERN = /^[a-f0-9]{64}$/i;
 const HTTPS_PATTERN = /^https:\/\//i;
+const RELEASE_PATH_PATTERN = /^\/beaustwrt248-netizen\/Buys-Mock\/releases\/download\/nova-next-v[^/]+\/Nova-Next-[^/]+\.apk$/;
 
 export const NOVA_OTA_CONFIG = Object.freeze({
   appId: 'nova-next',
   packageName: 'com.buysloans.novanext',
   channel: 'stable',
-  manifestUrl: 'https://buyshub.me/downloads/nova-next/stable/manifest.json'
+  manifestUrl: 'https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova-next/nova-update.json'
 });
 
 function otaError(code) {
@@ -47,12 +48,8 @@ export function validateNovaRelease(release, {
   if (!HTTPS_PATTERN.test(downloadUrl)) throw otaError('NOVA_OTA_DOWNLOAD_URL_INVALID');
 
   const url = new URL(downloadUrl);
-  if (url.hostname !== 'buyshub.me' && url.hostname !== 'www.buyshub.me') {
-    throw otaError('NOVA_OTA_DOWNLOAD_HOST_INVALID');
-  }
-  if (!url.pathname.startsWith('/downloads/nova-next/')) {
-    throw otaError('NOVA_OTA_DOWNLOAD_PATH_INVALID');
-  }
+  if (url.hostname !== 'github.com') throw otaError('NOVA_OTA_DOWNLOAD_HOST_INVALID');
+  if (!RELEASE_PATH_PATTERN.test(url.pathname)) throw otaError('NOVA_OTA_DOWNLOAD_PATH_INVALID');
 
   return Object.freeze({
     appId,
@@ -62,7 +59,7 @@ export function validateNovaRelease(release, {
     versionName,
     sha256,
     downloadUrl: url.toString(),
-    releaseNotes: String(release.releaseNotes ?? '').trim(),
+    releaseNotes: String(release.releaseNotes ?? release.notes ?? '').trim(),
     publishedAt: String(release.publishedAt ?? '').trim()
   });
 }
