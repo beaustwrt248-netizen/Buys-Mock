@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 17:04 AWST
+Last reconciled: 2026-09-14 22:07 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `a5e49957fa35a39e0d613107449e7fd65a6ba200`.
+Observed `main` head: `e53bbb542143e1c520ad8c38fdfb5a0b05957a8c`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -22,56 +22,50 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 - Morley Buys **2.15.105 / versionCode 149** remains the current published OTA identity.
 - Release asset digest and OTA metadata were previously verified equal at `609722093702223cfd1261734dfce7abce77dad1db30c4d403c938b7b9ede590`.
-- PR #2055 is complete: adaptive Android navigation follows `Home / Catalogue / Scan / Trade`, with More in the hamburger path and Stock secondary.
+- Adaptive Android navigation follows `Home / Catalogue / Scan / Trade`, with More in the hamburger path and Stock secondary.
 
-### Web catalogue presentation
+### Admin web / mobile web
 
-- PR **#2081** merged as `0360709b356eb9b9498291f24d74e7c4654258fd` after exact-head security, quality, parity, UI consistency and checklist gates were green.
-- Tablets and Smartwatches now have dedicated catalogue sections and group legitimate connectivity/storage variants without deleting or rewriting source catalogue rows or pricing data.
-- Visible Storage/Connectivity selections resolve to existing authoritative source rows; impossible synthetic combinations are not created.
+- Native-authority parity remains merged: authenticated Admin web/mobile uses the dedicated parity core and read-only catalogue/release owners instead of broad legacy browser authority.
+- PR **#2134** merged as current `main` `e53bbb542143e1c520ad8c38fdfb5a0b05957a8c` and fixes incomplete Admin catalogue loading by paging all active catalogue rows in deterministic order instead of relying on a single Supabase response page.
+- #2134 included cache/deployment contract updates and regression coverage. Treat source merge as proven; do not claim a production web deployment without separate deployment evidence.
+- Continue mobile-browser layout/freezing/accessibility and native-app parity auditing from current main.
 
 ### Backup / recovery
 
-- Google Drive OAuth refresh-token rotation and manual full-system recovery verification remain healthy.
-- The last verified full-system backup audit event is **2026-09-14 05:59:39 UTC**, exporting 13 tables and passing upload/re-download SHA-256 verification (`ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841`, 366,840 bytes).
-- PR **#2064** is merged and its approved migration is applied in production.
+- Google Drive OAuth refresh-token rotation and protected manual full-system recovery verification are complete; issue **#2051** is closed.
+- The last verified full-system backup audit event remains **2026-09-14 05:59:39 UTC**, exporting 13 tables and passing upload/re-download SHA-256 verification (`ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841`, 366,840 bytes).
 - Production `cron.job` contains exactly one active `morley-google-drive-backup-daily` at `0 19 * * *`, using the existing Vault-backed scheduler secret.
-- The restored cron has not yet reached its first post-repair 19:00 UTC execution window; keep issue #2051 open until a new scheduled audit event proves the automatic path end-to-end with recovery verification.
-- The open `stale_backup` finding belongs to the separate per-user encrypted Drive backup subsystem and is tracked by issue **#2070**; do not conflate it with full-system backup health.
+- The restored daily cron has not yet reached its first post-repair 19:00 UTC execution window. Require a new scheduler-triggered audit row plus recovery verification before treating unattended backup scheduling as fully proven.
+- The open `stale_backup` finding belongs to the separate per-user encrypted Drive backup subsystem tracked by issue **#2070**; do not conflate it with full-system backup health.
 
-### Nova knowledge
+### Nova knowledge maintenance
 
+- PR **#2125** merged as `e63c6932c59d2e1bd327187fcf2c467297d16683` and the `nova-knowledge-maintenance` Edge Function is active as production version **9**.
+- The repair isolates clearly transient gateway/502/503/504/upstream source-query failures, records privacy-safe source-boundary diagnostics, preserves fail-closed behavior for auth/permission/schema/unknown errors, and continues independent embedding work instead of aborting the whole cycle.
 - Production has one active `nova-knowledge-maintenance-every-5-minutes` cron at `*/5 * * * *`.
-- Current chunk embedding snapshot: **312 ready / 4,404 pending / 0 error rows observed**.
-- Continue measuring evaluation quality, unsupported claims, citation/source quality, latency/provider failures and benchmark drift; raw corpus growth alone is not proof of better answers.
+- Seven consecutive post-deploy runs observed from **13:35 through 14:05 UTC** completed successfully with `embedded_ready=4`, `embedded_error=0`, `ingested_skipped=4`, `ingested_error=0` and no error summary.
+- Current active chunk embedding snapshot: **556 ready / 4,160 pending / 0 error**.
+- Continue evaluation quality, unsupported-claim, citation/source, latency/provider-failure and benchmark-drift measurement; raw corpus growth alone is not proof of better answers.
 
-### Catalogue / data integrity
+### Catalogue audit / data integrity
 
-- Current audit queue snapshot: **961 verified / 70 blocked / 1,082 pending**.
-- Audit-run snapshot: **12 completed / 16 queued / 1 running**. Recent scheduled runs remain unfinished with 75 scanned and 0 verified.
-- Current active device count remains **1,776**.
-- Read-only production inspection confirms the only database function referencing `nova_catalog_audit_queue` is the enqueue function, and the active Edge Function inventory has no dedicated catalogue-audit queue consumer.
-- Issue **#2093** tracks the missing safe claim/process/finalise worker. Catalogue enqueue remains paused; do not re-enable it until a tested consumer with bounded claiming, retry/evidence recording and run finalisation is verified.
-- Preserve unresolved model-number gaps and shared-model groups as unresolved classification work; never guess identifiers/specifications or auto-merge ambiguous production records.
+- Issue **#2093** is complete: a bounded catalogue-audit claim/process/finalise consumer exists and production `nova-catalog-audit` Edge Function version **2** is active.
+- The worker preserves authoritative catalogue facts, blocks unresolved facts for review, uses bounded retries/backoff, records provenance/finding evidence and reconciles run state without coupling descriptive catalogue work to valuation/pricing approval.
+- Current queue snapshot: **961 verified / 77 blocked / 1,075 pending**. Current audit-run snapshot: **12 completed / 15 queued / 2 running**. Active device count remains **1,776**.
+- Controlled production verification after the year-suffix identity fix now classifies `GPD WIN Mini (2024)` and `GPD WIN Max 2 (2024)` as `model_number` review findings rather than false identity mismatches. Other rows remain conservatively blocked where evidence is still insufficient, including identity/source-URL cases.
+- Catalogue enqueue cron remains intentionally absent. Do not restore automatic enqueueing until a broader bounded sample confirms worker behavior and run reconciliation under production data; never allow backlog growth to outrun drain capacity.
+- Preserve unresolved model-number gaps and legitimate regional/hardware variants; never guess identifiers/specifications or auto-merge ambiguous production records.
 
 ### Guardian
 
 - Current production incident snapshot: **28 resolved / 0 unresolved**.
-- Continue source-discovery/runtime diagnostics. Guardian code-changing repair PRs remain human-approval gated.
-
-### Admin web/mobile parity
-
-- PR #2072 merged: Morley Admin web Refresh reloads live data instead of presenting stale refresh behavior.
-- PR **#2080** merged as `a5e49957fa35a39e0d613107449e7fd65a6ba200` after the native-authority refactor reached an all-green exact-head gate set and the protected merge was approved.
-- Authenticated Admin web/mobile now uses `admin-native-parity-core.js` plus a dedicated read-only catalogue owner rather than executing the broader legacy `app.js`, pricing, release-writer and control-governance owners.
-- Catalogue and Staff alerts are read-only; Release is read-only; Safe Controls owns only maintenance/message/Admin OTA state; user access omits legacy delete/force-signout/display-name editing while retaining native-equivalent role, enable/disable, invite and password operations; manual notifications retain audience/user targeting without installation/device targeting.
-- Auth/RLS/schema, Guardian authority, pricing formulas, native Android behavior and APK release identity were not changed by #2080.
-- Exact-head checks were green before merge, including Repository Security Audit, B&L Morley Quality Gate, Full Feature Contract Audit, Admin OTA Release Safety, Admin Support Governance, Admin Device Governance, Admin Control Integration Audit, Admin Android Least-Privilege Gate, Morley Ultimate Parity Gate, Recovery Backup Contract, Web Release Smoke Checks, Morley Email Contract and UI PR Checklist Gate. Post-merge workflows observed for the merge SHA show no failed runs.
+- Continue generated-runtime/source-discovery diagnostics. Guardian code-changing repair PRs remain human-approval gated.
 
 ### Security / performance
 
 - Issue **#2033** tracks Supabase security-advisor least-privilege review. Protected Auth/RLS/EXECUTE/SECURITY DEFINER changes require explicit approval.
-- Issue **#2040** tracks performance-advisor findings. Preserve integrity-bearing indexes and require dependency/rollback evidence before DDL cleanup.
+- Issue **#2040** tracks performance-advisor findings. Fresh read-only audit found no exact structural duplicate indexes in `public`; the largest zero-scan indexes are intentional Nova/catalogue search/vector/hash capability indexes, while many small zero-scan indexes are constraint, relationship, history or low-frequency operational paths. No evidence-backed DROP candidate exists yet.
 
 ### Active production cron jobs
 
@@ -86,41 +80,41 @@ Catalogue enqueue remains intentionally paused.
 
 | PR / issue | Lane | State | Next safe action |
 | --- | --- | --- | --- |
-| #2051 | Full-system Drive backup recovery | Scheduler restored; automatic proof pending | After the first post-repair 19:00 UTC run, require a new scheduler-triggered backup audit row with verified re-download digest before closing. |
-| #2093 | Catalogue audit consumer | Root cause confirmed | Implement and test a bounded claim/process/finalise consumer before re-enabling enqueue. |
-| #2070 | Per-user encrypted Drive freshness semantics | Open | Keep separate from full-system backup; define active-session vs unattended freshness semantics before implementation. |
-| #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege evidence. |
-| #2040 | Database performance advisor | Open | Continue conservative classification; no speculative index removal. |
-| #1947 | Staged GitLab migration parity | Draft | GitHub `main` remains canonical until same-SHA parity, protections, rollback and final cutover checks are proven. |
+| #1947 | Staged GitLab migration parity | Draft | Keep GitHub `main` canonical; continue same-SHA parity/protection/rollback validation without cutover. |
+| #2070 | Per-user encrypted Drive freshness semantics | Open | Keep separate from full-system backup; gather active-session/account-activity evidence before choosing semantics. Any unattended OAuth credential design is protected. |
+| #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege inventory and prepare narrow proposals only; no Auth/RLS/EXECUTE mutation without Beau approval. |
+| #2040 | Database performance advisor | Open | Map non-constraint indexes to query consumers and representative plans; no speculative index removal. |
+| #431 | Full feature validation | Open | Continue current-main regression auditing; keep physical camera/touch/orientation checks marked MANUAL-DEVICE unless actually observed. |
 
 ## Completed material transitions
 
 - Durable non-sensitive autopilot ledger and reconciliation workflow established.
-- Nova recurring maintenance scheduler restored.
-- Full-system Google Drive OAuth repaired; recovery verification passed; daily scheduler restored in production.
 - Morley Buys 2.15.105 / 149 released through OTA with matching digest.
-- Adaptive Android navigation repair merged.
-- Admin web live Refresh parity repair merged.
-- Admin web/mobile native-authority parity hardened and merged through #2080 with legacy browser-only authority removed from the authenticated parity loader.
-- Tablet and Smartwatch dedicated catalogue grouping merged through #2081 without source-row or pricing mutation.
-- Catalogue audit queue non-drainage was traced to the absence of a verified consumer and captured in #2093; runaway enqueue remains prevented.
+- Adaptive Android navigation and catalogue-first intent merged.
+- Admin web native-authority parity hardened and broad legacy browser authority removed from the authenticated parity loader.
+- Admin full-catalogue pagination repair merged through #2134 with regression coverage.
+- Tablet and Smartwatch dedicated catalogue grouping merged without source-row or pricing mutation.
+- Full-system Google Drive OAuth repaired; protected manual backup/recovery verification passed; daily scheduler restored.
+- Nova recurring maintenance scheduler restored and transient source-boundary failure handling repaired/deployed through #2125.
+- Catalogue audit queue consumer implemented/deployed through #2093; automatic enqueue remains paused pending broader bounded production verification.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
 - Shared model-number governance remains non-destructive and evidence-driven.
 
 ## High-priority unfinished lanes
 
-1. Production reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
-2. Verify the first automatic full-system backup after scheduler restoration.
-3. Implement and verify the #2093 catalogue-audit consumer before any enqueue cron is restored.
-4. Continue Admin web/mobile functional parity and mobile-browser usability now that native authority is aligned.
+1. Production-first reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
+2. Verify the first automatic full-system backup after the restored 19:00 UTC scheduler execution.
+3. Continue bounded catalogue-audit worker verification and run reconciliation before restoring any enqueue schedule.
+4. Continue Admin web/mobile functional parity, mobile-browser usability and deployment verification from #2134.
 5. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
 6. Continue Morley Buys UI/login reliability and app/web parity with regression coverage.
 7. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
-8. Continue read-only security/performance classification and GitLab staged migration validation.
+8. Continue read-only security/performance classification and staged GitLab migration validation.
 
 ## Protected blockers requiring Beau action
 
 - Security configuration changes arising from #2033, including Auth/RLS/EXECUTE/SECURITY DEFINER changes, require explicit approval.
+- Durable unattended per-user Google Drive OAuth/credential storage under #2070 would require explicit protected approval before implementation.
 - Production restore/overwrite, OAuth/secret rotation, protected schema/security mutation, signing credential, repository visibility, billing, Guardian code-changing repair or equivalent high-risk action requires explicit approval.
 
 ## Reconciliation checklist
