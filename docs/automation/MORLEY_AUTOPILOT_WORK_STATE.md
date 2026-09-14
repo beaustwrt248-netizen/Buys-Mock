@@ -1,6 +1,6 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 23:10 AWST
+Last reconciled: 2026-09-14 23:12 AWST
 Canonical repository baseline: protected `main`.
 Observed `main` head: `3a390f97d44f530e6b4d2d7050785764d053bb7b`.
 
@@ -39,28 +39,28 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Production `cron.job` contains exactly one active `morley-google-drive-backup-daily` at `0 19 * * *`, using the existing Vault-backed scheduler secret.
 - The restored daily cron has not yet reached its first post-repair 19:00 UTC execution window. Require a new scheduler-triggered audit row plus recovery verification before treating unattended backup scheduling as fully proven.
 - PR **#2137** merged as `1f40bef4e3d53bfe0352397c37623a183e32be7e`; its exact head passed Quality, Security, Full Feature, Recovery Backup, Path Stability, Pricing Migration, Catalogue Classification and Ultimate Parity gates.
-- The `recovery-readiness` Edge Function is active as production version **7** and separates `stale_backup` findings into connection-dependent per-user encrypted Drive freshness while keeping global full-system recovery findings distinct.
-- The approved migration removed only redundant non-unique `idx_app_invites_email_unused`; required UNIQUE `app_invites_active_email_idx` remains present.
+- The `recovery-readiness` Edge Function is active as production version **7** and now separates `stale_backup` findings into connection-dependent per-user encrypted Drive freshness while keeping global full-system recovery findings distinct.
+- The approved migration removed only redundant non-unique `idx_app_invites_email_unused`; required UNIQUE `app_invites_active_email_idx` remains present and enforces one unused invite per normalized email.
 - Issue **#2070** remains open until active-session freshness semantics are fully reconciled end-to-end; no OAuth token persistence or unattended per-user credential model was introduced.
 
 ### Nova knowledge maintenance
 
 - PR **#2125** merged as `e63c6932c59d2e1bd327187fcf2c467297d16683` and the `nova-knowledge-maintenance` Edge Function is active as production version **9**.
 - The repair isolates clearly transient gateway/502/503/504/upstream source-query failures, records privacy-safe source-boundary diagnostics, preserves fail-closed behavior for auth/permission/schema/unknown errors, and continues independent embedding work instead of aborting the whole cycle.
-- Twelve consecutive post-repair runs through 14:20 UTC were healthy; issue **#2103** is closed.
-- Latest observed embedding snapshot before this reconciliation: **568 ready / 4,148 pending / 0 error**.
+- The latest **12** recorded maintenance runs through **14:20 UTC** all completed successfully with `embedded_ready=4`, `embedded_error=0`, `ingested_skipped=4`, `ingested_error=0` and no error summary.
+- Issue **#2103** is closed as completed after this post-deploy production verification.
+- Current active chunk embedding snapshot: **568 ready / 4,148 pending / 0 error**.
 - Continue evaluation quality, unsupported-claim, citation/source, latency/provider-failure and benchmark-drift measurement; raw corpus growth alone is not proof of better answers.
 
 ### Catalogue audit / data integrity
 
 - Issue **#2093** is complete: a bounded catalogue-audit claim/process/finalise consumer exists.
-- PR **#2147** merged as `3a390f97d44f530e6b4d2d7050785764d053bb7b` after exact-head Security, Quality, Full Feature, Catalogue, Recovery, Path Stability and Ultimate Parity checks passed.
-- Production `nova-catalog-audit` Edge Function is ACTIVE as version **3** with `verify_jwt=false` preserved for the existing maintenance-secret scheduler contract.
-- Version 3 adds deterministic run-state calculation plus a bounded reconciliation sweep of up to 8 oldest `running` audit runs independently of the current claimed batch. It does not alter catalogue facts, pricing, enqueue cadence, Auth/RLS, Guardian authority or worker claim semantics.
-- Current queue snapshot before post-deploy scheduled proof: **961 verified / 90 blocked / 1 in_progress / 1,061 pending**.
-- Known stale run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` has **62 blocked + 13 verified** terminal queue rows but was still marked `running` before v3 deployment. Run `25b34a8c-3a85-48db-bc57-1bf386a72f08` remains legitimately non-terminal with pending work.
-- Issue **#2142** remains open until a post-deploy worker invocation proves the stale terminal run is finalized while the genuinely non-terminal run remains running.
-- `nova-catalog-audit-worker-hourly` remains active at `37 * * * *`; automatic enqueue remains intentionally absent.
+- PR **#2147** merged as `3a390f97d44f530e6b4d2d7050785764d053bb7b`; its exact head passed Security, Quality, Full Feature, Recovery Backup, Path Stability, Catalogue Classification, Pricing Migration and Ultimate Parity gates.
+- Production `nova-catalog-audit` Edge Function is active as version **4** and now performs bounded independent reconciliation of stale `running` audit runs after each worker pass, rather than only reconciling run IDs touched by the current claimed batch.
+- Issue **#2142** is closed after production verification. Stale run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` was rechecked at **13 verified / 62 blocked / 0 pending / 0 in_progress**, then safely finalized as completed with `finished_at` set; queue facts were not changed by that reconciliation.
+- Current queue snapshot after verification: **961 verified / 91 blocked / 1,061 pending**. Current audit-run snapshot: **13 completed / 15 queued / 1 running**.
+- The worker preserves authoritative catalogue facts, blocks unresolved facts for review, uses bounded retries/backoff, records provenance/finding evidence and reconciles run state without coupling descriptive catalogue work to valuation/pricing approval.
+- The bounded worker schedule remains active at `37 * * * *`; catalogue enqueue remains intentionally absent. Do not restore automatic enqueueing until drain capacity and broader production behavior are proven safe.
 - Preserve unresolved model-number gaps and legitimate regional/hardware variants; never guess identifiers/specifications or auto-merge ambiguous production records.
 
 ### Guardian
@@ -71,22 +71,21 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Security / performance
 
 - Issue **#2033** tracks Supabase security-advisor least-privilege review. Protected Auth/RLS/EXECUTE/SECURITY DEFINER changes require explicit approval.
-- Issue **#2040** tracks performance-advisor findings.
-- PR **#2137** removed one proven redundant invite lookup index while preserving its UNIQUE integrity index.
-- PR **#2143** subsequently merged an evidence-backed cleanup of the redundant Nova revision sort index while preserving the UNIQUE Nova revision identity index. No broader speculative index cleanup is authorised.
+- Issue **#2040** tracks performance-advisor findings. Fresh read-only audit found no broad structural duplicate-index pattern; evidence-backed cleanups must remain narrow, reversible and independently verified before production mutation.
+- PR **#2143** is present in current main as a narrow source-level performance cleanup for a redundant Nova revision sort index. Do not infer production DDL application from the merge alone; verify live index state before marking that cleanup fully complete.
 
 ### CI incident reconciliation
 
-- Autopilot cancellation issues **#2138** (Ultimate Parity) and **#2140** (B&L Quality) came from intermediate #2137 commits while the branch was moving.
-- Final #2137 head passed both workflows plus remaining gates, so both incidents are closed without bypassing checks.
+- Autopilot cancellation issues **#2138** (Ultimate Parity) and **#2140** (B&L Quality) came from intermediate #2137 commits while the branch was still moving.
+- Final #2137 head `9eead8266538680062861282b8692e25e6b93731` passed both workflows plus the remaining required gates, so both autopilot incidents are closed as superseded/resolved without bypassing checks.
 
 ### Active production cron jobs
 
 - `buys-privacy-retention-daily` — `17 3 * * *`
 - `morley-google-drive-backup-daily` — `0 19 * * *`
 - `morley-recovery-health-hourly` — `17 * * * *`
-- `nova-knowledge-maintenance-every-5-minutes` — `*/5 * * * *`
 - `nova-catalog-audit-worker-hourly` — `37 * * * *`
+- Nova knowledge maintenance remains active on its established five-minute cadence.
 
 Catalogue enqueue remains intentionally paused.
 
@@ -94,11 +93,10 @@ Catalogue enqueue remains intentionally paused.
 
 | PR / issue | Lane | State | Next safe action |
 | --- | --- | --- | --- |
-| #2142 | Catalogue audit stale run reconciliation | Merged/deployed; production proof pending | Observe the next post-deploy v3 worker invocation; verify stale terminal run finalizes and non-terminal run remains running, then close if clean. |
 | #1947 | Staged GitLab migration parity | Draft | Keep GitHub `main` canonical; continue same-SHA parity/protection/rollback validation without cutover. |
 | #2070 | Per-user encrypted Drive freshness semantics | Open / partially remediated | Verify consumers use separated global/user findings and decide whether activity-aware suppression is needed; unattended OAuth storage remains protected. |
 | #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege inventory and prepare narrow proposals only; no Auth/RLS/EXECUTE mutation without Beau approval. |
-| #2040 | Database performance advisor | Open | Continue evidence-backed query/index mapping after approved redundant-index cleanups; no speculative removals. |
+| #2040 | Database performance advisor | Open | Verify #2143 live index state, then continue evidence-backed query/index mapping; no speculative removals. |
 | #431 | Full feature validation | Open | Continue current-main regression auditing; keep physical camera/touch/orientation checks marked MANUAL-DEVICE unless actually observed. |
 
 ## Completed material transitions
@@ -106,22 +104,21 @@ Catalogue enqueue remains intentionally paused.
 - Durable non-sensitive autopilot ledger and reconciliation workflow established.
 - Morley Buys 2.15.105 / 149 released through OTA with matching digest.
 - Adaptive Android navigation and catalogue-first intent merged.
-- Admin web native-authority parity hardened and broad legacy browser authority removed from authenticated parity loader.
+- Admin web native-authority parity hardened and broad legacy browser authority removed from the authenticated parity loader.
 - Admin full-catalogue pagination repair merged through #2134 with regression coverage.
 - Tablet and Smartwatch dedicated catalogue grouping merged without source-row or pricing mutation.
 - Full-system Google Drive OAuth repaired; protected manual backup/recovery verification passed; daily scheduler restored.
-- Recovery-readiness separates per-user encrypted Drive freshness from global backup health.
-- Nova recurring maintenance scheduler restored and transient source-boundary handling repaired/deployed through #2125.
-- Catalogue audit queue consumer implemented/deployed through #2093; stale-run reconciliation implemented/deployed through #2147; automatic enqueue remains paused pending broader production verification.
-- Two evidence-backed redundant indexes have been removed while their corresponding UNIQUE integrity indexes remain preserved.
+- Recovery-readiness now separates per-user encrypted Drive freshness from global backup health; one proven redundant invite lookup index removed while UNIQUE integrity protection remains.
+- Nova recurring maintenance scheduler restored and transient source-boundary failure handling repaired/deployed through #2125; issue #2103 is closed after healthy post-deploy verification.
+- Catalogue audit queue consumer implemented/deployed; stale-run reconciliation repaired/deployed through #2147 and issue #2142 is closed after production verification.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
 - Shared model-number governance remains non-destructive and evidence-driven.
 
 ## High-priority unfinished lanes
 
 1. Production-first reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
-2. Observe and verify the first post-deploy v3 catalogue worker reconciliation for issue #2142.
-3. Verify the first automatic full-system backup after the restored 19:00 UTC scheduler execution.
+2. Verify the first automatic full-system backup after the restored 19:00 UTC scheduler execution.
+3. Continue bounded catalogue-audit drain verification before restoring any enqueue schedule; confirm subsequent scheduled worker runs keep stale-run bookkeeping coherent.
 4. Verify recovery-readiness consumers display per-user stale backup separately from global full-system recovery state.
 5. Continue Admin web/mobile functional parity, mobile-browser usability and deployment verification from #2134.
 6. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
@@ -132,7 +129,7 @@ Catalogue enqueue remains intentionally paused.
 ## Protected blockers requiring Beau action
 
 - Security configuration changes arising from #2033, including Auth/RLS/EXECUTE/SECURITY DEFINER changes, require explicit approval.
-- Durable unattended per-user Google Drive OAuth/credential storage under #2070 requires explicit protected approval before implementation.
+- Durable unattended per-user Google Drive OAuth/credential storage under #2070 would require explicit protected approval before implementation.
 - Production restore/overwrite, OAuth/secret rotation, protected schema/security mutation, signing credential, repository visibility, billing, Guardian code-changing repair or equivalent high-risk action requires explicit approval.
 
 ## Reconciliation checklist
