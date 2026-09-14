@@ -1,0 +1,106 @@
+name: GitLab Variable Bootstrap
+
+on:
+  push:
+    branches:
+      - migration/gitlab-staged-20260914
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Copy protected CI variables without exposing values
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLAB_PROJECT_PATH: beaustwrt248-netizen/Buys-Mock
+      GITLAB_SETUP_TOKEN: ${{ secrets.GITLAB_SETUP_TOKEN }}
+      BL_KEYSTORE_BASE64: ${{ secrets.BL_KEYSTORE_BASE64 }}
+      BL_KEYSTORE_PASSWORD: ${{ secrets.BL_KEYSTORE_PASSWORD }}
+      BL_KEY_ALIAS: ${{ secrets.BL_KEY_ALIAS }}
+      FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+    steps:
+      - name: Checkout migration revision
+        uses: actions/checkout@v4
+
+      - name: Verify bootstrap workflow contract
+        shell: bash
+        run: node --test tests/gitlab-variable-bootstrap-workflow.test.mjs
+
+      - name: Skip until dedicated setup credential is configured
+        id: setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${GITLAB_SETUP_TOKEN:-}" ]]; then
+            echo 'GITLAB_SETUP_TOKEN is not configured; protected variable transfer was not attempted.'
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+
+      - name: Require existing GitHub source secrets
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in BL_KEYSTORE_BASE64 BL_KEYSTORE_PASSWORD BL_KEY_ALIAS FIREBASE_GOOGLE_SERVICES_JSON; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "Required GitHub source secret is not configured: $key"
+              exit 1
+            fi
+          done
+          echo 'All required GitHub source secrets are present.'
+
+      - name: Upsert masked protected GitLab CI variables
+        if: steps.setup.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_id="$(python3 - <<'PY'
+          import os, urllib.parse
+          print(urllib.parse.quote(os.environ['GITLAB_PROJECT_PATH'], safe=''))
+          PY
+          )"
+          api="https://gitlab.com/api/v4/projects/${project_id}"
+          auth_header="PRIVATE-TOKEN: ${GITLAB_SETUP_TOKEN}"
+
+          upsert_variable() {
+            local key="$1"
+            local value="$2"
+            local encoded_key
+            encoded_key="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$key")"
+            local status
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --header "$auth_header" "$api/variables/$encoded_key")"
+
+            if [[ "$status" == "200" ]]; then
+              curl --fail --silent --show-error --output /tmp/gitlab-variable-response.json \
+                --request PUT --header "$auth_header" \
+                --form "value=$value" --form 'protected=true' --form 'masked=true' --form 'raw=true' \
+                "$api/variables/$encoded_key"
+              rm -f /tmp/gitlab-variable-response.json
+              echo "Updated protected variable metadata: $key"
+            elif [[ "$status" == "404" ]]; then
+              curl --fail --silent --show-error --output /tmp/gitlab-variable-response.json \
+                --request POST --header "$auth_header" \
+                --form "key=$key" --form "value=$value" --form 'protected=true' --form 'masked=true' --form 'raw=true' \
+                "$api/variables"
+              rm -f /tmp/gitlab-variable-response.json
+              echo "Created protected variable metadata: $key"
+            else
+              echo "GitLab variable metadata lookup failed for $key with HTTP $status"
+              exit 1
+            fi
+          }
+
+          upsert_variable BL_KEYSTORE_BASE64 "$BL_KEYSTORE_BASE64"
+          upsert_variable BL_KEYSTORE_PASSWORD "$BL_KEYSTORE_PASSWORD"
+          upsert_variable BL_KEY_ALIAS "$BL_KEY_ALIAS"
+          upsert_variable FIREBASE_GOOGLE_SERVICES_JSON "$FIREBASE_GOOGLE_SERVICES_JSON"
+
+      - name: Remove transient response file
+        if: always()
+        shell: bash
+        run: rm -f /tmp/gitlab-variable-response.json
