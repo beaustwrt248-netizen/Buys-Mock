@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   boundedBatch,
+  catalogAuditRunPatch,
   classifySourceEvidence,
   isSafePublicSourceUrl,
   normalizePageText,
@@ -88,4 +89,31 @@ test('terminal status excludes pending/in-progress', () => {
   assert.equal(terminalStatus('verified'), true);
   assert.equal(terminalStatus('blocked'), true);
   assert.equal(terminalStatus('in_progress'), false);
+});
+
+test('terminal catalogue run patch finalizes a run even when no current batch row references it', () => {
+  const patch = catalogAuditRunPatch([
+    ...Array.from({ length: 62 }, () => ({ status: 'blocked' })),
+    ...Array.from({ length: 13 }, () => ({ status: 'verified' })),
+  ], '2026-09-14T15:00:00.000Z');
+  assert.deepEqual(patch, {
+    status: 'completed',
+    scanned_count: 75,
+    verified_count: 13,
+    discrepancy_count: 62,
+    error_count: 0,
+    notes: 'verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0',
+    finished_at: '2026-09-14T15:00:00.000Z',
+  });
+});
+
+test('non-terminal catalogue run patch remains running and does not set finished_at', () => {
+  const patch = catalogAuditRunPatch([
+    ...Array.from({ length: 29 }, () => ({ status: 'blocked' })),
+    ...Array.from({ length: 46 }, () => ({ status: 'pending' })),
+  ], '2026-09-14T15:00:00.000Z');
+  assert.equal(patch.status, 'running');
+  assert.equal(patch.scanned_count, 75);
+  assert.equal(patch.discrepancy_count, 29);
+  assert.equal('finished_at' in patch, false);
 });
