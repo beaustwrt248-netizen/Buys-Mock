@@ -2,10 +2,10 @@
   "appId": "nova-next",
   "channel": "stable",
   "packageName": "com.buysloans.novanext",
-  "versionCode": 1,
-  "versionName": "0.1.0",
+  "versionCode": 0,
+  "versionName": "0.0.0",
   "downloadUrl": "",
   "sha256": "",
   "mandatory": false,
-  "notes": "Nova Next stable channel is initialised. Future signed APK releases will publish verified download metadata here."
+  "notes": "Nova Next stable channel is initialised and awaiting its first signed release."
 }
