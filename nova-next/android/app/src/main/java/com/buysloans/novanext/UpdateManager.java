@@ -30,6 +30,7 @@ import java.util.Set;
 final class UpdateManager {
     private static final String RELEASE_PREFIX =
             "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-next-v";
+    private static final String SAFE_VERSION_NAME = "[0-9A-Za-z][0-9A-Za-z._-]*";
     private static final String UPDATE_PREFS = "nova_next_verified_update";
     private static final String PENDING_PATH = "pending_path";
     private static final String PENDING_SHA = "pending_sha";
@@ -151,7 +152,11 @@ final class UpdateManager {
                 if (!updateDir.exists() && !updateDir.mkdirs()) {
                     throw new IllegalStateException("Could not create update directory");
                 }
-                File apk = new File(updateDir, "Nova-Next-" + info.versionName + ".apk");
+                File canonicalDir = updateDir.getCanonicalFile();
+                File apk = new File(canonicalDir, "Nova-Next-" + info.versionName + ".apk").getCanonicalFile();
+                if (!canonicalDir.equals(apk.getParentFile())) {
+                    throw new SecurityException("Update file path escaped the approved cache directory");
+                }
 
                 if (apk.isFile() && info.sha256.equals(sha256(apk))) {
                     verifyApkIdentity(apk, info.versionCode);
@@ -212,6 +217,9 @@ final class UpdateManager {
         }
         if (info.versionCode <= 0 || info.versionName.isBlank()) {
             throw new IllegalStateException("Update manifest has an invalid release identity");
+        }
+        if (!info.versionName.matches(SAFE_VERSION_NAME)) {
+            throw new SecurityException("Update manifest has an unsafe version name");
         }
     }
 
