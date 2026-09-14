@@ -78,8 +78,8 @@ jobs:
           grep -q 'gh release download "$ADMIN_RELEASE_TAG"' .github/workflows/admin-apk-build.yml
           grep -q 'EXISTING_SHA=' .github/workflows/admin-apk-build.yml
           grep -q 'test "$EXISTING_SHA" = "$ADMIN_SHA256"' .github/workflows/admin-apk-build.yml
-          grep -q 'EXISTING_TARGET=' .github/workflows/admin-apk-build.yml
-          grep -q 'test "$EXISTING_TARGET" = "$GITHUB_SHA"' .github/workflows/admin-apk-build.yml
+          grep -q 'EXISTING_NOTES=' .github/workflows/admin-apk-build.yml
+          grep -q 'Built from ${GITHUB_SHA}' .github/workflows/admin-apk-build.yml
           python3 - <<'PY'
           import re
           from pathlib import Path
