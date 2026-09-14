@@ -37,6 +37,7 @@
     {"id":"nova-apk-build","githubWorkflow":"nova-apk-build.yml","category":"android","required":true,"gitlabJob":"android:nova-apk-build"},
     {"id":"nova-knowledge-maintenance-contract","githubWorkflow":"nova-knowledge-maintenance-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:nova-knowledge-maintenance"},
     {"id":"nova-next-ci","githubWorkflow":"nova-next-ci.yml","category":"quality","required":true,"gitlabJob":"test:nova-next-ci"},
+    {"id":"nova-next-route-password-accessibility","githubWorkflow":"nova-next-route-password-accessibility.yml","category":"governance-contract","required":true,"gitlabJob":"governance:nova-next-route-password-accessibility"},
     {"id":"nova-ota-metadata-contract","githubWorkflow":"nova-ota-metadata-contract.yml","category":"ota-release","required":true,"gitlabJob":"release:nova-ota-metadata-contract"},
     {"id":"nova-pr-guard","githubWorkflow":"nova-pr-guard.yml","category":"guardian-security","required":true,"gitlabJob":"security:nova-pr-guard"},
     {"id":"nova-shared-ingestion-contract","githubWorkflow":"nova-shared-ingestion-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:nova-shared-ingestion"},
