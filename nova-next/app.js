@@ -27,6 +27,8 @@ const drawerNav = document.getElementById('drawerNav');
 const bottomNav = document.getElementById('bottomNav');
 const pages = [...document.querySelectorAll('.page[data-route]')];
 const subtitle = document.getElementById('topbarSubtitle');
+const passwordToggle = document.querySelector('[data-action="toggle-password"]');
+passwordToggle?.setAttribute('aria-pressed', 'false');
 
 const ROUTE_LABELS = {
   home: 'Your AI-Powered Assistant', chat: 'Your AI Assistant', tools: 'AI Utilities', tasks: 'Stay organised',
