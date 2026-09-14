@@ -87,7 +87,7 @@ test('Admin web authority uses the native-parity shell and legacy authorities st
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
   assert.match(adminWorkspace,/admin-native-parity-core\.js\?v=1/);
   assert.match(adminWorkspace,/catalogue-readonly-parity\.js\?v=1/);
-  assert.match(adminWorkspace,/admin-app-parity\.js\?v=4/);
+  assert.match(adminWorkspace,/admin-app-parity\.js\?v=5/);
   assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=2/);
   assert.doesNotMatch(adminWorkspace,/\['adminCoreApp','app\.js/);
   assert.doesNotMatch(adminWorkspace,/pricing-management\.js|release-control\.js|control-governance\.js/);
