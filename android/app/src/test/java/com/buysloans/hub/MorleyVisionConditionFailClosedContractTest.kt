@@ -27,16 +27,36 @@ class MorleyVisionConditionFailClosedContractTest {
 
     @Test
     fun unresolvedConditionBlocksSuggestedPricing() {
-        val result = MorleyVisionPolicy.pricingBlockReason(inspection("UNVERIFIED"))
+        val item = inspection("UNVERIFIED")
+        val result = MorleyVisionPolicy.pricingBlockReason(item)
 
-        assertEquals("Device condition is not verified strongly enough for a price recommendation.", result)
-        assertTrue(!MorleyVisionPolicy.isConditionVerified(inspection("UNVERIFIED")))
+        assertEquals("Staff must confirm the device condition before using a price recommendation.", result)
+        assertTrue(!MorleyVisionPolicy.isConditionVerified(item))
     }
 
     @Test
-    fun supportedConditionCanPassConditionGuard() {
-        assertTrue(MorleyVisionPolicy.isConditionVerified(inspection("C")))
-        assertNull(MorleyVisionPolicy.pricingBlockReason(inspection("C")))
+    fun supportedAiConditionStillRequiresStaffConfirmationForPricing() {
+        val item = inspection("C")
+
+        assertTrue(MorleyVisionPolicy.isConditionVerified(item))
+        assertEquals(
+            "Staff must confirm the device condition before using a price recommendation.",
+            MorleyVisionPolicy.pricingBlockReason(item)
+        )
+
+        item.staffConfirmedConditionGrade = "C"
+        assertNull(MorleyVisionPolicy.pricingBlockReason(item))
+        assertEquals("C", MorleyVisionPolicy.pricingConditionGrade(item))
+    }
+
+    @Test
+    fun staffCanResolveUnverifiedAiConditionWithoutOverwritingAiEvidence() {
+        val item = inspection("UNVERIFIED")
+        item.staffConfirmedConditionGrade = "D"
+
+        assertEquals("UNVERIFIED", item.conditionGrade)
+        assertEquals("D", MorleyVisionPolicy.pricingConditionGrade(item))
+        assertNull(MorleyVisionPolicy.pricingBlockReason(item))
     }
 
     @Test
