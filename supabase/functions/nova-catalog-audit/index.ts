@@ -5,6 +5,7 @@ import {
   classifySourceEvidence,
   isSafePublicSourceUrl,
   normalizePageText,
+  resolveSafeRedirect,
   retryDelaySeconds,
   sanitizeError,
   sourceTier,
@@ -17,6 +18,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession:
 const MAX_ATTEMPTS = 5;
 const SOURCE_TIMEOUT_MS = 8_000;
 const MAX_SOURCE_BODY = 500_000;
+const MAX_REDIRECTS = 5;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 
@@ -51,23 +53,42 @@ async function authorized(req: Request) {
   }
 }
 
-async function fetchSource(url: string) {
-  if (!isSafePublicSourceUrl(url)) return { blocked: "unsafe_or_invalid_source_url", text: "", contentType: "" };
-  const response = await fetch(url, {
-    method: "GET",
-    redirect: "follow",
-    signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
-    headers: {
-      "User-Agent": "Morley-Nova-Catalog-Audit/1.0",
-      "Accept": "text/html,text/plain,application/json;q=0.9,*/*;q=0.2",
-    },
-  });
-  const contentType = clean(response.headers.get("content-type"), 120).toLowerCase();
-  if (response.status === 429 || response.status >= 500) throw new Error(`source_retryable_http_${response.status}`);
-  if (!response.ok) return { blocked: `source_http_${response.status}`, text: "", contentType };
-  if (!/(text|html|json|xml)/.test(contentType)) return { blocked: "source_content_type_unsupported", text: "", contentType };
-  const text = (await response.text()).slice(0, MAX_SOURCE_BODY);
-  return { blocked: null, text, contentType };
+async function fetchSource(initialUrl: string) {
+  if (!isSafePublicSourceUrl(initialUrl)) return { blocked: "unsafe_or_invalid_source_url", text: "", contentType: "" };
+  let url = initialUrl;
+
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(SOURCE_TIMEOUT_MS),
+      headers: {
+        "User-Agent": "Morley-Nova-Catalog-Audit/1.0",
+        "Accept": "text/html,text/plain,application/json;q=0.9,*/*;q=0.2",
+      },
+    });
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      if (redirectCount >= MAX_REDIRECTS) return { blocked: "source_redirect_limit", text: "", contentType: "" };
+      const next = resolveSafeRedirect(url, response.headers.get("location"));
+      if (!next) return { blocked: "unsafe_or_invalid_source_redirect", text: "", contentType: "" };
+      url = next;
+      continue;
+    }
+
+    const contentType = clean(response.headers.get("content-type"), 120).toLowerCase();
+    if (response.status === 429 || response.status >= 500) throw new Error(`source_retryable_http_${response.status}`);
+    if (!response.ok) return { blocked: `source_http_${response.status}`, text: "", contentType };
+    if (!/(text|html|json|xml)/.test(contentType)) return { blocked: "source_content_type_unsupported", text: "", contentType };
+    const advertisedLength = Number(response.headers.get("content-length") || 0);
+    if (Number.isFinite(advertisedLength) && advertisedLength > MAX_SOURCE_BODY) {
+      return { blocked: "source_body_too_large", text: "", contentType };
+    }
+    const text = (await response.text()).slice(0, MAX_SOURCE_BODY);
+    return { blocked: null, text, contentType };
+  }
+
+  return { blocked: "source_redirect_limit", text: "", contentType: "" };
 }
 
 function findingPayload(row: any, field: string, code: string, excerpt: string) {
