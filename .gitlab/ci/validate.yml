@@ -33,3 +33,9 @@ governance:nova-next-route-password-accessibility:
   image: node:22-bookworm
   script:
     - node --test tests/nova-next-route-password-accessibility.test.mjs
+
+governance:autopilot-risk-classifier:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/auto-review-risk-classification.test.mjs
