@@ -82,8 +82,9 @@ if (ROOT / 'android/apply_admin_morley_palette.py').exists():
 
 dashboard = need(
     'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
-    'CATEGORIES("Categories", MorleyIcons.Categories)',
-    'GP("General Buys", MorleyIcons.Money)',
+    'CATALOGUE("Catalogue", MorleyIcons.Categories)',
+    'SCAN("Scan", MorleyIcons.Phone)',
+    'TRADE("Trade", MorleyIcons.Money)',
     'General Buys / GP',
     'Page.Laptop -> CategoriesPricingScreen()',
     'Page.Desktop -> ConsolePricingScreen()',
@@ -93,7 +94,15 @@ dashboard = need(
     'AdaptiveContentFrame',
     'consumeWindowInsets',
 )
-reject('android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt', dashboard, 'Admin mode', 'EmbeddedAdminActivity')
+reject(
+    'android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt',
+    dashboard,
+    'Admin mode',
+    'EmbeddedAdminActivity',
+    'ExpandedDestination.CATEGORIES',
+    'ExpandedDestination.GP',
+    'ExpandedDestination.MORE',
+)
 categories = need(
     'android/app/src/main/java/com/buysloans/hub/CategoriesPricingScreen.kt',
     'Laptops',
@@ -205,8 +214,8 @@ for bad in ('TODO', 'FIXME', 'HACK'):
             if bad in file.read_text(encoding='utf-8'):
                 errors.append(f'{file.relative_to(ROOT)}: contains {bad}')
 
-# Primary navigation goes through Categories. Console Pricing remains a category route, not a
-# separate bottom-nav/Home shortcut. GP intentionally replaces History in primary navigation.
+# Primary navigation uses Home / Catalogue / Scan / Trade. More stays in the hamburger.
+# Catalogue owns category pricing; Console Pricing remains a catalogue sub-route.
 if 'Page.Laptop -> LaptopGuidedScreen()' in dashboard or 'Page.Desktop -> Desktop()' in dashboard:
     errors.append('DashboardActivity.kt: split Laptop/Desktop primary routes remain')
 if 'BottomDestination.HISTORY' in dashboard:
@@ -220,4 +229,4 @@ if 'MobilePhoneCategoryPlaceholder' in categories:
 
 if errors:
     raise SystemExit('\n'.join(errors))
-print('Final Morley product audit passed: adaptive Categories contains laptops, desktops, mobile phones and gaming consoles; GP is primary navigation; live mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')
+print('Final Morley product audit passed: Home / Catalogue / Scan / Trade is the primary navigation with More in the hamburger; Catalogue contains laptops, desktops, mobile phones and gaming consoles; live mobile/console catalogues preserve pricing boundaries; main Morley no longer embeds Admin Mode; dedicated Morley Admin web and Android products remain separate; release identities remain publication-safe.')

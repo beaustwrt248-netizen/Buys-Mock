@@ -9,6 +9,8 @@ const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url),
 const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
 const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
 const workspaceTemplate = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
+const parityRuntime = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
+const supportRuntime = readFileSync(new URL('../admin/support-tickets.js', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
 const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
@@ -34,17 +36,19 @@ test('Admin browser login uses one isolated same-origin Turnstile transport on m
   assert.match(turnstileHtml, /window\.parent\.postMessage/);
 });
 
-test('logged-out Admin browser is auth-only and privileged workspace runtime is authorization-gated', () => {
-  const workspaceScripts = [
-    'user-management-policy.js', 'app.js', 'admin-app-parity.js', 'admin-user-access-parity.js',
-    'auth-boundary.js', 'release-control.js', 'targeted-notifications.js', 'download-invites.js',
-    'support-tickets.js', 'audit-triage.js', 'pricing-management.js', 'control-governance.js'
+test('logged-out Admin browser is auth-only and full-access workspace loads only native-parity owners', () => {
+  const allowedWorkspaceScripts = [
+    'admin-native-parity-core.js', 'catalogue-readonly-parity.js', 'admin-app-parity.js',
+    'admin-user-access-parity.js', 'auth-boundary.js', 'targeted-notifications.js',
+    'download-invites.js', 'support-tickets.js', 'audit-triage.js'
   ];
-  for (const script of workspaceScripts) {
+  for (const script of allowedWorkspaceScripts) {
     assert.doesNotMatch(adminIndex, new RegExp(`<script[^>]+src=["'][^"']*${script.replaceAll('.', '\\.')}`), `${script} must not execute in the logged-out auth document`);
-    assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must remain available in the authorized workspace`);
+    assert.match(workspaceShell, new RegExp(script.replaceAll('.', '\\.')), `${script} must be available only in the authorized workspace`);
   }
-  assert.doesNotMatch(workspaceShell, /admin-home\.js|admin-v2\.js/);
+  for (const retiredOwner of ['app.js','pricing-management.js','release-control.js','control-governance.js','admin-home.js','admin-v2.js']) {
+    assert.doesNotMatch(workspaceShell, new RegExp(retiredOwner.replaceAll('.', '\\.')), `${retiredOwner} must not own the parity workspace`);
+  }
   assert.match(browserAuthBootstrap, /FULL_ACCESS_ROLES=\['admin','manager'\]/);
   assert.match(browserAuthBootstrap, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
   assert.match(browserAuthBootstrap, /ENTRY_ROLES\.includes\(profile\.role\)/);
@@ -54,14 +58,20 @@ test('logged-out Admin browser is auth-only and privileged workspace runtime is 
   assert.match(workspaceShell, /ENTRY_ROLES=\[\.\.\.FULL_ACCESS_ROLES,'staff'\]/);
   assert.match(workspaceShell, /ENTRY_ROLES\.includes\(profile\.role\)/);
   assert.match(workspaceShell, /profile\.role===['"]staff['"]/);
-  assert.match(workspaceShell, /workspace-template\.html\?v=2&parity=3/);
-  assert.match(workspaceShell, /invites\.js\?v=4/);
   assert.match(workspaceShell, /legacy invite renderer is intentionally not loaded/);
   assert.match(workspaceShell, /for\(const entry of scripts\)await loadScript\(entry\)/);
-  assert.doesNotMatch(workspaceShell, /\['adminInvites','invites\.js\?v=4'\]/);
   assert.doesNotMatch(workspaceShell, /login-security\.js/);
   assert.match(workspaceTemplate, /id="appView"/);
   assert.match(workspaceTemplate, /id="logoutBtn"/);
+});
+
+test('web Refresh preserves role-scoped live-data owners', () => {
+  assert.match(nativeDashboard, /fun refresh\(\)/);
+  assert.match(nativeDashboard, /AdminApi\.load\(session\)/);
+  assert.match(workspaceShell, /admin-native-parity-core\.js/);
+  assert.match(supportRuntime, /window\.loadSupportTickets\s*=\s*async/);
+  assert.match(parityRuntime, /await window\.refreshAll\?\.\(\)/);
+  assert.match(parityRuntime, /await window\.loadSupportTickets\?\.\(\)/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {

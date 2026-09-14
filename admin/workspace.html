@@ -26,7 +26,7 @@ try{
   const supportOnly=profile.role==='staff';
   window.__morleyAdminAuthContext=Object.freeze({state:'authenticated_ready',user:session.user,profile});
   setState('authenticated_ready','Loading your workspace…');
-  const response=await withTimeout(fetch(`workspace-template.html?v=2&parity=3&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}),'Workspace load');
+  const response=await withTimeout(fetch(`workspace-template.html?v=2&parity=4&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}),'Workspace load');
   if(!response.ok)throw new Error(`Admin workspace template returned HTTP ${response.status}`);
   const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
   const shell=parsed.querySelector('main.shell');
@@ -36,21 +36,19 @@ try{
   document.getElementById('appView')?.classList.remove('hidden');
   const fullAccessScripts=[
     ['adminUserPolicy','user-management-policy.js?v=3'],
-    ['adminCoreApp','app.js?v=6'],
-    ['adminAppParity','admin-app-parity.js?v=3'],
-    ['adminUserAccessParity','admin-user-access-parity.js?v=1'],
+    ['adminNativeParityCore','admin-native-parity-core.js?v=1'],
+    ['adminCatalogueReadonlyParity','catalogue-readonly-parity.js?v=1'],
+    ['adminAppParity','admin-app-parity.js?v=4'],
+    ['adminUserAccessParity','admin-user-access-parity.js?v=2'],
     ['adminAuthBoundary','auth-boundary.js?v=2'],
-    ['adminReleaseControl','release-control.js?v=3'],
-    ['adminTargetedNotifications','targeted-notifications.js?v=3'],
+    ['adminTargetedNotifications','targeted-notifications.js?v=4'],
     ['adminDownloadInvites','download-invites.js?v=3'],
     ['adminSupportTickets','support-tickets.js?v=3'],
-    ['adminAuditTriage','audit-triage.js?v=2'],
-    ['adminPricingManagement','pricing-management.js?v=3'],
-    ['adminControlGovernance','control-governance.js?v=2']
+    ['adminAuditTriage','audit-triage.js?v=2']
   ];
   const supportOnlyScripts=[
     ['adminSupportOnlyRuntime','admin-support-only-runtime.js?v=1'],
-    ['adminAppParity','admin-app-parity.js?v=3'],
+    ['adminAppParity','admin-app-parity.js?v=4'],
     ['adminAuthBoundary','auth-boundary.js?v=2'],
     ['adminSupportTickets','support-tickets.js?v=3']
   ];
