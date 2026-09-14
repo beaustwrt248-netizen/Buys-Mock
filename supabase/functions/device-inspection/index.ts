@@ -201,8 +201,11 @@ function categoryGuidance(category: string) {
       return "Inspect display, keyboard/trackpad, lid/base, hinges, ports and corners.";
     case "console":
       return "Inspect case, ports, vents, optical/cartridge areas and visible controller/accessory condition.";
-    default:
+    case "phone":
       return "Inspect display/glass, back glass/panel, frame/edges, cameras, buttons and ports.";
+    case "generic":
+    default:
+      return "Inspect all clearly visible exterior surfaces and category-appropriate components. Cover display or glass, case or panels, frame or edges, cameras, controls, hinges, vents and ports where present. Do not assume the device category.";
   }
 }
 
@@ -250,7 +253,7 @@ IMAGE QUALITY: Report problems such as severe blur, darkness, glare, obstruction
 
 DAMAGE: Mark clearly visible cracks, shattered glass, deep scratches, chips, dents, bent frame/case, camera-lens damage, screen/display defects visible in the photo, back-panel damage, corrosion/liquid residue, broken/missing exterior pieces, damaged ports and category-appropriate defects. For each confident finding return a damage_regions object. Coordinates are normalized 0..1 relative to the FULL photo: x/y top-left and width/height of a tight bounding ellipse/box. Do not mark reflections, glare, fingerprints, dust, wallpaper, shadows, normal seams or uncertain marks. Put uncertain marks only in uncertainties. Severity: minor, moderate, major or critical. Confidence is 0..1.
 
-COMPONENTS: In component_findings, describe only visibly inspectable components and their observed physical state. ${categoryGuidance(clean(body?.category_hint, 40) || "phone")} Never infer hidden functionality (battery health, charging, touch, speakers, biometrics, radios, water resistance, etc.) from a photo.
+COMPONENTS: In component_findings, describe only visibly inspectable components and their observed physical state. ${categoryGuidance(clean(body?.category_hint, 40) || "generic")} Never infer hidden functionality (battery health, charging, touch, speakers, biometrics, radios, water resistance, etc.) from a photo.
 
 CONDITION: Advisory grade only: A excellent/minimal visible wear; B good/light wear; C fair/clear cosmetic wear; D poor/significant visible damage; PARTS appears unsuitable except for parts. Include concise condition_summary.
 
