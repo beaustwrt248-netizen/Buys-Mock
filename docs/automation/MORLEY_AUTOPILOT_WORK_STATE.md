@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 22:07 AWST
+Last reconciled: 2026-09-14 22:21 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `e53bbb542143e1c520ad8c38fdfb5a0b05957a8c`.
+Observed `main` head: `463bb57f13714b97bd5dc30cde3c6ac97d96e930`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -27,8 +27,9 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Admin web / mobile web
 
 - Native-authority parity remains merged: authenticated Admin web/mobile uses the dedicated parity core and read-only catalogue/release owners instead of broad legacy browser authority.
-- PR **#2134** merged as current `main` `e53bbb542143e1c520ad8c38fdfb5a0b05957a8c` and fixes incomplete Admin catalogue loading by paging all active catalogue rows in deterministic order instead of relying on a single Supabase response page.
+- PR **#2134** fixes incomplete Admin catalogue loading by paging all active catalogue rows in deterministic order instead of relying on a single Supabase response page.
 - #2134 included cache/deployment contract updates and regression coverage. Treat source merge as proven; do not claim a production web deployment without separate deployment evidence.
+- Connected Vercel scope currently returns no teams/projects, so production Admin web deployment cannot yet be independently verified through that connector.
 - Continue mobile-browser layout/freezing/accessibility and native-app parity auditing from current main.
 
 ### Backup / recovery
@@ -43,17 +44,17 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 - PR **#2125** merged as `e63c6932c59d2e1bd327187fcf2c467297d16683` and the `nova-knowledge-maintenance` Edge Function is active as production version **9**.
 - The repair isolates clearly transient gateway/502/503/504/upstream source-query failures, records privacy-safe source-boundary diagnostics, preserves fail-closed behavior for auth/permission/schema/unknown errors, and continues independent embedding work instead of aborting the whole cycle.
-- Production has one active `nova-knowledge-maintenance-every-5-minutes` cron at `*/5 * * * *`.
-- Seven consecutive post-deploy runs observed from **13:35 through 14:05 UTC** completed successfully with `embedded_ready=4`, `embedded_error=0`, `ingested_skipped=4`, `ingested_error=0` and no error summary.
-- Current active chunk embedding snapshot: **556 ready / 4,160 pending / 0 error**.
+- The latest **12** recorded maintenance runs through **14:20 UTC** all completed successfully with `embedded_ready=4`, `embedded_error=0`, `ingested_skipped=4`, `ingested_error=0` and no error summary.
+- Issue **#2103** is closed as completed after this post-deploy production verification.
+- Current active chunk embedding snapshot: **568 ready / 4,148 pending / 0 error**.
 - Continue evaluation quality, unsupported-claim, citation/source, latency/provider-failure and benchmark-drift measurement; raw corpus growth alone is not proof of better answers.
 
 ### Catalogue audit / data integrity
 
 - Issue **#2093** is complete: a bounded catalogue-audit claim/process/finalise consumer exists and production `nova-catalog-audit` Edge Function version **2** is active.
 - The worker preserves authoritative catalogue facts, blocks unresolved facts for review, uses bounded retries/backoff, records provenance/finding evidence and reconciles run state without coupling descriptive catalogue work to valuation/pricing approval.
-- Current queue snapshot: **961 verified / 77 blocked / 1,075 pending**. Current audit-run snapshot: **12 completed / 15 queued / 2 running**. Active device count remains **1,776**.
-- Controlled production verification after the year-suffix identity fix now classifies `GPD WIN Mini (2024)` and `GPD WIN Max 2 (2024)` as `model_number` review findings rather than false identity mismatches. Other rows remain conservatively blocked where evidence is still insufficient, including identity/source-URL cases.
+- Current queue snapshot: **961 verified / 82 blocked / 1,070 pending**. Current audit-run snapshot: **12 completed / 15 queued / 2 running**.
+- A further controlled five-item production batch completed with **5 claimed / 5 blocked / 0 failed / 0 retried / 0 ownership lost**. HONOR correctly produced a `model_number` review finding; four Dynabook rows were conservatively blocked as identity mismatches because their source responses exposed only generic product-family navigation rather than sufficient exact-model evidence.
 - Catalogue enqueue cron remains intentionally absent. Do not restore automatic enqueueing until a broader bounded sample confirms worker behavior and run reconciliation under production data; never allow backlog growth to outrun drain capacity.
 - Preserve unresolved model-number gaps and legitimate regional/hardware variants; never guess identifiers/specifications or auto-merge ambiguous production records.
 
@@ -72,7 +73,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - `buys-privacy-retention-daily` — `17 3 * * *`
 - `morley-google-drive-backup-daily` — `0 19 * * *`
 - `morley-recovery-health-hourly` — `17 * * * *`
-- `nova-knowledge-maintenance-every-5-minutes` — `*/5 * * * *`
+- Nova knowledge maintenance remains active on its established five-minute cadence.
 
 Catalogue enqueue remains intentionally paused.
 
@@ -95,7 +96,7 @@ Catalogue enqueue remains intentionally paused.
 - Admin full-catalogue pagination repair merged through #2134 with regression coverage.
 - Tablet and Smartwatch dedicated catalogue grouping merged without source-row or pricing mutation.
 - Full-system Google Drive OAuth repaired; protected manual backup/recovery verification passed; daily scheduler restored.
-- Nova recurring maintenance scheduler restored and transient source-boundary failure handling repaired/deployed through #2125.
+- Nova recurring maintenance scheduler restored and transient source-boundary failure handling repaired/deployed through #2125; issue #2103 is now closed after 12 consecutive healthy observed runs.
 - Catalogue audit queue consumer implemented/deployed through #2093; automatic enqueue remains paused pending broader bounded production verification.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
 - Shared model-number governance remains non-destructive and evidence-driven.
