@@ -1,10 +1,10 @@
 # Nova Next Live Adapter Validation
 
-This document records evidence for the isolated Nova Next Admin-auth and safe-intelligence phase. It does not authorize merge or deployment.
+This document records evidence for the merged Nova Next Admin-auth and safe-intelligence implementation. It does not authorize production promotion, package replacement, signing, deployment or OTA publication.
 
 ## Security boundary
 
-- Current `nova/`, `android/novaapp/`, `supabase/` and production deployment files remain unchanged by this phase.
+- Current production Nova remains authoritative until an explicitly approved production promotion changes that boundary.
 - Password authentication requires Cloudflare Turnstile and the existing Supabase Admin identity contract.
 - A session is accepted only after user revalidation plus enabled `admin` profile validation.
 - Browser storage is session scoped and excludes passwords.
@@ -13,9 +13,9 @@ This document records evidence for the isolated Nova Next Admin-auth and safe-in
 - Mixed-action endpoints are wrapped with narrower client APIs so write/review/harvest/draft-PR actions are absent from Nova Next.
 - Code proposals are restricted to non-protected `nova-next/` paths and are proposal-only.
 
-## Fresh local contract evidence
+## Contract evidence
 
-The safe feature modules were reconstructed from the branch source and executed with Node 22. The following tests exited successfully:
+The safe feature modules are covered by the repository's Nova Next contract suite, including:
 
 ```text
 code-proposal-adapter: ok
@@ -26,7 +26,7 @@ safe-services: ok
 vision-adapter: ok
 ```
 
-The earlier live authentication/chat suite also completed successfully:
+The authentication/chat contracts include:
 
 ```text
 auth-controller: ok
@@ -38,6 +38,6 @@ supabase-auth-client: ok
 turnstile: ok
 ```
 
-## Merge boundary
+## Current protected boundary
 
-PR #1784 remains high-risk because it connects the new UI to production authentication. Even if automated checks are green, it must stay unmerged until the exact ready PR/head is explicitly approved in conversation.
+The merged implementation connects Nova Next to the reviewed Admin authentication and safe live-adapter contracts. The remaining high-risk boundary is production promotion: replacing the current Nova route or package, using production signing identity, publishing a Nova Next OTA release, or changing production deployment authority. Those actions remain subject to the explicit, release-specific approval and rollback requirements in `docs/nova-next/PROMOTION_RUNBOOK.md`.
