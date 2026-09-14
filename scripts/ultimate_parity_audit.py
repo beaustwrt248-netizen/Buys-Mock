@@ -41,8 +41,10 @@ guardian_js = read("admin/guardian.js")
 guardian_health = read("admin/guardian-health.js")
 menu_js = read("more-menu-v2.js")
 
-for label in ('CATEGORIES("Categories", MorleyIcons.Categories)', 'GP("General Buys", MorleyIcons.Money)', "General Buys / GP"):
+for label in ('CATALOGUE("Catalogue", MorleyIcons.Categories)', 'SCAN("Scan", MorleyIcons.Phone)', 'TRADE("Trade", MorleyIcons.Money)', "General Buys / GP"):
     require(dashboard, label, "Android primary navigation")
+for retired in ("ExpandedDestination.CATEGORIES", "ExpandedDestination.GP", "ExpandedDestination.MORE"):
+    forbid(dashboard, retired, "Android expanded navigation")
 for label in ("Categories → Laptops", "Categories → Desktops", "Categories → Mobile Phones", "Categories → Gaming Consoles", "General Buys / GP", "More → Support", "NFC", "Valuation"):
     require(android_help, label, "Android Help/FAQ content")
 for retired in ("Computer Pricing", "Console Pricing", "Menu → Report an Issue", "Menu → Updates", "Menu → Backup & Data"):
@@ -160,4 +162,4 @@ if errors:
         print(f"- {e}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Ultimate parity audit passed: current Categories/GP/More navigation, Android blue presentation, light Help/FAQ, live console/mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
+print("Ultimate parity audit passed: Home/Catalogue/Scan/Trade primary navigation with More in the hamburger, Android blue presentation, light Help/FAQ, live console/mobile catalogues, NFC, valuation coverage, icons/menu, Guardian safety contracts and Nova catalogue execution boundaries are aligned.")
