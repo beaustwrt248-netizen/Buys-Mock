@@ -74,6 +74,9 @@ jobs:
       - name: Morley ecosystem contract
         run: node --test tests/morley-ecosystem-contract.test.mjs
 
+      - name: Supabase RPC least-privilege contract
+        run: node --test tests/supabase-rpc-least-privilege-contract.test.mjs
+
       - name: Nova shared module loader contract
         run: node --test tests/nova-module-loader-contract.test.mjs
 

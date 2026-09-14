@@ -86,7 +86,7 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
 test('Admin web authority uses the native-parity shell and legacy authorities stay unloaded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
   assert.match(adminWorkspace,/admin-native-parity-core\.js\?v=1/);
-  assert.match(adminWorkspace,/catalogue-readonly-parity\.js\?v=1/);
+  assert.match(adminWorkspace,/catalogue-readonly-parity\.js\?v=2/);
   assert.match(adminWorkspace,/admin-app-parity\.js\?v=5/);
   assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=2/);
   assert.doesNotMatch(adminWorkspace,/\['adminCoreApp','app\.js/);
@@ -170,4 +170,31 @@ test('catalogue audit worker activation remains hourly, bounded, Vault-backed an
   assert.match(lower,/timeout_milliseconds\s*:=\s*120000/);
   assert.doesNotMatch(lower,/nova_enqueue_catalog_audits/);
   assert.doesNotMatch(lower,/catalog(?:ue)?-audit-enqueue/);
+});
+
+test('recovery health separates per-user Drive freshness from global system findings',()=>{
+  const readiness=fs.readFileSync(new URL('../supabase/functions/recovery-readiness/index.ts',import.meta.url),'utf8');
+  assert.match(readiness,/user_backup_findings/);
+  assert.match(readiness,/global_findings/);
+  assert.match(readiness,/kind\s*!==?\s*['"]stale_backup['"]/);
+  assert.match(readiness,/kind\s*===?\s*['"]stale_backup['"]/);
+});
+
+test('invite index cleanup removes only the redundant non-unique lookup index',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914143000_recovery_health_index_cleanup.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing approved recovery/index cleanup migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  assert.match(migration,/drop index if exists public\.idx_app_invites_email_unused/i);
+  assert.doesNotMatch(migration,/drop index[^;]*app_invites_active_email_idx/i);
+  assert.match(migration,/app_invites_active_email_idx/);
+});
+
+test('Nova revision index cleanup preserves unique revision identity and removes only the redundant sort twin',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914144500_drop_redundant_nova_revision_index.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing approved Nova revision index cleanup migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  assert.match(migration,/nova_knowledge_revisions_knowledge_id_revision_key/);
+  assert.match(migration,/drop index if exists public\.nova_knowledge_revisions_item_idx/i);
+  assert.doesNotMatch(migration,/drop index[^;]*nova_knowledge_revisions_knowledge_id_revision_key/i);
+  assert.match(migration,/create index nova_knowledge_revisions_item_idx/i);
 });

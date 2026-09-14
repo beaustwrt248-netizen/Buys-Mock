@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   boundedBatch,
+  catalogAuditRunPatch,
   classifySourceEvidence,
   isSafePublicSourceUrl,
   normalizePageText,
@@ -19,6 +20,7 @@ const MAX_ATTEMPTS = 5;
 const SOURCE_TIMEOUT_MS = 8_000;
 const MAX_SOURCE_BODY = 500_000;
 const MAX_REDIRECTS = 5;
+const MAX_STALE_RUN_RECONCILIATIONS = 8;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 
@@ -150,29 +152,28 @@ async function processItem(row: any, workerId: string) {
   }
 }
 
-async function reconcileRun(runId: string) {
+async function reconcileRun(runId: string, currentStatus = "running") {
   const { data, error } = await admin.from("nova_catalog_audit_queue").select("status").eq("run_id", runId);
   if (error) throw error;
-  const rows = data || [];
-  if (!rows.length) return;
-  const counts = rows.reduce((acc: Record<string, number>, row: any) => {
-    acc[row.status] = (acc[row.status] || 0) + 1;
-    return acc;
-  }, {});
-  const nonTerminal = (counts.pending || 0) + (counts.in_progress || 0);
-  const failed = counts.failed || 0;
-  const discrepancies = (counts.discrepancy || 0) + (counts.blocked || 0);
-  const patch: Record<string, unknown> = {
-    status: nonTerminal > 0 ? "running" : (failed > 0 ? "failed" : "completed"),
-    scanned_count: rows.length,
-    verified_count: counts.verified || 0,
-    discrepancy_count: discrepancies,
-    error_count: failed,
-    notes: `verified=${counts.verified || 0}; blocked=${counts.blocked || 0}; discrepancy=${counts.discrepancy || 0}; failed=${failed}; pending=${counts.pending || 0}; in_progress=${counts.in_progress || 0}`,
-  };
-  if (nonTerminal === 0) patch.finished_at = new Date().toISOString();
+  const patch = catalogAuditRunPatch(data || [], new Date().toISOString(), currentStatus);
+  if (!patch) return false;
   const { error: updateError } = await admin.from("nova_catalog_audit_runs").update(patch).eq("id", runId);
   if (updateError) throw updateError;
+  return true;
+}
+
+async function reconcileStaleRuns(limit = MAX_STALE_RUN_RECONCILIATIONS) {
+  const { data, error } = await admin.from("nova_catalog_audit_runs")
+    .select("id,status")
+    .eq("status", "running")
+    .order("started_at", { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  let reconciled = 0;
+  for (const run of data || []) {
+    if (await reconcileRun(String(run.id), String(run.status || "running"))) reconciled += 1;
+  }
+  return reconciled;
 }
 
 Deno.serve(async (req) => {
@@ -192,7 +193,7 @@ Deno.serve(async (req) => {
     });
     if (error) throw error;
     const rows = Array.isArray(data) ? data.slice(0, limit) : [];
-    const stats = { claimed: rows.length, verified: 0, blocked: 0, retried: 0, failed: 0, ownership_lost: 0 };
+    const stats = { claimed: rows.length, verified: 0, blocked: 0, retried: 0, failed: 0, ownership_lost: 0, stale_runs_reconciled: 0 };
     const runIds = new Set<string>();
 
     for (const row of rows) {
@@ -210,6 +211,7 @@ Deno.serve(async (req) => {
     }
 
     for (const runId of runIds) await reconcileRun(runId);
+    stats.stale_runs_reconciled = await reconcileStaleRuns();
     return reply({ ok: true, worker: workerId, stats });
   } catch (error) {
     console.error("[nova-catalog-audit] batch failed", sanitizeError(error));
