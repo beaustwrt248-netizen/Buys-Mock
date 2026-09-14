@@ -27,11 +27,11 @@ android {
 }
 def releaseStoreFileForCheck = System.getenv('B_AND_L_KEYSTORE_PATH'); def releaseStorePasswordForCheck = System.getenv('B_AND_L_STORE_PASSWORD'); def releaseKeyAliasForCheck = System.getenv('B_AND_L_KEY_ALIAS')
 tasks.register('verifyReleaseSigning') { doLast { if (!releaseStoreFileForCheck || !releaseStorePasswordForCheck || !releaseKeyAliasForCheck) throw new GradleException('Production release signing is required. Configure B_AND_L_KEYSTORE_PATH, B_AND_L_STORE_PASSWORD and B_AND_L_KEY_ALIAS before building a release APK.'); if (!file(releaseStoreFileForCheck).exists()) throw new GradleException('Configured B&L Morley release keystore does not exist.') } }
-tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.rootDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
-tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.rootDir; commandLine 'python3', 'integrate_laptop_catalog.py' }
-tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.rootDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
-tasks.register('verifyPricingNavigation', Exec) { group = 'verification'; description = 'Verify pricing navigation and catalogue contracts without mutating source.'; workingDir rootProject.rootDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
-tasks.register('fixVideoUiErrors', Exec) { workingDir rootProject.rootDir; commandLine 'python3', 'fix_video_ui_errors.py' }
+tasks.register('integrateMarketplaceValuation', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_marketplace_valuation.py' }
+tasks.register('integrateLaptopCatalog', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'integrate_laptop_catalog.py' }
+tasks.register('applyMorleyBrandPalette', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'apply_morley_brand_palette.py' }
+tasks.register('verifyPricingNavigation', Exec) { group = 'verification'; description = 'Verify pricing navigation and catalogue contracts without mutating source.'; workingDir rootProject.projectDir; commandLine 'python3', 'restructure_pricing_navigation.py' }
+tasks.register('fixVideoUiErrors', Exec) { workingDir rootProject.projectDir; commandLine 'python3', 'fix_video_ui_errors.py' }
 tasks.register('verifyDeterministicSourcePipeline') {
     group = 'verification'
     description = 'Prevent retired build-time source rewriters from returning.'
@@ -41,7 +41,7 @@ tasks.register('verifyDeterministicSourcePipeline') {
             ['secure', 'pricing', 'auth.py'].join('_'),
         ]
         retiredScripts.each { name ->
-            if (file("${rootProject.rootDir}/${name}").exists()) {
+            if (file("${rootProject.projectDir}/${name}").exists()) {
                 throw new GradleException("Retired Android source rewriter returned: ${name}")
             }
         }
