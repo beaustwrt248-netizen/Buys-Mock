@@ -17,7 +17,7 @@ test('backup lookup and destructive operations are scoped to current user',()=>{
   has(backend,".eq('id', backupId).eq('user_id', userId)");
   has(backend,"backup.google_permission_id !== google.permissionId");
   has(backend,"payload?.owner_user_id !== userId");
-  has(backend,"payload?.google_permission_id !== google.permissionId");
+  has(backend,"payload?.google_permission_id !== permissionId");
 });
 
 test('Google Drive appData scope is narrow and per-user',()=>{
