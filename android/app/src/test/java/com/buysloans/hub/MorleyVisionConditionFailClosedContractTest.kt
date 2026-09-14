@@ -45,4 +45,12 @@ class MorleyVisionConditionFailClosedContractTest {
 
         assertTrue(edge.contains("condition_grade: normaliseGrade(parsed.condition_grade) || \"UNVERIFIED\""))
     }
+
+    @Test
+    fun androidClientNeverConvertsMissingConditionToFair() {
+        val client = File("src/main/java/com/buysloans/hub/DeviceInspectionClient.kt").readText()
+
+        assertTrue(client.contains("conditionGrade = MorleyVisionPolicy.clean(result.optString(\"condition_grade\")).ifBlank { \"UNVERIFIED\" }"))
+        assertTrue(client.contains("else -> error(\"A verified condition grade is required before pricing.\")"))
+    }
 }
