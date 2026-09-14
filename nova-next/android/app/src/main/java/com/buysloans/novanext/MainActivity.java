@@ -1,12 +1,14 @@
 package com.buysloans.novanext;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -14,6 +16,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
@@ -25,16 +28,76 @@ public final class MainActivity extends Activity {
     private static final String ALLOWED_HOST = "buyshub.me";
     private static final String ALLOWED_HOST_WWW = "www.buyshub.me";
     private static final String ALLOWED_PATH_PREFIX = "/nova-next/";
+    private static final String UPDATE_SCHEME = "novanext";
+    private static final String UPDATE_HOST = "check-updates";
+    private static final String TAG = "NovaNext";
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri pendingCameraUri;
+    private UpdateManager updateManager;
+    private boolean initialUpdateCheckStarted;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureUpdater();
         configureWebView();
         webView.loadUrl(BuildConfig.NOVA_NEXT_URL);
+        webView.postDelayed(this::checkForUpdatesOnce, 2_000L);
+    }
+
+    private void configureUpdater() {
+        updateManager = new UpdateManager(this, new UpdateManager.Listener() {
+            @Override
+            public void onStatus(String message) {
+                if (message != null && message.startsWith("Allow Nova Next")) {
+                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onUpdateAvailable(UpdateManager.UpdateInfo info) {
+                if (isFinishing() || isDestroyed()) return;
+                StringBuilder message = new StringBuilder();
+                if (!info.notes.isBlank()) message.append(info.notes).append("\n\n");
+                message.append("Version ").append(info.versionName)
+                        .append(" is available on the verified Nova stable channel.");
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Nova Next update available")
+                        .setMessage(message.toString())
+                        .setPositiveButton("Update", (dialog, which) -> updateManager.downloadAndInstall(info));
+                if (info.mandatory) {
+                    builder.setCancelable(false);
+                } else {
+                    builder.setNegativeButton("Later", null);
+                }
+                builder.show();
+            }
+
+            @Override
+            public void onUpToDate() {
+                Log.d(TAG, "Nova Next is up to date");
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.w(TAG, message == null ? "Nova Next update check failed" : message);
+            }
+        });
+    }
+
+    private void checkForUpdatesOnce() {
+        if (initialUpdateCheckStarted || updateManager == null || isFinishing() || isDestroyed()) return;
+        initialUpdateCheckStarted = true;
+        updateManager.checkForUpdates();
+    }
+
+    private void checkForUpdatesNow() {
+        if (updateManager == null || isFinishing() || isDestroyed()) return;
+        Toast.makeText(this, "Checking Nova Next updates…", Toast.LENGTH_SHORT).show();
+        updateManager.checkForUpdates();
     }
 
     private void configureWebView() {
@@ -52,7 +115,8 @@ public final class MainActivity extends Activity {
         settings.setSupportMultipleWindows(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + " NovaNextAndroid/0.1");
+        settings.setUserAgentString(settings.getUserAgentString()
+                + " NovaNextAndroid/" + BuildConfig.VERSION_NAME);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             settings.setSafeBrowsingEnabled(true);
         }
@@ -89,11 +153,14 @@ public final class MainActivity extends Activity {
                     contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
                 }
                 contentIntent.setType("image/*");
-                contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
+                        params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
 
                 Intent cameraIntent = buildCameraIntent();
                 Intent chooser = Intent.createChooser(contentIntent, "Choose image");
-                if (cameraIntent != null) chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
+                if (cameraIntent != null) {
+                    chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
+                }
                 try {
                     startActivityForResult(chooser, FILE_CHOOSER_REQUEST);
                     return true;
@@ -114,10 +181,12 @@ public final class MainActivity extends Activity {
             File directory = new File(getCacheDir(), "nova-next-camera");
             if (!directory.exists() && !directory.mkdirs()) return null;
             File image = File.createTempFile("nova-next-", ".jpg", directory);
-            pendingCameraUri = FileProvider.getUriForFile(this, getPackageName() + ".files", image);
+            pendingCameraUri = FileProvider.getUriForFile(
+                    this, getPackageName() + ".files", image);
             camera.putExtra(MediaStore.EXTRA_OUTPUT, pendingCameraUri);
             camera.setClipData(ClipData.newRawUri("Nova Next capture", pendingCameraUri));
-            camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             return camera;
         } catch (IOException | IllegalArgumentException error) {
             pendingCameraUri = null;
@@ -126,6 +195,12 @@ public final class MainActivity extends Activity {
     }
 
     private boolean handleTopLevelNavigation(Uri uri) {
+        if (uri != null
+                && UPDATE_SCHEME.equalsIgnoreCase(uri.getScheme())
+                && UPDATE_HOST.equalsIgnoreCase(uri.getHost())) {
+            checkForUpdatesNow();
+            return true;
+        }
         if (isAllowedTopLevelUrl(uri)) return false;
         if (uri != null && "https".equalsIgnoreCase(uri.getScheme())) {
             try {
@@ -140,9 +215,17 @@ public final class MainActivity extends Activity {
     static boolean isAllowedTopLevelUrl(Uri uri) {
         if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())) return false;
         String host = uri.getHost();
-        if (!ALLOWED_HOST.equalsIgnoreCase(host) && !ALLOWED_HOST_WWW.equalsIgnoreCase(host)) return false;
+        if (!ALLOWED_HOST.equalsIgnoreCase(host) && !ALLOWED_HOST_WWW.equalsIgnoreCase(host)) {
+            return false;
+        }
         String path = uri.getPath();
         return path != null && (path.equals("/nova-next") || path.startsWith(ALLOWED_PATH_PREFIX));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        UpdateManager.resumePendingInstall(this);
     }
 
     @Override
@@ -187,6 +270,7 @@ public final class MainActivity extends Activity {
             webView.destroy();
             webView = null;
         }
+        updateManager = null;
         super.onDestroy();
     }
 }

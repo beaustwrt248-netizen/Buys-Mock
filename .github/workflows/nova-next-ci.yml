@@ -81,17 +81,26 @@ jobs:
           set -euo pipefail
           APK='nova-next/android/app/build/outputs/apk/debug/app-debug.apk'
           test -s "$APK"
+          VERSION_NAME="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('nova-next/android/app/build.gradle').read_text(encoding='utf-8')
+          match=re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not match: raise SystemExit('Missing Nova Next versionName')
+          print(match.group(1))
+          PY
+          )"
           mkdir -p dist
-          cp "$APK" dist/Nova-Next-0.1.0-dev-debug.apk
-          (cd dist && sha256sum Nova-Next-0.1.0-dev-debug.apk > Nova-Next-0.1.0-dev-debug.apk.sha256)
-          (cd dist && sha256sum --check Nova-Next-0.1.0-dev-debug.apk.sha256)
+          APK_NAME="Nova-Next-${VERSION_NAME}-debug.apk"
+          cp "$APK" "dist/${APK_NAME}"
+          (cd dist && sha256sum "$APK_NAME" > "$APK_NAME.sha256" && sha256sum --check "$APK_NAME.sha256")
 
       - name: Upload isolated debug APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nova-next-debug-apk
           path: |
-            dist/Nova-Next-0.1.0-dev-debug.apk
-            dist/Nova-Next-0.1.0-dev-debug.apk.sha256
+            dist/Nova-Next-*-debug.apk
+            dist/Nova-Next-*-debug.apk.sha256
           if-no-files-found: error
           retention-days: 14

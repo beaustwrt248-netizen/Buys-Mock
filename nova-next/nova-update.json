@@ -1,0 +1,11 @@
+{
+  "appId": "nova-next",
+  "channel": "stable",
+  "packageName": "com.buysloans.novanext",
+  "versionCode": 0,
+  "versionName": "0.0.0",
+  "downloadUrl": "",
+  "sha256": "",
+  "mandatory": false,
+  "notes": "Nova Next stable channel is initialised and awaiting its first signed release."
+}

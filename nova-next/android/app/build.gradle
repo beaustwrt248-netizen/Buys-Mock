@@ -11,8 +11,26 @@ android {
         minSdk 29
         targetSdk 35
         versionCode 1
-        versionName '0.1.0-dev'
+        versionName '0.1.0'
         buildConfigField 'String', 'NOVA_NEXT_URL', '"https://buyshub.me/nova-next/"'
+        buildConfigField 'String', 'NOVA_OTA_MANIFEST_URL', '"https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova-next/nova-update.json"'
+        buildConfigField 'String', 'NOVA_OTA_CHANNEL', '"stable"'
+        buildConfigField 'String', 'NOVA_OTA_APP_ID', '"nova-next"'
+    }
+
+    signingConfigs {
+        release {
+            def keyPath = System.getenv('B_AND_L_KEYSTORE_PATH')
+            def storePass = System.getenv('B_AND_L_STORE_PASSWORD')
+            def keyAliasEnv = System.getenv('B_AND_L_KEY_ALIAS')
+            def keyPass = System.getenv('B_AND_L_KEY_PASSWORD') ?: storePass
+            if (keyPath && storePass && keyAliasEnv) {
+                storeFile file(keyPath)
+                storePassword storePass
+                keyAlias keyAliasEnv
+                keyPassword keyPass
+            }
+        }
     }
 
     buildTypes {
@@ -22,6 +40,7 @@ android {
         }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

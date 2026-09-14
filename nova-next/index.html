@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#06101e" />
   <title>Nova Next</title>
+  <link rel="icon" href="./assets/icons/nova-orb-192.svg" sizes="192x192" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./accessibility.css" />
+  <link rel="stylesheet" href="./completion.css" />
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -62,7 +64,7 @@
       <div class="page-stack" id="pageStack">
         <section class="page is-active" data-route="home" aria-labelledby="home-title">
           <h1 id="home-title" class="sr-only">Home</h1>
-          <button class="ask-bar" type="button" data-route-target="chat"><span>Ask Nova anything...</span><span class="mic">◉</span></button>
+          <button class="ask-bar" type="button" data-route-target="chat"><span>Ask Nova anything...</span><span class="mic" aria-hidden="true">◉</span></button>
           <div class="quick-actions" aria-label="Quick actions">
             <button data-route-target="chat"><span class="quick-icon">●</span><span>Chat</span></button>
             <button data-tool="camera"><span class="quick-icon">◎</span><span>Scan</span></button>
@@ -73,39 +75,48 @@
           <div class="section-heading"><h2>Quick Access</h2><button class="link-button" type="button" data-route-target="more">See All</button></div>
           <div class="access-grid">
             <button class="access-card" data-route-target="tasks"><span class="tile-icon blue">≡</span><span><strong>My Tasks</strong><small>Track your work</small></span></button>
-            <button class="access-card" data-route-target="projects"><span class="tile-icon cyan">▣</span><span><strong>Projects</strong><small>Manage & build</small></span></button>
+            <button class="access-card" data-route-target="projects"><span class="tile-icon cyan">▣</span><span><strong>Projects</strong><small>Manage &amp; build</small></span></button>
             <button class="access-card" data-route-target="knowledge"><span class="tile-icon violet">◇</span><span><strong>Knowledge</strong><small>Saved info</small></span></button>
             <button class="access-card" data-route-target="tools"><span class="tile-icon indigo">⌘</span><span><strong>Tools</strong><small>AI utilities</small></span></button>
           </div>
         </section>
 
-        <section class="page" data-route="chat" aria-labelledby="chat-title">
-          <div class="page-title-row assistant-row"><div class="assistant-orb" aria-hidden="true"></div><div><h1 id="chat-title">Nova</h1><p><span class="online-dot"></span> Online</p></div></div>
-          <article class="chat-welcome">Hi Beau! 👋<br /><span>How can I help you today?</span></article>
-          <div class="suggestion-list">
-            <button><span>◉</span>Summarise information</button>
-            <button><span>✎</span>Help me write something</button>
-            <button><span>▧</span>Analyse an image</button>
-            <button><span>▤</span>Find the best price</button>
-            <button><span>◈</span>Plan or organise a task</button>
-            <button><span>⌄</span>Other...</button>
+        <section class="page chat-page" data-route="chat" aria-labelledby="chat-title">
+          <div class="chat-layout">
+            <div class="page-title-row assistant-row"><div class="assistant-orb" aria-hidden="true"></div><div><h1 id="chat-title">Nova</h1><p><span class="online-dot"></span> Online</p></div></div>
+            <div class="chat-scroll" id="novaNextChatScroll">
+              <div class="chat-messages" id="novaNextChatMessages" aria-live="polite" aria-relevant="additions text"></div>
+              <div class="chat-empty-state is-active">
+                <article class="chat-welcome">Hi Beau! 👋<br /><span>How can I help you today?</span></article>
+                <div class="suggestion-list" aria-label="Chat suggestions">
+                  <button type="button"><span>◉</span>Summarise information</button>
+                  <button type="button"><span>✎</span>Help me write something</button>
+                  <button type="button"><span>▧</span>Analyse an image</button>
+                  <button type="button"><span>▤</span>Find the best price</button>
+                  <button type="button"><span>◈</span>Plan or organise a task</button>
+                  <button type="button"><span>⌄</span>Other...</button>
+                </div>
+              </div>
+            </div>
+            <div class="composer"><input placeholder="Ask Nova anything..." aria-label="Message Nova" /><button type="button" aria-label="Send message">↑</button></div>
           </div>
-          <div class="composer"><input placeholder="Ask Nova anything..." aria-label="Message Nova" /><button type="button" aria-label="Voice input">◉</button></div>
         </section>
 
         <section class="page" data-route="tools" aria-labelledby="tools-title">
-          <div class="page-title-row"><div><h1 id="tools-title">Tools</h1><p>Powerful AI tools at your fingertips</p></div><button class="icon-button" type="button" aria-label="Search tools">⌕</button></div>
-          <div class="filter-tabs" role="tablist" aria-label="Tool filters"><button class="is-selected">All</button><button>Productivity</button><button>Content</button><button>Analysis</button></div>
-          <div class="list-cards">
-            <button><span class="tool-icon blue">●</span><span><strong>AI Chat</strong><small>General assistant</small></span><b>›</b></button>
-            <button><span class="tool-icon violet">▧</span><span><strong>Image Analysis</strong><small>Analyse photos & screenshots</small></span><b>›</b></button>
-            <button><span class="tool-icon cyan">▤</span><span><strong>Document Assistant</strong><small>Summarise, edit, extract</small></span><b>›</b></button>
-            <button><span class="tool-icon green">⌕</span><span><strong>Price & Product Search</strong><small>Find the best deals</small></span><b>›</b></button>
-            <button><span class="tool-icon indigo">♧</span><span><strong>Translate</strong><small>Multiple languages</small></span><b>›</b></button>
-            <button><span class="tool-icon coral">&lt;/&gt;</span><span><strong>Code Assistant</strong><small>Write, debug, explain</small></span><b>›</b></button>
-            <button><span class="tool-icon amber">♙</span><span><strong>Idea Generator</strong><small>Brainstorm anything</small></span><b>›</b></button>
-            <button><span class="tool-icon blue">▥</span><span><strong>Data Analysis</strong><small>Analyse and visualise data</small></span><b>›</b></button>
+          <div class="page-title-row"><div><h1 id="tools-title">Tools</h1><p>Powerful AI tools at your fingertips</p></div></div>
+          <label class="tool-search" for="novaNextToolSearch"><span aria-hidden="true">⌕</span><input id="novaNextToolSearch" type="search" autocomplete="off" placeholder="Search tools" /></label>
+          <div class="filter-tabs" id="novaNextToolFilters" role="group" aria-label="Tool filters"><button type="button" class="is-selected" data-tool-filter="all">All</button><button type="button" data-tool-filter="productivity">Productivity</button><button type="button" data-tool-filter="content">Content</button><button type="button" data-tool-filter="analysis">Analysis</button></div>
+          <div class="list-cards" id="novaNextToolList">
+            <button type="button" data-tool-category="productivity"><span class="tool-icon blue">●</span><span><strong>AI Chat</strong><small>General assistant</small></span><b>›</b></button>
+            <button type="button" data-tool-category="analysis"><span class="tool-icon violet">▧</span><span><strong>Image Analysis</strong><small>Analyse photos &amp; screenshots</small></span><b>›</b></button>
+            <button type="button" data-tool-category="productivity"><span class="tool-icon cyan">▤</span><span><strong>Document Assistant</strong><small>Summarise, edit, extract</small></span><b>›</b></button>
+            <button type="button" data-tool-category="analysis"><span class="tool-icon green">⌕</span><span><strong>Price &amp; Product Search</strong><small>Find the best deals</small></span><b>›</b></button>
+            <button type="button" data-tool-category="content"><span class="tool-icon indigo">♧</span><span><strong>Translate</strong><small>Multiple languages</small></span><b>›</b></button>
+            <button type="button" data-tool-category="productivity"><span class="tool-icon coral">&lt;/&gt;</span><span><strong>Code Assistant</strong><small>Write, debug, explain</small></span><b>›</b></button>
+            <button type="button" data-tool-category="content"><span class="tool-icon amber">♙</span><span><strong>Idea Generator</strong><small>Brainstorm anything</small></span><b>›</b></button>
+            <button type="button" data-tool-category="analysis"><span class="tool-icon blue">▥</span><span><strong>Data Analysis</strong><small>Analyse and visualise data</small></span><b>›</b></button>
           </div>
+          <p id="novaNextToolEmpty" class="tool-empty is-hidden" role="status">No tools match this filter.</p>
         </section>
 
         <section class="page" data-route="tasks" aria-labelledby="tasks-title">
@@ -126,7 +137,8 @@
             <button data-action="settings-account"><span>♙</span><div><strong>Account</strong><small>Profile and security status</small></div><b>›</b></button>
             <button data-action="settings-appearance"><span>◌</span><div><strong>Appearance</strong><small>Theme and display status</small></div><b>›</b></button>
             <button data-action="settings-notifications"><span>♢</span><div><strong>Notifications</strong><small>Alerts and updates status</small></div><b>›</b></button>
-            <button data-action="settings-privacy"><span>▣</span><div><strong>Privacy & Data</strong><small>Local data boundaries</small></div><b>›</b></button>
+            <button data-action="settings-privacy"><span>▣</span><div><strong>Privacy &amp; Data</strong><small>Local data boundaries</small></div><b>›</b></button>
+            <button data-action="check-updates"><span>↻</span><div><strong>Check for Updates</strong><small>Nova release channel status</small></div><b>›</b></button>
             <button data-route-target="integrations"><span>▤</span><div><strong>Integrations</strong><small>Verified connection status</small></div><b>›</b></button>
             <button data-route-target="automation"><span>⌘</span><div><strong>Automation</strong><small>Capability status &amp; boundaries</small></div><b>›</b></button>
             <button data-action="settings-about"><span>ⓘ</span><div><strong>About</strong><small>Version and support status</small></div><b>›</b></button>
@@ -154,7 +166,7 @@
           <p class="feature-boundary">No credentials are entered or stored on this screen.</p>
           <div id="novaNextIntegrationsList" class="feature-status-grid" aria-live="polite"></div>
         </section>
-        <section class="page" data-route="help" aria-labelledby="help-title"><div id="novaNextHelpRoot"><div class="page-title-row"><div><h1 id="help-title">Help & Support</h1><p>Diagnostics and safe support shortcuts</p></div></div></div></section>
+        <section class="page" data-route="help" aria-labelledby="help-title"><div id="novaNextHelpRoot"><div class="page-title-row"><div><h1 id="help-title">Help &amp; Support</h1><p>Diagnostics and safe support shortcuts</p></div></div></div></section>
         <section class="page" data-route="more" aria-labelledby="more-title"><div id="novaNextControlCentreRoot"><div class="page-title-row"><div><h1 id="more-title">Control Centre</h1><p>Loading read-only Nova operational intelligence…</p></div></div></div></section>
       </div>
 
@@ -167,5 +179,6 @@
   </main>
 
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./src/completion-ui.mjs"></script>
 </body>
 </html>
