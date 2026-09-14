@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -657,8 +658,12 @@ private fun CameraCaptureSurface(
             Modifier.fillMaxWidth().padding(top = 16.dp, start = 8.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { back?.invoke() ?: close() }) {
-                Icon(if (back != null) Icons.Default.ArrowBack else Icons.Default.Close, null, tint = Color.White)
+            if (back != null) {
+                IconButton(onClick = back) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                }
+            } else {
+                Spacer(Modifier.size(48.dp))
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Scan Device", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -683,13 +688,13 @@ private fun CameraCaptureSurface(
         }
 
         Box(
-            Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
+            Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.82f)
         ) {
             ScanFrameOverlay()
         }
 
         Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 126.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
@@ -713,14 +718,14 @@ private fun CameraCaptureSurface(
             Surface(
                 color = LensDanger.copy(alpha = .92f),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 132.dp, start = 18.dp, end = 18.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 140.dp, start = 18.dp, end = 18.dp)
             ) {
                 Text(cameraError, Modifier.padding(10.dp), color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
             }
         }
 
         Row(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 26.dp, vertical = 28.dp),
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(start = 26.dp, top = 8.dp, end = 26.dp, bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -909,36 +914,100 @@ private fun VisionReviewScreen(
     close: () -> Unit
 ) {
     ScanScaffold("Staff Verification", close) {
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AnnotatedPhoto(frontPhoto, inspection.damageRegions.filter { it.photoIndex == 1 }, Modifier.weight(1f).aspectRatio(.78f))
-                AnnotatedPhoto(backPhoto, inspection.damageRegions.filter { it.photoIndex == 2 }, Modifier.weight(1f).aspectRatio(.78f))
-            }
-            MorleyVisionReviewPanel(
-                state = state,
-                onDamageDecision = onDamageDecision,
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (!state.canCompleteStaffReview) {
-                InfoCard(
-                    "Verification required",
-                    "Resolve every damage decision and retake photos when identity, storage, photo quality or cross-photo consistency is not verified. Pricing and stock entry remain locked until this review is complete."
+        if (state.requiresCaptureRecovery) {
+            var detailsExpanded by remember(state.inspection) { mutableStateOf(false) }
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().height(132.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AnnotatedPhoto(frontPhoto, inspection.damageRegions.filter { it.photoIndex == 1 }, Modifier.weight(1f).fillMaxHeight())
+                    AnnotatedPhoto(backPhoto, inspection.damageRegions.filter { it.photoIndex == 2 }, Modifier.weight(1f).fillMaxHeight())
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = LensDangerSoft),
+                    border = BorderStroke(1.dp, LensDanger.copy(alpha = .18f))
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("We couldn't verify this device", color = Color(0xFF8E211F), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text(
+                            "The photos do not provide enough reliable evidence to verify the device identity and condition. Retake clear front and back photos before continuing.",
+                            color = Color(0xFF8E211F),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                if (error.isNotBlank()) ErrorCard(error)
+
+                Button(
+                    onClick = retake,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = LensBlue)
+                ) {
+                    Icon(Icons.Default.Refresh, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Retake clear photos", fontWeight = FontWeight.Black)
+                }
+
+                TextButton(onClick = { detailsExpanded = !detailsExpanded }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (detailsExpanded) "Hide scan details" else "Why the scan was blocked", fontWeight = FontWeight.Bold)
+                }
+
+                if (detailsExpanded) {
+                    val recoveryReasons = mutableListOf<String>().apply {
+                        if (!state.identityVerified) add("Device identity could not be verified.")
+                        addAll(state.qualityWarnings)
+                        addAll(state.consistencyWarnings)
+                    }.distinct()
+                    InfoCard(
+                        "Scan details",
+                        recoveryReasons.joinToString(" • ").ifBlank { "The scan does not contain enough verified evidence to continue." }
+                    )
+                }
+
+                Text(
+                    "Pricing and stock entry remain locked until a reliable scan passes staff verification.",
+                    color = LensMuted,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-            if (error.isNotBlank()) ErrorCard(error)
-            Button(
-                onClick = continueToResults,
-                enabled = state.canCompleteStaffReview,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LensBlue)
+        } else {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Continue to Results", fontWeight = FontWeight.Black)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AnnotatedPhoto(frontPhoto, inspection.damageRegions.filter { it.photoIndex == 1 }, Modifier.weight(1f).aspectRatio(.90f))
+                    AnnotatedPhoto(backPhoto, inspection.damageRegions.filter { it.photoIndex == 2 }, Modifier.weight(1f).aspectRatio(.90f))
+                }
+                MorleyVisionReviewPanel(state = state, onDamageDecision = onDamageDecision, modifier = Modifier.fillMaxWidth())
+                if (!state.canCompleteStaffReview) {
+                    InfoCard(
+                        "Verification required",
+                        "Complete the remaining staff checks before continuing. Pricing and stock entry stay locked until review is complete."
+                    )
+                }
+                if (error.isNotBlank()) ErrorCard(error)
+                Button(
+                    onClick = continueToResults,
+                    enabled = state.canCompleteStaffReview,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = LensBlue)
+                ) {
+                    Text("Continue to Results", fontWeight = FontWeight.Black)
+                }
+                OutlinedButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }
+                AiBoundary()
             }
-            OutlinedButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }
-            AiBoundary()
         }
     }
 }

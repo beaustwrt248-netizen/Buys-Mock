@@ -22,7 +22,7 @@
         <h1>NOVA AI</h1>
         <p>Smarter Tools<br />Brighter Results</p>
       </div>
-      <div class="entry-footer">
+      <div class="entry-footer" role="status" aria-live="polite">
         <div class="progress-track" aria-hidden="true"><span></span></div>
         <p>Loading your workspace...</p>
       </div>
@@ -35,8 +35,8 @@
         <h2>Welcome Back</h2>
         <p class="muted">Sign in to continue</p>
         <form id="loginForm" class="login-form">
-          <label class="field"><span class="field-icon">✉</span><input name="identity" autocomplete="username" placeholder="Email or Username" /></label>
-          <label class="field"><span class="field-icon">▣</span><input name="password" autocomplete="current-password" type="password" placeholder="Password" /><button type="button" class="field-action" data-action="toggle-password" aria-label="Show password">◉</button></label>
+          <label class="field"><span class="field-icon">✉</span><input name="identity" aria-label="Email or Username" autocomplete="username" placeholder="Email or Username" /></label>
+          <label class="field"><span class="field-icon">▣</span><input name="password" aria-label="Password" autocomplete="current-password" type="password" placeholder="Password" /><button type="button" class="field-action" data-action="toggle-password" aria-label="Show password">◉</button></label>
           <div class="login-options"><label><input type="checkbox" checked /> Remember me</label><button class="link-button" type="button">Forgot password?</button></div>
           <button class="primary-button" type="submit">Sign In</button>
         </form>
