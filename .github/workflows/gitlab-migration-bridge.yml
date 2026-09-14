@@ -169,6 +169,7 @@ jobs:
           api="https://gitlab.com/api/v4/projects/${project_id}"
           auth_header="PRIVATE-TOKEN: ${GITLAB_MIGRATION_TOKEN}"
           jobs_file="$RUNNER_TEMP/gitlab-pipeline-jobs.json"
+          traces_file="gitlab-failed-job-traces.txt"
 
           normalize_jobs() {
             local pipeline_id="$1"
@@ -184,13 +185,13 @@ jobs:
               'pipeline_status': os.environ['PIPELINE_STATUS'],
               'jobs': [
                   {
+                      'id': item.get('id'),
                       'name': item.get('name', ''),
                       'status': item.get('status', ''),
+                      'failure_reason': item.get('failure_reason', ''),
                       'stage': item.get('stage', ''),
                       'tags': item.get('tag_list', []),
-                      'artifacts': [
-                          item.get('artifacts_file', {}).get('filename')
-                      ] if item.get('artifacts_file', {}).get('filename') else [],
+                      'artifacts': [item.get('artifacts_file', {}).get('filename')] if item.get('artifacts_file', {}).get('filename') else [],
                   }
                   for item in jobs
               ],
@@ -201,15 +202,35 @@ jobs:
           PY
           }
 
+          capture_failed_traces() {
+            : > "$traces_file"
+            python3 - "$jobs_file" <<'PY' > "$RUNNER_TEMP/gitlab-failed-job-ids.txt"
+          import json, sys
+          jobs=json.load(open(sys.argv[1], encoding='utf-8'))
+          for job in jobs:
+              if job.get('status') == 'failed' and job.get('id') is not None:
+                  print(f"{job['id']}\t{job.get('name','')}\t{job.get('failure_reason','')}")
+          PY
+            local captured=0
+            while IFS=$'\t' read -r job_id job_name failure_reason; do
+              [[ -n "${job_id:-}" ]] || continue
+              {
+                printf '===== job %s (%s) failure_reason=%s =====\n' "$job_name" "$job_id" "$failure_reason"
+                curl --fail --silent --show-error --header "$auth_header" "$api/jobs/$job_id/trace" | tail -c 12000 || true
+                printf '\n===== end job %s =====\n\n' "$job_name"
+              } >> "$traces_file"
+              captured=$((captured + 1))
+              [[ "$captured" -ge 6 ]] && break
+            done < "$RUNNER_TEMP/gitlab-failed-job-ids.txt"
+            head -c 12000 "$traces_file" > "${traces_file}.bounded"
+            mv "${traces_file}.bounded" "$traces_file"
+          }
+
           pipeline_id=""
           for attempt in $(seq 1 30); do
-            response="$(curl --fail --silent --show-error --header "$auth_header" \
-              --get --data-urlencode "sha=$GITHUB_SHA" --data-urlencode "ref=$GITHUB_REF_NAME" \
-              "$api/pipelines?per_page=20")"
+            response="$(curl --fail --silent --show-error --header "$auth_header" --get --data-urlencode "sha=$GITHUB_SHA" --data-urlencode "ref=$GITHUB_REF_NAME" "$api/pipelines?per_page=20")"
             pipeline_id="$(python3 -c 'import json,sys; data=json.load(sys.stdin); print(data[0]["id"] if data else "")' <<< "$response")"
-            if [[ -n "$pipeline_id" ]]; then
-              break
-            fi
+            if [[ -n "$pipeline_id" ]]; then break; fi
             echo "Waiting for GitLab pipeline for $GITHUB_SHA (attempt $attempt/30)..."
             sleep 10
           done
@@ -226,8 +247,7 @@ jobs:
           for attempt in $(seq 1 90); do
             pipeline="$(curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id")"
             status="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' <<< "$pipeline")"
-            curl --fail --silent --show-error --header "$auth_header" \
-              "$api/pipelines/$pipeline_id/jobs?per_page=100" > "$jobs_file"
+            curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id/jobs?per_page=100" > "$jobs_file"
 
             detector="$(PENDING_TAGGED_POLLS="$pending_tagged_polls" PENDING_TAGGED_THRESHOLD=8 node scripts/ci/detect-gitlab-runner-block.mjs < "$jobs_file")"
             pending_tagged_polls="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["nextPendingTaggedPolls"])' <<< "$detector")"
@@ -261,15 +281,15 @@ jobs:
           fi
 
           normalize_jobs "$pipeline_id" "$final_status" "$jobs_file"
-
           echo "GitLab pipeline completed with status: $final_status"
           if [[ "$final_status" != "success" ]]; then
+            capture_failed_traces
             python3 - <<'PY'
           import json
           data=json.load(open('gitlab-pipeline-result.json', encoding='utf-8'))
           for job in data['jobs']:
               if job['status'] not in ('success','skipped'):
-                  print(f"{job['name']}: {job['status']}")
+                  print(f"{job['name']}: {job['status']} ({job.get('failure_reason','')})")
           PY
             exit 1
           fi
@@ -279,7 +299,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gitlab-pipeline-evidence-${{ github.sha }}
-          path: gitlab-pipeline-result.json
+          path: |
+            gitlab-pipeline-result.json
+            gitlab-failed-job-traces.txt
           if-no-files-found: warn
           retention-days: 14
 
