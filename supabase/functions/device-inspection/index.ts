@@ -313,7 +313,7 @@ quality_warnings (string array), consistency_warnings (string array), component_
       model_number: clean(parsed.model_number, 120) || null,
       colour: clean(parsed.colour, 100) || null,
       storage: clean(parsed.storage, 100) || null,
-      condition_grade: normaliseGrade(parsed.condition_grade),
+      condition_grade: normaliseGrade(parsed.condition_grade) || "UNVERIFIED",
       condition_summary: clean(parsed.condition_summary, 320) || null,
       confidence: clamp01(parsed.confidence),
       damage_flags: textArray(parsed.damage_flags, 20, 180),
