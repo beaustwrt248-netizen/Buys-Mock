@@ -126,11 +126,15 @@ function showWebUpdateBanner(documentObj, registration) {
   documentObj.body.append(banner);
 }
 
-function bindServiceWorkerUpdates(documentObj, navigatorObj) {
-  if (!navigatorObj?.serviceWorker) return;
-  navigatorObj.serviceWorker.addEventListener('message', event => {
+function isNativeNova(navigatorObj) {
+  return /(?:^|\s)NovaNextAndroid\//.test(String(navigatorObj?.userAgent || ''));
+}
+
+function bindUpdateChecks(documentObj, navigatorObj) {
+  const serviceWorker = navigatorObj?.serviceWorker;
+  serviceWorker?.addEventListener('message', event => {
     if (event.data?.type !== 'NOVA_WEB_UPDATE_READY') return;
-    navigatorObj.serviceWorker.getRegistration('./').then(registration => showWebUpdateBanner(documentObj, registration));
+    serviceWorker.getRegistration('./').then(registration => showWebUpdateBanner(documentObj, registration));
   });
 
   documentObj.addEventListener('click', async event => {
@@ -139,9 +143,15 @@ function bindServiceWorkerUpdates(documentObj, navigatorObj) {
     button.disabled = true;
     createStatusToast(documentObj, 'Checking Nova updates…');
     try {
-      const registration = await navigatorObj.serviceWorker.getRegistration('./');
+      if (isNativeNova(navigatorObj)) {
+        globalThis.location.href = 'novanext://check-updates';
+        createStatusToast(documentObj, 'Native Nova update check started.');
+        return;
+      }
+      if (!serviceWorker) throw new Error('SERVICE_WORKER_UNAVAILABLE');
+      const registration = await serviceWorker.getRegistration('./');
       if (registration) await registration.update();
-      createStatusToast(documentObj, 'Update check complete. Native Nova updates are verified by the Android updater.');
+      createStatusToast(documentObj, 'Nova web assets are up to date.');
     } catch (error) {
       console.error('nova-next update check', error);
       createStatusToast(documentObj, 'Nova could not check for updates. Try again when you are online.', 'error');
@@ -171,7 +181,7 @@ function enhanceControlCentre(documentObj) {
         const primary = documentObj.createElement('strong');
         primary.textContent = 'Nova stable channel';
         const detail = documentObj.createElement('p');
-        detail.textContent = 'Package identity and SHA-256 integrity are verified before Android install handoff.';
+        detail.textContent = 'Package identity, signing identity and SHA-256 integrity are verified before Android install handoff.';
         card.append(label, primary, detail);
         grid.append(card);
       }
@@ -209,7 +219,7 @@ export function bindCompletionUi({
   if (!documentObj) return;
   bindToolFiltering(documentObj);
   bindChatState(documentObj);
-  bindServiceWorkerUpdates(documentObj, navigatorObj);
+  bindUpdateChecks(documentObj, navigatorObj);
   enhanceControlCentre(documentObj);
 }
 
