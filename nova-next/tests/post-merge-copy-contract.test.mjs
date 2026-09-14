@@ -29,7 +29,8 @@ test('canonical Nova Next validation docs no longer describe the app as bootstra
   const live = await read('docs/nova-next/LIVE_ADAPTER_VALIDATION.md');
 
   assert.doesNotMatch(visual, /bootstrap shell/i);
-  assert.match(visual, /completed Nova Next/i);
+  assert.match(visual, /GO FOR PROMOTION REVIEW/i);
+  assert.match(visual, /completed implementation/i);
   assert.doesNotMatch(live, /PR #1784 remains high-risk/i);
   assert.match(live, /merged implementation/i);
 });
