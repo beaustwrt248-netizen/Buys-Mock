@@ -104,14 +104,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git ls-remote --tags gitlab > /tmp/gitlab-tags-before.txt
+          declare -A remote_tags=()
+          while read -r sha ref; do
+            [[ -n "${sha:-}" && -n "${ref:-}" ]] || continue
+            [[ "$ref" == refs/tags/* ]] || continue
+            [[ "$ref" == *'^{}' ]] && continue
+            tag="${ref#refs/tags/}"
+            remote_tags["$tag"]="$sha"
+          done < /tmp/gitlab-tags-before.txt
+
           while IFS= read -r tag; do
             [[ -n "$tag" ]] || continue
             local_sha="$(git rev-parse "refs/tags/$tag")"
-            remote_sha="$(git ls-remote gitlab "refs/tags/$tag" | awk '$2 !~ /\^\{\}$/ {print $1; exit}')"
+            remote_sha="${remote_tags[$tag]:-}"
 
             if [[ -z "$remote_sha" ]]; then
               echo "Creating missing GitLab tag $tag at $local_sha."
               git push gitlab "refs/tags/$tag:refs/tags/$tag"
+              remote_tags["$tag"]="$local_sha"
               continue
             fi
 
@@ -122,6 +133,7 @@ jobs:
               exit 1
             fi
           done < <(git for-each-ref --format='%(refname:strip=2)' refs/tags | sort)
+          rm -f /tmp/gitlab-tags-before.txt
 
       - name: Verify tag coverage after create-only synchronization
         shell: bash
