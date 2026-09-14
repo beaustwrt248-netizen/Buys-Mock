@@ -45,16 +45,15 @@ object MorleyVisionPolicy {
         return inspection.confidence >= MIN_IDENTITY_CONFIDENCE && brand.isNotBlank() && model.isNotBlank()
     }
 
+    fun isConditionVerified(inspection: DeviceInspection): Boolean =
+        canonicalConditionGrade(inspection.conditionGrade) != null
+
     fun pricingConditionGrade(inspection: DeviceInspection): String? =
         canonicalConditionGrade(inspection.staffConfirmedConditionGrade)
-            ?: canonicalConditionGrade(inspection.conditionGrade)
-
-    fun isConditionVerified(inspection: DeviceInspection): Boolean =
-        pricingConditionGrade(inspection) != null
 
     fun pricingBlockReason(inspection: DeviceInspection): String? = when {
         !isIdentityVerified(inspection) -> "Device identity is not verified strongly enough for a price recommendation."
-        !isConditionVerified(inspection) -> "Device condition is not verified strongly enough for a price recommendation."
+        pricingConditionGrade(inspection) == null -> "Staff must confirm the device condition before using a price recommendation."
         inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a price recommendation."
         inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a price recommendation."
         else -> null
