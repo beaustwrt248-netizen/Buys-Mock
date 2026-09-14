@@ -5,7 +5,7 @@
 -- closes the one confirmed authorization gap: Guardian diagnostics now
 -- require an enabled profile, not merely a non-null auth.uid().
 --
--- It does not add browser table grants, RLS policies, SECURITY INVOKER
+-- It does not add browser table grants, RLS policies, invoker-mode
 -- conversions, Auth configuration, pricing/recovery authority, or Guardian
 -- repair/approval behavior.
 
