@@ -23,12 +23,19 @@ const rpcNames = [
   'guardian_set_controls',
 ];
 
+function executableSql() {
+  return fs
+    .readFileSync(migrationPath, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--.*$/gm, '');
+}
+
 test('approved RPC hardening migration exists', () => {
   assert.ok(fs.existsSync(migrationPath), 'missing approved RPC hardening migration');
 });
 
 test('all reviewed RPCs explicitly deny PUBLIC and anon while retaining authenticated browser entry', () => {
-  const sql = fs.readFileSync(migrationPath, 'utf8').toLowerCase();
+  const sql = executableSql().toLowerCase();
   for (const name of rpcNames) {
     assert.match(sql, new RegExp(`revoke\\s+execute\\s+on\\s+function\\s+public\\.${name}\\(`));
     assert.match(sql, new RegExp(`grant\\s+execute\\s+on\\s+function\\s+public\\.${name}\\(`));
@@ -39,7 +46,7 @@ test('all reviewed RPCs explicitly deny PUBLIC and anon while retaining authenti
 });
 
 test('Guardian diagnostics require an enabled profile, not only a non-null auth uid', () => {
-  const sql = fs.readFileSync(migrationPath, 'utf8');
+  const sql = executableSql();
   assert.match(sql, /guardian_report_diagnostic/);
   assert.match(sql, /from\s+public\.profiles\s+p/i);
   assert.match(sql, /p\.id\s*=\s*auth\.uid\(\)/i);
@@ -48,7 +55,7 @@ test('Guardian diagnostics require an enabled profile, not only a non-null auth 
 });
 
 test('migration does not broaden browser table access or let diagnostics mutate approval state', () => {
-  const sql = fs.readFileSync(migrationPath, 'utf8');
+  const sql = executableSql();
   assert.doesNotMatch(sql, /create\s+policy/i);
   assert.doesNotMatch(sql, /grant\s+(select|insert|update|delete|all)\s+on\s+(table\s+)?public\./i);
   assert.doesNotMatch(sql, /disable\s+row\s+level\s+security/i);
@@ -57,7 +64,7 @@ test('migration does not broaden browser table access or let diagnostics mutate 
 });
 
 test('server-only advisor tables remain intentionally outside browser grants', () => {
-  const sql = fs.readFileSync(migrationPath, 'utf8').toLowerCase();
+  const sql = executableSql().toLowerCase();
   for (const table of [
     'device_buy_prices',
     'device_buy_price_history',
