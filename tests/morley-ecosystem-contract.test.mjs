@@ -10,8 +10,12 @@ const adminPresentation=fs.readFileSync(new URL('../admin/ecosystem-presentation
 const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',import.meta.url),'utf8');
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
 const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
+const adminTemplate=fs.readFileSync(new URL('../admin/workspace-template.html',import.meta.url),'utf8');
+const adminNativeCore=fs.readFileSync(new URL('../admin/admin-native-parity-core.js',import.meta.url),'utf8');
+const adminCatalogue=fs.readFileSync(new URL('../admin/catalogue-readonly-parity.js',import.meta.url),'utf8');
 const adminParity=fs.readFileSync(new URL('../admin/admin-app-parity.js',import.meta.url),'utf8');
 const adminUserAccessParity=fs.readFileSync(new URL('../admin/admin-user-access-parity.js',import.meta.url),'utf8');
+const adminNotifications=fs.readFileSync(new URL('../admin/targeted-notifications.js',import.meta.url),'utf8');
 const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
@@ -79,16 +83,30 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
   assert.match(guardianBranding,/morley:ecosystem-ready/);
 });
 
-test('Admin web authority uses the native-parity shell and legacy visual authorities stay unloaded',()=>{
+test('Admin web authority uses the native-parity shell and legacy authorities stay unloaded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
+  assert.match(adminWorkspace,/admin-native-parity-core\.js\?v=1/);
+  assert.match(adminWorkspace,/catalogue-readonly-parity\.js\?v=1/);
   assert.match(adminWorkspace,/admin-app-parity\.js\?v=4/);
-  assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=1/);
+  assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=2/);
+  assert.doesNotMatch(adminWorkspace,/\['adminCoreApp','app\.js/);
+  assert.doesNotMatch(adminWorkspace,/pricing-management\.js|release-control\.js|control-governance\.js/);
   assert.doesNotMatch(adminWorkspace,/\['adminHome','admin-home\.js\?v=8'\]/);
   assert.doesNotMatch(adminWorkspace,/\['adminV2Script','admin-v2\.js\?v=8'\]/);
   assert.match(adminParity,/data-workspace-panel/);
   assert.match(adminParity,/supportOnly/);
+  assert.match(adminNativeCore,/secureUserAction\('set_role'/);
+  assert.match(adminNativeCore,/admin_set_config/);
+  assert.match(adminCatalogue,/device_catalog/);
   assert.match(adminUserAccessParity,/reset_password/);
   assert.match(adminUserAccessParity,/create_user/);
+  assert.doesNotMatch(adminUserAccessParity,/data-user-action="force_signout"|data-user-action="delete"/);
+  assert.doesNotMatch(adminTemplate,/pricingSaveBtn|publishAnnBtn|saveReleaseBtn|forceUpdate|data-display-name|data-name-save/);
+  assert.match(adminNotifications,/audience:all/);
+  assert.match(adminNotifications,/user:/);
+  assert.doesNotMatch(adminNotifications,/device:|target_installation_id/);
+  assert.doesNotThrow(()=>new Function(adminNativeCore));
+  assert.doesNotThrow(()=>new Function(adminCatalogue));
   assert.doesNotThrow(()=>new Function(adminParity));
   assert.doesNotThrow(()=>new Function(adminUserAccessParity));
 });
