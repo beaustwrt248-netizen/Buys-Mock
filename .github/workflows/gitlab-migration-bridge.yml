@@ -100,7 +100,30 @@ jobs:
           fi
           echo "GitLab migration branch now matches $GITHUB_SHA."
 
-      - name: Verify tag coverage without modifying tags
+      - name: Sync missing tags without overwriting existing tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            [[ -n "$tag" ]] || continue
+            local_sha="$(git rev-parse "refs/tags/$tag")"
+            remote_sha="$(git ls-remote gitlab "refs/tags/$tag" | awk '$2 !~ /\^\{\}$/ {print $1; exit}')"
+
+            if [[ -z "$remote_sha" ]]; then
+              echo "Creating missing GitLab tag $tag at $local_sha."
+              git push gitlab "refs/tags/$tag:refs/tags/$tag"
+              continue
+            fi
+
+            if [[ "$remote_sha" != "$local_sha" ]]; then
+              echo "Refusing conflicting GitLab tag $tag."
+              echo "GitHub tag object: $local_sha"
+              echo "GitLab tag object: $remote_sha"
+              exit 1
+            fi
+          done < <(git for-each-ref --format='%(refname:strip=2)' refs/tags | sort)
+
+      - name: Verify tag coverage after create-only synchronization
         shell: bash
         run: |
           set -euo pipefail
@@ -108,7 +131,7 @@ jobs:
           git ls-remote --tags gitlab | sed 's#refs/tags/##' | sort > /tmp/gitlab-tags.txt
 
           if ! diff -u /tmp/github-tags.txt /tmp/gitlab-tags.txt > /tmp/tag-diff.txt; then
-            echo "GitLab tag refs differ from GitHub. No tags were changed."
+            echo "GitLab tag refs still differ from GitHub after create-only synchronization."
             cat /tmp/tag-diff.txt
             exit 1
           fi
