@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "source_issue": 1771,
+  "destructive_reconciliation_requires_explicit_approval": true,
+  "default_policy": {
+    "auto_merge_allowed": false,
+    "auto_deactivate_allowed": false,
+    "manufacturer_first_verification_required": true
+  },
+  "classifications": [
+    {
+      "brand": "ASUS",
+      "model_number": "AI2501",
+      "classification": "shared_family_identifier",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": [
+        "https://rog.asus.com/au/support/faq/1054648/",
+        "https://rog.asus.com/au/support/faq/1050990/"
+      ]
+    },
+    {
+      "brand": "ASUS",
+      "model_number": "AI2401",
+      "classification": "shared_family_identifier",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": ["https://rog.asus.com/au/support/faq/1054648/"]
+    },
+    {
+      "brand": "ASUS",
+      "model_number": "G835",
+      "classification": "shared_family_identifier",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": [
+        "https://rog.asus.com/au/laptops/rog-strix/rog-strix-scar-18-2025/spec/",
+        "https://rog.asus.com/au/laptops/rog-strix/rog-strix-scar-18-2026/spec/"
+      ]
+    },
+    {
+      "brand": "ASUS",
+      "model_number": "NUC16JNK",
+      "classification": "shared_family_identifier",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": [
+        "https://rog.asus.com/us/desktops/mini-pc/rog-nuc-16/spec/",
+        "https://rog.asus.com/us/desktops/mini-pc/rog-nuc-16/wtb/"
+      ]
+    },
+    {
+      "brand": "OPPO",
+      "model_number": "CPH2859",
+      "classification": "regional_market_name_variant",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": [
+        "https://www.oppo.com/za/smartphones/series-reno/reno16-f/specs/",
+        "https://www.oppo.com/in/smartphones/series-reno/reno16-c/specs/",
+        "https://www.oppo.com/uk/pstisoc/"
+      ]
+    },
+    {
+      "brand": "Microsoft",
+      "model_number": "1882",
+      "classification": "shared_hardware_model",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "evidence": [
+        "https://www.microsoft.com/en-au/d/replacement-accessory-board-for-xbox-series-x-model-1882/8mzbmmcjzqm5",
+        "https://www.microsoft.com/en-au/d/replacement-front-enclosure-for-xbox-series-x-model-1882/8mzbmmcjzqlv",
+        "https://www.microsoft.com/en-au/d/replacement-rear-enclosure-for-xbox-series-x-model-1882/8mzbmmcjzqlq"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "model_number": "SM-L705F",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true,
+      "evidence": ["https://www.samsung.com/au/support/model/SM-L705FZTAXSA/"]
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A2375",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A2684",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A3003",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A3333",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A3337",
+      "classification": "intentional_pricing_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false,
+      "pricing_linked": true
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A2429",
+      "classification": "regional_retail_configuration",
+      "status": "verified_from_catalogue_metadata",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A2724",
+      "classification": "unresolved_retail_configuration",
+      "status": "needs_exact_retail_verification",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false
+    },
+    {
+      "brand": "Apple",
+      "model_number": "A3461",
+      "classification": "possible_true_duplicate",
+      "status": "dependency_inspection_required",
+      "requires_dependency_pricing_inspection": true,
+      "candidate_rows": [1197, 1202],
+      "observed_retail_sku": "MH5Q4X/A",
+      "auto_merge_allowed": false,
+      "auto_deactivate_allowed": false
+    }
+  ]
+}
