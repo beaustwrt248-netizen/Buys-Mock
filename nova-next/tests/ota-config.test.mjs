@@ -8,13 +8,14 @@ const release = {
   versionCode: 12,
   versionName: '1.2.0',
   sha256: 'a'.repeat(64),
-  downloadUrl: 'https://buyshub.me/downloads/nova-next/stable/nova-next-1.2.0.apk',
+  downloadUrl: 'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-next-v1.2.0/Nova-Next-1.2.0.apk',
   releaseNotes: 'Reliability and layout fixes.'
 };
 
 assert.equal(NOVA_OTA_CONFIG.appId, 'nova-next');
 assert.equal(NOVA_OTA_CONFIG.packageName, 'com.buysloans.novanext');
 assert.equal(NOVA_OTA_CONFIG.channel, 'stable');
+assert.equal(NOVA_OTA_CONFIG.manifestUrl, 'https://raw.githubusercontent.com/beaustwrt248-netizen/Buys-Mock/main/nova-next/nova-update.json');
 assert.equal(validateNovaRelease(release, { currentVersionCode: 11 }).versionCode, 12);
 
 for (const [field, value] of [
@@ -22,7 +23,8 @@ for (const [field, value] of [
   ['channel', 'beta'],
   ['packageName', 'com.example.other'],
   ['sha256', 'bad-hash'],
-  ['downloadUrl', 'http://buyshub.me/nova.apk']
+  ['downloadUrl', 'http://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-next-v1.2.0/Nova-Next-1.2.0.apk'],
+  ['downloadUrl', 'https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-v1.2.0/Nova-AI-1.2.0.apk']
 ]) {
   assert.throws(
     () => validateNovaRelease({ ...release, [field]: value }, { currentVersionCode: 11 }),
