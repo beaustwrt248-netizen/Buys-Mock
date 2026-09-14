@@ -35,15 +35,20 @@ class AdaptiveDashboardNavigationTest {
     }
 
     @Test
-    fun expandedNavigationPreservesCategoriesAndGeneralBuysRoutes() {
+    fun expandedNavigationMatchesApprovedPrimaryDestinationsAndKeepsMoreInHamburger() {
         val source = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
 
         assertTrue(source.contains("ExpandedDestination.entries.map"))
-        assertTrue(source.contains("CATEGORIES(\"Categories\", MorleyIcons.Categories)"))
-        assertTrue(source.contains("GP(\"General Buys\", MorleyIcons.Money)"))
-        assertTrue(source.contains("ExpandedDestination.CATEGORIES -> { showMenu = false; page = Page.Laptop }"))
-        assertTrue(source.contains("ExpandedDestination.GP -> { showMenu = false; page = Page.GP }"))
-        assertTrue(source.contains("ExpandedDestination.MORE -> openMenu()"))
+        assertTrue(source.contains("CATALOGUE(\"Catalogue\", MorleyIcons.Categories)"))
+        assertTrue(source.contains("SCAN(\"Scan\", MorleyIcons.Phone)"))
+        assertTrue(source.contains("TRADE(\"Trade\", MorleyIcons.Money)"))
+        assertTrue(source.contains("ExpandedDestination.CATALOGUE -> { showMenu = false; page = Page.Laptop }"))
+        assertTrue(source.contains("ExpandedDestination.SCAN ->"))
+        assertTrue(source.contains("ExpandedDestination.TRADE -> { showMenu = false; page = Page.GP }"))
+        assertFalse(source.contains("ExpandedDestination.CATEGORIES"))
+        assertFalse(source.contains("ExpandedDestination.GP"))
+        assertFalse(source.contains("ExpandedDestination.MORE"))
+        assertTrue(source.contains("if (showMenu) closeMenu() else openMenu()"))
         assertTrue(source.contains("MorleyAdaptiveNavigation(size = adaptiveSize, items = adaptiveNavItems, compact = {})"))
     }
 }
