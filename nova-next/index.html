@@ -166,31 +166,15 @@
           <p class="feature-boundary">No credentials are entered or stored on this screen.</p>
           <div id="novaNextIntegrationsList" class="feature-status-grid" aria-live="polite"></div>
         </section>
-        <section class="page" data-route="notifications" aria-labelledby="notifications-title">
-          <div class="page-title-row"><div><h1 id="notifications-title">Notifications</h1><p>Local Nova Next activity</p></div><button id="novaNextClearNotifications" class="link-button" type="button">Clear all</button></div>
-          <div id="novaNextNotificationsList" class="feature-stack"></div>
-        </section>
-
-        <section class="page" data-route="more" aria-labelledby="more-title">
-          <div class="page-title-row"><div><h1 id="more-title">Control Centre</h1><p>More from Nova</p></div></div>
-          <section class="control-card"><div class="control-card-heading"><div><span>Live Services</span><strong id="telemetryStatus">Loading</strong></div><button id="telemetryRetry" class="link-button is-hidden" type="button">Retry</button></div><div class="status-grid"><div><small>Morley API</small><strong data-telemetry-key="morley">Checking…</strong></div><div><small>GitHub Broker</small><strong data-telemetry-key="github">Checking…</strong></div><div><small>Guardian</small><strong data-telemetry-key="guardian">Checking…</strong></div></div></section>
-          <section class="control-card"><h2>Operational Safety</h2><p>Protected actions remain approval-gated. This screen does not grant deployment, pricing, repair, catalogue-write or user-role authority.</p></section>
-          <div class="more-list">
-            <button data-route-target="settings"><span>⚙</span><div><strong>Settings</strong><small>Account, appearance &amp; updates</small></div><b>›</b></button>
-            <button data-route-target="notifications"><span>♢</span><div><strong>Notifications</strong><small>Local activity and outcomes</small></div><b>›</b></button>
-            <button data-route-target="integrations"><span>▤</span><div><strong>Integrations</strong><small>Connection status</small></div><b>›</b></button>
-            <button data-route-target="automation"><span>⌘</span><div><strong>Automation</strong><small>Capabilities &amp; boundaries</small></div><b>›</b></button>
-          </div>
-        </section>
+        <section class="page" data-route="help" aria-labelledby="help-title"><div id="novaNextHelpRoot"><div class="page-title-row"><div><h1 id="help-title">Help &amp; Support</h1><p>Diagnostics and safe support shortcuts</p></div></div></div></section>
+        <section class="page" data-route="more" aria-labelledby="more-title"><div id="novaNextControlCentreRoot"><div class="page-title-row"><div><h1 id="more-title">Control Centre</h1><p>Loading read-only Nova operational intelligence…</p></div></div></div></section>
       </div>
 
-      <nav class="bottom-nav" aria-label="Primary">
-        <button class="is-active" data-route-target="home"><span>⌂</span><small>Home</small></button>
-        <button data-route-target="chat"><span>●</span><small>Chat</small></button>
-        <button data-route-target="tools"><span>⌘</span><small>Tools</small></button>
-        <button data-route-target="tasks"><span>≡</span><small>Tasks</small></button>
-        <button data-route-target="more"><span>•••</span><small>More</small></button>
-      </nav>
+      <nav class="bottom-nav" id="bottomNav" aria-label="Primary navigation"></nav>
+    </section>
+
+    <section class="entry-view all-set-view is-hidden" id="allSetView" aria-label="Nova AI ready">
+      <div class="entry-center"><div class="check-orb">✓</div><h2>All Set!</h2><p>Smooth. Simple. Powerful.<br />Nova AI is ready when you are.</p></div><button class="primary-button" type="button" data-action="finish-intro">Let's Go</button>
     </section>
   </main>
 
