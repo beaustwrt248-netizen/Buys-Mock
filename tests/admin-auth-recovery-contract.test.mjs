@@ -9,6 +9,9 @@ const adminIndex = readFileSync(new URL('../admin/index.html', import.meta.url),
 const browserAuthBootstrap = readFileSync(new URL('../admin/browser-auth-bootstrap.js', import.meta.url), 'utf8');
 const workspaceShell = readFileSync(new URL('../admin/workspace.html', import.meta.url), 'utf8');
 const workspaceTemplate = readFileSync(new URL('../admin/workspace-template.html', import.meta.url), 'utf8');
+const coreAdminRuntime = readFileSync(new URL('../admin/app.js', import.meta.url), 'utf8');
+const parityRuntime = readFileSync(new URL('../admin/admin-app-parity.js', import.meta.url), 'utf8');
+const supportRuntime = readFileSync(new URL('../admin/support-tickets.js', import.meta.url), 'utf8');
 const adminActivity = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminActivity.kt', import.meta.url), 'utf8');
 const adminLogin = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/AdminLoginActivity.kt', import.meta.url), 'utf8');
 const captchaChallenge = readFileSync(new URL('../android/adminapp/src/main/java/com/buysloans/admin/CaptchaChallenge.kt', import.meta.url), 'utf8');
@@ -62,6 +65,15 @@ test('logged-out Admin browser is auth-only and privileged workspace runtime is 
   assert.doesNotMatch(workspaceShell, /login-security\.js/);
   assert.match(workspaceTemplate, /id="appView"/);
   assert.match(workspaceTemplate, /id="logoutBtn"/);
+});
+
+test('web Refresh reloads live data for both full-access and support-only Admin sessions', () => {
+  assert.match(nativeDashboard, /fun refresh\(\)/);
+  assert.match(nativeDashboard, /AdminApi\.load\(session\)/);
+  assert.match(coreAdminRuntime, /async function refreshAll\(\)/);
+  assert.match(supportRuntime, /window\.loadSupportTickets\s*=\s*async/);
+  assert.match(parityRuntime, /await window\.refreshAll\?\.\(\)/);
+  assert.match(parityRuntime, /await window\.loadSupportTickets\?\.\(\)/);
 });
 
 test('native Admin login owns the authorized Android session before workspace navigation', () => {
