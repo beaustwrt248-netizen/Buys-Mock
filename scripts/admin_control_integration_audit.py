@@ -26,24 +26,25 @@ browser_auth = read("admin/browser-auth-bootstrap.js")
 workspace_html = read("admin/workspace.html")
 workspace_template = read("admin/workspace-template.html")
 parity_runtime = read("admin/admin-app-parity.js")
+native_core = read("admin/admin-native-parity-core.js")
+catalogue_runtime = read("admin/catalogue-readonly-parity.js")
 support_runtime = read("admin/admin-support-only-runtime.js")
 user_access_runtime = read("admin/admin-user-access-parity.js")
+notification_runtime = read("admin/targeted-notifications.js")
 admin_user_control = read("supabase/functions/admin-user-control/index.ts")
 session_revoke_migration = read("supabase/migrations/20260912122323_admin_revoke_user_sessions.sql")
 
 full_access_scripts = [
     "user-management-policy.js",
-    "app.js",
+    "admin-native-parity-core.js",
+    "catalogue-readonly-parity.js",
     "admin-app-parity.js",
     "admin-user-access-parity.js",
     "auth-boundary.js",
-    "release-control.js",
     "targeted-notifications.js",
     "download-invites.js",
     "support-tickets.js",
     "audit-triage.js",
-    "pricing-management.js",
-    "control-governance.js",
 ]
 support_only_scripts = [
     "admin-support-only-runtime.js",
@@ -51,17 +52,20 @@ support_only_scripts = [
     "auth-boundary.js",
     "support-tickets.js",
 ]
+retired_runtime_owners = ["app.js", "release-control.js", "pricing-management.js", "control-governance.js"]
 legacy_visual_loaders = ["admin-v2.js", "admin-home.js", "invites.js"]
 
 require('id="adminTurnstileFrame"' in auth_html, "Admin browser auth document is missing its isolated Turnstile frame")
 require("browser-auth-bootstrap.js?v=2" in auth_html, "Admin browser auth bootstrap is missing")
 require("login-security.js?v=11" in auth_html, "Admin browser auth controller cache key is stale")
-for script in full_access_scripts + support_only_scripts + legacy_visual_loaders:
+for script in full_access_scripts + support_only_scripts + retired_runtime_owners + legacy_visual_loaders:
     require(f'src="{script}' not in auth_html and f"src='{script}" not in auth_html, f"Logged-out Admin auth document executes workspace script: {script}")
 for script in full_access_scripts:
     require(script in workspace_html, f"Authorized full-access Admin workspace loader is missing: {script}")
 for script in support_only_scripts:
     require(script in workspace_html, f"Authorized support-only Admin workspace loader is missing: {script}")
+for script in retired_runtime_owners:
+    require(script not in workspace_html, f"Native-parity Admin loader still executes retired authority owner: {script}")
 for script in legacy_visual_loaders:
     executable_marker = f"['adminV2Script','{script}" if script == "admin-v2.js" else f"['adminHome','{script}" if script == "admin-home.js" else f"['adminInvites','{script}"
     require(executable_marker not in workspace_html, f"Legacy Admin visual/runtime loader must stay disabled: {script}")
@@ -88,15 +92,22 @@ require('id="appView"' in workspace_template and 'id="logoutBtn"' in workspace_t
 for workspace in ["overview", "support", "catalogue", "health", "guardian", "notifications", "users-devices", "staff-alerts", "controls", "audit", "release"]:
     require(f'data-workspace="{workspace}"' in workspace_template, f"Admin parity navigation is missing workspace: {workspace}")
     require(f'data-workspace-panel="{workspace}"' in workspace_template, f"Admin parity panel is missing workspace: {workspace}")
+for forbidden in ["pricingSaveBtn", "publishAnnBtn", "saveReleaseBtn", "forceUpdate", "data-display-name", "data-name-save"]:
+    require(forbidden not in workspace_template, f"Admin parity template exposes retired browser authority: {forbidden}")
 
 require("supportOnly" in parity_runtime and "name!='support'" in parity_runtime.replace('!==', '!='), "Admin parity runtime does not force staff into Support")
 require("tab-tickets" in parity_runtime, "Admin parity runtime does not expose the staff Support panel")
 require("support-only" in support_runtime, "Admin support-only runtime is missing its least-privilege marker")
+require("secureUserAction('set_role'" in native_core and "admin_set_config" in native_core, "Admin native-parity core is missing approved write boundaries")
+require("device_catalog" in catalogue_runtime, "Admin Catalogue read-only runtime is missing its source boundary")
 require("reset_password" in user_access_runtime and "create_user" in user_access_runtime, "Admin native-parity user access controls are incomplete")
+require('data-user-action="force_signout"' not in user_access_runtime and 'data-user-action="delete"' not in user_access_runtime, "Admin native-parity user access still exposes destructive legacy actions")
+require("audience:all" in notification_runtime and "user:" in notification_runtime, "Admin notifications are missing native audience/user targeting")
+require("device:" not in notification_runtime and "target_installation_id" not in notification_runtime, "Admin notifications still expose device-installation targeting")
 
 # Supabase admin.signOut expects a logged-in JWT, not a target user UUID. The
-# server-side user-control path must revoke target sessions through the locked
-# service-role database helper instead of feeding a UUID into JWT parsing.
+# server-side user-control path may retain revocation support for backend/native
+# compatibility even though the parity UI intentionally does not expose it.
 require("admin.auth.admin.signOut(targetUser" not in admin_user_control, "Admin user control passes a target UUID to Supabase JWT signOut")
 require("admin_revoke_user_sessions" in admin_user_control, "Admin user control is missing target-session revocation")
 require("delete from auth.sessions" in session_revoke_migration.lower(), "Session revocation helper does not remove target auth sessions")
@@ -109,18 +120,8 @@ if errors:
         print(" -", error)
     sys.exit(1)
 
-# Preserve the full existing governance, native-Admin, OTA and backend checks. The
-# browser workspace surface now lives in workspace-template.html and its runtime is
-# split between full-access and staff support-only loaders above.
+# Preserve the broader native-Admin, OTA and backend checks. The core audit is
+# now itself native-authority aware, so no browser-surface source rewriting is
+# needed here.
 core_path = ROOT / "scripts/admin_control_integration_audit_core.py"
-source = core_path.read_text(encoding="utf-8")
-needle = 'admin_html = read("admin/index.html")'
-replacement = needle + '\nadmin_workspace_html = read("admin/workspace-template.html")\nadmin_surface_html = admin_html + admin_workspace_html'
-if needle not in source:
-    print("Admin Control integration audit FAILED")
-    print(" - core audit browser surface hook is missing")
-    sys.exit(1)
-source = source.replace(needle, replacement, 1)
-source = source.replace(' in admin_html, f"Admin web', ' in admin_surface_html, f"Admin web')
-source = source.replace(' in admin_html, "Admin web', ' in admin_surface_html, "Admin web')
-exec(compile(source, str(core_path), "exec"), {"__name__": "__main__", "__file__": str(core_path)})
+exec(compile(core_path.read_text(encoding="utf-8"), str(core_path), "exec"), {"__name__": "__main__", "__file__": str(core_path)})

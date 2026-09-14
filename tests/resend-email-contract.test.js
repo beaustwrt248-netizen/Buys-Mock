@@ -11,6 +11,8 @@ test('Resend edge function keeps credentials and recipients server-side', () => 
   assert.match(source, /getCaller/);
   assert.match(source, /activeAdminEmails/);
   assert.doesNotMatch(source, /body\?\.to|body\.to|reqBody\.to/);
+  // Server compatibility may still resolve installation-targeted jobs, but the
+  // native-parity Admin web client must no longer create that target shape.
   assert.match(source, /target_installation_id/);
   assert.match(source, /Device-only target is not linked to an email recipient/);
 });
@@ -29,7 +31,10 @@ test('support and notification email calls use persisted object identifiers', ()
   assert.match(support, /message_id:message\.id/);
   assert.match(notifications, /action:'notification_job'/);
   assert.match(notifications, /job_id:job\.id/);
-  assert.match(notifications, /if\(!target_installation_id\)/);
+  assert.match(notifications, /audience:all/);
+  assert.match(notifications, /user:/);
+  assert.doesNotMatch(notifications, /device:/);
+  assert.doesNotMatch(notifications, /target_installation_id/);
 });
 
 test('Android Admin shares the same emailed invite endpoint', () => {

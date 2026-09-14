@@ -37,7 +37,8 @@ jobs:
       - name: Validate Admin JavaScript
         run: |
           node --check admin/browser-auth-bootstrap.js
-          node --check admin/app.js
+          node --check admin/admin-native-parity-core.js
+          node --check admin/catalogue-readonly-parity.js
           node --check admin/release-control.js
           node --check admin/invites.js
           node --check admin/targeted-notifications.js
@@ -45,13 +46,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'release-control.js?v=3' admin/workspace.html
-          grep -q 'id="releaseName" readonly' admin/workspace-template.html
-          grep -q 'id="releaseCode" type="number" readonly' admin/workspace-template.html
-          grep -q 'id="rolloutCurrent"' admin/workspace-template.html
-          grep -q 'id="rolloutOutdated"' admin/workspace-template.html
+          grep -q 'admin-native-parity-core.js?v=1' admin/workspace.html
+          ! grep -q "\['adminReleaseControl','release-control.js" admin/workspace.html
+          grep -q 'id="releaseSummary"' admin/workspace-template.html
+          grep -q 'id="releaseAdoption"' admin/workspace-template.html
+          grep -q 'id="otaEnabled"' admin/workspace-template.html
+          ! grep -q 'id="saveReleaseBtn"' admin/workspace-template.html
+          ! grep -q 'id="forceUpdate"' admin/workspace-template.html
           ! grep -q 'release-control.js' admin/index.html
           ! grep -q 'id="releaseName"' admin/index.html
+          grep -q 'admin_ota_enabled' admin/admin-native-parity-core.js
+          grep -q 'minimum_supported_version' admin/admin-native-parity-core.js
+          grep -q 'current_release' admin/admin-native-parity-core.js
+          # The retired browser release writer remains checked in only as dormant
+          # compatibility/reference code. Its security invariants must stay intact.
           grep -q 'OTA_METADATA_URL' admin/release-control.js
           grep -q 'SOURCE_BUILD_URL' admin/release-control.js
           grep -q 'isVerifiedOtaShape' admin/release-control.js
