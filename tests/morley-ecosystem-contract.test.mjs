@@ -171,3 +171,20 @@ test('catalogue audit worker activation remains hourly, bounded, Vault-backed an
   assert.doesNotMatch(lower,/nova_enqueue_catalog_audits/);
   assert.doesNotMatch(lower,/catalog(?:ue)?-audit-enqueue/);
 });
+
+test('recovery health separates per-user Drive freshness from global system findings',()=>{
+  const readiness=fs.readFileSync(new URL('../supabase/functions/recovery-readiness/index.ts',import.meta.url),'utf8');
+  assert.match(readiness,/user_backup_findings/);
+  assert.match(readiness,/global_findings/);
+  assert.match(readiness,/kind\s*!==?\s*['"]stale_backup['"]/);
+  assert.match(readiness,/kind\s*===?\s*['"]stale_backup['"]/);
+});
+
+test('invite index cleanup removes only the redundant non-unique lookup index',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914143000_recovery_health_index_cleanup.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing approved recovery/index cleanup migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  assert.match(migration,/drop index if exists public\.idx_app_invites_email_unused/i);
+  assert.doesNotMatch(migration,/drop index[^;]*app_invites_active_email_idx/i);
+  assert.match(migration,/app_invites_active_email_idx/);
+});
