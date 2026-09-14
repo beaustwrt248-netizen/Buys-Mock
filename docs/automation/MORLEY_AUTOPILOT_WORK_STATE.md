@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-15 05:05 AWST
+Last reconciled: 2026-09-15 06:05 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `896888e6c948a8b7d37725b362e82df162a1b189`.
+Observed `main` head: `7eff0f9bcf116ab4348dec15da3ab76340b56ace`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository, CI, release and connected production services before each automated pass.
 
@@ -46,7 +46,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 ### Nova knowledge / Nova Next
 
-- `nova-knowledge-maintenance` remains healthy: the latest eight observed production runs through **2026-09-14 21:00 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
+- `nova-knowledge-maintenance` remains healthy: the latest completed production run observed through **2026-09-14 22:00 UTC** completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary; the scheduled **22:05 UTC** run was still in progress at observation time with no recorded error.
 - Current production Nova remains authoritative while Nova Next remains isolated.
 - PR **#2208** is **ready for review** at exact head `622945a4a2d7f9d2a1047eba34577a90bec2f93f`. Nova Next Isolated Validation, Nova Next APK Build, route/password accessibility, Quality Gate, Ultimate Parity, Repository Security, Recovery Backup, Path Stability, catalogue/pricing/email contracts and Restore Point Capture all passed.
 - The Nova Next APK validation produced a **debug PR artifact only**. Its `publish-nova-next-ota` job was intentionally skipped. No production OTA publication or route replacement occurred.
@@ -58,7 +58,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Catalogue audit / data integrity
 
 - The stale-run reconciliation repair is production-proven. Run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` is `completed`, finished `2026-09-14 15:10:58 UTC`, with terminal notes `verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0`.
-- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 144 blocked / 1,008 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
+- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 153 blocked / 999 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
 - The queue continues to drain in bounded increments without creating a new queued run; enqueue remains paused.
 - Issue **#2142 remains closed as completed** after production proof of the stale-run repair.
 - Catalogue enqueue remains intentionally paused; do not restore it until bounded drain capacity and broader production behavior are proven safe.
