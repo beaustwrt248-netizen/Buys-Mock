@@ -1,0 +1,32 @@
+name: Apply Scanner Screenshot UI Fix Once
+
+on:
+  push:
+    branches: [ fix/morley-scan-verification-ui-20260915 ]
+    paths:
+      - android/apply_screenshot_ui_fix_once.py
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba8058256d790c181273ba90b1
+        with:
+          ref: fix/morley-scan-verification-ui-20260915
+          fetch-depth: 0
+      - name: Materialize approved screenshot fixes into tracked source
+        run: python3 android/apply_screenshot_ui_fix_once.py
+      - name: Remove one-shot materializer and commit direct source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f android/apply_screenshot_ui_fix_once.py .github/workflows/apply-screenshot-ui-fix-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: repair scanner and verification screenshot regressions"
+          git push origin HEAD:fix/morley-scan-verification-ui-20260915
