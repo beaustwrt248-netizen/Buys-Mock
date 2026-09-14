@@ -86,6 +86,14 @@ test:nova-next-ci:
 test:ultimate-parity:
   <<: *android_hosted_job
 
+# Same read-only contract as the newly merged GitHub workflow. Keeping this job
+# required preserves exact parity rather than weakening the manifest entry.
+governance:nova-next-route-password-accessibility:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - node --test tests/nova-next-route-password-accessibility.test.mjs
+
 # The dedicated governance:ui-pr-checklist job fetches the complete merge-request
 # description through GitLab's read-only Merge Requests API. Override the included
 # UI consistency job here so it does not run the legacy GitHub-event adapter with
