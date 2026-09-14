@@ -105,7 +105,7 @@ jobs:
           retention-days: 14
 
   publish-nova-next-ota:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || needs.build-nova-next-apk.outputs.app_changed == 'true')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     needs: build-nova-next-apk
     runs-on: ubuntu-latest
     timeout-minutes: 25
