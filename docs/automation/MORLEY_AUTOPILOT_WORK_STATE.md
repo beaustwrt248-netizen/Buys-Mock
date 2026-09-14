@@ -27,7 +27,9 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 - Run snapshot: **12 completed / 16 queued / 1 running** at the last verified run-state audit.
 - The enqueue-only catalogue cron is intentionally paused because no live database/Edge consumer currently drains the queue. Do not re-enable enqueueing until a tracked consumer is implemented and verified.
 - Preserve unresolved model-number gaps as unresolved/blocked rather than guessing identifiers or specifications.
-- Data-integrity audit: **1,777 active devices**. Duplicate/shared-model-number groups remain classification work, not automatic merge/delete authority.
+- Live data-integrity snapshot: **1,776 active devices**.
+- The one-device reduction from the previous 1,777 snapshot is traceable to Apple row `1197` (`A3461`) being deactivated while canonical Apple row `1202` with the same manufacturer model number remains active and carries the complete storage set. No production data mutation was performed by this reconciliation run.
+- Duplicate/shared-model-number groups remain classification work, not automatic merge/delete authority.
 - Shared model-number governance entered `main` at `a5a36c1c21c440648aca1c965cbc6540b18a9150`; manufacturer-verified shared identifiers remain explicitly classified while unresolved groups stay non-destructive.
 
 ### Backup / recovery
