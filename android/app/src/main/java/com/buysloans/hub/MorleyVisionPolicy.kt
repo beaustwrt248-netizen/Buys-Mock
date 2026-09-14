@@ -12,7 +12,6 @@ object MorleyVisionPolicy {
     private val placeholders = setOf(
         "", "null", "nil", "none", "n/a", "na", "unknown", "undefined", "not available", "not provided"
     )
-    private val verifiedConditionGrades = setOf("A", "B", "C", "D", "PARTS")
 
     fun clean(value: String?): String {
         val cleaned = value.orEmpty().trim()
@@ -20,6 +19,24 @@ object MorleyVisionPolicy {
     }
 
     fun displayOrUnverified(value: String?): String = clean(value).ifBlank { "Not verified" }
+
+    fun canonicalConditionGrade(value: String?): String? = when (clean(value).uppercase()) {
+        "A", "EXCELLENT" -> "A"
+        "B", "GOOD" -> "B"
+        "C", "FAIR" -> "C"
+        "D", "POOR" -> "D"
+        "PARTS", "PARTS ONLY", "FOR PARTS" -> "PARTS"
+        else -> null
+    }
+
+    fun conditionLabel(value: String?): String = when (canonicalConditionGrade(value)) {
+        "A" -> "Excellent"
+        "B" -> "Good"
+        "C" -> "Fair"
+        "D" -> "Poor"
+        "PARTS" -> "Parts"
+        else -> "Unverified"
+    }
 
     fun isIdentityVerified(inspection: DeviceInspection): Boolean {
         val match = inspection.catalogueMatch
@@ -29,11 +46,14 @@ object MorleyVisionPolicy {
     }
 
     fun isConditionVerified(inspection: DeviceInspection): Boolean =
-        clean(inspection.conditionGrade).uppercase() in verifiedConditionGrades
+        canonicalConditionGrade(inspection.conditionGrade) != null
+
+    fun pricingConditionGrade(inspection: DeviceInspection): String? =
+        canonicalConditionGrade(inspection.staffConfirmedConditionGrade)
 
     fun pricingBlockReason(inspection: DeviceInspection): String? = when {
         !isIdentityVerified(inspection) -> "Device identity is not verified strongly enough for a price recommendation."
-        !isConditionVerified(inspection) -> "Device condition is not verified strongly enough for a price recommendation."
+        pricingConditionGrade(inspection) == null -> "Staff must confirm the device condition before using a price recommendation."
         inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a price recommendation."
         inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a price recommendation."
         else -> null

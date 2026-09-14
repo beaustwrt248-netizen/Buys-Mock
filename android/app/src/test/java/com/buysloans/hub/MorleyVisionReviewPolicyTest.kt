@@ -44,6 +44,9 @@ class MorleyVisionReviewPolicyTest {
         componentFindings = listOf("Rear camera lenses visible")
     )
 
+    private fun staffConfirmed(item: DeviceInspection, grade: String = "B"): DeviceInspection =
+        item.apply { staffConfirmedConditionGrade = grade }
+
     @Test
     fun unverifiedIdentityBlocksSuggestedPricing() {
         val state = MorleyVisionReviewPolicy.from(inspection(identityVerified = false), null)
@@ -56,7 +59,7 @@ class MorleyVisionReviewPolicyTest {
     @Test
     fun corePricingGateBlocksPhotoQualityWarningBeforeMarketResearch() {
         val reason = MorleyVisionPolicy.pricingBlockReason(
-            inspection(qualityWarnings = listOf("Front photo is blurred"))
+            staffConfirmed(inspection(qualityWarnings = listOf("Front photo is blurred")))
         )
 
         assertTrue(reason!!.contains("Retake", ignoreCase = true))
@@ -65,7 +68,7 @@ class MorleyVisionReviewPolicyTest {
     @Test
     fun corePricingGateBlocksCrossPhotoInconsistencyBeforeMarketResearch() {
         val reason = MorleyVisionPolicy.pricingBlockReason(
-            inspection(consistencyWarnings = listOf("Photos may show different devices"))
+            staffConfirmed(inspection(consistencyWarnings = listOf("Photos may show different devices")))
         )
 
         assertTrue(reason!!.contains("cross-photo", ignoreCase = true))
@@ -73,15 +76,14 @@ class MorleyVisionReviewPolicyTest {
 
     @Test
     fun corePricingGateAllowsCleanVerifiedEvidence() {
-        assertEquals(null, MorleyVisionPolicy.pricingBlockReason(inspection()))
+        assertEquals(null, MorleyVisionPolicy.pricingBlockReason(staffConfirmed(inspection())))
     }
 
     @Test
     fun photoQualityWarningBlocksSuggestedPricing() {
-        val state = MorleyVisionReviewPolicy.from(
-            inspection(qualityWarnings = listOf("Front photo is blurred")),
-            LivePricingResult(emptyList(), 700.0, 650.0)
-        )
+        val item = inspection(qualityWarnings = listOf("Front photo is blurred"))
+        item.staffConfirmedConditionGrade = "B"
+        val state = MorleyVisionReviewPolicy.from(item, LivePricingResult(emptyList(), 700.0, 650.0))
 
         assertFalse(state.suggestedPricingAllowed)
         assertTrue(state.hasBlockingEvidenceGap)
@@ -89,19 +91,20 @@ class MorleyVisionReviewPolicyTest {
 
     @Test
     fun consistencyWarningBlocksSuggestedPricing() {
-        val state = MorleyVisionReviewPolicy.from(
-            inspection(consistencyWarnings = listOf("Photos may show different devices")),
-            LivePricingResult(emptyList(), 700.0, 650.0)
-        )
+        val item = inspection(consistencyWarnings = listOf("Photos may show different devices"))
+        item.staffConfirmedConditionGrade = "B"
+        val state = MorleyVisionReviewPolicy.from(item, LivePricingResult(emptyList(), 700.0, 650.0))
 
         assertFalse(state.suggestedPricingAllowed)
         assertTrue(state.pricingBlockedReason!!.contains("inconsist", ignoreCase = true))
     }
 
     @Test
-    fun verifiedPricingCanBeUsedWhenEvidenceIsClean() {
+    fun verifiedPricingCanBeUsedWhenEvidenceIsCleanAfterStaffConditionConfirmation() {
+        val item = inspection()
+        item.staffConfirmedConditionGrade = "B"
         val state = MorleyVisionReviewPolicy.from(
-            inspection(),
+            item,
             LivePricingResult(
                 listings = listOf(
                     MarketListing("eBay AU", "Apple iPhone 15 256GB", 700.0, "used"),
@@ -112,6 +115,7 @@ class MorleyVisionReviewPolicyTest {
             )
         )
 
+        assertTrue(state.conditionVerifiedByStaff)
         assertTrue(state.suggestedPricingAllowed)
         assertEquals(null, state.pricingBlockedReason)
     }
@@ -119,6 +123,7 @@ class MorleyVisionReviewPolicyTest {
     @Test
     fun unverifiedStorageKeepsStaffReviewIncomplete() {
         val state = MorleyVisionReviewPolicy.from(inspection(storage = ""), null)
+        MorleyVisionReviewPolicy.confirmCondition(state, "Good")
 
         assertFalse(state.storageVerified)
         assertFalse(state.canCompleteStaffReview)
@@ -130,6 +135,7 @@ class MorleyVisionReviewPolicyTest {
             inspection(qualityWarnings = listOf("Front photo is blurred")),
             null
         )
+        MorleyVisionReviewPolicy.confirmCondition(state, "Good")
 
         assertTrue(state.hasBlockingEvidenceGap)
         assertFalse(state.canCompleteStaffReview)
@@ -141,13 +147,14 @@ class MorleyVisionReviewPolicyTest {
             inspection(consistencyWarnings = listOf("Photos may show different devices")),
             null
         )
+        MorleyVisionReviewPolicy.confirmCondition(state, "Good")
 
         assertTrue(state.hasBlockingEvidenceGap)
         assertFalse(state.canCompleteStaffReview)
     }
 
     @Test
-    fun allDamageRegionsRequireExplicitStaffDecision() {
+    fun allDamageRegionsAndConditionRequireExplicitStaffDecision() {
         val damage = DamageRegion(
             photoIndex = 1,
             label = "Screen crack",
@@ -166,6 +173,8 @@ class MorleyVisionReviewPolicyTest {
         val reviewed = MorleyVisionReviewPolicy.decideDamage(initial, 0, VisionStaffDecision.NOT_DAMAGE)
 
         assertEquals(0, reviewed.unresolvedDamageCount)
+        assertFalse(reviewed.canCompleteStaffReview)
+        assertTrue(MorleyVisionReviewPolicy.confirmCondition(reviewed, "Good"))
         assertTrue(reviewed.canCompleteStaffReview)
     }
 }

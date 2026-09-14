@@ -58,7 +58,8 @@ data class DeviceInspection(
     val catalogueMatch: CatalogueMatch?,
     val qualityWarnings: List<String> = emptyList(),
     val consistencyWarnings: List<String> = emptyList(),
-    val componentFindings: List<String> = emptyList()
+    val componentFindings: List<String> = emptyList(),
+    var staffConfirmedConditionGrade: String? = null
 ) {
     val displayName: String
         get() = catalogueMatch?.let { match ->
@@ -437,9 +438,11 @@ object DeviceInspectionClient {
         }
 
         val median = MorleyVisionPolicy.median(comparables.map { it.price })
+        val pricingGrade = MorleyVisionPolicy.pricingConditionGrade(inspection)
+            ?: error("A verified condition grade is required before pricing.")
         val adjustment = ConditionAdjustment.assess(
             ConditionEvidence(
-                observedCondition = gradeToCondition(inspection.conditionGrade),
+                observedCondition = gradeToCondition(pricingGrade),
                 majorFaultCount = inspection.damageRegions.count { it.severity.equals("major", true) },
                 missingAccessoryCount = 0
             )
