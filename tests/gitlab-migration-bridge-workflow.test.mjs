@@ -8,10 +8,13 @@ test('migration bridge cancels stale observations when a newer migration commit 
   assert.match(workflow, /cancel-in-progress:\s*true/);
 });
 
-test('migration bridge fails closed when GitLab main differs from GitHub main', () => {
+test('migration bridge waits for the GitLab main fast-forward before failing closed', () => {
+  assert.match(workflow, /for attempt in \{1\.\.12\}/);
+  assert.match(workflow, /Waiting for GitLab main to converge to GitHub main/);
+  assert.match(workflow, /sleep 5/);
   assert.match(
     workflow,
-    /if \[\[ "\$github_main" != "\$gitlab_main" \]\]; then[\s\S]*?GitLab main does not currently match GitHub main[\s\S]*?exit 1[\s\S]*?fi/,
+    /if \[\[ "\$github_main" != "\$gitlab_main" \]\]; then[\s\S]*?GitLab main does not match GitHub main after the bounded convergence wait[\s\S]*?exit 1[\s\S]*?fi/,
   );
 });
 
