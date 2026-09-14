@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-15 01:18 AWST
+Last reconciled: 2026-09-15 02:07 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `6ccd68b4a03c1bcacaa9af4ee24ad60ec06d21bb`.
+Observed `main` head: `ddf2338d6aa76389bfeaa318c71b9522424756c1`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository, CI, release and connected production services before each automated pass.
 
@@ -22,10 +22,10 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Release / OTA
 
 - Morley Buys **2.15.106 / versionCode 150** remains the current published OTA baseline; `ota/latest.json` still points to the signed `v2.15.106` APK and checksum.
-- The approved Scan Device redesign from #2165 remains in checked-in Kotlin source. Build-time scanner source rewriting is not an acceptable implementation path.
-- PR **#2197** merged to protected `main` as `6ccd68b4a03c1bcacaa9af4ee24ad60ec06d21bb` after exact-head Android validation, APK build, UI, OTA-policy, quality, security, feature, recovery and parity checks passed. Main source identity is now **2.15.107 / versionCode 151**.
+- The approved Scan Device redesign remains in checked-in Kotlin source. Build-time scanner source rewriting is not an acceptable implementation path.
+- PR **#2197** merged to protected `main` as `6ccd68b4a03c1bcacaa9af4ee24ad60ec06d21bb` after exact-head Android validation, APK build, UI, OTA-policy, quality, security, feature, recovery and parity checks passed. Main source identity is **2.15.107 / versionCode 151**.
 - **2.15.107 is not yet a published OTA release.** Do not call it released until exact-main signed artifact identity/checksum, OTA metadata/feed and post-publication health are verified through the protected release flow.
-- PR **#2204** is a competing scanner fix that introduced a one-shot branch-writing workflow/source materializer. Treat it as superseded; do not merge the workflow/source-rewriter approach.
+- Superseded scanner PR **#2204** is closed without merge; its one-shot branch-writing workflow/source-materializer path must not be revived.
 
 ### Admin web / mobile web
 
@@ -39,24 +39,25 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Google Drive OAuth repair and protected manual full-system recovery verification are complete; issue #2051 is closed.
 - The last verified full-system backup audit event remains **2026-09-14 05:59:39 UTC**, exporting 13 tables and passing upload/re-download SHA-256 verification (`ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841`, 366,840 bytes).
 - Production `morley-google-drive-backup-daily` remains scheduled for `0 19 * * *`.
-- The restored daily schedule has not yet reached its next **19:00 UTC** execution window. Require a new scheduler-triggered audit row plus recovery/readback verification before calling unattended scheduling fully proven.
+- At this reconciliation point the restored daily schedule has still not reached its next **19:00 UTC** execution window. Production recovery monitoring continues to report one open `stale_backup` warning (101 observations, last seen 2026-09-14 17:17 UTC). Require a new scheduler-triggered audit row plus recovery/readback verification before calling unattended scheduling fully proven.
 - Production restore/overwrite remains protected and requires explicit approval.
 
 ### Nova knowledge / Nova Next
 
-- `nova-knowledge-maintenance` continues healthy: the latest six observed production runs through **2026-09-14 17:10 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
-- Current production Nova remains authoritative while Nova Next is rebuilt and parity/evaluation evidence accumulates.
-- Draft PR **#2208** is the active Nova Next completion/OTA lane. Its TDD completion contract exposed missing PWA and Android launcher identity. The branch now contains standard/maskable PWA orb icons, Android adaptive launcher resources, `REQUEST_INSTALL_PACKAGES`, and isolated Nova OTA build configuration. Exact-head isolated validation/parity is rerunning.
-- Because #2208 includes release/OTA surface changes, keep protected publication/signing boundaries intact and do not promote until exact-head parity/evaluation/release checks pass and protected approval is obtained.
-- Draft PR **#2207** is documentation-only canonical Nova Next status alignment.
+- `nova-knowledge-maintenance` remains healthy: the latest six observed production runs through **2026-09-14 18:00 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
+- Current production Nova remains authoritative while Nova Next remains isolated.
+- PR **#2208** is now **ready for review** at exact head `622945a4a2d7f9d2a1047eba34577a90bec2f93f`. Nova Next Isolated Validation, Nova Next APK Build, route/password accessibility, Quality Gate, Ultimate Parity, Repository Security, Recovery Backup, Path Stability, catalogue/pricing/email contracts and Restore Point Capture all passed.
+- The Nova Next APK validation produced a **debug PR artifact only**. Its `publish-nova-next-ota` job was intentionally skipped. No production OTA publication or route replacement occurred.
+- #2208 changes GitHub workflow/release surfaces and Nova OTA behavior. Merge/promotion/publication is therefore protected and requires explicit Beau approval; production Nova must remain authoritative until that boundary is deliberately crossed.
+- Documentation PR **#2207** was closed unmerged as superseded because its earlier “GO FOR PROMOTION REVIEW” wording became stale relative to #2208.
 - Continue benchmark-based knowledge expansion, citation/source quality, unsupported-claim tracking, provider/fallback quality, latency/cost controls and tool-routing evaluation; corpus growth alone is not proof of answer quality.
 
 ### Catalogue audit / data integrity
 
 - The stale-run reconciliation repair is production-proven. Run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` is `completed`, finished `2026-09-14 15:10:58 UTC`, with terminal notes `verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0`.
-- Genuine nonterminal run `25b34a8c-3a85-48db-bc57-1bf386a72f08` correctly remains `running`, with `verified=0; blocked=47; discrepancy=0; failed=0; pending=28; in_progress=0` at reconciliation.
-- Issue **#2142 is closed as completed** after this production proof.
-- Current queue snapshot: **961 verified / 109 blocked / 1,043 pending**. Current audit-run snapshot: **13 completed / 15 queued / 1 running**.
+- Genuine nonterminal run `25b34a8c-3a85-48db-bc57-1bf386a72f08` correctly remains `running`.
+- Issue **#2142 is closed as completed** after production proof.
+- Current queue snapshot: **961 verified / 116 blocked / 1,036 pending**. Current audit-run snapshot: **13 completed / 15 queued / 1 running**.
 - Catalogue enqueue remains intentionally paused; do not restore it until bounded drain capacity and broader production behavior are proven safe.
 - Preserve legitimate Australian/regional/hardware variants. Never guess model identifiers/specifications or auto-delete/merge ambiguous production records.
 
@@ -69,8 +70,8 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Security / performance
 
 - Protected RPC least-privilege hardening #2154 remains production-verified.
-- Latest Supabase security advisor still reports the protected leaked-password/Auth decision plus SECURITY DEFINER/RLS findings requiring review. Do not change Auth/RLS/EXECUTE policy automatically; issue #2033 remains the approval lane.
-- Issue #2040 remains open for evidence-backed performance/index classification; do not speculatively drop ambiguous indexes.
+- Latest known Supabase security-advisor shape still includes the protected leaked-password/Auth decision plus SECURITY DEFINER/RLS findings requiring review. Do not change Auth/RLS/EXECUTE policy automatically; issue #2033 remains the approval lane.
+- Issue #2040 remains open for evidence-backed performance/index classification. One approved redundant Nova revision index has already been removed and production-verified; the remaining advisor findings require equivalent workload/query evidence before any further protected DDL.
 
 ### Active production cron jobs
 
@@ -86,10 +87,9 @@ Catalogue enqueue remains intentionally paused.
 
 | PR / issue | Lane | State | Next safe action |
 | --- | --- | --- | --- |
-| #2197 | Morley Buys scanner safe-area / blocked-verification UX | **Merged to main**, source 2.15.107/151 | Keep OTA publication separate/protected. Verify exact-main signed artifact/checksum/feed before any release-complete claim. |
-| #2204 | Duplicate scanner fix | Draft / superseded workflow-source-rewriter approach | Close as superseded once no missing behavior remains; never merge the source-rewriter path. |
-| #2208 | Nova Next completion + isolated OTA/PWA updates | Draft / active / protected release surface | Let exact-head isolated validation/parity finish; fix only evidence-backed failures. Preserve production Nova and do not publish protected OTA/signing changes autonomously. |
-| #2207 | Nova Next canonical status documentation | Draft / docs | Reconcile against live #2208/current-main state; merge only if accurate and checks pass. |
+| #2208 | Nova Next completion + isolated OTA/PWA updates | **Ready for review / exact-head green / protected** | Requires explicit Beau approval before merge because workflow/release surfaces changed. Preserve production Nova; any promotion/publication remains separate and protected. |
+| #2207 | Nova Next canonical status documentation | **Closed unmerged / superseded** | Reconcile canonical status only after #2208 and its protected promotion boundary are settled. |
+| #2204 | Duplicate scanner fix | **Closed unmerged / superseded** | Do not revive branch-writing source materialization. #2197 is the authoritative direct-source fix. |
 | #1947 | Staged GitLab migration parity | Draft / paused | Keep GitHub `main` canonical. Do not consume more GitLab CI minutes or cut over until explicitly resumed. |
 | #2033 | Supabase security advisor | Open / protected | Keep verified RPC hardening; leaked-password/Auth and remaining protected RLS/EXECUTE findings require explicit approval. |
 | #2040 | Database performance advisor | Open | Continue evidence-backed query/index mapping; no speculative removals. |
@@ -100,21 +100,22 @@ Catalogue enqueue remains intentionally paused.
 - Morley Buys 2.15.106 / 150 released and published through OTA after the deterministic Scan Device redesign.
 - Scanner UI now lives directly in checked-in Kotlin source rather than a build-time rewriter.
 - Scanner safe-area and blocked-verification UX #2197 merged to main as source version 2.15.107 / 151; OTA publication remains separate and unverified.
+- Superseded scanner PR #2204 is closed unmerged.
 - Adaptive Android navigation and catalogue-first intent remain merged.
 - Admin web native-authority parity, full-catalogue pagination and mobile workspace observer freeze mitigation remain merged/verified.
 - Full-system Google Drive OAuth repair and protected manual backup/recovery verification completed; daily scheduler restored, unattended next-run proof still pending.
 - Nova maintenance scheduler/transient-source handling remains healthy.
 - Catalogue audit consumer and independent stale-run reconciliation are deployed; #2142 is production-proven and closed.
 - Protected Supabase RPC least-privilege hardening remains live and verified.
-- Nova Next replacement work is active while production Nova remains preserved.
+- Nova Next #2208 reached exact-head green review readiness while production Nova remains preserved; stale docs PR #2207 is closed unmerged.
 
 ## High-priority unfinished lanes
 
 1. Keep 2.15.107 OTA publication protected and verify exact-main signing/checksum/feed evidence before release completion.
-2. Close superseded scanner PR #2204 after confirming #2197 contains all intended safe behavior.
+2. Hold #2208 at the protected review boundary pending explicit Beau approval; do not merge/publish workflow/release changes autonomously.
 3. Verify the first unattended full-system backup after the restored 19:00 UTC scheduler execution.
 4. Continue bounded catalogue-audit drain verification before restoring any enqueue schedule.
-5. Continue Nova Next replacement (#2208) with parity/evaluation gates while preserving production Nova.
+5. Continue independent Nova knowledge/evaluation work that does not depend on merging #2208.
 6. Continue Admin web/mobile parity, mobile-browser usability, freeze/accessibility and role-boundary auditing.
 7. Continue Morley Buys login/temp-password reliability, blue visual consistency and app/web parity with regression coverage.
 8. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
@@ -122,9 +123,10 @@ Catalogue enqueue remains intentionally paused.
 
 ## Protected blockers requiring Beau action
 
+- **PR #2208 is exact-head green and ready for review, but its GitHub workflow/release/OTA surface changes make merge a protected action. Explicit Beau approval is required before merge.**
 - **Publishing Morley Buys 2.15.107 / 151 through OTA/signing remains a protected release action. Source is merged, but publication is not complete.**
 - Auth configuration changes from #2033, including leaked-password protection or future Auth/RLS/EXECUTE changes outside already-approved scope, require explicit approval.
-- Any protected release/OTA/signing publication step for #2208 requires exact-main artifact/signing/checksum/OTA evidence and explicit approval where repository governance requires it.
+- Any Nova Next production route cutover, signing or OTA publication remains separately protected even after #2208 merge approval.
 - Production restore/overwrite, OAuth/secret rotation, protected schema/security mutation, signing credential, repository visibility, billing, Guardian code-changing repair or equivalent high-risk action requires explicit approval.
 
 ## Reconciliation checklist
