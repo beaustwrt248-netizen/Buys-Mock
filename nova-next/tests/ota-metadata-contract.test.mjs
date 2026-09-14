@@ -11,8 +11,8 @@ const gradle = fs.readFileSync(path.join(root, 'android', 'app', 'build.gradle')
 assert.equal(metadata.appId, 'nova-next');
 assert.equal(metadata.channel, 'stable');
 assert.equal(metadata.packageName, 'com.buysloans.novanext');
-assert.equal(metadata.versionCode, 1);
-assert.equal(metadata.versionName, '0.1.0');
+assert.equal(metadata.versionCode, 0);
+assert.equal(metadata.versionName, '0.0.0');
 assert.equal(metadata.downloadUrl, '');
 assert.equal(metadata.sha256, '');
 assert.match(gradle, /versionCode\s+1/);
