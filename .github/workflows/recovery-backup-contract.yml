@@ -24,7 +24,27 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Verify reachability-only contract
+      - name: Auth identity contract
+        run: node --test --test-name-pattern='backup backend derives' tests/user-drive-backup-contract.test.mjs
+      - name: Ownership scoping contract
+        run: node --test --test-name-pattern='backup lookup and destructive' tests/user-drive-backup-contract.test.mjs
+      - name: Drive scope contract
+        run: node --test --test-name-pattern='Google Drive appData' tests/user-drive-backup-contract.test.mjs
+      - name: Encryption contract
+        run: node --test --test-name-pattern='backup payload encryption' tests/user-drive-backup-contract.test.mjs
+      - name: Master-key contract
+        run: node --test --test-name-pattern='master key is server-only' tests/user-drive-backup-contract.test.mjs
+      - name: Local-state secret exclusion contract
+        run: node --test --test-name-pattern='local backup whitelist' tests/user-drive-backup-contract.test.mjs
+      - name: Restore safety contract
+        run: node --test --test-name-pattern='restore is previewed' tests/user-drive-backup-contract.test.mjs
+      - name: Retention and full verification contract
+        run: node --test --test-name-pattern='retention and integrity' tests/user-drive-backup-contract.test.mjs
+      - name: Reachability-only contract
         run: node --test --test-name-pattern='reachability verification' tests/user-drive-backup-contract.test.mjs
-      - name: Verify complete encrypted Drive backup contract
+      - name: OTA loader contract
+        run: node --test --test-name-pattern='OTA workspace' tests/user-drive-backup-contract.test.mjs
+      - name: Legacy controls contract
+        run: node --test --test-name-pattern='legacy local import' tests/user-drive-backup-contract.test.mjs
+      - name: Complete encrypted Drive backup contract
         run: node --test tests/user-drive-backup-contract.test.mjs
