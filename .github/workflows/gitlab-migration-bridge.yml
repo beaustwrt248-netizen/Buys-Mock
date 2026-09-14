@@ -73,6 +73,8 @@ jobs:
 
           if [[ "$github_main" != "$gitlab_main" ]]; then
             echo "GitLab main does not currently match GitHub main; leaving both untouched."
+            echo "GitHub main: $github_main"
+            echo "GitLab main: $gitlab_main"
             exit 1
           else
             echo "GitLab main matches GitHub main."
