@@ -62,6 +62,22 @@ test('retention and integrity verification are present',()=>{
   has(client,'30 versions');
 });
 
+test('reachability verification uses stored Drive object integrity without decrypting',()=>{
+  has(backend,"action === 'verify_reachability'");
+  has(backend,'async function verifyBackupReachability');
+  const start=backend.indexOf('async function verifyBackupReachability');
+  const end=backend.indexOf('\nasync function ',start+1);
+  const body=backend.slice(start,end>start?end:backend.length);
+  has(body,".select('id,user_id,google_permission_id,drive_file_id,ciphertext_sha256,status,byte_size')");
+  has(body,".eq('id', backupId).eq('user_id', userId)");
+  has(body,"backup.google_permission_id !== google.permissionId");
+  has(body,'downloadAppData(backup.drive_file_id, google.token)');
+  has(body,'verifyRemoteEnvelope(raw, backupId, String(backup.ciphertext_sha256), Number(backup.byte_size))');
+  assert.ok(!body.includes("from('user_drive_backup_keys')"),'reachability verification must not load wrapped keys');
+  assert.ok(!body.includes('decodeRemoteBackup('),'reachability verification must not decrypt backup payloads');
+  has(client,"api('verify_reachability',{backup_id:id})");
+});
+
 test('OTA workspace loads Drive backup client',()=>{
   has(index,"'user-drive-backup.js?v=1'");
 });
