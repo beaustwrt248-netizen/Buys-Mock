@@ -1,0 +1,24 @@
+name: Repository Path Stability
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  repository-path-stability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify canonical repository paths
+        run: node scripts/ci/check-repository-path-stability.mjs
