@@ -3,11 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const app = readFileSync('nova-next/app.js', 'utf8');
-const html = readFileSync('nova-next/index.html', 'utf8');
 
 test('password visibility toggle exposes the current action and pressed state', () => {
-  assert.match(html, /data-action="toggle-password"[^>]*aria-label="Show password"[^>]*aria-pressed="false"/,
-    'password visibility toggle must expose its initial unpressed state');
+  assert.match(app, /querySelector\(['"]\[data-action=[^\]]*toggle-password[^\]]*\]['"]\)[\s\S]*?setAttribute\(['"]aria-pressed['"],\s*['"]false['"]\)/,
+    'password visibility toggle must expose its initial unpressed state when Nova Next boots');
   assert.match(app, /toggle-password[\s\S]*?setAttribute\(['"]aria-label['"],[\s\S]*?Hide password[\s\S]*?Show password/,
     'password visibility toggle must change its accessible label between Show password and Hide password');
   assert.match(app, /toggle-password[\s\S]*?setAttribute\(['"]aria-pressed['"],/,
