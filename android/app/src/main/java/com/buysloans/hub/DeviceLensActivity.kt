@@ -251,7 +251,7 @@ private fun DeviceLensFlow(
                 .onSuccess {
                     inspection = it
                     reviewState = MorleyVisionReviewPolicy.from(it, null)
-                    confirmedCondition = gradeLabel(it.conditionGrade)
+                    confirmedCondition = ""
                     step = LensStep.REVIEW
                 }
                 .onFailure {
@@ -352,6 +352,7 @@ private fun DeviceLensFlow(
                 },
                 continueToResults = {
                     if (reviewState?.canCompleteStaffReview == true) {
+                        confirmedCondition = MorleyVisionPolicy.conditionLabel(result.staffConfirmedConditionGrade)
                         error = ""
                         step = LensStep.RESULTS
                     }
@@ -477,7 +478,7 @@ private fun DeviceLensFlow(
         LensStep.ADD_STOCK -> inspection?.let { result ->
             AddStockScreen(
                 inspection = result,
-                condition = confirmedCondition.ifBlank { gradeLabel(result.conditionGrade) },
+                condition = confirmedCondition.ifBlank { MorleyVisionPolicy.conditionLabel(result.staffConfirmedConditionGrade) },
                 onConditionChange = { confirmedCondition = it },
                 purchasePrice = purchasePrice,
                 onPurchasePriceChange = { purchasePrice = moneyInput(it); repairDecisionConfirmed = false },
@@ -1106,8 +1107,8 @@ private fun ConditionSummaryScreen(
                     )
                     Column {
                         Text("Device Condition", color = LensText, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text(gradeLabel(inspection.conditionGrade), color = LensText, fontWeight = FontWeight.Black, fontSize = 24.sp)
-                        Text(inspection.conditionSummary, color = LensMuted, fontSize = 12.sp)
+                        Text(MorleyVisionPolicy.conditionLabel(inspection.staffConfirmedConditionGrade), color = LensText, fontWeight = FontWeight.Black, fontSize = 24.sp)
+                        Text("AI advisory: ${gradeLabel(inspection.conditionGrade)}. ${inspection.conditionSummary}", color = LensMuted, fontSize = 12.sp)
                     }
                 }
             }
