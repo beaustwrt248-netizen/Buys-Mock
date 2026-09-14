@@ -39,3 +39,9 @@ governance:autopilot-risk-classifier:
   image: node:22-bookworm
   script:
     - node --test tests/auto-review-risk-classification.test.mjs
+
+governance:nova-shared-ingestion:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/nova_internal_ingestion_contract.test.mjs tests/nova_knowledge_maintenance_contract.test.mjs
