@@ -53,5 +53,5 @@ test('migration does not broaden browser table access or let diagnostics mutate 
   assert.doesNotMatch(sql, /grant\s+(select|insert|update|delete|all)\s+on\s+(table\s+)?public\./i);
   assert.doesNotMatch(sql, /disable\s+row\s+level\s+security/i);
   assert.doesNotMatch(sql, /security\s+invoker/i);
-  assert.doesNotMatch(sql, /guardian_decide_incident|guardian_decide_repair[\s\S]*create\s+or\s+replace\s+function\s+public\.guardian_report_diagnostic/i);
+  assert.doesNotMatch(sql, /update\s+public\.guardian_repairs|state\s*=\s*'applying'|status\s*=\s*'testing'/i);
 });
