@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 16:02 AWST
+Last reconciled: 2026-09-14 17:04 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `0360709b356eb9b9498291f24d74e7c4654258fd`.
+Observed `main` head: `a5e49957fa35a39e0d613107449e7fd65a6ba200`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -35,7 +35,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Google Drive OAuth refresh-token rotation and manual full-system recovery verification remain healthy.
 - The last verified full-system backup audit event is **2026-09-14 05:59:39 UTC**, exporting 13 tables and passing upload/re-download SHA-256 verification (`ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841`, 366,840 bytes).
 - PR **#2064** is merged and its approved migration is applied in production.
-- Production `cron.job` now contains exactly one active `morley-google-drive-backup-daily` at `0 19 * * *`, using the existing Vault-backed scheduler secret.
+- Production `cron.job` contains exactly one active `morley-google-drive-backup-daily` at `0 19 * * *`, using the existing Vault-backed scheduler secret.
 - The restored cron has not yet reached its first post-repair 19:00 UTC execution window; keep issue #2051 open until a new scheduled audit event proves the automatic path end-to-end with recovery verification.
 - The open `stale_backup` finding belongs to the separate per-user encrypted Drive backup subsystem and is tracked by issue **#2070**; do not conflate it with full-system backup health.
 
@@ -51,7 +51,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Audit-run snapshot: **12 completed / 16 queued / 1 running**. Recent scheduled runs remain unfinished with 75 scanned and 0 verified.
 - Current active device count remains **1,776**.
 - Read-only production inspection confirms the only database function referencing `nova_catalog_audit_queue` is the enqueue function, and the active Edge Function inventory has no dedicated catalogue-audit queue consumer.
-- Issue **#2093** now tracks the missing safe claim/process/finalise worker. Catalogue enqueue remains paused; do not re-enable it until a tested consumer with bounded claiming, retry/evidence recording and run finalisation is verified.
+- Issue **#2093** tracks the missing safe claim/process/finalise worker. Catalogue enqueue remains paused; do not re-enable it until a tested consumer with bounded claiming, retry/evidence recording and run finalisation is verified.
 - Preserve unresolved model-number gaps and shared-model groups as unresolved classification work; never guess identifiers/specifications or auto-merge ambiguous production records.
 
 ### Guardian
@@ -61,10 +61,12 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 ### Admin web/mobile parity
 
-- PR #2072 merged: Morley Admin web Refresh now reloads live data instead of presenting stale refresh behavior.
-- Draft PR **#2080** is the active native-authority parity lane. Its current implementation intentionally removes legacy web-only authority, but several existing CI contracts still require those legacy controls.
-- Current #2080 failures are contract conflicts, not unexplained runner failures: release audit requires `releaseName`, `releaseCode`, rollout controls, `app.js`, `release-control.js`, and notification target installation controls that the new native-parity design removes or replaces.
-- Keep #2080 draft. Reconcile the authority contract/tests with the approved native-parity design before readiness; do not weaken Admin role separation or change Auth/RLS/schema while resolving it.
+- PR #2072 merged: Morley Admin web Refresh reloads live data instead of presenting stale refresh behavior.
+- PR **#2080** merged as `a5e49957fa35a39e0d613107449e7fd65a6ba200` after the native-authority refactor reached an all-green exact-head gate set and the protected merge was approved.
+- Authenticated Admin web/mobile now uses `admin-native-parity-core.js` plus a dedicated read-only catalogue owner rather than executing the broader legacy `app.js`, pricing, release-writer and control-governance owners.
+- Catalogue and Staff alerts are read-only; Release is read-only; Safe Controls owns only maintenance/message/Admin OTA state; user access omits legacy delete/force-signout/display-name editing while retaining native-equivalent role, enable/disable, invite and password operations; manual notifications retain audience/user targeting without installation/device targeting.
+- Auth/RLS/schema, Guardian authority, pricing formulas, native Android behavior and APK release identity were not changed by #2080.
+- Exact-head checks were green before merge, including Repository Security Audit, B&L Morley Quality Gate, Full Feature Contract Audit, Admin OTA Release Safety, Admin Support Governance, Admin Device Governance, Admin Control Integration Audit, Admin Android Least-Privilege Gate, Morley Ultimate Parity Gate, Recovery Backup Contract, Web Release Smoke Checks, Morley Email Contract and UI PR Checklist Gate. Post-merge workflows observed for the merge SHA show no failed runs.
 
 ### Security / performance
 
@@ -84,15 +86,12 @@ Catalogue enqueue remains intentionally paused.
 
 | PR / issue | Lane | State | Next safe action |
 | --- | --- | --- | --- |
-| #2080 | Admin web/mobile native-authority parity | Draft / CI contract conflict | Reconcile legacy release/admin contracts with the approved native-parity design; keep Auth/RLS/schema unchanged. |
 | #2051 | Full-system Drive backup recovery | Scheduler restored; automatic proof pending | After the first post-repair 19:00 UTC run, require a new scheduler-triggered backup audit row with verified re-download digest before closing. |
 | #2093 | Catalogue audit consumer | Root cause confirmed | Implement and test a bounded claim/process/finalise consumer before re-enabling enqueue. |
 | #2070 | Per-user encrypted Drive freshness semantics | Open | Keep separate from full-system backup; define active-session vs unattended freshness semantics before implementation. |
 | #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege evidence. |
 | #2040 | Database performance advisor | Open | Continue conservative classification; no speculative index removal. |
 | #1947 | Staged GitLab migration parity | Draft | GitHub `main` remains canonical until same-SHA parity, protections, rollback and final cutover checks are proven. |
-
-Stale documentation PR #2071 was closed unmerged after `main` advanced and its state was superseded by this reconciliation.
 
 ## Completed material transitions
 
@@ -102,6 +101,7 @@ Stale documentation PR #2071 was closed unmerged after `main` advanced and its s
 - Morley Buys 2.15.105 / 149 released through OTA with matching digest.
 - Adaptive Android navigation repair merged.
 - Admin web live Refresh parity repair merged.
+- Admin web/mobile native-authority parity hardened and merged through #2080 with legacy browser-only authority removed from the authenticated parity loader.
 - Tablet and Smartwatch dedicated catalogue grouping merged through #2081 without source-row or pricing mutation.
 - Catalogue audit queue non-drainage was traced to the absence of a verified consumer and captured in #2093; runaway enqueue remains prevented.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
@@ -111,10 +111,10 @@ Stale documentation PR #2071 was closed unmerged after `main` advanced and its s
 
 1. Production reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
 2. Verify the first automatic full-system backup after scheduler restoration.
-3. Resolve #2080 CI contract conflicts while preserving native Admin authority and least privilege.
-4. Implement and verify the #2093 catalogue-audit consumer before any enqueue cron is restored.
+3. Implement and verify the #2093 catalogue-audit consumer before any enqueue cron is restored.
+4. Continue Admin web/mobile functional parity and mobile-browser usability now that native authority is aligned.
 5. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
-6. Continue Admin web/mobile parity, Morley Buys UI/login reliability and app/web parity with regression coverage.
+6. Continue Morley Buys UI/login reliability and app/web parity with regression coverage.
 7. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
 8. Continue read-only security/performance classification and GitLab staged migration validation.
 
