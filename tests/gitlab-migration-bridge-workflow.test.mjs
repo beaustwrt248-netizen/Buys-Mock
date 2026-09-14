@@ -20,6 +20,18 @@ test('migration bridge reports both non-secret main SHAs before refusing drifted
   assert.match(workflow, /echo "GitLab main: \$gitlab_main"/);
 });
 
+test('migration bridge creates only missing tags and never force-overwrites an existing GitLab tag', () => {
+  assert.match(workflow, /Sync missing tags without overwriting existing tags/);
+  assert.match(workflow, /git push gitlab "refs\/tags\/\$tag:refs\/tags\/\$tag"/);
+  assert.match(workflow, /Refusing conflicting GitLab tag/);
+  assert.doesNotMatch(workflow, /git push[^\n]*--force[^\n]*refs\/tags/);
+});
+
+test('migration bridge verifies full tag parity after create-only synchronization', () => {
+  assert.match(workflow, /Verify tag coverage after create-only synchronization/);
+  assert.match(workflow, /GitLab tag refs match GitHub/);
+});
+
 test('migration bridge detects repeatedly pending tagged GitLab jobs and records evidence', () => {
   assert.match(workflow, /detect-gitlab-runner-block\.mjs/);
   assert.match(workflow, /PENDING_TAGGED_THRESHOLD=8/);
