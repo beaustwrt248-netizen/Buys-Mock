@@ -12,7 +12,6 @@ object MorleyVisionPolicy {
     private val placeholders = setOf(
         "", "null", "nil", "none", "n/a", "na", "unknown", "undefined", "not available", "not provided"
     )
-    private val verifiedConditionGrades = setOf("A", "B", "C", "D", "PARTS")
 
     fun clean(value: String?): String {
         val cleaned = value.orEmpty().trim()
@@ -21,6 +20,24 @@ object MorleyVisionPolicy {
 
     fun displayOrUnverified(value: String?): String = clean(value).ifBlank { "Not verified" }
 
+    fun canonicalConditionGrade(value: String?): String? = when (clean(value).uppercase()) {
+        "A", "EXCELLENT" -> "A"
+        "B", "GOOD" -> "B"
+        "C", "FAIR" -> "C"
+        "D", "POOR" -> "D"
+        "PARTS", "PARTS ONLY", "FOR PARTS" -> "PARTS"
+        else -> null
+    }
+
+    fun conditionLabel(value: String?): String = when (canonicalConditionGrade(value)) {
+        "A" -> "Excellent"
+        "B" -> "Good"
+        "C" -> "Fair"
+        "D" -> "Poor"
+        "PARTS" -> "Parts"
+        else -> "Unverified"
+    }
+
     fun isIdentityVerified(inspection: DeviceInspection): Boolean {
         val match = inspection.catalogueMatch
         val brand = clean(match?.brand).ifBlank { clean(inspection.brand) }
@@ -28,8 +45,12 @@ object MorleyVisionPolicy {
         return inspection.confidence >= MIN_IDENTITY_CONFIDENCE && brand.isNotBlank() && model.isNotBlank()
     }
 
+    fun pricingConditionGrade(inspection: DeviceInspection): String? =
+        canonicalConditionGrade(inspection.staffConfirmedConditionGrade)
+            ?: canonicalConditionGrade(inspection.conditionGrade)
+
     fun isConditionVerified(inspection: DeviceInspection): Boolean =
-        clean(inspection.conditionGrade).uppercase() in verifiedConditionGrades
+        pricingConditionGrade(inspection) != null
 
     fun pricingBlockReason(inspection: DeviceInspection): String? = when {
         !isIdentityVerified(inspection) -> "Device identity is not verified strongly enough for a price recommendation."
