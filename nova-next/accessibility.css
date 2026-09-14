@@ -1,0 +1,13 @@
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto !important;
+  }
+
+  .page {
+    animation: none !important;
+  }
+
+  .ambient {
+    transition: none !important;
+  }
+}
