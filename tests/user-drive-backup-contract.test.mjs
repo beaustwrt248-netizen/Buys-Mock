@@ -17,7 +17,7 @@ test('backup lookup and destructive operations are scoped to current user',()=>{
   has(backend,".eq('id', backupId).eq('user_id', userId)");
   has(backend,"backup.google_permission_id !== google.permissionId");
   has(backend,"payload?.owner_user_id !== userId");
-  has(backend,"payload?.google_permission_id !== google.permissionId");
+  has(backend,"payload?.google_permission_id !== permissionId");
 });
 
 test('Google Drive appData scope is narrow and per-user',()=>{
@@ -60,6 +60,22 @@ test('retention and integrity verification are present',()=>{
   has(backend,"action === 'verify'");
   has(backend,'backup_verified');
   has(client,'30 versions');
+});
+
+test('reachability verification uses stored Drive object integrity without decrypting',()=>{
+  has(backend,"action === 'verify_reachability'");
+  has(backend,'async function verifyBackupReachability');
+  const start=backend.indexOf('async function verifyBackupReachability');
+  const end=backend.indexOf('\nasync function ',start+1);
+  const body=backend.slice(start,end>start?end:backend.length);
+  has(body,".select('id,user_id,google_permission_id,drive_file_id,ciphertext_sha256,status,byte_size')");
+  has(body,".eq('id', backupId).eq('user_id', userId)");
+  has(body,"backup.google_permission_id !== google.permissionId");
+  has(body,'downloadAppData(backup.drive_file_id, google.token)');
+  has(body,'verifyRemoteEnvelope(raw, backupId, String(backup.ciphertext_sha256), Number(backup.byte_size))');
+  assert.ok(!body.includes("from('user_drive_backup_keys')"),'reachability verification must not load wrapped keys');
+  assert.ok(!body.includes('decodeRemoteBackup('),'reachability verification must not decrypt backup payloads');
+  has(client,"api('verify_reachability',{backup_id:id})");
 });
 
 test('OTA workspace loads Drive backup client',()=>{
