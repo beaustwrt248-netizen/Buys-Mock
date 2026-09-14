@@ -1,0 +1,32 @@
+name: Materialize Scan Layout Once
+
+on:
+  push:
+    branches:
+      - feature/morley-buys-scan-layout-20260914
+    paths:
+      - android/materialize_scan_layout_once.py
+      - .github/workflows/materialize-scan-layout-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/morley-buys-scan-layout-20260914
+      - name: Materialize approved scanner source
+        run: python3 android/materialize_scan_layout_once.py
+      - name: Commit materialized source
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/app/src/main/java/com/buysloans/hub/DeviceLensActivity.kt
+          git diff --cached --check
+          git diff --cached --quiet && { echo 'Expected scan source materialization'; exit 1; }
+          git commit -m "feat: materialize Morley AI scan layout"
+          git push origin HEAD:feature/morley-buys-scan-layout-20260914
