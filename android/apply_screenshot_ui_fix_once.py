@@ -34,8 +34,6 @@ rep('''                .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(horizontal = 28.dp, vertical = 18.dp),''')
 
-# Recovery-first hard failure state. Keep full review available behind details, but do not force staff
-# through condition/pricing controls before identity exists.
 old = '''            MorleyVisionReviewPanel(
                 state = reviewState,
                 onModelSelected = onModelSelected,
