@@ -661,17 +661,52 @@ private fun CameraCaptureSurface(
                 Icon(if (back != null) Icons.Default.ArrowBack else Icons.Default.Close, null, tint = Color.White)
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Take Photos", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                Text("Scan Device", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
                 Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Text(instruction, color = Color.White.copy(alpha = .88f), fontSize = 13.sp)
             }
             IconButton(onClick = close) { Icon(Icons.Default.Close, null, tint = Color.White) }
         }
 
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color.Black.copy(alpha = .62f),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 136.dp)
+        ) {
+            Text(
+                "Position the device within the frame",
+                Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
         Box(
             Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
         ) {
-            CameraCorners()
+            ScanFrameOverlay()
+        }
+
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (index == 0) LensBlue else Color.Black.copy(alpha = .58f),
+                    border = BorderStroke(1.dp, if (index == 0) LensBlue else Color.White.copy(alpha = .20f))
+                ) {
+                    Text(
+                        label,
+                        Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = if (index == 0) FontWeight.Black else FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
         if (cameraError.isNotBlank()) {
@@ -783,9 +818,9 @@ private fun CaptureSideControl(
 }
 
 @Composable
-private fun CameraCorners() {
+private fun ScanFrameOverlay() {
     Canvas(Modifier.fillMaxSize()) {
-        val c = Color.White
+        val c = LensBlue
         val stroke = 4.dp.toPx()
         val segment = 34.dp.toPx()
         drawLine(c, Offset(0f, segment), Offset(0f, 0f), stroke, StrokeCap.Round)
@@ -808,7 +843,7 @@ private fun AnalyseScreen(
     retake: () -> Unit,
     cancel: () -> Unit
 ) {
-    ScanScaffold("Analysing Images", cancel) {
+    ScanScaffold("Analysing Device", cancel) {
         Column(
             Modifier.fillMaxSize().padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -826,22 +861,22 @@ private fun AnalyseScreen(
                         Icon(Icons.Default.CameraAlt, null, tint = LensBlue, modifier = Modifier.size(30.dp))
                     }
                 }
-                Text("Morley Vision is analysing both photos", color = LensText, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Analysing Device", color = LensText, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().height(8.dp),
                     color = LensBlue,
                     trackColor = LensBorder
                 )
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    AnalysisCheck("Identifying device model")
-                    AnalysisCheck("Checking condition")
-                    AnalysisCheck("Detecting damage or cracks")
-                    AnalysisCheck("Analysing visual details")
-                    AnalysisCheck("Comparing with catalogue")
+                    AnalysisCheck("Detecting model")
+                    AnalysisCheck("Checking specifications")
+                    AnalysisCheck("Identifying condition")
+                    AnalysisCheck("Searching market data")
+                    AnalysisCheck("Finalising assessment")
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "AI-powered visual estimate. Staff must verify the model, condition and damage before buying or adding stock.",
+                    "Keep the device in frame for the best results. AI findings remain advisory until staff verification is complete.",
                     color = LensMuted,
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center
@@ -921,7 +956,7 @@ private fun ResultsScreen(
     retake: () -> Unit,
     close: () -> Unit
 ) {
-    ScanScaffold("Analysis Results", close) {
+    ScanScaffold("Scan Result", close) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -936,19 +971,22 @@ private fun ResultsScreen(
             DamageChips(inspection)
 
             Button(onClick = deviceDetails, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = LensBlue)) {
-                Text("View Full Details", fontWeight = FontWeight.Black)
+                Text("Full Specifications", fontWeight = FontWeight.Black)
             }
             if (inspection.damageRegions.isNotEmpty()) {
                 OutlinedButton(onClick = damageDetails, modifier = Modifier.fillMaxWidth()) { Text("View Damage Close-up") }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition") }
-                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Live Pricing") }
+                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
+                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
+            }
+            OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
+                Text("Compare Prices", fontWeight = FontWeight.Bold)
             }
             Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {
                 Text("Add to Stock", fontWeight = FontWeight.Black)
             }
-            TextButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }
+            TextButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("New Scan") }
             AiBoundary()
         }
     }
