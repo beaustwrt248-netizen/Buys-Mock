@@ -10,7 +10,8 @@ const adminPresentation=fs.readFileSync(new URL('../admin/ecosystem-presentation
 const guardianBranding=fs.readFileSync(new URL('../admin/guardian-branding.js',import.meta.url),'utf8');
 const guardianHtml=fs.readFileSync(new URL('../admin/guardian.html',import.meta.url),'utf8');
 const adminWorkspace=fs.readFileSync(new URL('../admin/workspace.html',import.meta.url),'utf8');
-const adminHome=fs.readFileSync(new URL('../admin/admin-home.js',import.meta.url),'utf8');
+const adminParity=fs.readFileSync(new URL('../admin/admin-app-parity.js',import.meta.url),'utf8');
+const adminUserAccessParity=fs.readFileSync(new URL('../admin/admin-user-access-parity.js',import.meta.url),'utf8');
 const adminIntelligence=fs.readFileSync(new URL('../admin/intelligence-command-centre.js',import.meta.url),'utf8');
 const adminDownloadInvites=fs.readFileSync(new URL('../admin/download-invites.js',import.meta.url),'utf8');
 const morleyEmail=fs.readFileSync(new URL('../supabase/functions/send-morley-email/index.ts',import.meta.url),'utf8');
@@ -78,14 +79,18 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
   assert.match(guardianBranding,/morley:ecosystem-ready/);
 });
 
-test('Admin desktop authority loads last and home boot is bounded',()=>{
+test('Admin web authority uses the native-parity shell and legacy visual authorities stay unloaded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
-  assert.match(adminWorkspace,/admin-home\.js\?v=8/);
-  assert.match(adminHome,/id='adminDesktopWorkspaceFixCss'/);
-  assert.match(adminHome,/desktop-workspace-fix\.css\?v=2/);
-  assert.doesNotMatch(adminHome,/setInterval\(/);
-  assert.doesNotMatch(adminHome,/MutationObserver\([^)]*\)\.observe\(q\('#appView'\)\|\|document\.body,\{subtree:true,childList:true,attributes:true/);
-  assert.doesNotThrow(()=>new Function(adminHome));
+  assert.match(adminWorkspace,/admin-app-parity\.js\?v=3/);
+  assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=1/);
+  assert.doesNotMatch(adminWorkspace,/\['adminHome','admin-home\.js\?v=8'\]/);
+  assert.doesNotMatch(adminWorkspace,/\['adminV2Script','admin-v2\.js\?v=8'\]/);
+  assert.match(adminParity,/data-workspace-panel/);
+  assert.match(adminParity,/supportOnly/);
+  assert.match(adminUserAccessParity,/reset_password/);
+  assert.match(adminUserAccessParity,/create_user/);
+  assert.doesNotThrow(()=>new Function(adminParity));
+  assert.doesNotThrow(()=>new Function(adminUserAccessParity));
 });
 
 test('Admin Intelligence bootstrap observes only appView readiness',()=>{
