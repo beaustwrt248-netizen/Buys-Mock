@@ -18,10 +18,12 @@ test('GitLab variable bootstrap copies all required protected variables from exi
   assert.match(workflow, /masked=true/);
 });
 
-test('Firebase JSON is stored as a protected file variable because GitLab masked values must be single-line', () => {
-  assert.match(workflow, /upsert_variable FIREBASE_GOOGLE_SERVICES_JSON \"\$FIREBASE_GOOGLE_SERVICES_JSON\" file false/);
-  assert.match(workflow, /--form \"variable_type=\$variable_type\"/);
-  assert.match(workflow, /--form \"masked=\$masked\"/);
+test('Firebase JSON is compacted before masked storage so GitLab receives a single-line value', () => {
+  assert.match(workflow, /firebase_compact=/);
+  assert.match(workflow, /json\.loads\(os\.environ\['FIREBASE_GOOGLE_SERVICES_JSON'\]\)/);
+  assert.match(workflow, /separators=\(',', ':'\)/);
+  assert.match(workflow, /upsert_variable FIREBASE_GOOGLE_SERVICES_JSON \"\$firebase_compact\"/);
+  assert.doesNotMatch(workflow, /FIREBASE_GOOGLE_SERVICES_JSON .* file false/);
 });
 
 test('GitLab variable bootstrap fails closed when the migration token lacks variable write access', () => {
