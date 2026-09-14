@@ -55,3 +55,21 @@ test('migration does not broaden browser table access or let diagnostics mutate 
   assert.doesNotMatch(sql, /security\s+invoker/i);
   assert.doesNotMatch(sql, /update\s+public\.guardian_repairs|state\s*=\s*'applying'|status\s*=\s*'testing'/i);
 });
+
+test('server-only advisor tables remain intentionally outside browser grants', () => {
+  const sql = fs.readFileSync(migrationPath, 'utf8').toLowerCase();
+  for (const table of [
+    'device_buy_prices',
+    'device_buy_price_history',
+    'nova_catalog_audit_queue',
+    'nova_catalog_audit_findings',
+    'nova_catalog_audit_runs',
+    'nova_knowledge_items',
+    'nova_knowledge_chunks',
+    'user_drive_backup_keys',
+    'user_drive_backup_master_keys',
+  ]) {
+    assert.doesNotMatch(sql, new RegExp(`grant\\s+(select|insert|update|delete|all)[^;]+${table}`));
+    assert.doesNotMatch(sql, new RegExp(`create\\s+policy[^;]+${table}`));
+  }
+});
