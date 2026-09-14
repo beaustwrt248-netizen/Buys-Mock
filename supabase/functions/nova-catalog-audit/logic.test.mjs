@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   boundedBatch,
   classifySourceEvidence,
+  isSafePublicSourceUrl,
   normalizePageText,
   retryDelaySeconds,
   sanitizeError,
@@ -22,9 +23,9 @@ test('retry delay backs off exponentially and caps', () => {
   assert.equal(retryDelaySeconds(20), 21600);
 });
 
-test('source evidence verifies only complete catalogue rows with matching identity', () => {
+test('source evidence verifies complete rows despite harmless URL-style punctuation', () => {
   const device = { brand: 'Google', model_name: 'Pixel 10 Pro', model_number: 'GP4BC', release_year: 2025, key_specs: { chipset: 'Tensor G5' } };
-  const result = classifySourceEvidence(device, '<html><body>Google Pixel 10 Pro GP4BC specifications</body></html>');
+  const result = classifySourceEvidence(device, '<html><body>Google Pixel-10-Pro (GP4BC) specifications</body></html>');
   assert.deepEqual(result, { outcome: 'verified', code: 'source_identity_confirmed', field: null });
 });
 
@@ -40,6 +41,15 @@ test('identity mismatch blocks instead of overwriting catalogue data', () => {
   assert.equal(classifySourceEvidence(device, 'Unrelated product page').outcome, 'blocked');
 });
 
+test('source fetch rejects loopback, private, link-local and credential-bearing URLs', () => {
+  assert.equal(isSafePublicSourceUrl('https://www.samsung.com/au/phones/'), true);
+  assert.equal(isSafePublicSourceUrl('http://127.0.0.1/admin'), false);
+  assert.equal(isSafePublicSourceUrl('http://169.254.169.254/latest/meta-data'), false);
+  assert.equal(isSafePublicSourceUrl('http://192.168.1.1/'), false);
+  assert.equal(isSafePublicSourceUrl('http://user:pass@example.com/'), false);
+  assert.equal(isSafePublicSourceUrl('http://[::1]/'), false);
+});
+
 test('normalizer removes scripts and markup', () => {
   assert.equal(normalizePageText('<style>x{}</style><script>secret()</script><p>Hello &amp; world</p>'), 'hello & world');
 });
@@ -48,9 +58,11 @@ test('diagnostics redact common secret material', () => {
   assert.equal(sanitizeError('token=abc123 timeout'), 'token=[redacted] timeout');
 });
 
-test('source tier is conservative and source based', () => {
-  assert.equal(sourceTier('https://www.telstra.com.au/mobile-phones', 'Telstra'), 3);
-  assert.equal(sourceTier('not-a-url', 'Unknown'), 5);
+test('source tier is manufacturer-first and conservative for unknown sources', () => {
+  assert.equal(sourceTier('https://www.samsung.com/au/support/', 'Samsung Support', 'Samsung'), 1);
+  assert.equal(sourceTier('https://www.telstra.com.au/mobile-phones', 'Telstra', 'Samsung'), 3);
+  assert.equal(sourceTier('https://example.com/device', 'Unknown', 'Samsung'), 5);
+  assert.equal(sourceTier('not-a-url', 'Unknown', 'Samsung'), 5);
 });
 
 test('terminal status excludes pending/in-progress', () => {
