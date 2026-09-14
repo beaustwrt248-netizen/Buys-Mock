@@ -51,7 +51,8 @@ jobs:
               'connection-status.js','web-diagnostics.js','menu-parity-polish.js','menu-dialog-a11y.js',
               'web-notification-centre.js','web-display-parity.js','web-issue-report.js','reference-theme.css','no-gold.css','premium-motion.css','morley-light-web.css',
               'admin/index.html','admin/browser-auth-bootstrap.js','admin/workspace.html','admin/workspace-template.html',
-              'admin/app.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html','admin/login-security.js'
+              'admin/admin-native-parity-core.js','admin/catalogue-readonly-parity.js','admin/admin-app-parity.js',
+              'admin/admin-user-access-parity.js','admin/styles.css','admin/invites.js','admin/targeted-notifications.js','admin/turnstile.html','admin/login-security.js'
           ]
           absent = [p for p in required if not Path(p).is_file()]
           if absent: raise SystemExit('Required production web assets missing: ' + ', '.join(absent))
@@ -70,7 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-insights.js smart-input-polish.js connection-status.js web-diagnostics.js menu-parity-polish.js menu-dialog-a11y.js account-refresh-parity.js web-notification-centre.js web-display-parity.js web-issue-report.js admin/browser-auth-bootstrap.js admin/app.js admin/invites.js admin/targeted-notifications.js admin/login-security.js; do
+          for file in secure-pricing.js app.js web-auth.js signed-in-user.js desktop-parity.js desktop-oem.js workflow.js smart-workspace.js smart-workspace-plus.js smart-insights.js smart-input-polish.js connection-status.js web-diagnostics.js menu-parity-polish.js menu-dialog-a11y.js account-refresh-parity.js web-notification-centre.js web-display-parity.js web-issue-report.js admin/browser-auth-bootstrap.js admin/admin-native-parity-core.js admin/catalogue-readonly-parity.js admin/admin-app-parity.js admin/admin-user-access-parity.js admin/targeted-notifications.js admin/login-security.js; do
             test -s "$file"
             node --check "$file"
           done
@@ -83,7 +84,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          active = ['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','morley-light-web.css','web-auth.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','web-issue-report.js','admin/styles.css','admin/index.html','admin/workspace.html','admin/workspace-template.html','admin/app.js']
+          active = ['mobile-more.css','cyber-ui.css','cyber-spectrum.css','premium-motion.css','reference-theme.css','no-gold.css','morley-light-web.css','web-auth.js','desktop-parity.js','smart-workspace.js','smart-workspace-plus.js','smart-insights.js','web-issue-report.js','admin/styles.css','admin/index.html','admin/workspace.html','admin/workspace-template.html','admin/admin-native-parity-core.js']
           forbidden = ['#ffd400','#ffe65b','#ffd000','#ffc800','#ffe95a','#c99a27','#ddb347','#cda51d','#e0bb39','#caa21c','#e1bd3d','rgba(255,212,0','rgb(255,212,0']
           failures=[]
           for file in active:
@@ -114,9 +115,11 @@ jobs:
             'desktop-oem.js':["localStorage.getItem('morley_web_auth')","'Authorization':'Bearer '+token"],
             'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=2','login-security.js?v=11'],
             'admin/browser-auth-bootstrap.js':['loadSession','profiles','is_enabled',"['admin','manager']",'workspace.html?auth='],
-            'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="releaseName" readonly','id="rolloutCurrent"','id="rolloutOutdated"'],
-            'admin/workspace.html':['workspace-template.html?v=2','app.js?v=','release-control.js?v=3','invites.js?v=4',"dataset.adminWorkspace='ready'"],
-            'admin/app.js':['admin-user-control',"secureUserAction('set_role'","secureUserAction('set_display_name'",'data-name-save','secureUserAction'],
+            'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="catalogueList"','id="releaseSummary"','id="releaseAdoption"','id="otaEnabled"'],
+            'admin/workspace.html':['workspace-template.html?v=2','admin-native-parity-core.js?v=1','catalogue-readonly-parity.js?v=1','admin-app-parity.js?v=4',"dataset.adminWorkspace='ready'"],
+            'admin/admin-native-parity-core.js':['admin-user-control',"secureUserAction('set_role'",'admin_set_config','admin_ota_enabled','current_release','minimum_supported_version'],
+            'admin/admin-user-access-parity.js':['reset_password','create_user','reissue_invite','admin_revoke_team_invite'],
+            'admin/targeted-notifications.js':['audience:all','user:','notification_job','send-admin-notification','send-morley-email'],
             'admin/invites.js':['send-morley-email',"action:'create_invite'",'display_name:name','inviteName'],
             'admin/turnstile.html':["const postMessageOrigin=parentOrigin&&parentOrigin!=='null'?parentOrigin:'*'",'postMessage(payload,postMessageOrigin)'],
             'admin/login-security.js':['event.source===frame.contentWindow','event.origin===window.location.origin',"window.location.origin==='null'&&event.origin==='null'"],
@@ -127,12 +130,19 @@ jobs:
           auth_html=Path('admin/index.html').read_text(encoding='utf-8')
           for forbidden in ('id="inviteName"','id="releaseName"','app.js?v=4','invites.js?v=3'):
               if forbidden in auth_html: raise SystemExit(f'Admin auth document contains privileged workspace hook: {forbidden}')
+          workspace=Path('admin/workspace.html').read_text(encoding='utf-8')
+          for forbidden in ("['adminCoreApp','app.js",'pricing-management.js','release-control.js','control-governance.js'):
+              if forbidden in workspace: raise SystemExit(f'Native-parity Admin loader executes retired authority: {forbidden}')
+          template=Path('admin/workspace-template.html').read_text(encoding='utf-8')
+          for forbidden in ('pricingSaveBtn','publishAnnBtn','saveReleaseBtn','forceUpdate','data-display-name','data-name-save'):
+              if forbidden in template: raise SystemExit(f'Native-parity Admin template renders retired authority: {forbidden}')
+          notifications=Path('admin/targeted-notifications.js').read_text(encoding='utf-8')
+          for forbidden in ('device:','target_installation_id'):
+              if forbidden in notifications: raise SystemExit(f'Native-parity notifications expose retired device targeting: {forbidden}')
           invites=Path('admin/invites.js').read_text(encoding='utf-8')
           for forbidden in ('crypto.getRandomValues','sha256Hex','admin_create_team_invite'):
               if forbidden in invites: raise SystemExit(f'Admin invite UI still creates/hashes invite secrets client-side: {forbidden}')
           if "postMessage(payload,'*')" in Path('admin/turnstile.html').read_text(encoding='utf-8') or 'postMessage(payload,"*")' in Path('admin/turnstile.html').read_text(encoding='utf-8'):
               raise SystemExit('Turnstile bridge must not unconditionally broadcast CAPTCHA tokens')
-          if "sb.rpc('admin_set_user_role'" in Path('admin/app.js').read_text(encoding='utf-8'):
-              raise SystemExit('Admin role changes must use the hardened admin-user-control Edge Function')
-          print('Auth/navigation/pricing/smart-workspace/split-admin/full-name/support-ticket hooks OK')
+          print('Auth/navigation/pricing/smart-workspace/native-authority/support-ticket hooks OK')
           PY
