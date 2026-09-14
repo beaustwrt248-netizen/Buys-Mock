@@ -9,7 +9,8 @@ const css=fs.readFileSync('catalogue-connectivity-grouping.css','utf8');
 assert.match(index,/catalogue-connectivity-grouping\.css\?v=20260914/);
 assert.match(index,/catalogue-connectivity-core\.js\?v=20260914/);
 assert.match(index,/tablet-watch-grouping\.js\?v=20260914/);
-assert.ok(index.indexOf('catalogue-connectivity-core.js?v=20260914') < index.indexOf('tablet-watch-grouping.js?v=20260914'));
+assert.ok(index.indexOf('catalogue-connectivity-core.js?v=20260914') < index.indexOf('web-universal-buy.js?v=2&imgperf=1'),'connectivity core must load before catalogue boot');
+assert.ok(index.indexOf('web-universal-buy.js?v=2&imgperf=1') < index.indexOf('tablet-watch-grouping.js?v=20260914'),'universal renderer must load before result post-processing');
 
 assert.match(universal,/section:'tablets'/);
 assert.match(universal,/morleyTabletGrid/);
