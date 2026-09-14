@@ -7,6 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', 'android', 'app');
 const updateManager = fs.readFileSync(path.join(root, 'src', 'main', 'java', 'com', 'buysloans', 'novanext', 'UpdateManager.java'), 'utf8');
 const activity = fs.readFileSync(path.join(root, 'src', 'main', 'java', 'com', 'buysloans', 'novanext', 'MainActivity.java'), 'utf8');
+const filePaths = fs.readFileSync(path.join(root, 'src', 'main', 'res', 'xml', 'file_paths.xml'), 'utf8');
 
 assert.match(updateManager, /BuildConfig\.NOVA_OTA_APP_ID\.equals\(info\.appId\)/);
 assert.match(updateManager, /BuildConfig\.NOVA_OTA_CHANNEL\.equals\(info\.channel\)/);
@@ -18,6 +19,7 @@ assert.match(updateManager, /getPackageName\(\) \+ "\.files"/);
 assert.match(activity, /new UpdateManager\(/);
 assert.match(activity, /checkForUpdates\(\)/);
 assert.match(activity, /resumePendingInstall\(this\)/);
+assert.match(filePaths, /nova-next-updates\//);
 assert.doesNotMatch(activity, /addJavascriptInterface/);
 
 console.log('android-ota-contract: ok');
