@@ -12,6 +12,7 @@ object MorleyVisionPolicy {
     private val placeholders = setOf(
         "", "null", "nil", "none", "n/a", "na", "unknown", "undefined", "not available", "not provided"
     )
+    private val verifiedConditionGrades = setOf("A", "B", "C", "D", "PARTS")
 
     fun clean(value: String?): String {
         val cleaned = value.orEmpty().trim()
@@ -27,8 +28,12 @@ object MorleyVisionPolicy {
         return inspection.confidence >= MIN_IDENTITY_CONFIDENCE && brand.isNotBlank() && model.isNotBlank()
     }
 
+    fun isConditionVerified(inspection: DeviceInspection): Boolean =
+        clean(inspection.conditionGrade).uppercase() in verifiedConditionGrades
+
     fun pricingBlockReason(inspection: DeviceInspection): String? = when {
         !isIdentityVerified(inspection) -> "Device identity is not verified strongly enough for a price recommendation."
+        !isConditionVerified(inspection) -> "Device condition is not verified strongly enough for a price recommendation."
         inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a price recommendation."
         inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a price recommendation."
         else -> null
