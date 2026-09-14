@@ -387,7 +387,7 @@ object DeviceInspectionClient {
             modelNumber = MorleyVisionPolicy.clean(result.optString("model_number")),
             colour = MorleyVisionPolicy.clean(result.optString("colour")),
             storage = MorleyVisionPolicy.clean(result.optString("storage")),
-            conditionGrade = MorleyVisionPolicy.clean(result.optString("condition_grade")).ifBlank { "C" },
+            conditionGrade = MorleyVisionPolicy.clean(result.optString("condition_grade")).ifBlank { "UNVERIFIED" },
             conditionSummary = MorleyVisionPolicy.clean(result.optString("condition_summary")),
             confidence = result.optDouble("confidence", 0.0).coerceIn(0.0, 1.0),
             damageFlags = result.optJSONArray("damage_flags").toStrings(),
@@ -459,7 +459,7 @@ object DeviceInspectionClient {
         "C" -> ObservedCondition.FAIR
         "D" -> ObservedCondition.POOR
         "PARTS" -> ObservedCondition.PARTS
-        else -> ObservedCondition.FAIR
+        else -> error("A verified condition grade is required before pricing.")
     }
 
     private fun JSONArray?.toStrings(): List<String> {
