@@ -4,6 +4,7 @@ const CORE = [
   APP_PREFIX,
   `${APP_PREFIX}index.html`,
   `${APP_PREFIX}styles.css`,
+  `${APP_PREFIX}accessibility.css`,
   `${APP_PREFIX}live.css`,
   `${APP_PREFIX}manifest.webmanifest`,
   `${APP_PREFIX}app.js`,
