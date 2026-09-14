@@ -1,4 +1,4 @@
-const CACHE = 'nova-next-shell-v3';
+const CACHE = 'nova-next-shell-v4';
 const APP_PREFIX = new URL('./', self.location.href).pathname;
 const CORE = [
   APP_PREFIX,
@@ -6,8 +6,12 @@ const CORE = [
   `${APP_PREFIX}styles.css`,
   `${APP_PREFIX}accessibility.css`,
   `${APP_PREFIX}live.css`,
+  `${APP_PREFIX}completion.css`,
   `${APP_PREFIX}manifest.webmanifest`,
   `${APP_PREFIX}app.js`,
+  `${APP_PREFIX}assets/icons/nova-orb-192.svg`,
+  `${APP_PREFIX}assets/icons/nova-orb-512.svg`,
+  `${APP_PREFIX}assets/icons/nova-orb-maskable-512.svg`,
   `${APP_PREFIX}src/action-policy.mjs`,
   `${APP_PREFIX}src/auth-controller.mjs`,
   `${APP_PREFIX}src/auth-policy.mjs`,
@@ -15,12 +19,14 @@ const CORE = [
   `${APP_PREFIX}src/automation-store.mjs`,
   `${APP_PREFIX}src/automation-ui.mjs`,
   `${APP_PREFIX}src/capabilities.mjs`,
+  `${APP_PREFIX}src/completion-ui.mjs`,
   `${APP_PREFIX}src/feature-runtime.mjs`,
   `${APP_PREFIX}src/feature-ui.mjs`,
   `${APP_PREFIX}src/file-session.mjs`,
   `${APP_PREFIX}src/live-runtime.mjs`,
   `${APP_PREFIX}src/local-preferences.mjs`,
   `${APP_PREFIX}src/navigation.mjs`,
+  `${APP_PREFIX}src/ota-config.mjs`,
   `${APP_PREFIX}src/product-search-ui.mjs`,
   `${APP_PREFIX}src/promotion-config.mjs`,
   `${APP_PREFIX}src/research-ui.mjs`,
@@ -54,11 +60,17 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key.startsWith('nova-next-') && key !== CACHE).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('nova-next-') && key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) client.postMessage({ type: 'NOVA_WEB_UPDATE_READY', cache: CACHE });
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
@@ -67,7 +79,5 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !STATIC_PATHS.has(url.pathname)) return;
 
-  event.respondWith(
-    caches.match(request).then(hit => hit || fetch(request))
-  );
+  event.respondWith(caches.match(request).then(hit => hit || fetch(request)));
 });
