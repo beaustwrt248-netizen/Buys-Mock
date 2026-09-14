@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const workerPath = 'supabase/functions/nova-knowledge-maintenance/index.ts';
+const sharedIngestionPath = 'supabase/functions/nova-knowledge/internal_ingestion.mjs';
 const baseMigrationPath = 'supabase/migrations/20260913042000_nova_knowledge_maintenance_pipeline.sql';
 const hardeningMigrationPath = 'supabase/migrations/20260913050000_nova_knowledge_maintenance_hardening.sql';
 const read = (path) => fs.readFileSync(path, 'utf8');
@@ -42,13 +43,16 @@ test('embedding work is atomically claimed instead of selected by competing work
 
 test('scheduled ingestion shares the manual ingester identity space and protects legacy catalogue seeds', () => {
   const source = read(workerPath);
-  assert.match(source, /managed_by:\s*["']nova_internal_adapter["']/);
-  assert.match(source, /`internal:\$\{adapterKey\}`/);
-  assert.match(source, /hasLegacyCatalogueCoverage/);
-  assert.match(source, /generated_from_live_catalogue/);
-  assert.match(source, /nova_knowledge_revisions/);
-  assert.doesNotMatch(source, /managed_by:\s*["']nova_maintenance["']/);
-  assert.doesNotMatch(source, /`maintenance:\$\{adapterKey\}`/);
+  const shared = read(sharedIngestionPath);
+  assert.match(source, /createInternalIngestionEngine/);
+  assert.match(source, /actorId:\s*null/);
+  assert.match(shared, /managed_by:\s*["']nova_internal_adapter["']/);
+  assert.match(shared, /`internal:\$\{adapterKey\}`/);
+  assert.match(shared, /hasLegacyCatalogueCoverage/);
+  assert.match(shared, /generated_from_live_catalogue/);
+  assert.match(shared, /nova_knowledge_revisions/);
+  assert.doesNotMatch(shared, /managed_by:\s*["']nova_maintenance["']/);
+  assert.doesNotMatch(shared, /`maintenance:\$\{adapterKey\}`/);
 });
 
 test('maintenance response never returns chunk content, vectors or credentials', () => {
