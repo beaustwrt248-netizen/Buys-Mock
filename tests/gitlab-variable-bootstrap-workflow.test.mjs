@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const workflow = fs.readFileSync('.github/workflows/gitlab-variable-bootstrap.yml', 'utf8');
+const protectionWorkflow = fs.readFileSync('.github/workflows/gitlab-protection-bootstrap.yml', 'utf8');
+const protectionScript = fs.readFileSync('scripts/ci/bootstrap-gitlab-protected-tags.sh', 'utf8');
 
 test('GitLab variable bootstrap reuses the project-scoped migration token and never prints secret values', () => {
   assert.match(workflow, /GITLAB_MIGRATION_TOKEN: \$\{\{ secrets\.GITLAB_MIGRATION_TOKEN \}\}/);
@@ -31,17 +33,23 @@ test('GitLab variable bootstrap fails closed when the migration token lacks vari
   assert.match(workflow, /exit 1/);
 });
 
-test('GitLab bootstrap additively protects every release tag family without weakening existing rules', () => {
-  for (const pattern of ['v*', 'admin-v*', 'nova-v*']) {
-    assert.match(workflow, new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  assert.match(workflow, /\/protected_tags/);
-  assert.match(workflow, /create_access_level/);
-  assert.match(workflow, /Protected tag rule already exists/);
-  assert.match(workflow, /Created protected tag rule/);
-  assert.doesNotMatch(workflow, /--request DELETE|--request PUT[^\n]*protected_tags|--request PATCH[^\n]*protected_tags/);
+test('GitLab protection bootstrap reuses only the project-scoped migration token', () => {
+  assert.match(protectionWorkflow, /GITLAB_MIGRATION_TOKEN: \$\{\{ secrets\.GITLAB_MIGRATION_TOKEN \}\}/);
+  assert.doesNotMatch(protectionWorkflow, /GITLAB_SETUP_TOKEN|BL_KEYSTORE|FIREBASE_GOOGLE_SERVICES_JSON/);
+  assert.match(protectionWorkflow, /bash scripts\/ci\/bootstrap-gitlab-protected-tags\.sh/);
 });
 
-test('GitLab bootstrap never mutates protected branches or repository refs', () => {
-  assert.doesNotMatch(workflow, /protected_branches|git push|merge_requests/);
+test('GitLab protection bootstrap additively protects every release tag family without weakening existing rules', () => {
+  for (const pattern of ['v*', 'admin-v*', 'nova-v*']) {
+    assert.match(protectionScript, new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(protectionScript, /\/protected_tags/);
+  assert.match(protectionScript, /create_access_level=40/);
+  assert.match(protectionScript, /Protected tag rule already exists/);
+  assert.match(protectionScript, /Created protected tag rule/);
+  assert.doesNotMatch(protectionScript, /--request DELETE|--request PUT[^\n]*protected_tags|--request PATCH[^\n]*protected_tags/);
+});
+
+test('GitLab protection bootstrap never mutates protected branches or repository refs', () => {
+  assert.doesNotMatch(protectionScript, /protected_branches|git push|merge_requests/);
 });
