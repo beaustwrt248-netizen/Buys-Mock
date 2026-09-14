@@ -1,7 +1,7 @@
 {
-  "versionCode": 147,
-  "versionName": "2.15.103",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.103/B-and-L-Morley-2.15.103.apk",
-  "sha256": "2f3ff1f3f0cd4f9a8ba4d35847a9a84dcc53f75d4a0be1fee5cd68069af8ecba",
-  "notes": "fix: fail closed when Morley Vision condition is unresolved (#1983)"
+  "versionCode": 148,
+  "versionName": "2.15.104",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.104/B-and-L-Morley-2.15.104.apk",
+  "sha256": "b98fc8a476e7411da469b1597833487e1415c9860cad71d0132c466a72ecfb03",
+  "notes": "Require staff condition confirmation and generic Vision guidance (#2032)"
 }
