@@ -8,6 +8,7 @@ import {
   adaptSupportTicketRow,
 } from "../nova-knowledge/internal_adapters.mjs";
 import { createInternalIngestionEngine } from "../nova-knowledge/internal_ingestion.mjs";
+import { classifySourceFailure, summarizeSourceFailures } from "./logic.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -20,6 +21,7 @@ const SENSITIVE_DIAGNOSTIC = /(authorization|cookie|password|secret|token|api[_-
 
 type MaintenanceAuthReason = "missing_config" | "missing_header" | "env_match" | "rpc_match" | "rpc_error" | "mismatch";
 type MaintenanceAuthResult = { ok: boolean; reason: MaintenanceAuthReason };
+type SourceFailure = { source: string; kind: string };
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 const bounded = (value: unknown, fallback: number, max: number) => Math.min(Math.max(Number(value) || fallback, 1), max);
@@ -127,7 +129,7 @@ async function fetchRows(
   columns: string,
   limit: number,
   configure?: (query: any) => any,
-  options: { optional?: boolean } = {},
+  options: { optional?: boolean; transientTolerant?: boolean; sourceFailures?: SourceFailure[] } = {},
 ) {
   let query: any = admin.from(table).select(columns).limit(limit);
   if (configure) query = configure(query);
@@ -137,20 +139,28 @@ async function fetchRows(
       console.warn(`[nova-knowledge-maintenance] optional source unavailable: ${table}`);
       return [];
     }
+    const classification = classifySourceFailure(error);
+    if (options.transientTolerant && classification.retryable) {
+      options.sourceFailures?.push({ source: table, kind: classification.kind });
+      console.warn("[nova-knowledge-maintenance] transient source unavailable", { source: table, kind: classification.kind });
+      return [];
+    }
     throw error;
   }
   return data || [];
 }
 
-async function safeDocuments(limit: number) {
+async function safeDocuments(limit: number, sourceFailures: SourceFailure[]) {
   const documents: Array<{ adapter: string; sourceIdentity: string; document: any }> = [];
   const perSource = Math.max(1, Math.floor(limit / 4));
+  const resilient = { transientTolerant: true, sourceFailures };
 
   const devices = await fetchRows(
     "device_catalog",
     "id,category,brand,family,model_name,model_number,release_year,release_date,ram_options,storage_options,key_specs,aliases,source_url,source_name,source_checked_at,active,market_region,sim_configuration,physical_sim_slots,esim_supported,dual_sim_supported,created_at,updated_at",
     perSource,
     (query) => query.eq("active", true).order("updated_at", { ascending: false }),
+    resilient,
   );
   for (const row of devices) documents.push({ adapter: "device_catalog", sourceIdentity: String(row.id), document: adaptDeviceCatalogRow(row) });
 
@@ -159,6 +169,7 @@ async function safeDocuments(limit: number) {
     "id,source,state,risk_level,classification,confidence,diagnosis_summary,proposed_action,auto_fix_eligible,requires_approval,attempt_count,github_branch,github_pr_number,last_error_code,applied_at,verified_at,created_at,updated_at,worker_version,reproduction_summary,test_plan,resolution_summary,occurrence_count,first_seen_at,last_seen_at,app_version,route,diagnostic_kind,diagnostic_message",
     perSource,
     (query) => query.order("updated_at", { ascending: false }),
+    resilient,
   );
   for (const row of incidents) documents.push({ adapter: "guardian_incidents", sourceIdentity: String(row.id), document: adaptGuardianIncidentRow(row) });
 
@@ -167,6 +178,7 @@ async function safeDocuments(limit: number) {
     "id,domain,lesson_key,lesson_type,summary,source_type,evidence,outcome,confidence,verified,active,observed_at,created_at,updated_at",
     perSource,
     (query) => query.eq("active", true).order("updated_at", { ascending: false }),
+    resilient,
   );
   for (const row of lessons) documents.push({ adapter: "nova_learning_experiences", sourceIdentity: String(row.id), document: adaptGuardianLearningRow(row) });
 
@@ -175,6 +187,7 @@ async function safeDocuments(limit: number) {
     "id,category,status,priority,app_version,app_version_code,device_model,android_version,created_at,updated_at,resolved_at,closed_at",
     perSource,
     (query) => query.order("updated_at", { ascending: false }),
+    resilient,
   );
   for (const row of tickets) documents.push({ adapter: "support_tickets", sourceIdentity: String(row.id), document: adaptSupportTicketRow(row) });
 
@@ -183,7 +196,7 @@ async function safeDocuments(limit: number) {
     "status,acquired_price,expected_sale_price,acquired_at,listed_at,retired_at,created_at,updated_at",
     Math.min(limit * 5, 100),
     (query) => query.order("updated_at", { ascending: false }),
-    { optional: true },
+    { optional: true, transientTolerant: true, sourceFailures },
   );
   for (const document of adaptOperationalRows("inventory", inventory)) documents.push({ adapter: "inventory_aggregate", sourceIdentity: "latest", document });
 
@@ -192,7 +205,7 @@ async function safeDocuments(limit: number) {
     "acquired_cost,sold_price,fees,other_costs,realised_profit,sales_channel,sold_at,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("sold_at", { ascending: false }),
-    { optional: true },
+    { optional: true, transientTolerant: true, sourceFailures },
   );
   for (const document of adaptOperationalRows("sales", sales)) documents.push({ adapter: "sales_aggregate", sourceIdentity: "latest", document });
 
@@ -201,21 +214,23 @@ async function safeDocuments(limit: number) {
     "asking_price,market_value,max_buy,expected_profit,status,bought_price,sold_price,actual_profit,created_at,updated_at",
     Math.min(limit * 5, 100),
     (query) => query.order("updated_at", { ascending: false }),
+    resilient,
   );
   const quotes = await fetchRows(
     "valuation_quotes",
     "proposed_buy_cents,target_resale_cents,expected_margin_cents,confidence,recommendation,created_at",
     Math.min(limit * 5, 100),
     (query) => query.order("created_at", { ascending: false }),
-    { optional: true },
+    { optional: true, transientTolerant: true, sourceFailures },
   );
   for (const document of adaptOperationalRows("valuation", [...history, ...quotes])) documents.push({ adapter: "valuation_aggregate", sourceIdentity: "latest", document });
 
   return documents.slice(0, limit);
 }
 
-async function ingestInternal(limit: number, stats: any) {
-  const documents = await safeDocuments(limit);
+async function ingestInternal(limit: number, stats: any, sourceFailures: SourceFailure[]) {
+  const documents = await safeDocuments(limit, sourceFailures);
+  stats.ingested_error += sourceFailures.length;
   for (const entry of documents) {
     try {
       const result = await ingestion.persistDocument(entry, { actorId: null });
@@ -295,14 +310,16 @@ Deno.serve(async (req: Request) => {
     ingested_skipped: 0,
     ingested_error: 0,
   };
+  const sourceFailures: SourceFailure[] = [];
   let runId: string | null = null;
 
   try {
     runId = await beginRun();
-    await ingestInternal(ingestLimit, stats);
+    await ingestInternal(ingestLimit, stats, sourceFailures);
     await embedPending(embeddingLimit, stats);
     const partial = stats.embedded_error > 0 || stats.ingested_error > 0;
-    await finishRun(runId, partial ? "partial" : "completed", stats);
+    const errorSummary = sourceFailures.length ? summarizeSourceFailures(sourceFailures) : null;
+    await finishRun(runId, partial ? "partial" : "completed", stats, errorSummary);
     return reply({
       ok: true,
       embedded_ready: stats.embedded_ready,
@@ -310,6 +327,8 @@ Deno.serve(async (req: Request) => {
       ingested_created: stats.ingested_created,
       ingested_updated: stats.ingested_updated,
       ingested_skipped: stats.ingested_skipped,
+      ingested_error: stats.ingested_error,
+      source_failures: sourceFailures.map(({ source, kind }) => ({ source, kind })),
       duration_ms: Date.now() - started,
     });
   } catch (error) {
