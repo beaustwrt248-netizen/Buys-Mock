@@ -26,3 +26,13 @@ test('canonical feature parity map no longer labels verified capabilities regist
   assert.match(parity, /OTA[^\n]*manual|manual[^\n]*OTA/i);
   assert.doesNotMatch(parity, /Registry \+ UI shell/);
 });
+
+test('visual validation record matches the completed promotion-review state', async () => {
+  const visual = await read('docs/nova-next/VISUAL_VALIDATION.md');
+  assert.match(visual, /GO FOR PROMOTION REVIEW/);
+  assert.match(visual, /mobile[^\n]*(?:visual|layout|reference)|visual[^\n]*mobile/i);
+  assert.match(visual, /manual-device|interactive[^\n]*device/i);
+  assert.match(visual, /production[^\n]*(?:not|remain|protected)/i);
+  assert.doesNotMatch(visual, /bootstrap shell/i);
+  assert.doesNotMatch(visual, /ERR_BLOCKED_BY_ADMINISTRATOR/);
+});
