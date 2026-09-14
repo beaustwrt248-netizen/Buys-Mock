@@ -42,7 +42,7 @@ jobs:
           done
           echo 'All required source credentials are present.'
 
-      - name: Upsert protected GitLab CI variables
+      - name: Upsert masked protected GitLab CI variables
         shell: bash
         run: |
           set -euo pipefail
@@ -62,8 +62,6 @@ jobs:
           upsert_variable() {
             local key="$1"
             local value="$2"
-            local variable_type="${3:-env_var}"
-            local masked="${4:-true}"
             local encoded_key
             encoded_key="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$key")"
             local status
@@ -73,8 +71,7 @@ jobs:
               local write_status
               write_status="$(curl --silent --show-error --output /tmp/gitlab-variable-response.json --write-out '%{http_code}' \
                 --request PUT --header "$auth_header" \
-                --form "value=$value" --form 'protected=true' --form "masked=$masked" --form 'raw=true' \
-                --form "variable_type=$variable_type" \
+                --form "value=$value" --form 'protected=true' --form 'masked=true' --form 'raw=true' \
                 "$api/variables/$encoded_key")"
               if [[ "$write_status" == "401" || "$write_status" == "403" ]]; then fail_permission; fi
               [[ "$write_status" =~ ^2 ]] || { echo "GitLab variable update failed for $key with HTTP $write_status"; exit 1; }
@@ -84,8 +81,7 @@ jobs:
               local write_status
               write_status="$(curl --silent --show-error --output /tmp/gitlab-variable-response.json --write-out '%{http_code}' \
                 --request POST --header "$auth_header" \
-                --form "key=$key" --form "value=$value" --form 'protected=true' --form "masked=$masked" --form 'raw=true' \
-                --form "variable_type=$variable_type" \
+                --form "key=$key" --form "value=$value" --form 'protected=true' --form 'masked=true' --form 'raw=true' \
                 "$api/variables")"
               if [[ "$write_status" == "401" || "$write_status" == "403" ]]; then fail_permission; fi
               [[ "$write_status" =~ ^2 ]] || { echo "GitLab variable create failed for $key with HTTP $write_status"; exit 1; }
@@ -99,12 +95,21 @@ jobs:
             fi
           }
 
-          upsert_variable BL_KEYSTORE_BASE64 "$BL_KEYSTORE_BASE64" env_var true
-          upsert_variable BL_KEYSTORE_PASSWORD "$BL_KEYSTORE_PASSWORD" env_var true
-          upsert_variable BL_KEY_ALIAS "$BL_KEY_ALIAS" env_var true
-          # GitLab masked variables must be single-line. Store multiline Firebase JSON as a
-          # protected file variable instead; jobs receive only the temporary file path.
-          upsert_variable FIREBASE_GOOGLE_SERVICES_JSON "$FIREBASE_GOOGLE_SERVICES_JSON" file false
+          firebase_compact="$(python3 - <<'PY'
+          import json, os
+          value = json.loads(os.environ['FIREBASE_GOOGLE_SERVICES_JSON'])
+          print(json.dumps(value, separators=(',', ':')))
+          PY
+          )"
+          if [[ "$firebase_compact" =~ [[:space:]] ]]; then
+            echo 'Firebase JSON contains whitespace that is incompatible with GitLab masked-variable rules after compaction.'
+            exit 1
+          fi
+
+          upsert_variable BL_KEYSTORE_BASE64 "$BL_KEYSTORE_BASE64"
+          upsert_variable BL_KEYSTORE_PASSWORD "$BL_KEYSTORE_PASSWORD"
+          upsert_variable BL_KEY_ALIAS "$BL_KEY_ALIAS"
+          upsert_variable FIREBASE_GOOGLE_SERVICES_JSON "$firebase_compact"
 
       - name: Remove transient response file
         if: always()
