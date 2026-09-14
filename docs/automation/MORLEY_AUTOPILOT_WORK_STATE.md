@@ -1,6 +1,6 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 16:00 AWST
+Last reconciled: 2026-09-14 16:02 AWST
 Canonical repository baseline: protected `main`.
 Observed `main` head: `0360709b356eb9b9498291f24d74e7c4654258fd`.
 
@@ -48,8 +48,10 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Catalogue / data integrity
 
 - Current audit queue snapshot: **961 verified / 70 blocked / 1,082 pending**.
+- Audit-run snapshot: **12 completed / 16 queued / 1 running**. Recent scheduled runs remain unfinished with 75 scanned and 0 verified.
 - Current active device count remains **1,776**.
-- Catalogue enqueue remains paused because no verified live consumer drains the queue. Do not re-enable until a tracked consumer has safe claim/retry/evidence/finalisation behavior.
+- Read-only production inspection confirms the only database function referencing `nova_catalog_audit_queue` is the enqueue function, and the active Edge Function inventory has no dedicated catalogue-audit queue consumer.
+- Issue **#2093** now tracks the missing safe claim/process/finalise worker. Catalogue enqueue remains paused; do not re-enable it until a tested consumer with bounded claiming, retry/evidence recording and run finalisation is verified.
 - Preserve unresolved model-number gaps and shared-model groups as unresolved classification work; never guess identifiers/specifications or auto-merge ambiguous production records.
 
 ### Guardian
@@ -84,6 +86,7 @@ Catalogue enqueue remains intentionally paused.
 | --- | --- | --- | --- |
 | #2080 | Admin web/mobile native-authority parity | Draft / CI contract conflict | Reconcile legacy release/admin contracts with the approved native-parity design; keep Auth/RLS/schema unchanged. |
 | #2051 | Full-system Drive backup recovery | Scheduler restored; automatic proof pending | After the first post-repair 19:00 UTC run, require a new scheduler-triggered backup audit row with verified re-download digest before closing. |
+| #2093 | Catalogue audit consumer | Root cause confirmed | Implement and test a bounded claim/process/finalise consumer before re-enabling enqueue. |
 | #2070 | Per-user encrypted Drive freshness semantics | Open | Keep separate from full-system backup; define active-session vs unattended freshness semantics before implementation. |
 | #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege evidence. |
 | #2040 | Database performance advisor | Open | Continue conservative classification; no speculative index removal. |
@@ -100,6 +103,7 @@ Stale documentation PR #2071 was closed unmerged after `main` advanced and its s
 - Adaptive Android navigation repair merged.
 - Admin web live Refresh parity repair merged.
 - Tablet and Smartwatch dedicated catalogue grouping merged through #2081 without source-row or pricing mutation.
+- Catalogue audit queue non-drainage was traced to the absence of a verified consumer and captured in #2093; runaway enqueue remains prevented.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
 - Shared model-number governance remains non-destructive and evidence-driven.
 
@@ -108,7 +112,7 @@ Stale documentation PR #2071 was closed unmerged after `main` advanced and its s
 1. Production reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
 2. Verify the first automatic full-system backup after scheduler restoration.
 3. Resolve #2080 CI contract conflicts while preserving native Admin authority and least privilege.
-4. Build a tracked catalogue-audit consumer before any enqueue cron is restored.
+4. Implement and verify the #2093 catalogue-audit consumer before any enqueue cron is restored.
 5. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
 6. Continue Admin web/mobile parity, Morley Buys UI/login reliability and app/web parity with regression coverage.
 7. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
