@@ -15,6 +15,11 @@ test('migration bridge fails closed when GitLab main differs from GitHub main', 
   );
 });
 
+test('migration bridge reports both non-secret main SHAs before refusing drifted refs', () => {
+  assert.match(workflow, /echo "GitHub main: \$github_main"/);
+  assert.match(workflow, /echo "GitLab main: \$gitlab_main"/);
+});
+
 test('migration bridge detects repeatedly pending tagged GitLab jobs and records evidence', () => {
   assert.match(workflow, /detect-gitlab-runner-block\.mjs/);
   assert.match(workflow, /PENDING_TAGGED_THRESHOLD=8/);
