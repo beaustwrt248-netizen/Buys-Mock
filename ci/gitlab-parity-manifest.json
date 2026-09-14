@@ -23,6 +23,7 @@
     {"id":"gitlab-main-fast-forward","githubWorkflow":"gitlab-main-fast-forward.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-main-fast-forward"},
     {"id":"gitlab-migration-bridge","githubWorkflow":"gitlab-migration-bridge.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-migration-bridge"},
     {"id":"gitlab-project-validation","githubWorkflow":"gitlab-project-validation.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-project-validation"},
+    {"id":"gitlab-variable-bootstrap","githubWorkflow":"gitlab-variable-bootstrap.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-variable-bootstrap"},
     {"id":"guardian-platform-check","githubWorkflow":"guardian-platform-check.yml","category":"guardian-security","required":true,"gitlabJob":"security:guardian-platform"},
     {"id":"main-admin-mode-removal-contract","githubWorkflow":"main-admin-mode-removal-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:admin-mode-removal"},
     {"id":"morley-ai-assessment-core","githubWorkflow":"morley-ai-assessment-core.yml","category":"quality","required":true,"gitlabJob":"test:morley-ai-assessment-core"},
