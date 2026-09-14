@@ -5,6 +5,7 @@ import {
   classifySourceEvidence,
   isSafePublicSourceUrl,
   normalizePageText,
+  resolveSafeRedirect,
   retryDelaySeconds,
   sanitizeError,
   sourceTier,
@@ -50,6 +51,12 @@ test('source fetch rejects loopback, private, link-local and credential-bearing 
   assert.equal(isSafePublicSourceUrl('http://[::1]/'), false);
 });
 
+test('redirect targets are resolved and revalidated before following', () => {
+  assert.equal(resolveSafeRedirect('https://example.com/a', '/b'), 'https://example.com/b');
+  assert.equal(resolveSafeRedirect('https://example.com/a', 'http://169.254.169.254/latest/meta-data'), null);
+  assert.equal(resolveSafeRedirect('https://example.com/a', 'http://user:pass@example.com/private'), null);
+});
+
 test('normalizer removes scripts and markup', () => {
   assert.equal(normalizePageText('<style>x{}</style><script>secret()</script><p>Hello &amp; world</p>'), 'hello & world');
 });
@@ -63,6 +70,10 @@ test('source tier is manufacturer-first and conservative for unknown sources', (
   assert.equal(sourceTier('https://www.telstra.com.au/mobile-phones', 'Telstra', 'Samsung'), 3);
   assert.equal(sourceTier('https://example.com/device', 'Unknown', 'Samsung'), 5);
   assert.equal(sourceTier('not-a-url', 'Unknown', 'Samsung'), 5);
+});
+
+test('short brand names do not match arbitrary hostname substrings', () => {
+  assert.equal(sourceTier('https://catalogue.example.com/lg-device', 'Independent catalogue', 'LG'), 5);
 });
 
 test('terminal status excludes pending/in-progress', () => {
