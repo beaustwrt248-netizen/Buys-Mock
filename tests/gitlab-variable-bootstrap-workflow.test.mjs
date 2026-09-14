@@ -31,9 +31,17 @@ test('GitLab variable bootstrap fails closed when the migration token lacks vari
   assert.match(workflow, /exit 1/);
 });
 
-test('GitLab variable bootstrap only creates or updates CI variable metadata', () => {
-  assert.match(workflow, /\/variables\/\$encoded_key/);
-  assert.match(workflow, /--request POST/);
-  assert.match(workflow, /--request PUT/);
-  assert.doesNotMatch(workflow, /protected_tags|protected_branches|git push|merge_requests/);
+test('GitLab bootstrap additively protects every release tag family without weakening existing rules', () => {
+  for (const pattern of ['v*', 'admin-v*', 'nova-v*']) {
+    assert.match(workflow, new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(workflow, /\/protected_tags/);
+  assert.match(workflow, /create_access_level/);
+  assert.match(workflow, /Protected tag rule already exists/);
+  assert.match(workflow, /Created protected tag rule/);
+  assert.doesNotMatch(workflow, /--request DELETE|--request PUT[^\n]*protected_tags|--request PATCH[^\n]*protected_tags/);
+});
+
+test('GitLab bootstrap never mutates protected branches or repository refs', () => {
+  assert.doesNotMatch(workflow, /protected_branches|git push|merge_requests/);
 });
