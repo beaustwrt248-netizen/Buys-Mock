@@ -124,3 +124,16 @@ test('guarded auto review still recognizes executable destructive Git commands',
   assert.match(autoReviewWorkflow,/persist-credentials/);
   assert.match(autoReviewWorkflow,/disable\\s\+row\\s\+level\\s\+security/);
 });
+
+test('full-system Drive backup scheduler recovery remains repository-owned and fail-closed',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914061000_restore_google_drive_backup_scheduler.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing scheduler recovery migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  assert.match(migration,/morley-google-drive-backup-daily/);
+  assert.match(migration,/0 19 \* \* \*/);
+  assert.match(migration,/morley_backup_scheduler_secret/);
+  assert.match(migration,/google-drive-backup/);
+  assert.match(migration,/timeout_milliseconds\s*:=\s*120000/);
+  assert.doesNotMatch(migration,/GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN/);
+  assert.doesNotMatch(migration,/GOOGLE_DRIVE_OAUTH_CLIENT_SECRET/);
+});
