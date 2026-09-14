@@ -23,6 +23,18 @@ function normalizedIdentity(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function modelIdentityCandidates(modelName, releaseYear) {
+  const normalized = normalizedIdentity(modelName);
+  if (!normalized) return [];
+  const candidates = [normalized];
+  const year = String(releaseYear ?? '').trim();
+  if (/^\d{4}$/.test(year) && normalized.endsWith(` ${year}`)) {
+    const withoutDisplayYear = normalized.slice(0, -(year.length + 1)).trim();
+    if (withoutDisplayYear) candidates.push(withoutDisplayYear);
+  }
+  return candidates;
+}
+
 export function isSafePublicSourceUrl(value) {
   try {
     const url = new URL(String(value || ''));
@@ -90,10 +102,10 @@ export function classifySourceEvidence(device, pageText) {
   if (!text) return { outcome: 'retry', code: 'empty_source_body', field: null };
 
   const brand = normalizedIdentity(device?.brand);
-  const modelName = normalizedIdentity(device?.model_name);
+  const modelNames = modelIdentityCandidates(device?.model_name, device?.release_year);
   const modelNumber = normalizedIdentity(device?.model_number);
   const brandSeen = Boolean(brand && text.includes(brand));
-  const modelNameSeen = Boolean(modelName && text.includes(modelName));
+  const modelNameSeen = modelNames.some((candidate) => text.includes(candidate));
   const modelNumberSeen = Boolean(modelNumber && text.includes(modelNumber));
 
   if (!brandSeen || (!modelNameSeen && !modelNumberSeen)) {

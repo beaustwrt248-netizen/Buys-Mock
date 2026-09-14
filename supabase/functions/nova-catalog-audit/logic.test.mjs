@@ -30,6 +30,14 @@ test('source evidence verifies complete rows despite harmless URL-style punctuat
   assert.deepEqual(result, { outcome: 'verified', code: 'source_identity_confirmed', field: null });
 });
 
+test('catalogue display-year suffix does not hide a missing model-number finding', () => {
+  const device = { brand: 'GPD', model_name: 'GPD WIN Mini (2024)', model_number: null, release_year: 2024, key_specs: { cpu: 'Ryzen 7 8840U' } };
+  const result = classifySourceEvidence(device, 'GPD WIN Mini Tech Specs - Shenzhen GPD Technology Co., Ltd.');
+  assert.equal(result.outcome, 'blocked');
+  assert.equal(result.code, 'missing_model_number_requires_review');
+  assert.equal(result.field, 'model_number');
+});
+
 test('missing facts never become invented verified facts', () => {
   const device = { brand: 'Google', model_name: 'Pixel 10 Pro', model_number: null, release_year: 2025, key_specs: { chipset: 'Tensor G5' } };
   const result = classifySourceEvidence(device, 'Google Pixel 10 Pro specifications');
