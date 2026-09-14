@@ -116,7 +116,7 @@ jobs:
             'admin/index.html':['id="email"','id="password"','id="adminTurnstileFrame"','styles.css?v=3','browser-auth-bootstrap.js?v=2','login-security.js?v=11'],
             'admin/browser-auth-bootstrap.js':['loadSession','profiles','is_enabled',"['admin','manager']",'workspace.html?auth='],
             'admin/workspace-template.html':['id="inviteName"','First and last name','Email private invite','id="catalogueList"','id="releaseSummary"','id="releaseAdoption"','id="otaEnabled"'],
-            'admin/workspace.html':['workspace-template.html?v=2','admin-native-parity-core.js?v=1','catalogue-readonly-parity.js?v=1','admin-app-parity.js?v=4',"dataset.adminWorkspace='ready'"],
+            'admin/workspace.html':['workspace-template.html?v=2','admin-native-parity-core.js?v=1','catalogue-readonly-parity.js?v=1','admin-app-parity.js?v=5',"dataset.adminWorkspace='ready'"],
             'admin/admin-native-parity-core.js':['admin-user-control',"secureUserAction('set_role'",'admin_set_config','admin_ota_enabled','current_release','minimum_supported_version'],
             'admin/admin-user-access-parity.js':['reset_password','create_user','reissue_invite','admin_revoke_team_invite'],
             'admin/targeted-notifications.js':['audience:all','user:','notification_job','send-admin-notification','send-morley-email'],
