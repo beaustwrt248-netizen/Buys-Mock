@@ -1,7 +1,7 @@
 {
-  "versionCode": 150,
-  "versionName": "2.15.106",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.106/B-and-L-Morley-2.15.106.apk",
-  "sha256": "a6a572823fc83f55ca6ced80b4f3d37b9bee0e604d1a9ae13147c238a419b649",
-  "notes": "Refresh Morley Buys AI scan-device experience"
+  "versionCode": 151,
+  "versionName": "2.15.107",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.107/B-and-L-Morley-2.15.107.apk",
+  "sha256": "ac5be347b2ac4ff88acc6dfe81c076c07e74b4ab8d9161605c78172679ed7199",
+  "notes": "fix(android): repair scanner safe areas and blocked verification UX (#2197)"
 }
