@@ -42,7 +42,6 @@ jobs:
                   line[1:] for line in patch.splitlines()
                   if line.startswith('+') and not line.startswith('+++')
               )
-          added='\n'.join(added_by_file.values())
 
           guarded_path=re.compile(
               r'(^|/)(auth|security|permissions?|migrations?|guardian)(/|$)|'
@@ -73,10 +72,13 @@ jobs:
           critical=[]
           for name in names:
               if critical_path.search(name): critical.append(name)
-          for pattern in critical_added:
-              if re.search(pattern, added, re.I|re.M): critical.append(f'diff:{pattern}')
           for name, file_added in added_by_file.items():
-              if service_role_pattern.search(file_added) and not reference_only_path.search(name):
+              if reference_only_path.search(name):
+                  continue
+              for pattern in critical_added:
+                  if re.search(pattern, file_added, re.I|re.M):
+                      critical.append(f'diff:{name}:{pattern}')
+              if service_role_pattern.search(file_added):
                   critical.append(f'diff:{name}:service-role')
 
           guarded=[n for n in names if guarded_path.search(n)]
