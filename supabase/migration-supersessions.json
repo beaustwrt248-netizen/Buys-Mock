@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "supersessions": [
+    {
+      "migration": "20260903143000_central_pricing_catalogue.sql",
+      "status": "superseded",
+      "replaced_by": "20260904083000_device_buy_pricing.sql",
+      "runtime_authority": "device_catalog + device_buy_prices",
+      "reason": "The standalone morley_catalogue_items pricing model was replaced by protected buy pricing linked directly to canonical device_catalog rows.",
+      "apply_for_environment_parity": false,
+      "production_repair_requires_explicit_approval": true,
+      "notes": "Keep the historical migration file intact. Do not apply it to production merely to align migration history, and do not delete or rewrite migration history without an explicitly approved reconciliation operation."
+    }
+  ]
+}
