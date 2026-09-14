@@ -155,3 +155,19 @@ test('full-system Drive backup scheduler recovery remains repository-owned and f
   assert.doesNotMatch(migration,/GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN/);
   assert.doesNotMatch(migration,/GOOGLE_DRIVE_OAUTH_CLIENT_SECRET/);
 });
+
+test('catalogue audit worker activation remains hourly, bounded, Vault-backed and enqueue-free',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914133000_stage_catalogue_audit_worker_scheduler.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing staged catalogue audit worker scheduler migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  const lower=migration.toLowerCase();
+  assert.match(lower,/nova-catalog-audit-worker-hourly/);
+  assert.match(lower,/37 \* \* \* \*/);
+  assert.match(lower,/functions\/v1\/nova-catalog-audit/);
+  assert.match(lower,/morley_backup_scheduler_secret/);
+  assert.match(lower,/x-maintenance-secret/);
+  assert.match(lower,/"limit"\s*:\s*10/);
+  assert.match(lower,/timeout_milliseconds\s*:=\s*120000/);
+  assert.doesNotMatch(lower,/nova_enqueue_catalog_audits/);
+  assert.doesNotMatch(lower,/catalog(?:ue)?-audit-enqueue/);
+});
