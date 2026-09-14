@@ -16,16 +16,16 @@ jobs:
     timeout-minutes: 10
     env:
       GITLAB_PROJECT_PATH: beaustwrt248-netizen/Buys-Mock
-      GITLAB_MIGRATION_TOKEN: ${{ secrets.GITLAB_MIGRATION_TOKEN }}
+      GITLAB_AUDIT_TOKEN: ${{ secrets.GITLAB_AUDIT_TOKEN }}
     steps:
       - name: Checkout migration revision
         uses: actions/checkout@v4
 
-      - name: Require migration credential
+      - name: Require read-only audit credential
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${GITLAB_MIGRATION_TOKEN:-}" || { echo 'GITLAB_MIGRATION_TOKEN is not configured'; exit 1; }
+          test -n "${GITLAB_AUDIT_TOKEN:-}" || { echo 'GITLAB_AUDIT_TOKEN is not configured'; exit 1; }
 
       - name: Capture sanitized GitLab protection metadata
         shell: bash
@@ -37,7 +37,7 @@ jobs:
           PY
           )"
           api="https://gitlab.com/api/v4/projects/${project_id}"
-          auth_header="PRIVATE-TOKEN: ${GITLAB_MIGRATION_TOKEN}"
+          auth_header="PRIVATE-TOKEN: ${GITLAB_AUDIT_TOKEN}"
 
           branches_code="$(curl --silent --show-error --output /tmp/protected-branches.json --write-out '%{http_code}' --header "$auth_header" "$api/protected_branches?per_page=100")"
           tags_code="$(curl --silent --show-error --output /tmp/protected-tags.json --write-out '%{http_code}' --header "$auth_header" "$api/protected_tags?per_page=100")"
@@ -110,7 +110,7 @@ jobs:
           print(f"GitLab protection audit: main_protected={main_protected} release_tags_protected={release_tags_protected} required_variables_present={not missing} required_variables_safe={not unsafe and not missing}")
 
           if any(code != '200' for code in (branch_code, tag_code, variable_code)):
-              print('One or more GitLab metadata endpoints were not readable with the migration credential.', file=sys.stderr)
+              print('One or more GitLab metadata endpoints were not readable with the read-only audit credential.', file=sys.stderr)
               sys.exit(2)
           if not main_protected:
               print('GitLab main is not protected by an exact or wildcard protected-branch rule.', file=sys.stderr)
