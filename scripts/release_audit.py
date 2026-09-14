@@ -214,7 +214,7 @@ for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email pri
 for forbidden in ('id="pricingSaveBtn"', 'id="publishAnnBtn"', 'id="saveReleaseBtn"', 'id="forceUpdate"', 'data-display-name', 'data-name-save'):
     if forbidden in admin_workspace_template:
         errors.append(f"Admin workspace template exposes retired browser authority: {forbidden}")
-for token in ('workspace-template.html?v=2', 'admin-native-parity-core.js?v=1', 'catalogue-readonly-parity.js?v=1', 'admin-app-parity.js?v=5', "['admin','manager']", "dataset.adminWorkspace='ready'"):
+for token in ('workspace-template.html?v=2', 'admin-native-parity-core.js?v=1', 'catalogue-readonly-parity.js?v=2', 'admin-app-parity.js?v=5', "['admin','manager']", "dataset.adminWorkspace='ready'"):
     if token not in admin_workspace:
         errors.append(f"Admin workspace loader is missing native-parity runtime control: {token}")
 for forbidden in ("['adminCoreApp','app.js", 'pricing-management.js', 'release-control.js', 'control-governance.js'):

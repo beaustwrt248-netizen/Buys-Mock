@@ -3,6 +3,7 @@ const context=window.__morleyAdminAuthContext;
 const allowed=['admin','manager'].includes(context?.profile?.role||'');
 const q=id=>document.getElementById(id);
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const PAGE_SIZE=1000;
 let rows=[];
 function render(){
   const list=q('catalogueList'),status=q('catalogueStatus');if(!list)return;
@@ -18,9 +19,14 @@ function render(){
 async function refresh(){
   const status=q('catalogueStatus');if(!allowed||!window.sb){if(status)status.textContent='Admin or Manager access required.';return;}
   if(status)status.textContent='Loading active catalogue…';
-  const {data,error}=await sb.from('device_catalog').select('id,category,brand,model_name,model_number,storage,active').eq('active',true).order('category',{ascending:true}).order('brand',{ascending:true}).order('model_name',{ascending:true}).limit(250);
-  if(error){if(status)status.textContent=error.message;return;}
-  rows=data||[];
+  const loaded=[];
+  for(let offset=0;;offset+=PAGE_SIZE){
+    const {data,error}=await sb.from('device_catalog').select('id,category,brand,model_name,model_number,storage,active').eq('active',true).order('category',{ascending:true}).order('brand',{ascending:true}).order('model_name',{ascending:true}).range(offset,offset+PAGE_SIZE-1);
+    if(error){if(status)status.textContent=error.message;return;}
+    const page=data||[];loaded.push(...page);
+    if(page.length<PAGE_SIZE)break;
+  }
+  rows=loaded;
   const category=q('catalogueCategory');if(category){const current=category.value;const values=[...new Set(rows.map(item=>String(item.category||'')).filter(Boolean))].sort();category.innerHTML='<option value="all">All categories</option>'+values.map(value=>`<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');if(values.includes(current))category.value=current;}
   render();
 }

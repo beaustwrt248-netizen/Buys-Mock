@@ -69,7 +69,7 @@ require_markers("admin/index.html", 'id="email"', 'id="password"', "browser-auth
 require_markers("admin/browser-auth-bootstrap.js", "loadSession", "profiles", "admin", "manager", "workspace.html?auth=")
 require_markers("admin/workspace-template.html", "inviteName", "First and last name", "Email private invite", 'id="catalogueList"', 'id="catalogueRefreshBtn"', 'id="releaseSummary"', 'id="releaseAdoption"', 'id="otaEnabled"')
 forbid_markers("admin/workspace-template.html", 'id="pricingSaveBtn"', 'id="publishAnnBtn"', 'id="saveReleaseBtn"', 'id="forceUpdate"', 'data-display-name', 'data-name-save')
-require_markers("admin/workspace.html", "workspace-template.html?v=2", "admin-native-parity-core.js?v=1", "catalogue-readonly-parity.js?v=1", "admin-app-parity.js?v=5", "adminWorkspace='ready'")
+require_markers("admin/workspace.html", "workspace-template.html?v=2", "admin-native-parity-core.js?v=1", "catalogue-readonly-parity.js?v=2", "admin-app-parity.js?v=5", "adminWorkspace='ready'")
 forbid_markers("admin/workspace.html", "['adminCoreApp','app.js", "pricing-management.js", "release-control.js", "control-governance.js")
 require_markers("admin/admin-native-parity-core.js", "set_role", "admin-user-control", "admin_set_config", "admin_ota_enabled", "current_release", "minimum_supported_version")
 require_markers("admin/admin-user-access-parity.js", "reset_password", "create_user", "reissue_invite", "admin_revoke_team_invite")
