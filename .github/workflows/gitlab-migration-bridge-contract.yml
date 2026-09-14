@@ -9,6 +9,11 @@ on:
     paths:
       - '.github/workflows/gitlab-migration-bridge.yml'
       - '.github/workflows/gitlab-migration-bridge-contract.yml'
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
+      - '.gitlab/ci/*.yml'
+      - 'ci/gitlab-parity-manifest.json'
+      - 'scripts/ci/check-gitlab-parity-manifest.mjs'
       - 'tests/gitlab-migration-bridge-workflow.test.mjs'
   workflow_dispatch:
 
@@ -30,3 +35,5 @@ jobs:
           persist-credentials: false
       - name: Verify migration bridge safety contract
         run: node --test tests/gitlab-migration-bridge-workflow.test.mjs
+      - name: Verify GitLab parity manifest against current workflows
+        run: node scripts/ci/check-gitlab-parity-manifest.mjs
