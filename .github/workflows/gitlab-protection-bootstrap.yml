@@ -1,0 +1,35 @@
+name: GitLab Protection Bootstrap
+
+on:
+  push:
+    branches:
+      - migration/gitlab-staged-20260914
+    paths:
+      - '.github/workflows/gitlab-protection-bootstrap.yml'
+      - 'scripts/ci/bootstrap-gitlab-protected-tags.sh'
+      - 'tests/gitlab-variable-bootstrap-workflow.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Add missing GitLab release tag protections
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GITLAB_PROJECT_PATH: beaustwrt248-netizen/Buys-Mock
+      GITLAB_MIGRATION_TOKEN: ${{ secrets.GITLAB_MIGRATION_TOKEN }}
+    steps:
+      - name: Checkout migration revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify protection bootstrap contract
+        run: node --test tests/gitlab-variable-bootstrap-workflow.test.mjs
+
+      - name: Add missing protected release-tag rules
+        shell: bash
+        run: bash scripts/ci/bootstrap-gitlab-protected-tags.sh
