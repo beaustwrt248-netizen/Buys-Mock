@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-15 04:05 AWST
+Last reconciled: 2026-09-15 05:05 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `379db05c964ac9331cf98561581ba8b0ba7727f1`.
+Observed `main` head: `896888e6c948a8b7d37725b362e82df162a1b189`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository, CI, release and connected production services before each automated pass.
 
@@ -46,7 +46,7 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 ### Nova knowledge / Nova Next
 
-- `nova-knowledge-maintenance` remains healthy: the latest eight observed production runs through **2026-09-14 20:00 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
+- `nova-knowledge-maintenance` remains healthy: the latest eight observed production runs through **2026-09-14 21:00 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
 - Current production Nova remains authoritative while Nova Next remains isolated.
 - PR **#2208** is **ready for review** at exact head `622945a4a2d7f9d2a1047eba34577a90bec2f93f`. Nova Next Isolated Validation, Nova Next APK Build, route/password accessibility, Quality Gate, Ultimate Parity, Repository Security, Recovery Backup, Path Stability, catalogue/pricing/email contracts and Restore Point Capture all passed.
 - The Nova Next APK validation produced a **debug PR artifact only**. Its `publish-nova-next-ota` job was intentionally skipped. No production OTA publication or route replacement occurred.
@@ -58,9 +58,8 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Catalogue audit / data integrity
 
 - The stale-run reconciliation repair is production-proven. Run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` is `completed`, finished `2026-09-14 15:10:58 UTC`, with terminal notes `verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0`.
-- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 134 blocked / 1,018 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
-- Original nonterminal run `25b34a8c-3a85-48db-bc57-1bf386a72f08` remains `running` with **65 blocked / 10 pending**. Its pending rows are eligible and have `attempt_count <= 1`.
-- Run `c73df160-1f07-4340-967a-1269bec34fbd` has now legitimately entered `running` state during the bounded worker drain and currently contains **16 verified / 7 blocked / 52 pending**. The latest worker activity at approximately **19:37 UTC** advanced rows without creating a new queued run.
+- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 144 blocked / 1,008 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
+- The queue continues to drain in bounded increments without creating a new queued run; enqueue remains paused.
 - Issue **#2142 remains closed as completed** after production proof of the stale-run repair.
 - Catalogue enqueue remains intentionally paused; do not restore it until bounded drain capacity and broader production behavior are proven safe.
 - Preserve legitimate Australian/regional/hardware variants. Never guess model identifiers/specifications or auto-delete/merge ambiguous production records.
@@ -76,7 +75,9 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Protected RPC least-privilege hardening #2154 remains production-verified.
 - The 2026-09-14 20:02 UTC security-advisor snapshot still reports the known protected leaked-password/Auth decision plus SECURITY DEFINER/RLS findings requiring review. Do not change Auth/RLS/EXECUTE policy automatically; issue #2033 remains the approval lane.
 - Advisor state includes 17 RLS-enabled/no-policy informational findings and 13 authenticated-callable SECURITY DEFINER warnings; these require function-by-function intended-access review rather than blanket policy changes.
-- Issue #2040 remains open for evidence-backed performance/index classification. One approved redundant Nova revision index has already been removed and production-verified; the remaining advisor findings require equivalent workload/query evidence before any further protected DDL.
+- Issue #2040 remains open for evidence-backed performance/index classification. A fresh **2026-09-14 21:01 UTC** performance-advisor pass remains at **70 unused-index INFO findings**.
+- Read-only classification of 11 representative zero-scan Guardian/support/inventory/sales indexes confirmed all are tiny (8–16 KiB) and directly aligned with foreign-key columns. They are therefore classified **preserve unless workload evidence proves otherwise**, not cleanup candidates. No schema/index mutation was performed.
+- One approved redundant Nova revision index has already been removed and production-verified; the remaining advisor findings require equivalent workload/query evidence before any further protected DDL.
 
 ### Active production cron jobs
 
@@ -97,7 +98,7 @@ Catalogue enqueue remains intentionally paused.
 | #2204 | Duplicate scanner fix | **Closed unmerged / superseded** | Do not revive branch-writing source materialization. #2197 is the authoritative direct-source fix. |
 | #1947 | Staged GitLab migration parity | Draft / paused | Keep GitHub `main` canonical. Do not consume more GitLab CI minutes or cut over until explicitly resumed. |
 | #2033 | Supabase security advisor | Open / protected | Keep verified RPC hardening; leaked-password/Auth and remaining protected RLS/EXECUTE findings require explicit approval. |
-| #2040 | Database performance advisor | Open | Continue evidence-backed query/index mapping; no speculative removals. |
+| #2040 | Database performance advisor | Open | Continue evidence-backed query/index mapping; 11 additional FK-aligned zero-scan indexes are now classified preserve; no speculative removals. |
 | #431 | Full feature validation | Open | Continue current-main regression auditing; keep physical camera/touch/orientation checks MANUAL-DEVICE unless actually observed. |
 
 ## Completed material transitions
