@@ -1,0 +1,28 @@
+name: Nova Shared Ingestion Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'supabase/functions/nova-knowledge/**'
+      - 'supabase/functions/nova-knowledge-ingest/**'
+      - 'supabase/functions/nova-knowledge-maintenance/**'
+      - 'tests/nova_internal_ingestion_contract.test.mjs'
+      - 'tests/nova_knowledge_maintenance_contract.test.mjs'
+      - '.github/workflows/nova-shared-ingestion-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify shared ingestion and maintenance contracts
+        run: node --test tests/nova_internal_ingestion_contract.test.mjs tests/nova_knowledge_maintenance_contract.test.mjs

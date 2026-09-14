@@ -1,7 +1,7 @@
 {
-  "versionCode": 146,
-  "versionName": "2.15.102",
-  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.102/B-and-L-Morley-2.15.102.apk",
-  "sha256": "69e1cd3cac7856584491445df07d0ffd711abcd7b74247ca10978103731648bf",
-  "notes": "Align Android auth with Morley blue theme (#1760)"
+  "versionCode": 147,
+  "versionName": "2.15.103",
+  "apkUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/v2.15.103/B-and-L-Morley-2.15.103.apk",
+  "sha256": "2f3ff1f3f0cd4f9a8ba4d35847a9a84dcc53f75d4a0be1fee5cd68069af8ecba",
+  "notes": "fix: fail closed when Morley Vision condition is unresolved (#1983)"
 }

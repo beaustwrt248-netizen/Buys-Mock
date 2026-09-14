@@ -2,7 +2,7 @@
 
 Last reconciled: 2026-09-14 (Australia/Perth)
 Canonical repository baseline: the current protected `main` branch.
-Last observed `main` head before this ledger reconciliation: `d22770a0ff441c89c183065852a84626ee34c391`.
+Last observed `main` head before this ledger reconciliation: `7a43762aa56ee6b40de33e878fcd33782ab0aa3b`.
 
 This file is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. It records work that is active, blocked, completed, paused for safety, or awaiting protected approval. It must be reconciled against the live repository and connected production services before each automated work pass.
 
@@ -24,16 +24,16 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 ### Catalogue audit pipeline
 
 - Queue snapshot: **961 verified / 70 blocked / 1,082 pending**.
-- Run snapshot: **12 completed / 16 queued / 1 running**.
+- Run snapshot: **12 completed / 16 queued / 1 running** at the last verified run-state audit.
 - The enqueue-only catalogue cron is intentionally paused because no live database/Edge consumer currently drains the queue. Do not re-enable enqueueing until a tracked consumer is implemented and verified.
 - Preserve unresolved model-number gaps as unresolved/blocked rather than guessing identifiers or specifications.
-- Data-integrity audit: **1,777 active devices**, **14 duplicate brand+model-number groups covering 32 rows**, **232 missing model numbers**, and **0 missing categories**. Duplicate groups include legitimate retail/storage/region configurations mixed with suspicious collisions, so no destructive merge/delete was applied automatically.
+- Data-integrity audit: **1,777 active devices**. Duplicate/shared-model-number groups remain classification work, not automatic merge/delete authority.
 
 ### Backup / recovery
 
 - Last successful full-system Google Drive backup audit: **2026-09-10 19:00 UTC**.
-- Latest measured full-system backup age is now approximately **76 hours**, therefore **stale** against the 36-hour readiness threshold.
-- `recovery-readiness` production Edge Function v5 exposes independent fail-closed full-system backup freshness (`healthy`, `stale`, `missing`, or `unknown`) from the audit trail. This read-only observability fix was merged via #1975 after CI passed; auth/authorization behavior was unchanged.
+- Full-system backup freshness remains **stale** against the 36-hour readiness threshold.
+- `recovery-readiness` production Edge Function v5 exposes independent fail-closed full-system backup freshness (`healthy`, `stale`, `missing`, or `unknown`) from the audit trail.
 - The scheduled full-system Google Drive backup cron remains intentionally paused after the server-side OAuth refresh token began returning `expired or revoked` at the `google-auth` phase.
 - Android/manual user backup uses a separate fresh access-token path and must not be treated as proof that the server scheduler credential is healthy.
 - Production credential replacement and OAuth publishing-state changes require explicit approval.
@@ -41,9 +41,14 @@ The exact `main` SHA is recorded as an observation rather than as a permanent ba
 
 ### Nova knowledge
 
-- Knowledge snapshot: **4,715 active chunks / 4,708 active sources / 0 stale sources**.
-- Embedding snapshot: **156 ready / 4,559 pending / 0 errors**, with 40 embeddings attempted in the latest maintenance pass.
-- Current embedding coverage is **3.31%**. Keep expansion evidence-driven and benchmarked; do not treat raw corpus growth as proof of answer-quality improvement.
+- Knowledge snapshot: **4,715 active chunks / 4,708 active sources**.
+- Embedding snapshot: **156 ready / 4,559 pending / 0 errors**.
+- Current embedding coverage is approximately **3.31%**. Keep expansion evidence-driven and benchmarked; do not treat raw corpus growth as proof of answer-quality improvement.
+
+### Guardian
+
+- Current production incident snapshot: **28 resolved / 0 unresolved**.
+- Guardian code-changing repairs remain human-approval gated even when diagnostics are clean.
 
 ### Active cron jobs
 
@@ -60,10 +65,8 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 
 | PR | Lane | State | Safety / next action |
 | --- | --- | --- | --- |
-| #1958 | Morley Admin web/mobile web parity rebuild | Open, mergeable; CI green at last check | Authentication/bootstrap and role-aware Admin surfaces are changed. Treat merge as protected; require Beau approval after final review. |
-| #1950 | Repository path stability guard | Draft, mergeable | GitHub workflow/security boundary. Keep draft and require explicit approval before merge. |
-| #1949 | Morley AI assessment runtime loader | Open, mergeable | Includes GitHub Actions workflow change; explicit approval required before merge. |
-| #1947 | Staged GitLab migration parity | Draft, mergeable | Keep GitHub as canonical baseline until same-SHA GitLab parity, protections, rollback and cutover checks are proven. |
+| #2013 | Nova shared internal-ingestion persistence | Open; implementation checks green on prior exact head | Includes a new GitHub Actions workflow. Treat merge as protected repository-security work; require explicit Beau approval after current-main reconciliation. |
+| #1947 | Staged GitLab migration parity | Draft | Keep GitHub as canonical baseline until same-SHA GitLab parity, protections, rollback and cutover checks are proven. |
 
 ## Completed material transitions
 
@@ -71,22 +74,27 @@ The catalogue enqueue and full-system Google Drive backup jobs are intentionally
 - #1974 merged: reconciled the ledger so protected `main`, rather than a self-referential old SHA, is canonical.
 - #1975 merged and deployed: full-system backup freshness is now visible through `recovery-readiness` without changing authorization, credentials, restore behavior, schema, or cron state.
 - #1976 merged: reconciled recovery-readiness and catalogue-integrity evidence into this durable ledger.
-- #1954 merged as `d22770a0ff441c89c183065852a84626ee34c391`: battery-health and verified-storage context is now part of Morley AI/Nova Camera assessment pricing while the authoritative base-buy, human-approval, max-buy and minimum-margin boundaries remain unchanged.
+- #1954 merged: battery-health and verified-storage context entered Morley AI/Nova Camera assessment pricing while authoritative base-buy, human-approval, max-buy and minimum-margin boundaries remained unchanged.
+- #1958 merged: Morley Admin web/mobile web parity rebuild entered `main`; production deployment verification remains a separate evidence requirement when connected deployment visibility is available.
+- #1949 merged: Morley AI assessment runtime loader repair entered `main` after its protected workflow change received approval.
+- #2012 merged: historical Drive backup reachability can now be checked without decrypting backup payloads.
+- #2017 merged as `7a43762aa56ee6b40de33e878fcd33782ab0aa3b`: OTA metadata now publishes Morley **2.15.103 / versionCode 147** from current `main`. The published APK asset exists and GitHub reports matching SHA-256 `2f3ff1f3f0cd4f9a8ba4d35847a9a84dcc53f75d4a0be1fee5cd68069af8ecba`.
+- Stale-base OTA PR #2011 was closed unmerged after #2017 safely superseded it.
 
 ## High-priority unfinished lanes
 
 1. **Production-first reliability:** login/temp-password freezes, Admin access, catalogue/sync integrity, Guardian incidents, release failures, Nova availability, backup health, serious security/privacy regressions.
 2. **Catalogue processor recovery:** implement a tracked consumer for `nova_catalog_audit_queue` with safe claiming, retries, evidence recording, unresolved blocking, and run finalisation before re-enabling enqueue cron.
-3. **Backup recovery:** permanently repair the scheduled server OAuth path; freshness visibility is fixed, but the credential-dependent backup itself remains paused and stale.
-4. **Catalogue integrity:** classify the 14 duplicate brand/model groups as legitimate configurations versus true canonical collisions before any merge/deactivation proposal.
-5. **Morley Admin parity:** finish #1958 validation and hold protected auth/role merge for approval.
-6. **Morley AI / valuation:** #1954 is merged; continue adjacent non-protected valuation tests, evidence quality, and regression monitoring without weakening authoritative pricing/approval boundaries.
-7. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact.
+3. **Backup recovery:** permanently repair the scheduled server OAuth path; freshness visibility and historical reachability checks are improved, but the credential-dependent backup itself remains paused and stale.
+4. **Catalogue integrity:** classify shared model-number groups as legitimate configurations versus true canonical collisions before any merge/deactivation proposal.
+5. **Nova next-generation rebuild and knowledge expansion:** continue only through parity/evaluation gates while current production Nova remains intact; #2013 remains protected because it adds a workflow.
+6. **Morley Admin parity:** verify post-merge deployment/runtime state where deployment visibility is available and continue non-protected parity defects from evidence.
+7. **Morley AI / valuation:** continue adjacent non-protected valuation tests, evidence quality, and regression monitoring without weakening authoritative pricing/approval boundaries.
 8. **GitLab staged migration:** continue parity/protection validation without changing production baseline or creating competing `main` histories.
 
 ## Protected blockers requiring Beau action
 
-- Merge approval for PRs that cross protected boundaries, including authentication/authorization, protected pricing approval policy, or GitHub workflow/repository-security changes.
+- Merge approval for PRs that cross protected boundaries, including authentication/authorization, protected pricing approval policy, or GitHub workflow/repository-security changes. Current example: #2013.
 - Server Google OAuth credential/publishing-state correction for scheduled full-system Drive backups.
 - Any production restore/overwrite, protected RLS/schema/security mutation, signing credential, repository visibility, billing, or equivalent high-risk action.
 

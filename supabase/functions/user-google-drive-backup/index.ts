@@ -483,6 +483,19 @@ async function restoreBackup(
   }
 }
 
+async function verifyBackupReachability(userId: string, google: { token: string; permissionId: string }, backupId: string) {
+  const { data: backup, error: backupError } = await admin.from('user_drive_backups')
+    .select('id,user_id,google_permission_id,drive_file_id,ciphertext_sha256,status,byte_size')
+    .eq('id', backupId).eq('user_id', userId).maybeSingle();
+  if (backupError) throw new Error(`BACKUP_LOOKUP_FAILED:${safeError(backupError)}`);
+  if (!backup) throw new Error('BACKUP_NOT_FOUND_FOR_USER');
+  if (backup.google_permission_id !== google.permissionId) throw new Error('GOOGLE_ACCOUNT_MISMATCH');
+  if (backup.status !== 'ready') throw new Error('BACKUP_NOT_READY');
+  const raw = await downloadAppData(backup.drive_file_id, google.token);
+  await verifyRemoteEnvelope(raw, backupId, String(backup.ciphertext_sha256), Number(backup.byte_size));
+  return { reachable: true, integrity_verified: true, verified_at: new Date().toISOString() };
+}
+
 async function verifyBackup(userId: string, google: { token: string; permissionId: string }, backupId: string) {
   await loadBackupPayload(userId, google, backupId);
   await admin.from('user_drive_backup_events').insert({ user_id: userId, backup_id: backupId, event_type: 'backup_verified', detail: {} });
@@ -543,6 +556,12 @@ Deno.serve(async (req) => {
       const backupId = String(body?.backup_id || '').trim();
       if (!backupId) return reply({ error: 'backup_id is required' }, 400);
       return reply({ restore: await restoreBackup(user.id, google, backupId, body?.current_client_state ?? null) });
+    }
+
+    if (action === 'verify_reachability') {
+      const backupId = String(body?.backup_id || '').trim();
+      if (!backupId) return reply({ error: 'backup_id is required' }, 400);
+      return reply(await verifyBackupReachability(user.id, google, backupId));
     }
 
     if (action === 'verify') {

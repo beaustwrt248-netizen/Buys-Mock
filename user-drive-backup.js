@@ -84,7 +84,7 @@
     setTimeout(()=>location.reload(),300);
   }
 
-  async function verify(id){await ensureConnected();setStatus('Verifying encrypted backup integrity…','warn');await api('verify',{backup_id:id});setStatus('Backup integrity verified.','good')}
+  async function verify(id){await ensureConnected();setStatus('Checking encrypted backup reachability and integrity…','warn');await api('verify_reachability',{backup_id:id});setStatus('Backup is reachable and integrity verified.','good')}
 
   async function remove(id){if(!window.confirm('Delete this encrypted backup from your Google Drive?'))return;await ensureConnected();await api('delete',{backup_id:id});await refresh()}
 
