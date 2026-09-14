@@ -188,3 +188,13 @@ test('invite index cleanup removes only the redundant non-unique lookup index',(
   assert.doesNotMatch(migration,/drop index[^;]*app_invites_active_email_idx/i);
   assert.match(migration,/app_invites_active_email_idx/);
 });
+
+test('Nova revision index cleanup preserves unique revision identity and removes only the redundant sort twin',()=>{
+  const migrationPath=new URL('../supabase/migrations/20260914144500_drop_redundant_nova_revision_index.sql',import.meta.url);
+  assert.ok(fs.existsSync(migrationPath),'missing approved Nova revision index cleanup migration');
+  const migration=fs.readFileSync(migrationPath,'utf8');
+  assert.match(migration,/nova_knowledge_revisions_knowledge_id_revision_key/);
+  assert.match(migration,/drop index if exists public\.nova_knowledge_revisions_item_idx/i);
+  assert.doesNotMatch(migration,/drop index[^;]*nova_knowledge_revisions_knowledge_id_revision_key/i);
+  assert.match(migration,/create index nova_knowledge_revisions_item_idx/i);
+});
