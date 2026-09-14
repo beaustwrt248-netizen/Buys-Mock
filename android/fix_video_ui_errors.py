@@ -67,6 +67,127 @@ replace(history, {
     'label={Text("Seller asking price")}': 'label={Text("Seller Ask")}',
 })
 
+# Approved Morley AI Scan Device presentation. Keep the existing CameraX,
+# inspection, pricing and navigation behaviour; this only changes presentation
+# inside DeviceLensActivity and deliberately does not touch DashboardActivity.
+lens = root / 'DeviceLensActivity.kt'
+lens_text = lens.read_text(encoding='utf-8')
+scan_replacements = [
+    ('Text("Take Photos", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)',
+     'Text("Scan Device", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)'),
+    ('private fun CameraCorners()', 'private fun ScanFrameOverlay()'),
+    ('CameraCorners()', 'ScanFrameOverlay()'),
+    ('val c = Color.White\n        val stroke = 4.dp.toPx()', 'val c = LensBlue\n        val stroke = 4.dp.toPx()'),
+    ('ScanScaffold("Analysing Images", cancel)', 'ScanScaffold("Analysing Device", cancel)'),
+    ('Text("Morley Vision is analysing both photos", color = LensText, fontWeight = FontWeight.Black, fontSize = 18.sp)',
+     'Text("Analysing Device", color = LensText, fontWeight = FontWeight.Black, fontSize = 18.sp)'),
+    ('AnalysisCheck("Identifying device model")', 'AnalysisCheck("Detecting model")'),
+    ('AnalysisCheck("Checking condition")', 'AnalysisCheck("Checking specifications")'),
+    ('AnalysisCheck("Detecting damage or cracks")', 'AnalysisCheck("Identifying condition")'),
+    ('AnalysisCheck("Analysing visual details")', 'AnalysisCheck("Searching market data")'),
+    ('AnalysisCheck("Comparing with catalogue")', 'AnalysisCheck("Finalising assessment")'),
+    ('"AI-powered visual estimate. Staff must verify the model, condition and damage before buying or adding stock."',
+     '"Keep the device in frame for the best results. AI findings remain advisory until staff verification is complete."'),
+    ('ScanScaffold("Analysis Results", close)', 'ScanScaffold("Scan Result", close)'),
+    ('Text("View Full Details", fontWeight = FontWeight.Black)', 'Text("Full Specifications", fontWeight = FontWeight.Black)'),
+    ('OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition") }',
+     'OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }'),
+    ('OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Live Pricing") }',
+     'OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }'),
+    ('TextButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("Retake Photos") }',
+     'TextButton(onClick = retake, modifier = Modifier.fillMaxWidth()) { Text("New Scan") }'),
+]
+for old, new in scan_replacements:
+    if old in lens_text:
+        lens_text = lens_text.replace(old, new, 1)
+    elif new not in lens_text:
+        raise SystemExit(f'DeviceLensActivity.kt scan-layout anchor missing: {old[:90]!r}')
+
+frame_anchor = '''        Box(
+            Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
+        ) {
+            ScanFrameOverlay()
+        }
+
+        if (cameraError.isNotBlank()) {'''
+frame_replacement = '''        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color.Black.copy(alpha = .62f),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 136.dp)
+        ) {
+            Text(
+                "Position the device within the frame",
+                Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Box(
+            Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
+        ) {
+            ScanFrameOverlay()
+        }
+
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (index == 0) LensBlue else Color.Black.copy(alpha = .58f),
+                    border = BorderStroke(1.dp, if (index == 0) LensBlue else Color.White.copy(alpha = .20f))
+                ) {
+                    Text(
+                        label,
+                        Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = if (index == 0) FontWeight.Black else FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        if (cameraError.isNotBlank()) {'''
+if frame_anchor in lens_text:
+    lens_text = lens_text.replace(frame_anchor, frame_replacement, 1)
+elif 'Position the device within the frame' not in lens_text:
+    raise SystemExit('DeviceLensActivity.kt camera frame insertion anchor missing')
+
+result_anchor = '''            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
+                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
+            }
+            Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
+result_replacement = '''            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
+                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
+            }
+            OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
+                Text("Compare Prices", fontWeight = FontWeight.Bold)
+            }
+            Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
+if result_anchor in lens_text:
+    lens_text = lens_text.replace(result_anchor, result_replacement, 1)
+elif 'Compare Prices' not in lens_text:
+    raise SystemExit('DeviceLensActivity.kt result action insertion anchor missing')
+
+required_scan_markers = (
+    'Position the device within the frame', 'Scan Device', 'Auto', 'Barcode',
+    'Serial Number', 'ScanFrameOverlay', 'Analysing Device', 'Detecting model',
+    'Checking specifications', 'Identifying condition', 'Searching market data',
+    'Keep the device in frame for the best results.', 'Scan Result',
+    'Full Specifications', 'Condition Assessment', 'Market Value',
+    'Compare Prices', 'New Scan',
+)
+for marker in required_scan_markers:
+    if marker not in lens_text:
+        raise SystemExit(f'DeviceLensActivity.kt expected scan-layout marker missing: {marker}')
+lens.write_text(lens_text, encoding='utf-8')
+
 # Stale update filtering is now authoritative checked-in Kotlin. Keep the
 # build-time migration from silently restoring or depending on that behaviour.
 store = root / 'NotificationInboxStore.kt'
@@ -74,4 +195,4 @@ store_text = store.read_text(encoding='utf-8')
 if 'item.versionCode <= BuildConfig.VERSION_CODE' not in store_text:
     raise SystemExit('NotificationInboxStore.kt is missing authoritative stale-update filtering')
 
-print('Applied video-review UI, blue visual consistency, GP contrast, Smart Workspace Quick Deal spacing, Test & Buy and Valuation History corrections; verified checked-in stale-update filtering')
+print('Applied video-review UI, blue visual consistency, GP contrast, Smart Workspace Quick Deal spacing, Test & Buy, Valuation History and approved Morley AI Scan Device presentation; verified checked-in stale-update filtering')
