@@ -27,3 +27,9 @@ governance:pricing-migration-supersession:
   image: node:22-bookworm
   script:
     - node --test tests/pricing-migration-supersession-contract.test.mjs
+
+governance:nova-next-route-password-accessibility:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/nova-next-route-password-accessibility.test.mjs
