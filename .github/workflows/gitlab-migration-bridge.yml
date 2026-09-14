@@ -59,7 +59,15 @@ jobs:
           git fetch origin main --tags --force
 
           github_main="$(git rev-parse origin/main)"
-          gitlab_main="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+          gitlab_main=""
+          for attempt in {1..12}; do
+            gitlab_main="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+            if [[ -n "$gitlab_main" && "$github_main" == "$gitlab_main" ]]; then
+              break
+            fi
+            echo "Waiting for GitLab main to converge to GitHub main (attempt $attempt/12)..."
+            sleep 5
+          done
           gitlab_migration="$(git ls-remote gitlab refs/heads/${GITHUB_REF_NAME} | awk '{print $1}')"
 
           if [[ -z "$gitlab_main" ]]; then
@@ -72,7 +80,7 @@ jobs:
           echo "gitlab_migration_before=$gitlab_migration" >> "$GITHUB_OUTPUT"
 
           if [[ "$github_main" != "$gitlab_main" ]]; then
-            echo "GitLab main does not currently match GitHub main; leaving both untouched."
+            echo "GitLab main does not match GitHub main after the bounded convergence wait; leaving both untouched."
             echo "GitHub main: $github_main"
             echo "GitLab main: $gitlab_main"
             exit 1
