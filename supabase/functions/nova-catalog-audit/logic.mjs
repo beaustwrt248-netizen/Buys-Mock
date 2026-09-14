@@ -50,14 +50,24 @@ export function isSafePublicSourceUrl(value) {
   }
 }
 
+export function resolveSafeRedirect(currentUrl, location) {
+  if (!location) return null;
+  try {
+    const resolved = new URL(String(location), String(currentUrl)).toString();
+    return isSafePublicSourceUrl(resolved) ? resolved : null;
+  } catch {
+    return null;
+  }
+}
+
 export function sourceTier(sourceUrl, sourceName = '', brand = '') {
   let host = '';
   try { host = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, ''); } catch { return 5; }
   const name = String(sourceName).toLowerCase();
   const brandKey = normalizedIdentity(brand).replace(/\s+/g, '');
-  const hostKey = host.replace(/[^a-z0-9]/g, '');
+  const hostLabels = host.split('.').map((part) => part.replace(/[^a-z0-9]/g, '')).filter(Boolean);
   const nameKey = normalizedIdentity(sourceName).replace(/\s+/g, '');
-  if (brandKey && (hostKey.includes(brandKey) || nameKey === brandKey || nameKey.startsWith(`${brandKey}support`))) return 1;
+  if (brandKey && (hostLabels.includes(brandKey) || nameKey === brandKey || nameKey.startsWith(`${brandKey}support`))) return 1;
   if (/(telstra|optus|vodafone)/.test(`${host} ${name}`)) return 3;
   if (/(kmart|bigw|big w|woolworths|cashconverters|cash converters)/.test(`${host} ${name}`)) return 4;
   return 5;
