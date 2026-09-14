@@ -124,3 +124,29 @@ export function classifySourceEvidence(device, pageText) {
 export function terminalStatus(status) {
   return ['verified', 'discrepancy', 'blocked', 'failed'].includes(String(status));
 }
+
+export function catalogAuditRunPatch(rows, finishedAt = new Date().toISOString(), currentStatus = 'running') {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const counts = rows.reduce((acc, row) => {
+    const status = String(row?.status || '');
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const pending = counts.pending || 0;
+  const inProgress = counts.in_progress || 0;
+  const nonTerminal = pending + inProgress;
+  const failed = counts.failed || 0;
+  const blocked = counts.blocked || 0;
+  const discrepancy = counts.discrepancy || 0;
+  const verified = counts.verified || 0;
+  const patch = {
+    status: nonTerminal > 0 ? (currentStatus === 'queued' && nonTerminal === rows.length ? 'queued' : 'running') : (failed > 0 ? 'failed' : 'completed'),
+    scanned_count: rows.length,
+    verified_count: verified,
+    discrepancy_count: blocked + discrepancy,
+    error_count: failed,
+    notes: `verified=${verified}; blocked=${blocked}; discrepancy=${discrepancy}; failed=${failed}; pending=${pending}; in_progress=${inProgress}`,
+  };
+  if (nonTerminal === 0) patch.finished_at = finishedAt;
+  return patch;
+}
