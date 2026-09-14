@@ -294,3 +294,5 @@ jobs:
           git diff --cached --check
           git commit -m "fix: respect scan safe areas and prioritise recovery"
           git push origin HEAD:fix/morley-buys-scan-ui-20260915
+
+# one-shot bridge trigger; remove after source materializes
