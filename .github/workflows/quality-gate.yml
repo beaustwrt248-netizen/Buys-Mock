@@ -96,8 +96,9 @@ jobs:
           grep -q '0xFF102A43' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q '0xFF52677C' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
           grep -q 'lightColorScheme' android/app/src/main/java/com/buysloans/hub/MorleyVisualTheme.kt
-          grep -q 'CATEGORIES("Categories", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
-          grep -q 'GP("General Buys", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'CATALOGUE("Catalogue", MorleyIcons.Categories)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'SCAN("Scan", MorleyIcons.Phone)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
+          grep -q 'TRADE("Trade", MorleyIcons.Money)' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'General Buys / GP' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'Page.Laptop -> CategoriesPricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
           grep -q 'Page.Desktop -> ConsolePricingScreen()' android/app/src/main/java/com/buysloans/hub/DashboardActivity.kt
