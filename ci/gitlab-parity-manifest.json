@@ -26,6 +26,7 @@
     {"id":"gitlab-migration-bridge","githubWorkflow":"gitlab-migration-bridge.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-migration-bridge"},
     {"id":"gitlab-migration-bridge-contract","githubWorkflow":"gitlab-migration-bridge-contract.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-migration-bridge-contract"},
     {"id":"gitlab-project-validation","githubWorkflow":"gitlab-project-validation.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-project-validation"},
+    {"id":"gitlab-protection-bootstrap","githubWorkflow":"gitlab-protection-bootstrap.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-protection-bootstrap"},
     {"id":"gitlab-variable-bootstrap","githubWorkflow":"gitlab-variable-bootstrap.yml","category":"governance-contract","required":false,"gitlabJob":"governance:gitlab-variable-bootstrap"},
     {"id":"guardian-platform-check","githubWorkflow":"guardian-platform-check.yml","category":"guardian-security","required":true,"gitlabJob":"security:guardian-platform"},
     {"id":"main-admin-mode-removal-contract","githubWorkflow":"main-admin-mode-removal-contract.yml","category":"governance-contract","required":true,"gitlabJob":"governance:admin-mode-removal"},
