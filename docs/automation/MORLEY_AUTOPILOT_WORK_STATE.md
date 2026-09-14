@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 23:20 AWST
+Last reconciled: 2026-09-14 23:31 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `016b1f8ddc427b083dc2589beaca3a8bc2d21431`.
+Observed `main` head: `783a1322d59426537a90a599bb55733c2dd115f7`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -28,9 +28,10 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 - Native-authority parity remains merged: authenticated Admin web/mobile uses the dedicated parity core and read-only catalogue/release owners instead of broad legacy browser authority.
 - PR **#2134** fixes incomplete Admin catalogue loading by paging all active catalogue rows in deterministic order instead of relying on a single Supabase response page.
-- #2134 included cache/deployment contract updates and regression coverage. Treat source merge as proven; do not claim a production web deployment without separate deployment evidence.
+- #2134 included cache/deployment contract updates and regression coverage. Its merge commit `e53bbb542143e1c520ad8c38fdfb5a0b05957a8c` was published by GitHub Pages run **#626**; the deploy step and post-deploy smoke tests both passed against the Pages/custom-domain runtime.
 - Admin web is published from this repository through GitHub Pages at the `buyshub.me` custom domain, with Cloudflare in front of the domain. Vercel is not part of the Morley deployment path and must not be treated as a deployment dependency or blocker.
-- Continue to require separate GitHub Pages/live-origin evidence before claiming a merged Admin web change is active in production; Cloudflare challenge behavior must not be bypassed.
+- Continue to require separate GitHub Pages/live-origin evidence before claiming future merged Admin web changes are active in production; Cloudflare challenge behavior must not be bypassed.
+- No commits after #2134 through `783a1322d59426537a90a599bb55733c2dd115f7` modify `admin/**` or the deployed web bundle, so #2134 remains the latest published Admin source state.
 - Continue mobile-browser layout/freezing/accessibility and native-app parity auditing from current main.
 
 ### Backup / recovery
@@ -106,7 +107,7 @@ Catalogue enqueue remains intentionally paused.
 - Morley Buys 2.15.105 / 149 released through OTA with matching digest.
 - Adaptive Android navigation and catalogue-first intent merged.
 - Admin web native-authority parity hardened and broad legacy browser authority removed from the authenticated parity loader.
-- Admin full-catalogue pagination repair merged through #2134 with regression coverage.
+- Admin full-catalogue pagination repair merged through #2134 with regression coverage and independently verified successful GitHub Pages deployment/post-deploy smoke evidence.
 - Tablet and Smartwatch dedicated catalogue grouping merged without source-row or pricing mutation.
 - Full-system Google Drive OAuth repaired; protected manual backup/recovery verification passed; daily scheduler restored.
 - Recovery-readiness now separates per-user encrypted Drive freshness from global backup health; one proven redundant invite lookup index removed while UNIQUE integrity protection remains.
@@ -121,7 +122,7 @@ Catalogue enqueue remains intentionally paused.
 2. Verify the first automatic full-system backup after the restored 19:00 UTC scheduler execution.
 3. Continue bounded catalogue-audit drain verification before restoring any enqueue schedule; confirm subsequent scheduled worker runs keep stale-run bookkeeping coherent.
 4. Verify recovery-readiness consumers display per-user stale backup separately from global full-system recovery state.
-5. Continue Admin web/mobile functional parity, mobile-browser usability and deployment verification from #2134.
+5. Continue Admin web/mobile functional parity and mobile-browser usability auditing; #2134 deployment verification is complete.
 6. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
 7. Continue Morley Buys UI/login reliability and app/web parity with regression coverage.
 8. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
