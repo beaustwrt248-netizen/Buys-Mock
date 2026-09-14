@@ -7,6 +7,7 @@ import java.io.File
 
 class DeviceLensExperienceContractTest {
     private val lensSource = File("src/main/java/com/buysloans/hub/DeviceLensActivity.kt")
+    private val reviewSource = File("src/main/java/com/buysloans/hub/MorleyVisionReviewUi.kt")
 
     @Test
     fun cameraScreenUsesApprovedMorleyAiScanLayout() {
@@ -18,6 +19,15 @@ class DeviceLensExperienceContractTest {
         assertTrue(source.contains("Barcode"))
         assertTrue(source.contains("Serial Number"))
         assertTrue(source.contains("ScanFrameOverlay"))
+    }
+
+    @Test
+    fun cameraControlsRespectSystemNavigationAndDoNotDuplicateClose() {
+        val source = lensSource.readText()
+
+        assertTrue(source.contains("navigationBarsPadding()"))
+        assertTrue(source.contains("if (back != null) {"))
+        assertFalse(source.contains("Icon(if (back != null) Icons.Default.ArrowBack else Icons.Default.Close"))
     }
 
     @Test
@@ -45,10 +55,23 @@ class DeviceLensExperienceContractTest {
     }
 
     @Test
+    fun blockedVerificationPrioritisesCaptureRecovery() {
+        val lens = lensSource.readText()
+        val review = reviewSource.readText()
+
+        assertTrue(review.contains("requiresCaptureRecovery"))
+        assertTrue(lens.contains("if (state.requiresCaptureRecovery)"))
+        assertTrue(lens.contains("We couldn't verify this device"))
+        assertTrue(lens.contains("Retake clear photos"))
+        assertTrue(lens.contains("Why the scan was blocked"))
+    }
+
+    @Test
     fun redesignDoesNotMoveIntoDashboardImplementation() {
         val dashboard = File("src/main/java/com/buysloans/hub/DashboardActivity.kt").readText()
 
         assertFalse(dashboard.contains("ScanFrameOverlay"))
         assertFalse(dashboard.contains("Analysing Device"))
+        assertFalse(dashboard.contains("requiresCaptureRecovery"))
     }
 }
