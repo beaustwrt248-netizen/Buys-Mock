@@ -21,7 +21,8 @@ required = [
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
     "web-assets/morley_buys_login_bg_app.mp4",
     "admin/index.html", "admin/browser-auth-bootstrap.js", "admin/workspace.html", "admin/workspace-template.html",
-    "admin/app.js", "admin/invites.js", "admin/support-tickets.js",
+    "admin/admin-native-parity-core.js", "admin/catalogue-readonly-parity.js", "admin/admin-app-parity.js",
+    "admin/admin-user-access-parity.js", "admin/invites.js", "admin/support-tickets.js",
     "admin/targeted-notifications.js", "admin/styles.css", "admin/turnstile.html", "admin/login-security.js",
     "supabase/functions/send-morley-email/index.ts",
     "android/app/build.gradle", "android/apply_cyber_palette.py",
@@ -85,7 +86,7 @@ for rel in [
     "web-auth.js", "signed-in-user.js", "desktop-parity.js",
     "reference-theme.css", "premium-motion.css", "mobile-more.css",
     "cyber-ui.css", "cyber-spectrum.css", "no-gold.css",
-    "admin/styles.css", "admin/index.html", "admin/workspace.html", "admin/workspace-template.html", "admin/app.js",
+    "admin/styles.css", "admin/index.html", "admin/workspace.html", "admin/workspace-template.html", "admin/admin-native-parity-core.js",
 ]:
     p = ROOT / rel
     if not p.exists(): continue
@@ -164,7 +165,7 @@ pages_workflow = (ROOT / ".github/workflows/deploy-admin-pages.yml").read_text(e
 for token in ("Build static web bundle", "cp index.html site/", "cp -R admin site/admin", "path: site", "Post-deploy smoke tests"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages workflow is missing full-site deployment step: {token}")
-for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-oem.js", "secureUserAction('set_role'", "secureUserAction('set_display_name'"):
+for token in ("secure-pricing.js", "morley_web_auth", "Authorization", "desktop-oem.js", "admin-native-parity-core.js", "catalogue-readonly-parity.js"):
     if token not in pages_workflow:
         errors.append(f"GitHub Pages post-deploy verification is missing production control: {token}")
 
@@ -186,17 +187,13 @@ for token in (
     if token not in login_security:
         errors.append(f"Turnstile parent bridge is missing source/origin validation: {token}")
 
-admin_app = (ROOT / "admin/app.js").read_text(encoding="utf-8")
-for token in ("secureUserAction('set_role'", "secureUserAction('set_display_name'", "data-name-save", "admin-user-control"):
-    if token not in admin_app:
-        errors.append(f"Admin account management is missing hardened control: {token}")
-if "sb.rpc('admin_set_user_role'" in admin_app:
-    errors.append("Admin UI still calls the retired role-change SECURITY DEFININER RPC")
-
 admin_index = (ROOT / "admin/index.html").read_text(encoding="utf-8")
 admin_browser_bootstrap = (ROOT / "admin/browser-auth-bootstrap.js").read_text(encoding="utf-8")
 admin_workspace = (ROOT / "admin/workspace.html").read_text(encoding="utf-8")
 admin_workspace_template = (ROOT / "admin/workspace-template.html").read_text(encoding="utf-8")
+admin_native_core = (ROOT / "admin/admin-native-parity-core.js").read_text(encoding="utf-8")
+admin_user_access = (ROOT / "admin/admin-user-access-parity.js").read_text(encoding="utf-8")
+admin_catalogue = (ROOT / "admin/catalogue-readonly-parity.js").read_text(encoding="utf-8")
 admin_invites = (ROOT / "admin/invites.js").read_text(encoding="utf-8")
 admin_support = (ROOT / "admin/support-tickets.js").read_text(encoding="utf-8")
 admin_notifications = (ROOT / "admin/targeted-notifications.js").read_text(encoding="utf-8")
@@ -211,12 +208,29 @@ for forbidden in ('id="inviteName"', 'id="releaseName"', 'app.js?v=4', 'invites.
 for token in ("loadSession", "profiles", "is_enabled", "admin", "manager", "workspace.html?auth="):
     if token not in admin_browser_bootstrap:
         errors.append(f"Admin browser auth bootstrap is missing privileged-session gate: {token}")
-for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email private invite', 'id="releaseName" readonly', 'id="releaseCode" type="number" readonly', 'id="rolloutCurrent"', 'id="rolloutOutdated"'):
+for token in ('id="inviteName"', 'placeholder="First and last name"', 'Email private invite', 'id="catalogueList"', 'id="catalogueRefreshBtn"', 'id="releaseSummary"', 'id="releaseAdoption"', 'id="otaEnabled"'):
     if token not in admin_workspace_template:
-        errors.append(f"Admin workspace template is missing approved privileged control: {token}")
-for token in ('workspace-template.html?v=2', 'app.js?v=', 'release-control.js?v=3', 'invites.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
+        errors.append(f"Admin workspace template is missing native-parity control: {token}")
+for forbidden in ('id="pricingSaveBtn"', 'id="publishAnnBtn"', 'id="saveReleaseBtn"', 'id="forceUpdate"', 'data-display-name', 'data-name-save'):
+    if forbidden in admin_workspace_template:
+        errors.append(f"Admin workspace template exposes retired browser authority: {forbidden}")
+for token in ('workspace-template.html?v=2', 'admin-native-parity-core.js?v=1', 'catalogue-readonly-parity.js?v=1', 'admin-app-parity.js?v=4', "['admin','manager']", "dataset.adminWorkspace='ready'"):
     if token not in admin_workspace:
-        errors.append(f"Admin workspace loader is missing gated runtime control: {token}")
+        errors.append(f"Admin workspace loader is missing native-parity runtime control: {token}")
+for forbidden in ("['adminCoreApp','app.js", 'pricing-management.js', 'release-control.js', 'control-governance.js'):
+    if forbidden in admin_workspace:
+        errors.append(f"Admin workspace loader executes retired browser authority: {forbidden}")
+for token in ("secureUserAction('set_role'", "admin-user-control", "admin_set_config", "admin_ota_enabled", "current_release", "minimum_supported_version"):
+    if token not in admin_native_core:
+        errors.append(f"Admin native-parity core is missing approved control: {token}")
+for token in ("reset_password", "create_user", "reissue_invite", "admin_revoke_team_invite"):
+    if token not in admin_user_access:
+        errors.append(f"Admin native-parity user access is missing approved control: {token}")
+for forbidden in ('data-user-action="force_signout"', 'data-user-action="delete"'):
+    if forbidden in admin_user_access:
+        errors.append(f"Admin native-parity user access exposes retired action: {forbidden}")
+if "device_catalog" not in admin_catalogue:
+    errors.append("Admin read-only Catalogue does not use the approved device_catalog source")
 for token in ("inviteName", "send-morley-email", "action:'create_invite'", "display_name:name"):
     if token not in admin_invites:
         errors.append(f"Admin invite logic is missing server-side emailed-invite control: {token}")
@@ -226,9 +240,12 @@ for forbidden in ("crypto.getRandomValues", "sha256Hex", "admin_create_team_invi
 for token in ("send-morley-email", "action:'support_ticket_reply'", ".select('id').single()"):
     if token not in admin_support:
         errors.append(f"Admin support UI is missing transactional reply email control: {token}")
-for token in ("send-morley-email", "action:'notification_job'", "target_installation_id"):
+for token in ("send-morley-email", "action:'notification_job'", "audience:all", "user:"):
     if token not in admin_notifications:
-        errors.append(f"Admin notification UI is missing safe email-mirroring control: {token}")
+        errors.append(f"Admin notification UI is missing native-parity delivery control: {token}")
+for forbidden in ("device:", "target_installation_id"):
+    if forbidden in admin_notifications:
+        errors.append(f"Admin notification UI exposes retired device targeting: {forbidden}")
 for token in (
     "RESEND_API_KEY", "RESEND_FROM_EMAIL", "getCaller", "activeAdminEmails", "create_invite",
     "support_ticket_created", "support_ticket_reply", "notification_job", "target_installation_id",
