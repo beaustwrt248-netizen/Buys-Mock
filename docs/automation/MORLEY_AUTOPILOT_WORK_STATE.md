@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-15 03:02 AWST
+Last reconciled: 2026-09-15 04:05 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `3d2482ef6bc5e3087e8e9895b0af6c85c89e7d0d`.
+Observed `main` head: `379db05c964ac9331cf98561581ba8b0ba7727f1`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository, CI, release and connected production services before each automated pass.
 
@@ -37,29 +37,31 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Backup / recovery
 
 - Google Drive OAuth repair and protected manual full-system recovery verification are complete; issue #2051 is closed.
-- The restored unattended full-system schedule is now production-proven. Cron job `morley-google-drive-backup-daily` ran successfully at **2026-09-14 19:00:00 UTC** and created a scheduler-triggered audit event at **19:00:07 UTC**.
+- The restored unattended full-system schedule is production-proven. Cron job `morley-google-drive-backup-daily` ran successfully at **2026-09-14 19:00:00 UTC** and created a scheduler-triggered audit event at **19:00:07 UTC**.
 - That unattended backup exported **13 tables**, uploaded `morley-backup-2026-09-14T19-00-02-423Z.json`, and passed upload/re-download SHA-256 recovery verification with digest `f6abe1a0649f30fabcd6e5b48128644210ac3a9f5793f39a2ce4504a5487271b` and **367,668 bytes**. Retention scanned 14 backup files and trashed none.
 - Production `morley-google-drive-backup-daily` remains active on `0 19 * * *`.
-- Recovery monitoring still reports one separate open `stale_backup` warning for the per-user encrypted Drive backup lane (102 observations, last seen **2026-09-14 18:17 UTC**, last per-user backup **2026-09-12 13:30 UTC**). Do not confuse that user-backup freshness finding with the now-proven full-system scheduler.
-- Production restore/overwrite remains protected and requires explicit approval.
+- Recovery monitoring still reports one separate open `stale_backup` warning for the per-user encrypted Drive backup lane (**103 observations**, last seen **2026-09-14 19:17 UTC**, last per-user backup **2026-09-12 13:30 UTC**).
+- Read-only inspection of production `user-google-drive-backup` version 6 confirms this lane is user-session driven: backup creation requires an authenticated Morley bearer token plus a valid `X-Google-Access-Token`, then explicitly receives `action=backup`. No unattended backup trigger exists inside that Edge Function. Resolving the stale finding autonomously would therefore require a new credential/token-refresh or client scheduling design and must not be improvised from production secrets.
+- Do not confuse that user-backup freshness finding with the now-proven full-system scheduler. Production restore/overwrite remains protected and requires explicit approval.
 
 ### Nova knowledge / Nova Next
 
-- `nova-knowledge-maintenance` remains healthy: the latest six observed production runs through **2026-09-14 19:05 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
+- `nova-knowledge-maintenance` remains healthy: the latest eight observed production runs through **2026-09-14 20:00 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
 - Current production Nova remains authoritative while Nova Next remains isolated.
 - PR **#2208** is **ready for review** at exact head `622945a4a2d7f9d2a1047eba34577a90bec2f93f`. Nova Next Isolated Validation, Nova Next APK Build, route/password accessibility, Quality Gate, Ultimate Parity, Repository Security, Recovery Backup, Path Stability, catalogue/pricing/email contracts and Restore Point Capture all passed.
 - The Nova Next APK validation produced a **debug PR artifact only**. Its `publish-nova-next-ota` job was intentionally skipped. No production OTA publication or route replacement occurred.
 - #2208 changes GitHub workflow/release surfaces and Nova OTA behavior. Merge/promotion/publication is therefore protected and requires explicit Beau approval; production Nova must remain authoritative until that boundary is deliberately crossed.
-- #2208 is one documentation-only main commit behind current `main`; do not use that as a reason to bypass the protected review boundary.
+- #2208 is behind current `main` only by later documentation/state-ledger commits; do not use that as a reason to bypass the protected review boundary.
 - Documentation PR **#2207** was closed unmerged as superseded because its earlier “GO FOR PROMOTION REVIEW” wording became stale relative to #2208.
 - Continue benchmark-based knowledge expansion, citation/source quality, unsupported-claim tracking, provider/fallback quality, latency/cost controls and tool-routing evaluation; corpus growth alone is not proof of answer quality.
 
 ### Catalogue audit / data integrity
 
 - The stale-run reconciliation repair is production-proven. Run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` is `completed`, finished `2026-09-14 15:10:58 UTC`, with terminal notes `verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0`.
-- Genuine nonterminal run `25b34a8c-3a85-48db-bc57-1bf386a72f08` correctly remains `running`.
-- Issue **#2142 is closed as completed** after production proof.
-- Current queue snapshot: **961 verified / 126 blocked / 1,026 pending**. Current audit-run snapshot: **13 completed / 15 queued / 1 running**.
+- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 134 blocked / 1,018 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
+- Original nonterminal run `25b34a8c-3a85-48db-bc57-1bf386a72f08` remains `running` with **65 blocked / 10 pending**. Its pending rows are eligible and have `attempt_count <= 1`.
+- Run `c73df160-1f07-4340-967a-1269bec34fbd` has now legitimately entered `running` state during the bounded worker drain and currently contains **16 verified / 7 blocked / 52 pending**. The latest worker activity at approximately **19:37 UTC** advanced rows without creating a new queued run.
+- Issue **#2142 remains closed as completed** after production proof of the stale-run repair.
 - Catalogue enqueue remains intentionally paused; do not restore it until bounded drain capacity and broader production behavior are proven safe.
 - Preserve legitimate Australian/regional/hardware variants. Never guess model identifiers/specifications or auto-delete/merge ambiguous production records.
 
@@ -72,7 +74,8 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Security / performance
 
 - Protected RPC least-privilege hardening #2154 remains production-verified.
-- Latest known Supabase security-advisor shape still includes the protected leaked-password/Auth decision plus SECURITY DEFINER/RLS findings requiring review. Do not change Auth/RLS/EXECUTE policy automatically; issue #2033 remains the approval lane.
+- The 2026-09-14 20:02 UTC security-advisor snapshot still reports the known protected leaked-password/Auth decision plus SECURITY DEFINER/RLS findings requiring review. Do not change Auth/RLS/EXECUTE policy automatically; issue #2033 remains the approval lane.
+- Advisor state includes 17 RLS-enabled/no-policy informational findings and 13 authenticated-callable SECURITY DEFINER warnings; these require function-by-function intended-access review rather than blanket policy changes.
 - Issue #2040 remains open for evidence-backed performance/index classification. One approved redundant Nova revision index has already been removed and production-verified; the remaining advisor findings require equivalent workload/query evidence before any further protected DDL.
 
 ### Active production cron jobs
@@ -105,7 +108,7 @@ Catalogue enqueue remains intentionally paused.
 - Superseded scanner PR #2204 is closed unmerged.
 - Adaptive Android navigation and catalogue-first intent remain merged.
 - Admin web native-authority parity, full-catalogue pagination and mobile workspace observer freeze mitigation remain merged/verified.
-- Full-system Google Drive OAuth repair and protected manual backup/recovery verification completed; the restored daily scheduler is now also production-proven by a scheduler-triggered, recovery-verified 19:00 UTC backup.
+- Full-system Google Drive OAuth repair and protected manual backup/recovery verification completed; the restored daily scheduler is also production-proven by a scheduler-triggered, recovery-verified 19:00 UTC backup.
 - Nova maintenance scheduler/transient-source handling remains healthy.
 - Catalogue audit consumer and independent stale-run reconciliation are deployed; #2142 is production-proven and closed.
 - Protected Supabase RPC least-privilege hardening remains live and verified.
@@ -115,12 +118,12 @@ Catalogue enqueue remains intentionally paused.
 
 1. Keep 2.15.107 OTA publication protected and verify exact-main signing/checksum/feed evidence before release completion.
 2. Hold #2208 at the protected review boundary pending explicit Beau approval; do not merge/publish workflow/release changes autonomously.
-3. Continue bounded catalogue-audit drain verification before restoring any enqueue schedule.
+3. Continue bounded catalogue-audit drain verification before restoring any enqueue schedule; current evidence shows drain progress without new enqueueing.
 4. Continue independent Nova knowledge/evaluation work that does not depend on merging #2208.
 5. Continue Admin web/mobile parity, mobile-browser usability, freeze/accessibility and role-boundary auditing.
 6. Continue Morley Buys login/temp-password reliability, blue visual consistency and app/web parity with regression coverage.
 7. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
-8. Investigate the separate stale per-user encrypted Drive backup finding without weakening auth/Drive protections; full-system backup scheduling is already proven.
+8. Treat the separate stale per-user encrypted Drive backup as a user-authenticated lane; investigate safe scheduling UX/design without storing or reusing production Google tokens automatically.
 9. Continue read-only security/performance classification; keep the GitLab migration paused until intentionally resumed.
 
 ## Protected blockers requiring Beau action
@@ -130,6 +133,7 @@ Catalogue enqueue remains intentionally paused.
 - Auth configuration changes from #2033, including leaked-password protection or future Auth/RLS/EXECUTE changes outside already-approved scope, require explicit approval.
 - Any Nova Next production route cutover, signing or OTA publication remains separately protected even after #2208 merge approval.
 - Production restore/overwrite, OAuth/secret rotation, protected schema/security mutation, signing credential, repository visibility, billing, Guardian code-changing repair or equivalent high-risk action requires explicit approval.
+- Any attempt to make per-user encrypted Drive backups unattended by retaining/refreshing user Google credentials is a credential/security design change and must not be performed implicitly.
 
 ## Reconciliation checklist
 
