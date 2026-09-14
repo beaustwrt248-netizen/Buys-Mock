@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 22:21 AWST
+Last reconciled: 2026-09-14 22:31 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `463bb57f13714b97bd5dc30cde3c6ac97d96e930`.
+Observed `main` head: `1f40bef4e3d53bfe0352397c37623a183e32be7e`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -38,7 +38,10 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - The last verified full-system backup audit event remains **2026-09-14 05:59:39 UTC**, exporting 13 tables and passing upload/re-download SHA-256 verification (`ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841`, 366,840 bytes).
 - Production `cron.job` contains exactly one active `morley-google-drive-backup-daily` at `0 19 * * *`, using the existing Vault-backed scheduler secret.
 - The restored daily cron has not yet reached its first post-repair 19:00 UTC execution window. Require a new scheduler-triggered audit row plus recovery verification before treating unattended backup scheduling as fully proven.
-- The open `stale_backup` finding belongs to the separate per-user encrypted Drive backup subsystem tracked by issue **#2070**; do not conflate it with full-system backup health.
+- PR **#2137** merged as `1f40bef4e3d53bfe0352397c37623a183e32be7e`; its exact head passed Quality, Security, Full Feature, Recovery Backup, Path Stability, Pricing Migration, Catalogue Classification and Ultimate Parity gates.
+- The `recovery-readiness` Edge Function is active as production version **7** and now separates `stale_backup` findings into connection-dependent per-user encrypted Drive freshness while keeping global full-system recovery findings distinct.
+- The approved migration removed only redundant non-unique `idx_app_invites_email_unused`; required UNIQUE `app_invites_active_email_idx` remains present and enforces one unused invite per normalized email.
+- Issue **#2070** remains open until active-session freshness semantics are fully reconciled end-to-end; no OAuth token persistence or unattended per-user credential model was introduced.
 
 ### Nova knowledge maintenance
 
@@ -66,7 +69,12 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Security / performance
 
 - Issue **#2033** tracks Supabase security-advisor least-privilege review. Protected Auth/RLS/EXECUTE/SECURITY DEFINER changes require explicit approval.
-- Issue **#2040** tracks performance-advisor findings. Fresh read-only audit found no exact structural duplicate indexes in `public`; the largest zero-scan indexes are intentional Nova/catalogue search/vector/hash capability indexes, while many small zero-scan indexes are constraint, relationship, history or low-frequency operational paths. No evidence-backed DROP candidate exists yet.
+- Issue **#2040** tracks performance-advisor findings. Fresh read-only audit found no exact structural duplicate indexes in `public`; one evidence-backed redundant invite lookup index has now been removed through approved PR #2137 while its UNIQUE integrity index remains intact. No broader speculative index cleanup is authorised.
+
+### CI incident reconciliation
+
+- Autopilot cancellation issues **#2138** (Ultimate Parity) and **#2140** (B&L Quality) came from intermediate #2137 commits while the branch was still moving.
+- Final #2137 head `9eead8266538680062861282b8692e25e6b93731` passed both workflows plus the remaining required gates, so both autopilot incidents are closed as superseded/resolved without bypassing checks.
 
 ### Active production cron jobs
 
@@ -82,9 +90,9 @@ Catalogue enqueue remains intentionally paused.
 | PR / issue | Lane | State | Next safe action |
 | --- | --- | --- | --- |
 | #1947 | Staged GitLab migration parity | Draft | Keep GitHub `main` canonical; continue same-SHA parity/protection/rollback validation without cutover. |
-| #2070 | Per-user encrypted Drive freshness semantics | Open | Keep separate from full-system backup; gather active-session/account-activity evidence before choosing semantics. Any unattended OAuth credential design is protected. |
+| #2070 | Per-user encrypted Drive freshness semantics | Open / partially remediated | Verify consumers use separated global/user findings and decide whether activity-aware suppression is needed; unattended OAuth storage remains protected. |
 | #2033 | Supabase security advisor | Open / protected | Continue read-only least-privilege inventory and prepare narrow proposals only; no Auth/RLS/EXECUTE mutation without Beau approval. |
-| #2040 | Database performance advisor | Open | Map non-constraint indexes to query consumers and representative plans; no speculative index removal. |
+| #2040 | Database performance advisor | Open | Continue evidence-backed query/index mapping after the single approved redundant-index cleanup; no speculative removals. |
 | #431 | Full feature validation | Open | Continue current-main regression auditing; keep physical camera/touch/orientation checks marked MANUAL-DEVICE unless actually observed. |
 
 ## Completed material transitions
@@ -96,6 +104,7 @@ Catalogue enqueue remains intentionally paused.
 - Admin full-catalogue pagination repair merged through #2134 with regression coverage.
 - Tablet and Smartwatch dedicated catalogue grouping merged without source-row or pricing mutation.
 - Full-system Google Drive OAuth repaired; protected manual backup/recovery verification passed; daily scheduler restored.
+- Recovery-readiness now separates per-user encrypted Drive freshness from global backup health; one proven redundant invite lookup index removed while UNIQUE integrity protection remains.
 - Nova recurring maintenance scheduler restored and transient source-boundary failure handling repaired/deployed through #2125; issue #2103 is now closed after 12 consecutive healthy observed runs.
 - Catalogue audit queue consumer implemented/deployed through #2093; automatic enqueue remains paused pending broader bounded production verification.
 - Morley Vision keeps AI condition advisory until explicit staff-confirmed condition handoff.
@@ -106,11 +115,12 @@ Catalogue enqueue remains intentionally paused.
 1. Production-first reliability: login/temp-password freezes, Admin access/state, catalogue/sync integrity, Guardian/runtime errors, release/deployment failures, Nova availability/quality, backup health and serious security/privacy regressions.
 2. Verify the first automatic full-system backup after the restored 19:00 UTC scheduler execution.
 3. Continue bounded catalogue-audit worker verification and run reconciliation before restoring any enqueue schedule.
-4. Continue Admin web/mobile functional parity, mobile-browser usability and deployment verification from #2134.
-5. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
-6. Continue Morley Buys UI/login reliability and app/web parity with regression coverage.
-7. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
-8. Continue read-only security/performance classification and staged GitLab migration validation.
+4. Verify recovery-readiness consumers display per-user stale backup separately from global full-system recovery state.
+5. Continue Admin web/mobile functional parity, mobile-browser usability and deployment verification from #2134.
+6. Continue Nova Next replacement and knowledge evaluation while preserving production Nova until parity/evaluation gates pass.
+7. Continue Morley Buys UI/login reliability and app/web parity with regression coverage.
+8. Continue manufacturer-first Australian catalogue enrichment without coupling descriptive data to valuation feeds.
+9. Continue read-only security/performance classification and staged GitLab migration validation.
 
 ## Protected blockers requiring Beau action
 
