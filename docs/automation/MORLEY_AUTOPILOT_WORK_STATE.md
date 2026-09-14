@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 15:02 AWST
+Last reconciled: 2026-09-14 15:15 AWST
 Canonical repository baseline: the current protected `main` branch.
-Last observed `main` head before this ledger reconciliation: `3f4bf6d56941bd8235d2128c3d342102e1cffed1`.
+Last observed `main` head before this ledger reconciliation: `6418bcaaa1ce40dcc8bf840eac510b0ffb901065`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated work pass. The observed SHA is informational only because a ledger-only merge advances `main`; protected `main` remains canonical.
 
@@ -28,12 +28,14 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Backup / recovery
 
 - Google Drive OAuth refresh-token rotation is proven healthy without exposing credential material.
-- A protected Vault-backed invocation of `google-drive-backup` succeeded at **2026-09-14 05:59:39 UTC** and created `morley-backup-2026-09-14T05-59-36-046Z.json`.
+- A protected Vault-backed full-system invocation of `google-drive-backup` succeeded at **2026-09-14 05:59:39 UTC** and created `morley-backup-2026-09-14T05-59-36-046Z.json`.
 - The backup exported **13 tables**, re-downloaded the uploaded object, and verified SHA-256 `ed5295d8be1ac429d12fdbfd528d3b1f1ceba61e095850cdea62a3358a567841` over **366,840 bytes**; retention scanned 13 backups and trashed 0.
 - `admin_audit_log` independently records `google_drive_backup_created` with `recovery_test.verified=true` for the same digest.
-- Remaining defect is isolated to recurring orchestration: production `cron.job` currently has privacy retention, hourly recovery health, and Nova maintenance, but **does not contain `morley-google-drive-backup-daily`**.
-- Draft PR **#2064** contains the repository-owned idempotent daily scheduler restoration. It remains a protected production-orchestration change and must not be merged/applied without explicit approval.
-- The open `stale_backup` recovery finding currently refers to the separate encrypted user Drive-backup path (`last_backup_at` 2026-09-12 13:30:07 UTC), not evidence that the newly verified full-system backup failed.
+- Protected PR **#2064** was explicitly approved, squash-merged as `6418bcaaa1ce40dcc8bf840eac510b0ffb901065`, and its repository-owned scheduler migration was applied successfully to production.
+- Production now contains exactly one active `morley-google-drive-backup-daily` job (jobid 19) at `0 19 * * *`, using the existing Vault-backed `morley_backup_scheduler_secret`, `google-drive-backup`, and a 120-second HTTP timeout.
+- Issue **#2051** remains open only until the restored scheduler produces its first genuine automatic 19:00 UTC full-system backup with upload/re-download digest verification. Do not substitute the earlier manual invocation for that automatic-run proof.
+- The open `stale_backup` recovery finding belongs to a **separate per-user encrypted Drive-backup subsystem** (`user_drive_backups` / `user-google-drive-backup`), not the full-system scheduler. Dedicated issue **#2070** tracks that distinction and its freshness semantics.
+- The per-user browser client keeps its Google access token in memory only and performs change/daily automatic backups only while the active browser session remains Google-connected. Do not weaken token handling or persist raw Google access tokens to silence the 36-hour warning.
 
 ### Nova knowledge
 
@@ -61,17 +63,18 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 ### Active production cron jobs
 
 - `buys-privacy-retention-daily`
+- `morley-google-drive-backup-daily`
 - `morley-recovery-health-hourly`
 - `nova-knowledge-maintenance-every-5-minutes`
 
-Absent by design/defect: catalogue enqueue remains paused; `morley-google-drive-backup-daily` is unexpectedly absent and is addressed by protected PR #2064.
+Catalogue enqueue remains intentionally paused until a verified consumer exists.
 
 ## Active repository work
 
 | PR / issue | Lane | State | Safety / next action |
 | --- | --- | --- | --- |
-| #2064 | Full-system Google Drive backup scheduler | Draft / protected | Reconcile with current `main`; after explicit approval, merge/apply the exact protected scheduler recovery, verify the cron row, then observe an automatic backup with matching upload/re-download digest evidence. |
-| #2051 | Full-system Google Drive backup recovery | Partially repaired | OAuth and manual end-to-end backup verification are healthy. Keep open until recurring scheduler restoration and automatic-run evidence are complete. |
+| #2051 | Full-system Google Drive backup recovery | Scheduler restored / awaiting automatic proof | Observe the first true automatic 19:00 UTC full-system run; require HTTP/upload success plus re-download SHA-256 verification before closing. |
+| #2070 | Per-user encrypted Drive backup freshness | Open / evidence established | Keep distinct from full-system health. Decide active-session-only versus unattended per-user backup semantics before any OAuth/Auth/RLS design change. |
 | #2033 | Supabase security advisor | Open | Continue read-only least-privilege evidence; protected Auth/RLS/EXECUTE/SECURITY DEFINER mutations require explicit approval. |
 | #2040 | Database performance advisor | Open | Classify unused/redundant indexes conservatively; require dependency and rollback evidence before DDL cleanup. |
 | #1947 | Staged GitLab migration parity | Draft | GitHub `main` remains canonical until same-SHA parity, protections, rollback and final cutover checks are proven. |
@@ -81,6 +84,7 @@ Absent by design/defect: catalogue enqueue remains paused; `morley-google-drive-
 - Durable non-sensitive autopilot ledger and reconciliation workflow established.
 - Nova recurring maintenance scheduler restored and issue #2049 closed after canonical automatic execution evidence.
 - Google Drive OAuth refresh token rotated successfully and full-system manual backup passed built-in download/SHA-256 recovery verification.
+- Full-system Google Drive daily scheduler restored from repository-owned source through approved PR #2064 and verified active in production.
 - PR #2055 merged and Morley **2.15.105 / versionCode 149** was built, released and published through OTA with matching APK digest.
 - Morley Vision requires explicit staff-confirmed condition before authoritative pricing/stock handoff; AI condition remains advisory.
 - Shared model-number catalogue governance remains non-destructive and manufacturer-evidence driven.
@@ -88,7 +92,7 @@ Absent by design/defect: catalogue enqueue remains paused; `morley-google-drive-
 ## High-priority unfinished lanes
 
 1. Production-first reliability: login/temp-password freezes, Admin access, catalogue/sync integrity, Guardian/runtime errors, release failures, Nova availability, backup health, and serious security/privacy regressions.
-2. Backup recurrence: restore the missing daily full-system Drive scheduler only after protected approval, then verify the next automatic backup and recovery-health evidence.
+2. Backup recurrence evidence: verify the restored full-system scheduler's first automatic 19:00 UTC run, while tracking per-user encrypted backup freshness separately in #2070.
 3. Catalogue processor recovery: implement a tracked consumer for the audit queue with safe claiming, retries, evidence recording, unresolved blocking, and run finalisation before re-enabling enqueue cron.
 4. Nova Next rebuild and knowledge expansion: preserve production Nova until parity/evaluation gates prove replacement readiness.
 5. Admin web/mobile parity and Morley Buys login/UI reliability: continue regression-tested, non-protected fixes from current `main`.
@@ -98,8 +102,8 @@ Absent by design/defect: catalogue enqueue remains paused; `morley-google-drive-
 
 ## Protected blockers requiring Beau action
 
-- PR **#2064** production scheduler restoration requires explicit approval before merge/application.
 - Security configuration changes arising from #2033, including leaked-password protection or EXECUTE/RLS/`SECURITY DEFINER` changes, require explicit approval.
+- Any durable unattended per-user Google Drive credential design arising from #2070 is a protected OAuth/Auth boundary and requires explicit approval before implementation/deployment.
 - Any production restore/overwrite, protected RLS/schema/security mutation, signing credential, repository visibility, billing, Guardian code-changing repair, or equivalent high-risk action requires explicit approval.
 
 ## Reconciliation checklist for each run
@@ -109,7 +113,7 @@ Absent by design/defect: catalogue enqueue remains paused; `morley-google-drive-
 3. Check exact-head CI state for active high-priority PRs.
 4. Check catalogue queue/run counts and ensure runaway enqueueing has not resumed.
 5. Check Nova maintenance cadence and ready/pending/error evidence.
-6. Check full-system backup audit freshness, scheduler presence, and recovery evidence independently from user Drive-backup findings.
+6. Check full-system backup audit freshness and scheduler presence independently from per-user encrypted Drive-backup findings.
 7. Check serious open recovery/Guardian/security findings.
 8. Resume the highest-impact already-authorised safe lane that is not blocked.
 9. Update this ledger whenever a material state transition occurs.
