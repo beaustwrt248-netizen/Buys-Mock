@@ -44,6 +44,9 @@ class MorleyVisionReviewPolicyTest {
         componentFindings = listOf("Rear camera lenses visible")
     )
 
+    private fun staffConfirmed(item: DeviceInspection, grade: String = "B"): DeviceInspection =
+        item.apply { staffConfirmedConditionGrade = grade }
+
     @Test
     fun unverifiedIdentityBlocksSuggestedPricing() {
         val state = MorleyVisionReviewPolicy.from(inspection(identityVerified = false), null)
@@ -56,7 +59,7 @@ class MorleyVisionReviewPolicyTest {
     @Test
     fun corePricingGateBlocksPhotoQualityWarningBeforeMarketResearch() {
         val reason = MorleyVisionPolicy.pricingBlockReason(
-            inspection(qualityWarnings = listOf("Front photo is blurred"))
+            staffConfirmed(inspection(qualityWarnings = listOf("Front photo is blurred")))
         )
 
         assertTrue(reason!!.contains("Retake", ignoreCase = true))
@@ -65,7 +68,7 @@ class MorleyVisionReviewPolicyTest {
     @Test
     fun corePricingGateBlocksCrossPhotoInconsistencyBeforeMarketResearch() {
         val reason = MorleyVisionPolicy.pricingBlockReason(
-            inspection(consistencyWarnings = listOf("Photos may show different devices"))
+            staffConfirmed(inspection(consistencyWarnings = listOf("Photos may show different devices")))
         )
 
         assertTrue(reason!!.contains("cross-photo", ignoreCase = true))
@@ -73,7 +76,7 @@ class MorleyVisionReviewPolicyTest {
 
     @Test
     fun corePricingGateAllowsCleanVerifiedEvidence() {
-        assertEquals(null, MorleyVisionPolicy.pricingBlockReason(inspection()))
+        assertEquals(null, MorleyVisionPolicy.pricingBlockReason(staffConfirmed(inspection())))
     }
 
     @Test
