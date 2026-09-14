@@ -83,6 +83,15 @@ function buildNavigation() {
   }));
 }
 
+function focusRouteHeading(currentRoute) {
+  if (shell.classList.contains('is-hidden')) return;
+  const page = pages.find(candidate => candidate.dataset.route === currentRoute);
+  const heading = page?.querySelector('h1, h2, [role="heading"]');
+  if (!heading) return;
+  heading.setAttribute('tabindex', '-1');
+  heading.focus({ preventScroll: true });
+}
+
 function renderRoute(currentRoute, { closeDrawer = true } = {}) {
   for (const page of pages) page.classList.toggle('is-active', page.dataset.route === currentRoute);
   for (const button of document.querySelectorAll('[data-route-target]')) {
@@ -94,6 +103,7 @@ function renderRoute(currentRoute, { closeDrawer = true } = {}) {
   }
   subtitle.textContent = ROUTE_LABELS[currentRoute] || 'Your AI-Powered Assistant';
   if (closeDrawer) setDrawer(false);
+  focusRouteHeading(currentRoute);
   workspaceUi?.routeChanged(currentRoute);
   automationUi?.routeChanged(currentRoute);
   featureUi?.routeChanged(currentRoute).catch(error => console.error('nova-next feature route', error));
@@ -284,10 +294,14 @@ document.addEventListener('click', event => {
     return;
   }
 
-  const action = event.target.closest('[data-action]')?.dataset.action;
+  const actionButton = event.target.closest('[data-action]');
+  const action = actionButton?.dataset.action;
   if (action === 'toggle-password') {
     const input = document.querySelector('input[name="password"]');
-    input.type = input.type === 'password' ? 'text' : 'password';
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    actionButton.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+    actionButton.setAttribute('aria-pressed', String(reveal));
   } else if (action === 'signout') {
     setDrawer(false, { restoreFocus: false });
     liveRuntime?.signOut();
