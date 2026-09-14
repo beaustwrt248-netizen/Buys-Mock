@@ -14,7 +14,7 @@ assert.match(updateManager, /activity\.getPackageName\(\)\.equals\(info\.package
 assert.match(updateManager, /Downloaded APK failed SHA-256 verification/);
 assert.match(updateManager, /Downloaded APK signing identity mismatch/);
 assert.match(updateManager, /Downloaded APK version code mismatch/);
-assert.match(updateManager, /getPackageName\(\) \+ "\\.files"/);
+assert.match(updateManager, /getPackageName\(\) \+ "\.files"/);
 assert.match(activity, /new UpdateManager\(/);
 assert.match(activity, /checkForUpdates\(\)/);
 assert.match(activity, /resumePendingInstall\(this\)/);
