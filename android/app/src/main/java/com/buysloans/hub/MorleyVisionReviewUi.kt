@@ -42,6 +42,7 @@ internal data class VisionDamageReviewItem(
 internal data class MorleyVisionReviewState(
     val inspection: DeviceInspection,
     val storageVerifiedState: MutableState<Boolean>,
+    val conditionVerifiedState: MutableState<String?>,
     val identityVerified: Boolean,
     val qualityWarnings: List<String>,
     val consistencyWarnings: List<String>,
@@ -53,6 +54,12 @@ internal data class MorleyVisionReviewState(
     val storageVerified: Boolean
         get() = storageVerifiedState.value && inspection.verifiedStorage.isNotBlank()
 
+    val staffConditionGrade: String?
+        get() = conditionVerifiedState.value
+
+    val conditionVerifiedByStaff: Boolean
+        get() = staffConditionGrade != null
+
     val hasBlockingEvidenceGap: Boolean
         get() = !identityVerified || qualityWarnings.isNotEmpty() || consistencyWarnings.isNotEmpty()
 
@@ -60,7 +67,7 @@ internal data class MorleyVisionReviewState(
         get() = damageReviews.count { it.decision == VisionStaffDecision.PENDING }
 
     val canCompleteStaffReview: Boolean
-        get() = identityVerified && storageVerified && !hasBlockingEvidenceGap && unresolvedDamageCount == 0
+        get() = identityVerified && storageVerified && conditionVerifiedByStaff && !hasBlockingEvidenceGap && unresolvedDamageCount == 0
 }
 
 internal object MorleyVisionReviewPolicy {
@@ -68,6 +75,7 @@ internal object MorleyVisionReviewPolicy {
 
     fun from(inspection: DeviceInspection, pricing: LivePricingResult?): MorleyVisionReviewState {
         val storageVerified = inspection.verifiedStorage.isNotBlank()
+        val staffCondition = MorleyVisionPolicy.canonicalConditionGrade(inspection.staffConfirmedConditionGrade)
         val damageReviews = inspection.damageRegions.mapIndexed { index, region ->
             VisionDamageReviewItem(
                 regionIndex = index,
@@ -79,6 +87,7 @@ internal object MorleyVisionReviewPolicy {
         val pricingReason = when {
             !inspection.identityVerified -> "Verify the exact device identity before using a suggested price."
             !storageVerified -> "Confirm the device storage before using a suggested price."
+            staffCondition == null -> "Staff must confirm the device condition before using a suggested price."
             inspection.qualityWarnings.isNotEmpty() -> "Retake unclear photos before using a suggested price."
             inspection.consistencyWarnings.isNotEmpty() -> "Resolve cross-photo inconsistencies before using a suggested price."
             pricing?.recommendationBlockedReason != null -> pricing.recommendationBlockedReason
@@ -88,6 +97,7 @@ internal object MorleyVisionReviewPolicy {
         return MorleyVisionReviewState(
             inspection = inspection,
             storageVerifiedState = mutableStateOf(storageVerified),
+            conditionVerifiedState = mutableStateOf(staffCondition),
             identityVerified = inspection.identityVerified,
             qualityWarnings = inspection.qualityWarnings.distinct(),
             consistencyWarnings = inspection.consistencyWarnings.distinct(),
@@ -124,6 +134,15 @@ internal object MorleyVisionReviewPolicy {
         state.storageVerifiedState.value = true
         return true
     }
+
+    fun confirmCondition(state: MorleyVisionReviewState, rawCondition: String): Boolean {
+        val grade = MorleyVisionPolicy.canonicalConditionGrade(rawCondition) ?: return false
+        state.inspection.staffConfirmedConditionGrade = grade
+        state.conditionVerifiedState.value = grade
+        return true
+    }
+
+    fun pricingConditionGrade(state: MorleyVisionReviewState): String? = state.staffConditionGrade
 }
 
 @Composable
@@ -208,6 +227,41 @@ internal fun MorleyVisionReviewPanel(
                     }
                     if (storageError.isNotBlank()) {
                         Text(storageError, color = Color(0xFF8E211F), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFD8E2EE))
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Confirm condition", fontWeight = FontWeight.Black)
+                Text(
+                    "AI suggestion: ${MorleyVisionPolicy.conditionLabel(state.inspection.conditionGrade)}. Staff must confirm the physical condition before pricing; the AI grade remains advisory evidence."
+                )
+                listOf(
+                    "Excellent" to "A",
+                    "Good" to "B",
+                    "Fair" to "C",
+                    "Poor" to "D",
+                    "Parts" to "PARTS"
+                ).forEach { (label, grade) ->
+                    val selected = state.staffConditionGrade == grade
+                    if (selected) {
+                        Button(
+                            onClick = { MorleyVisionReviewPolicy.confirmCondition(state, grade) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0878F9))
+                        ) { Text("Confirmed $label") }
+                    } else {
+                        OutlinedButton(
+                            onClick = { MorleyVisionReviewPolicy.confirmCondition(state, grade) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Confirm $label") }
                     }
                 }
             }
