@@ -14,6 +14,16 @@ test('login copy reflects connected Nova Next authentication state', async () =>
   assert.match(html, /Secure Admin authentication/i);
 });
 
+test('copy cleanup preserves the merged Nova shell structure', async () => {
+  const html = await read('nova-next/index.html');
+
+  assert.match(html, /data-route="help"/);
+  assert.match(html, /id="novaNextHelpRoot"/);
+  assert.match(html, /id="bottomNav"/);
+  assert.match(html, /id="allSetView"/);
+  assert.match(html, /data-action="finish-intro"/);
+});
+
 test('canonical Nova Next validation docs no longer describe the app as bootstrap-only', async () => {
   const visual = await read('docs/nova-next/VISUAL_VALIDATION.md');
   const live = await read('docs/nova-next/LIVE_ADAPTER_VALIDATION.md');
