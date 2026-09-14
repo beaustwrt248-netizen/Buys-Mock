@@ -63,6 +63,9 @@ internal data class MorleyVisionReviewState(
     val hasBlockingEvidenceGap: Boolean
         get() = !identityVerified || qualityWarnings.isNotEmpty() || consistencyWarnings.isNotEmpty()
 
+    val requiresCaptureRecovery: Boolean
+        get() = hasBlockingEvidenceGap
+
     val unresolvedDamageCount: Int
         get() = damageReviews.count { it.decision == VisionStaffDecision.PENDING }
 
