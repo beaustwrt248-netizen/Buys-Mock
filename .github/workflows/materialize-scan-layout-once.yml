@@ -48,14 +48,15 @@ jobs:
                   source = source.replace(old, new, 1)
               elif new not in source:
                   raise SystemExit(f'Missing scan-layout anchor: {old[:80]}')
-          frame_anchor = '''        Box(
+
+          frame_start = '''        Box(
               Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
           ) {
               ScanFrameOverlay()
-          }
-
-          if (cameraError.isNotBlank()) {'''
-          frame_replacement = '''        Surface(
+          }'''.replace('              Modifier', '            Modifier').replace('          ) {', '        ) {').replace('              ScanFrameOverlay()', '            ScanFrameOverlay()').replace('          }', '        }')
+          if frame_start not in source:
+              raise SystemExit('Camera frame box anchor not found')
+          guide = '''        Surface(
               shape = RoundedCornerShape(999.dp),
               color = Color.Black.copy(alpha = .62f),
               modifier = Modifier.align(Alignment.TopCenter).padding(top = 136.dp)
@@ -69,55 +70,57 @@ jobs:
               )
           }
 
-          Box(
-              Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
-          ) {
-              ScanFrameOverlay()
-          }
+'''.replace('              shape', '            shape').replace('              color', '            color').replace('              modifier', '            modifier').replace('          ) {', '        ) {').replace('              Text(', '            Text(').replace('                  "', '                "').replace('                  Modifier', '                Modifier').replace('                  color', '                color').replace('                  fontSize', '                fontSize').replace('                  fontWeight', '                fontWeight').replace('              )', '            )').replace('          }', '        }')
+          source = source.replace(frame_start, guide + frame_start, 1)
 
-          Row(
-              Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
-              horizontalArrangement = Arrangement.spacedBy(8.dp)
-          ) {
-              listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
-                  Surface(
-                      shape = RoundedCornerShape(999.dp),
-                      color = if (index == 0) LensBlue else Color.Black.copy(alpha = .58f),
-                      border = BorderStroke(1.dp, if (index == 0) LensBlue else Color.White.copy(alpha = .20f))
-                  ) {
-                      Text(
-                          label,
-                          Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
-                          color = Color.White,
-                          fontSize = 11.sp,
-                          fontWeight = if (index == 0) FontWeight.Black else FontWeight.SemiBold
-                      )
-                  }
-              }
-          }
+          after_frame = frame_start + '''
 
-          if (cameraError.isNotBlank()) {'''
-          if frame_anchor in source:
-              source = source.replace(frame_anchor, frame_replacement, 1)
-          elif 'Position the device within the frame' not in source:
-              raise SystemExit('Camera frame insertion anchor not found')
+        if (cameraError.isNotBlank()) {'''
+          modes = frame_start + '''
+
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (index == 0) LensBlue else Color.Black.copy(alpha = .58f),
+                    border = BorderStroke(1.dp, if (index == 0) LensBlue else Color.White.copy(alpha = .20f))
+                ) {
+                    Text(
+                        label,
+                        Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = if (index == 0) FontWeight.Black else FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        if (cameraError.isNotBlank()) {'''
+          if after_frame not in source:
+              raise SystemExit('Camera frame tail anchor not found')
+          source = source.replace(after_frame, modes, 1)
+
           result_anchor = '''            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                  OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
-                  OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
-              }
-              Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
+                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
+                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
+            }
+            Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
           result_replacement = '''            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                  OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
-                  OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
-              }
-              OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
-                  Text("Compare Prices", fontWeight = FontWeight.Bold)
-              }
-              Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
-          if result_anchor in source:
-              source = source.replace(result_anchor, result_replacement, 1)
-          elif 'Compare Prices' not in source:
+                OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
+                OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
+            }
+            OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
+                Text("Compare Prices", fontWeight = FontWeight.Bold)
+            }
+            Button(onClick = addStock, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = LensBlueDark)) {'''
+          if result_anchor not in source:
               raise SystemExit('Results action insertion anchor not found')
+          source = source.replace(result_anchor, result_replacement, 1)
+
           required = ['Position the device within the frame','Scan Device','Auto','Barcode','Serial Number','ScanFrameOverlay','Analysing Device','Detecting model','Checking specifications','Identifying condition','Searching market data','Keep the device in frame for the best results.','Scan Result','Full Specifications','Condition Assessment','Market Value','Compare Prices','New Scan']
           missing = [m for m in required if m not in source]
           if missing:
