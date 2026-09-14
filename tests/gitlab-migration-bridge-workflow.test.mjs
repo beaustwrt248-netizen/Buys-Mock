@@ -63,3 +63,11 @@ test('migration bridge keeps large GitLab jobs payloads out of process environme
   assert.match(workflow, /json\.load\(open\(os\.environ\['JOBS_FILE'\]/);
   assert.match(workflow, /detect-gitlab-runner-block\.mjs < "\$jobs_file"/);
 });
+
+test('migration bridge preserves GitLab failure reasons and bounded failed-job traces', () => {
+  assert.match(workflow, /failure_reason/);
+  assert.match(workflow, /\/jobs\/\$job_id\/trace/);
+  assert.match(workflow, /gitlab-failed-job-traces\.txt/);
+  assert.match(workflow, /head -c 12000/);
+  assert.match(workflow, /if-no-files-found: warn/);
+});
