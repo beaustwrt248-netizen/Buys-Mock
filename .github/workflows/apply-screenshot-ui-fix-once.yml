@@ -1,16 +1,18 @@
 name: Apply Scanner Screenshot UI Fix Once
 
 on:
-  push:
-    branches: [ fix/morley-scan-verification-ui-20260915 ]
+  pull_request:
+    branches: [ main ]
     paths:
       - android/apply_screenshot_ui_fix_once.py
+      - .github/workflows/apply-screenshot-ui-fix-once.yml
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/morley-scan-verification-ui-20260915'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba8058256d790c181273ba90b1
