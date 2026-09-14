@@ -3,6 +3,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   boundedBatch,
   classifySourceEvidence,
+  isSafePublicSourceUrl,
+  normalizePageText,
   retryDelaySeconds,
   sanitizeError,
   sourceTier,
@@ -49,16 +51,8 @@ async function authorized(req: Request) {
   }
 }
 
-function validSourceUrl(value: unknown) {
-  try {
-    const url = new URL(String(value || ""));
-    return url.protocol === "https:" || url.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
 async function fetchSource(url: string) {
+  if (!isSafePublicSourceUrl(url)) return { blocked: "unsafe_or_invalid_source_url", text: "", contentType: "" };
   const response = await fetch(url, {
     method: "GET",
     redirect: "follow",
@@ -76,23 +70,8 @@ async function fetchSource(url: string) {
   return { blocked: null, text, contentType };
 }
 
-async function updateOwnedQueue(queueId: number, workerId: string, patch: Record<string, unknown>) {
-  const { data, error } = await admin.from("nova_catalog_audit_queue")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", queueId)
-    .eq("status", "in_progress")
-    .eq("locked_by", workerId)
-    .select("id")
-    .maybeSingle();
-  if (error) throw error;
-  return Boolean(data?.id);
-}
-
-async function recordFinding(row: any, field: string, code: string, excerpt: string) {
-  const { error } = await admin.from("nova_catalog_audit_findings").insert({
-    run_id: row.run_id,
-    queue_id: row.id,
-    device_id: row.device_id,
+function findingPayload(row: any, field: string, code: string, excerpt: string) {
+  return {
     field_name: field,
     current_value: field === "identity"
       ? { brand: row.brand, model_name: row.model_name, model_number: row.model_number }
@@ -100,70 +79,49 @@ async function recordFinding(row: any, field: string, code: string, excerpt: str
     observed_value: null,
     severity: "medium",
     confidence: 0,
-    source_url: row.source_url,
-    source_name: row.source_name,
-    source_region: row.market_region,
-    source_tier: sourceTier(row.source_url, row.source_name),
+    source_tier: sourceTier(row.source_url, row.source_name, row.brand),
     evidence_excerpt: clean(`${code}: ${excerpt}`, 1000),
-    proposed_patch: {},
-    status: "open",
-    requires_approval: true,
+  };
+}
+
+async function completeItem(
+  row: any,
+  workerId: string,
+  outcome: "verified" | "blocked" | "discrepancy" | "failed" | "retry",
+  error: string | null = null,
+  retrySeconds: number | null = null,
+  finding: Record<string, unknown> | null = null,
+) {
+  const { data, error: rpcError } = await admin.rpc("nova_complete_catalog_audit", {
+    p_queue_id: row.id,
+    p_worker: workerId,
+    p_outcome: outcome,
+    p_error: error,
+    p_retry_seconds: retrySeconds,
+    p_finding: finding,
   });
-  if (error) throw error;
+  if (rpcError) throw rpcError;
+  return data === true;
 }
 
 async function blockItem(row: any, workerId: string, field: string, code: string, excerpt = "") {
-  const owned = await updateOwnedQueue(row.id, workerId, {
-    status: "blocked",
-    locked_at: null,
-    locked_by: null,
-    last_error: code,
-  });
-  if (!owned) return false;
-  try {
-    await recordFinding(row, field, code, excerpt);
-  } catch (error) {
-    console.error("[nova-catalog-audit] finding insert failed", sanitizeError(error));
-  }
-  return true;
+  return completeItem(row, workerId, "blocked", code, null, findingPayload(row, field, code, excerpt));
 }
 
 async function retryItem(row: any, workerId: string, error: unknown) {
   const message = sanitizeError(error);
-  if (Number(row.attempt_count) >= MAX_ATTEMPTS) {
-    return updateOwnedQueue(row.id, workerId, {
-      status: "failed",
-      locked_at: null,
-      locked_by: null,
-      last_error: message,
-    });
-  }
-  const retryAt = new Date(Date.now() + retryDelaySeconds(row.attempt_count) * 1000).toISOString();
-  return updateOwnedQueue(row.id, workerId, {
-    status: "pending",
-    next_attempt_at: retryAt,
-    locked_at: null,
-    locked_by: null,
-    last_error: message,
-  });
+  if (Number(row.attempt_count) >= MAX_ATTEMPTS) return completeItem(row, workerId, "failed", message);
+  return completeItem(row, workerId, "retry", message, retryDelaySeconds(row.attempt_count));
 }
 
 async function processItem(row: any, workerId: string) {
-  if (!validSourceUrl(row.source_url)) return blockItem(row, workerId, "source_url", "invalid_source_url");
   try {
     const source = await fetchSource(row.source_url);
     if (source.blocked) return blockItem(row, workerId, "source_url", source.blocked, source.contentType);
     const evidence = classifySourceEvidence(row, source.text);
-    if (evidence.outcome === "verified") {
-      return updateOwnedQueue(row.id, workerId, {
-        status: "verified",
-        locked_at: null,
-        locked_by: null,
-        last_error: null,
-      });
-    }
+    if (evidence.outcome === "verified") return completeItem(row, workerId, "verified");
     if (evidence.outcome === "blocked") {
-      return blockItem(row, workerId, evidence.field || "identity", evidence.code, clean(source.text, 700));
+      return blockItem(row, workerId, evidence.field || "identity", evidence.code, clean(normalizePageText(source.text), 700));
     }
     return retryItem(row, workerId, evidence.code);
   } catch (error) {
