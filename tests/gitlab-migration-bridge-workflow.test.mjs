@@ -55,3 +55,11 @@ test('blocked-runner diagnostics use a safe JSON handoff instead of a fragile Py
   assert.match(workflow, /json\.loads\(os\.environ\['DETECTOR_JSON'\]\)/);
   assert.doesNotMatch(workflow, /python3 -c 'import json,sys; d=json\.load\(sys\.stdin\); \[print\(f/);
 });
+
+test('migration bridge keeps large GitLab jobs payloads out of process environment variables', () => {
+  assert.doesNotMatch(workflow, /JOBS_JSON="\$jobs_json"/);
+  assert.doesNotMatch(workflow, /JOBS_JSON="\$jobs"/);
+  assert.match(workflow, /jobs_file="\$RUNNER_TEMP\/gitlab-pipeline-jobs\.json"/);
+  assert.match(workflow, /json\.load\(open\(os\.environ\['JOBS_FILE'\]/);
+  assert.match(workflow, /detect-gitlab-runner-block\.mjs < "\$jobs_file"/);
+});
