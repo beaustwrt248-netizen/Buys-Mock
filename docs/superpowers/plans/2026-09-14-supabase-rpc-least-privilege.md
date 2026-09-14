@@ -4,40 +4,38 @@
 
 **Goal:** Harden the authenticated-callable Supabase `SECURITY DEFINER` RPC boundary for issue #2033 without breaking legitimate Morley Admin or Guardian browser workflows or broadening access to server-only tables.
 
-**Architecture:** Preserve the existing browser-required RPC model and current `SECURITY DEFINER` execution boundary. Make the one confirmed authorization gap fail closed (`guardian_report_diagnostic` must require an enabled profile), explicitly codify `PUBLIC`/`anon` revocation and `authenticated` execution for the 13 reviewed RPCs, and add CI-owned contracts that prevent future ACL, role-boundary, Guardian, or RLS-exposure drift. Do not rewrite already-correct privileged function bodies merely to silence an advisor.
+**Architecture:** Keep the current browser-required `SECURITY DEFINER` model. Fix the one confirmed authorization gap by requiring `guardian_report_diagnostic` callers to have an enabled profile, explicitly codify `PUBLIC`/`anon` revocation and `authenticated` execution for all 13 reviewed RPCs, and add CI-owned regression coverage. Do not rewrite already-correct privileged functions or add client-facing RLS policies merely to silence advisor output.
 
-**Tech Stack:** PostgreSQL 15 / Supabase migrations and ACL metadata, Node.js built-in test runner, GitHub Actions, Supabase security advisor.
+**Tech Stack:** PostgreSQL / Supabase migrations and ACL metadata, Node.js built-in test runner, GitHub Actions, Supabase advisors.
 
 **Spec:** `docs/superpowers/specs/2026-09-14-supabase-rpc-least-privilege-design.md`
 
 ## Global Constraints
 
-- Preserve intentional browser RPC entry points; do not blanket-revoke `authenticated` execution.
-- Do not convert the reviewed RPCs wholesale to `SECURITY INVOKER`.
-- `PUBLIC` and `anon` must not have `EXECUTE` on any of the 13 reviewed RPCs.
-- Do not grant `service_role` execution unless a real server caller is proven to require it.
-- Privileged actions must reject missing users, disabled profiles, Staff users, and unknown roles before protected state changes.
-- Manager invite restrictions and Admin-only privileged exceptions must remain unchanged.
-- Guardian human-approval, candidate-review, isolated-test, merge, deployment, and kill-switch boundaries must remain unchanged or stricter.
-- The 17 RLS/no-policy tables remain server-only; do not add browser-facing policies or table grants.
-- Leaked-password protection is a separate Auth setting and is not changed by this plan.
-- No pricing authority, recovery authority, OAuth credential persistence, or unrelated schema behavior changes are permitted.
+- Preserve intentional browser RPC entry points; do not blanket-revoke `authenticated`.
+- Do not blanket-convert reviewed RPCs to `SECURITY INVOKER`.
+- `PUBLIC` and `anon` must not have `EXECUTE` on any reviewed RPC.
+- Do not add `service_role` execution unless a proven server caller needs it.
+- Privileged RPCs must continue to reject missing/disabled profiles and unauthorized roles before protected state changes.
+- Manager invite restrictions and Admin-only exceptions remain unchanged.
+- Guardian approval, isolated-test, merge/deploy, and kill-switch boundaries remain unchanged or stricter.
+- The 17 RLS/no-policy tables remain server-only; add no browser table grants or permissive policies.
+- Leaked-password protection is a separate Auth setting and is not changed here.
+- No pricing, recovery, OAuth, or unrelated schema behavior changes.
 
 ---
 
-### Task 1: Add the CI-owned least-privilege contract and prove RED
+### Task 1: Add a CI-owned RED contract
 
 **Files:**
 - Create: `tests/supabase-rpc-least-privilege-contract.test.mjs`
 - Modify: `.github/workflows/quality-gate.yml`
 
 **Interfaces:**
-- Consumes: approved spec role matrix and the future migration path `supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql`.
-- Produces: a dedicated Node contract executed by the existing B&L Morley Quality Gate.
+- Consumes: the approved role matrix.
+- Produces: a focused contract for migration existence, ACL intent, diagnostic enabled-profile enforcement, and no table-exposure drift.
 
-- [ ] **Step 1: Create the failing contract test**
-
-Create `tests/supabase-rpc-least-privilege-contract.test.mjs` with this exact structure:
+- [ ] **Step 1: Create the contract test**
 
 ```js
 import test from 'node:test';
@@ -69,7 +67,7 @@ test('approved RPC hardening migration exists', () => {
   assert.ok(fs.existsSync(migrationPath), 'missing approved RPC hardening migration');
 });
 
-test('all reviewed RPCs explicitly deny PUBLIC and anon while retaining authenticated browser entry', () => {
+test('reviewed RPCs explicitly revoke browser-default execution and grant authenticated entry only', () => {
   const sql = fs.readFileSync(migrationPath, 'utf8').toLowerCase();
   for (const name of rpcNames) {
     assert.match(sql, new RegExp(`revoke\\s+execute\\s+on\\s+function\\s+public\\.${name}\\(`));
@@ -80,7 +78,7 @@ test('all reviewed RPCs explicitly deny PUBLIC and anon while retaining authenti
   assert.doesNotMatch(sql, /grant\s+execute[^;]+to\s+service_role/i);
 });
 
-test('Guardian diagnostics require an enabled profile, not only a non-null auth uid', () => {
+test('Guardian diagnostics require an enabled profile', () => {
   const sql = fs.readFileSync(migrationPath, 'utf8');
   assert.match(sql, /guardian_report_diagnostic/);
   assert.match(sql, /from\s+public\.profiles\s+p/i);
@@ -89,27 +87,27 @@ test('Guardian diagnostics require an enabled profile, not only a non-null auth 
   assert.match(sql, /Authentication required/i);
 });
 
-test('migration does not broaden browser table access or weaken Guardian controls', () => {
+test('migration cannot broaden table access or add privileged Guardian transitions', () => {
   const sql = fs.readFileSync(migrationPath, 'utf8');
   assert.doesNotMatch(sql, /create\s+policy/i);
   assert.doesNotMatch(sql, /grant\s+(select|insert|update|delete|all)\s+on\s+(table\s+)?public\./i);
   assert.doesNotMatch(sql, /disable\s+row\s+level\s+security/i);
   assert.doesNotMatch(sql, /security\s+invoker/i);
-  assert.match(sql, /require_human_for_code\s*=\s*true/i);
-  assert.match(sql, /Only an Admin can disengage the Guardian kill switch/i);
+  assert.doesNotMatch(sql, /insert\s+into\s+public\.guardian_repairs/i);
+  assert.doesNotMatch(sql, /update\s+public\.guardian_repairs/i);
 });
 ```
 
-- [ ] **Step 2: Wire the contract into the existing quality gate**
+- [ ] **Step 2: Wire it into the existing quality gate**
 
-Immediately after the `Morley ecosystem contract` step in `.github/workflows/quality-gate.yml`, add:
+Add immediately after the existing Morley ecosystem contract step:
 
 ```yaml
       - name: Supabase RPC least-privilege contract
         run: node --test tests/supabase-rpc-least-privilege-contract.test.mjs
 ```
 
-- [ ] **Step 3: Run the focused test and verify RED**
+- [ ] **Step 3: Run the focused test**
 
 Run:
 
@@ -117,9 +115,9 @@ Run:
 node --test tests/supabase-rpc-least-privilege-contract.test.mjs
 ```
 
-Expected: FAIL at `approved RPC hardening migration exists` with `missing approved RPC hardening migration`.
+Expected: FAIL with `missing approved RPC hardening migration`.
 
-- [ ] **Step 4: Commit the RED contract only**
+- [ ] **Step 4: Commit RED**
 
 ```bash
 git add tests/supabase-rpc-least-privilege-contract.test.mjs .github/workflows/quality-gate.yml
@@ -128,23 +126,21 @@ git commit -m "test: define Supabase RPC least-privilege contract"
 
 ---
 
-### Task 2: Harden Guardian diagnostics and codify the 13 RPC ACLs
+### Task 2: Add the minimal hardening migration
 
 **Files:**
 - Create: `supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql`
 - Test: `tests/supabase-rpc-least-privilege-contract.test.mjs`
 
 **Interfaces:**
-- Consumes: the 13 existing public RPC signatures and the existing `private.is_admin_or_manager()` / `private.is_admin()` helpers.
-- Produces: explicit ACL state plus an enabled-profile guard in `guardian_report_diagnostic` while preserving its telemetry, metadata redaction, fingerprinting, deduplication, and incident-state behavior.
+- Consumes: current live definitions and exact reviewed RPC signatures.
+- Produces: enabled-profile enforcement for Guardian diagnostics plus explicit ACL normalization for all 13 RPCs.
 
-- [ ] **Step 1: Add a precondition block that aborts on missing reviewed RPCs**
+- [ ] **Step 1: Fail closed on schema/signature drift**
 
-Start the migration with a `DO` block that checks all 13 `regprocedure` signatures resolve. Use `to_regprocedure(...)` and raise an exception if any is missing so migration drift fails closed rather than silently applying a partial ACL set.
+Start the migration with a `DO` block using `to_regprocedure(...)`. Require all exact signatures below to resolve before any ACL mutation:
 
-Use the exact signatures below:
-
-```sql
+```text
 public.admin_create_download_invite(text,text,text,text,text,timestamptz)
 public.admin_create_team_invite(text,text,text,text,timestamptz)
 public.admin_inventory_create(text,text,numeric,numeric,bigint,uuid,text,text,text,text)
@@ -160,9 +156,11 @@ public.guardian_set_agent_controls(boolean,boolean,boolean,text)
 public.guardian_set_controls(boolean,boolean,text,text,boolean,boolean,numeric,integer,boolean,boolean,text)
 ```
 
-- [ ] **Step 2: Replace only the opening authorization guard in `guardian_report_diagnostic`**
+The block must raise an exception naming the missing signature if any lookup returns null.
 
-Keep the existing function signature, `SECURITY DEFINER`, explicit search path, metadata redaction, server-derived fingerprint, deduplication, and insert/update logic unchanged. Replace the current single check:
+- [ ] **Step 2: Recreate only `guardian_report_diagnostic` with the stricter opening guard**
+
+Preserve its existing signature, return type, `SECURITY DEFINER`, explicit search path, severity validation, metadata redaction, route/message normalization, server-derived fingerprint, unresolved-incident reuse, terminal-incident deduplication, and incident creation logic. Replace only this guard:
 
 ```sql
 if auth.uid() is null then raise exception 'Authentication required'; end if;
@@ -181,61 +179,33 @@ if auth.uid() is null or not exists (
 end if;
 ```
 
-Retain the existing Guardian safety behavior in the same recreated function, including `require_human_for_code` invariants in the surrounding Guardian system and the fact that diagnostic submission cannot approve incidents, approve repairs, merge, or deploy.
+Do not add any `guardian_repairs` insert/update, approval transition, merge, or deployment behavior to this function.
 
-- [ ] **Step 3: Explicitly normalize EXECUTE ACLs for all 13 reviewed RPCs**
+- [ ] **Step 3: Normalize ACLs for all 13 exact signatures**
 
-For every exact signature from Step 1, issue both statements:
+For each signature in Step 1 add both statements using the full argument list:
 
 ```sql
-revoke execute on function public.<name>(<exact-arg-types>) from public, anon;
-grant execute on function public.<name>(<exact-arg-types>) to authenticated;
+revoke execute on function public.<function>(<exact types>) from public, anon;
+grant execute on function public.<function>(<exact types>) to authenticated;
 ```
 
-Do not grant `service_role`. Do not change schema privileges. Do not add table grants.
+Do not grant `service_role`; do not change schema/table privileges.
 
-- [ ] **Step 4: Preserve privileged role behavior by assertion comments and unchanged bodies**
+- [ ] **Step 4: Add rollback notes inside the migration**
 
-The migration must retain these existing function-specific constraints in the live definitions it recreates or leaves unchanged:
+Record that pre-change RPC ACL posture was `postgres + authenticated`, with no `anon`, `PUBLIC`, or `service_role` execution. Record that rollback of the diagnostic body restores only the previous `auth.uid() is null` guard and must not change RLS, table grants, or Guardian approval protections.
 
-```text
-admin_create_download_invite:
-  Manager -> Staff only; Admin-channel and Manager/Admin invites remain Admin-only.
-admin_create_team_invite / reissue / revoke:
-  Managers can manage Staff invites only, with existing ownership restrictions.
-admin_inventory_create / record_sale / set_status:
-  private.is_admin_or_manager() remains the authority gate before protected state change.
-guardian_decide_incident / guardian_decide_repair:
-  private.is_admin_or_manager() remains required before approval-state transitions.
-guardian_set_agent_controls:
-  enabled Admin/Manager role remains required.
-guardian_set_controls:
-  enabled Admin/Manager role remains required; only Admin can disengage an engaged kill switch.
-```
-
-Do not recreate the 12 already-correct RPC bodies unless a signature-level ACL statement requires no body change; minimizing function-body churn is deliberate.
-
-- [ ] **Step 5: Run the focused contract and verify GREEN**
-
-Run:
+- [ ] **Step 5: Run GREEN tests**
 
 ```bash
 node --test tests/supabase-rpc-least-privilege-contract.test.mjs
-```
-
-Expected: all tests PASS.
-
-- [ ] **Step 6: Run the existing ecosystem contract**
-
-Run:
-
-```bash
 node --test tests/morley-ecosystem-contract.test.mjs
 ```
 
-Expected: PASS with no Guardian, recovery, scheduler, catalogue, or index-contract regressions.
+Expected: both PASS.
 
-- [ ] **Step 7: Commit the minimal migration**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql
@@ -244,22 +214,19 @@ git commit -m "security: harden authenticated definer RPC boundary"
 
 ---
 
-### Task 3: Add repository-level regression assertions for server-only table posture
+### Task 3: Lock server-only table posture in the contract
 
 **Files:**
 - Modify: `tests/supabase-rpc-least-privilege-contract.test.mjs`
-- Test: `tests/supabase-rpc-least-privilege-contract.test.mjs`
 
 **Interfaces:**
-- Consumes: migration SQL from Task 2.
-- Produces: a durable contract that this change never introduces policies/table grants merely to clear `rls_enabled_no_policy` findings.
+- Consumes: Task 2 migration.
+- Produces: regression proof that advisor INFO findings are not “fixed” by widening browser access.
 
-- [ ] **Step 1: Add representative server-only table assertions**
-
-Append this test:
+- [ ] **Step 1: Append the representative-table test**
 
 ```js
-test('server-only advisor tables remain intentionally outside browser grants', () => {
+test('server-only advisor tables remain outside browser grants', () => {
   const sql = fs.readFileSync(migrationPath, 'utf8').toLowerCase();
   for (const table of [
     'device_buy_prices',
@@ -278,46 +245,38 @@ test('server-only advisor tables remain intentionally outside browser grants', (
 });
 ```
 
-- [ ] **Step 2: Run the contract**
+- [ ] **Step 2: Run and commit**
 
 ```bash
 node --test tests/supabase-rpc-least-privilege-contract.test.mjs
-```
-
-Expected: PASS.
-
-- [ ] **Step 3: Commit**
-
-```bash
 git add tests/supabase-rpc-least-privilege-contract.test.mjs
 git commit -m "test: lock server-only Supabase table posture"
 ```
 
+Expected: PASS before commit.
+
 ---
 
-### Task 4: Open the implementation PR and run all exact-head protected gates
+### Task 4: Open the implementation PR and verify exact-head CI
 
 **Files:**
-- No production file changes in this task.
-- Review: full PR diff.
+- Review only; no new production changes.
 
 **Interfaces:**
-- Consumes: Tasks 1-3 commits.
-- Produces: a reviewable PR whose exact head has complete CI evidence.
+- Consumes: Tasks 1-3.
+- Produces: a reviewable implementation PR with exact-head evidence.
 
-- [ ] **Step 1: Create the implementation PR from a fresh branch based on current `main`**
+- [ ] **Step 1: Start from current `main`**
 
-Use a branch such as:
+Create `security/supabase-rpc-least-privilege-20260914` from the latest `main`. If `main` advanced after this plan was written, copy only the approved test/workflow/migration changes rather than merging unrelated design-branch history.
 
-```text
-security/supabase-rpc-least-privilege-20260914
-```
+- [ ] **Step 2: Open the PR with #2033 scope clearly stated**
 
-If `main` has advanced since the design/plan branch, branch from current `main` and copy only the approved implementation/test changes; do not merge unrelated design-branch drift into production code.
+Changed production behavior must be limited to disabled-profile denial in Guardian diagnostics and explicit ACL normalization.
 
-- [ ] **Step 2: Require the following exact-head workflows to complete successfully**
+- [ ] **Step 3: Require all exact-head gates GREEN**
 
-Verify GREEN for:
+Verify success for:
 
 ```text
 B&L Morley Quality Gate
@@ -332,75 +291,71 @@ Catalogue Shared Model Classification Contract
 Morley Email Contract
 ```
 
-If a workflow is cancelled externally, rerun it; cancellation is not a pass.
+Cancelled workflows must be rerun; cancellation is not a pass.
 
-- [ ] **Step 3: Review the full diff before merge**
+- [ ] **Step 4: Review the full PR diff**
 
-The changed-file set must contain only the approved security migration, dedicated contract test, and quality-gate wiring unless a directly required test-only file is added during implementation. Reject any unexpected Auth setting, RLS policy, table grant, pricing, recovery, Guardian approval, deployment, or unrelated application change.
+Allow only:
 
-- [ ] **Step 4: Merge only with the verified head SHA**
+```text
+tests/supabase-rpc-least-privilege-contract.test.mjs
+.github/workflows/quality-gate.yml
+supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql
+```
 
-Use expected-head protection on merge so a moving PR head cannot bypass the reviewed CI evidence.
+A directly required test-only change is acceptable only if it is documented in the PR. Reject Auth-setting changes, new RLS policies, browser table grants, pricing/recovery changes, or Guardian approval/deployment changes.
+
+- [ ] **Step 5: Merge using the verified head SHA**
+
+Use expected-head protection so a moving PR cannot bypass reviewed CI evidence.
 
 ---
 
-### Task 5: Apply the exact migration to production and verify the live boundary
+### Task 5: Deploy and verify production safely
 
 **Files:**
-- Apply: `supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql`
-- No additional production edits.
+- Apply exactly: `supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql`
 
 **Interfaces:**
-- Consumes: merged migration from Task 4.
-- Produces: verified production ACL/function state and fresh advisor evidence.
+- Consumes: merged migration.
+- Produces: verified live ACL/function state and classified advisor output.
 
-- [ ] **Step 1: Apply the exact repository migration using the Supabase migration API**
+- [ ] **Step 1: Apply via the Supabase migration API**
 
-Migration name:
+Use migration name:
 
 ```text
 harden_authenticated_security_definer_rpcs
 ```
 
-Do not execute an ad-hoc variant of the SQL.
+Do not execute an ad-hoc SQL variant.
 
-- [ ] **Step 2: Verify all 13 live ACLs from `pg_proc`**
+- [ ] **Step 2: Verify all 13 live function ACLs**
 
-Run a read-only query that returns, for each reviewed function:
-
-```text
-proname
-prosecdef
-authenticated_execute
-anon_execute
-public_execute
-service_role_execute
-```
-
-Expected for all 13:
+Query `pg_proc`, `pg_namespace`, and `has_function_privilege`. Expected for each reviewed RPC:
 
 ```text
-prosecdef = true
-authenticated_execute = true
-anon_execute = false
-public_execute = false
-service_role_execute = false
+SECURITY DEFINER = true
+authenticated EXECUTE = true
+anon EXECUTE = false
+PUBLIC EXECUTE = false
+service_role EXECUTE = false
 ```
 
-- [ ] **Step 3: Verify `guardian_report_diagnostic` includes the enabled-profile check**
+- [ ] **Step 3: Verify the diagnostic body**
 
-Inspect `pg_get_functiondef(...)` and confirm it contains both:
+Inspect `pg_get_functiondef(public.guardian_report_diagnostic(...))`. Confirm the enabled-profile predicate:
 
 ```sql
 p.id = auth.uid()
 p.is_enabled = true
 ```
 
-and still contains the existing metadata redaction patterns and server-generated fingerprint logic.
+Also confirm the existing metadata redaction and server-derived fingerprint code remains present and no repair/approval mutation was added.
 
-- [ ] **Step 4: Verify server-only tables remain inaccessible to browser roles**
+- [ ] **Step 4: Verify representative server-only tables remain closed**
 
-Use `has_table_privilege` for both `anon` and `authenticated` against representative tables:
+Using `has_table_privilege`, confirm both `anon` and `authenticated` have no SELECT/INSERT/UPDATE/DELETE privileges on:
 
 ```text
 device_buy_prices
@@ -412,66 +367,53 @@ user_drive_backup_keys
 user_drive_backup_master_keys
 ```
 
-Expected: no SELECT/INSERT/UPDATE/DELETE privilege for either browser role.
+- [ ] **Step 5: Run safe negative canaries**
 
-- [ ] **Step 5: Run negative canaries without committing business mutations**
-
-At minimum verify unauthenticated calls to the reviewed RPC surface fail. For authenticated role-negative canaries, use existing test fixtures or a transaction that rolls back every write; do not create persistent users or alter real staff roles merely to test denial. Confirm:
+Unauthenticated RPC calls must fail. Use an existing non-privileged test fixture or rollback-only transaction for authenticated denial checks; do not alter real staff roles or create persistent production identities. Confirm where safely testable:
 
 ```text
-Staff cannot invoke inventory/Guardian privileged state changes.
-Disabled or missing-profile users cannot invoke guardian_report_diagnostic.
-Manager cannot disengage an engaged Guardian kill switch.
+Staff cannot perform inventory/Guardian privileged state changes.
+Disabled or missing-profile users cannot submit Guardian diagnostics.
+Managers cannot disengage an engaged Guardian kill switch.
 Manager invite restrictions remain unchanged.
 ```
 
-If no safe existing fixture exists for one role-negative case, leave that case covered by repository contract plus function-definition inspection rather than mutating production identity state.
+If a safe fixture does not exist for one case, use function-definition/ACL verification rather than mutating production identity state.
 
-- [ ] **Step 6: Re-run Supabase advisors**
+- [ ] **Step 6: Re-run Supabase security and performance advisors**
 
-Run both security and performance advisors. Expected security interpretation:
+Expected classification:
 
 ```text
-The authenticated SECURITY DEFINER lint may remain because authenticated browser execution is intentional.
+The SECURITY DEFINER warning may remain because authenticated browser execution is intentional.
 The 17 RLS/no-policy INFO findings may remain because those tables are intentionally server-only.
-Leaked-password protection may remain WARN until the separate Auth setting is changed through an authorized Auth-management surface.
-No new security-advisor category should appear because of this migration.
+Leaked-password protection may remain WARN until changed through an authorized Auth-management surface.
+No new security-advisor category may appear because of this migration.
 ```
 
-- [ ] **Step 7: Add production evidence to issue #2033**
+- [ ] **Step 7: Record production evidence on #2033**
 
-Record merge SHA, migration version, live ACL results, enabled-profile diagnostic proof, server-only table-grant proof, exact-head CI results, and advisor classification. Keep #2033 open if leaked-password protection remains unresolved.
+Include merge SHA, migration version, 13-RPC ACL verification, diagnostic enabled-profile proof, representative table-closure proof, exact-head CI results, and advisor classification.
 
 ---
 
-### Task 6: Final verification and rollback readiness
+### Task 6: Final verification and issue disposition
 
 **Files:**
-- Review: `supabase/migrations/20260914151500_harden_authenticated_security_definer_rpcs.sql`
-- Review: issue #2033 evidence comment.
+- Review migration comments and issue #2033 evidence.
 
 **Interfaces:**
-- Consumes: production verification from Task 5.
-- Produces: completion decision for the RPC-hardening sub-lane without falsely closing unrelated Auth work.
+- Consumes: Task 5 production evidence.
+- Produces: a truthful completion decision for the RPC-hardening sub-lane.
 
-- [ ] **Step 1: Verify rollback instructions are explicit in the migration comments**
+- [ ] **Step 1: Recheck post-merge `main` workflows**
 
-The migration comments must record the pre-change ACL posture:
+Do not claim completion while any required post-merge workflow is failed, queued indefinitely, or still running.
 
-```text
-postgres EXECUTE
-authenticated EXECUTE
-no anon EXECUTE
-no PUBLIC EXECUTE
-no service_role EXECUTE
-```
+- [ ] **Step 2: Confirm rollback readiness**
 
-and state that rollback of `guardian_report_diagnostic` restores only its previous authentication guard, never RLS/table grants or Guardian approval weakening.
+Rollback must restore only the pre-change diagnostic guard/ACL state. It must never disable RLS, add browser table grants, persist privileged credentials, or weaken Guardian approval boundaries.
 
-- [ ] **Step 2: Recheck exact post-merge `main` workflows**
+- [ ] **Step 3: Classify #2033**
 
-Confirm no post-merge push workflow is failed, queued indefinitely, or still running before claiming the RPC-hardening lane complete.
-
-- [ ] **Step 3: Classify issue #2033**
-
-If RPC hardening and table-posture verification are complete but leaked-password protection is still disabled, leave #2033 open (or split the remaining Auth setting into a dedicated protected issue and close #2033 only if the project’s issue convention prefers one concern per issue). Do not claim the entire security-advisor set is cleared while that Auth WARN remains.
+If RPC hardening and server-only table verification are complete but leaked-password protection is still disabled, keep #2033 open or split that remaining Auth setting into a dedicated protected issue before closing #2033. Do not claim the entire security-advisor set is cleared while the Auth warning remains.
