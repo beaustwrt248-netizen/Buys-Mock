@@ -10,6 +10,7 @@ include:
   - local: .gitlab/ci/security.yml
   - local: .gitlab/ci/quality.yml
   - local: .gitlab/ci/governance.yml
+  - local: .gitlab/ci/repository-path-stability.yml
   - local: .gitlab/ci/android.yml
   - local: .gitlab/ci/admin.yml
   - local: .gitlab/ci/release.yml
