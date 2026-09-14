@@ -62,10 +62,13 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
+    const hadPrevious = keys.some(key => key.startsWith('nova-next-') && key !== CACHE);
     await Promise.all(keys.filter(key => key.startsWith('nova-next-') && key !== CACHE).map(key => caches.delete(key)));
     await self.clients.claim();
-    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const client of clients) client.postMessage({ type: 'NOVA_WEB_UPDATE_READY', cache: CACHE });
+    if (hadPrevious) {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clients) client.postMessage({ type: 'NOVA_WEB_UPDATE_READY', cache: CACHE });
+    }
   })());
 });
 
