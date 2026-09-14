@@ -682,45 +682,10 @@ private fun CameraCaptureSurface(
             )
         }
 
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = Color.Black.copy(alpha = .62f),
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 136.dp)
-        ) {
-            Text(
-                "Position the device within the frame",
-                Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         Box(
             Modifier.align(Alignment.Center).fillMaxWidth(.78f).aspectRatio(.68f)
         ) {
             ScanFrameOverlay()
-        }
-
-        Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 118.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("Auto", "Barcode", "Serial Number").forEachIndexed { index, label ->
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = if (index == 0) LensBlue else Color.Black.copy(alpha = .58f),
-                    border = BorderStroke(1.dp, if (index == 0) LensBlue else Color.White.copy(alpha = .20f))
-                ) {
-                    Text(
-                        label,
-                        Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = if (index == 0) FontWeight.Black else FontWeight.SemiBold
-                    )
-                }
-            }
         }
 
         Row(
@@ -1014,9 +979,6 @@ private fun ResultsScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = condition, modifier = Modifier.weight(1f)) { Text("Condition Assessment") }
                 OutlinedButton(onClick = pricing, modifier = Modifier.weight(1f)) { Text("Market Value") }
-            }
-            OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
-                Text("Compare Prices", fontWeight = FontWeight.Bold)
             }
             OutlinedButton(onClick = pricing, modifier = Modifier.fillMaxWidth()) {
                 Text("Compare Prices", fontWeight = FontWeight.Bold)
