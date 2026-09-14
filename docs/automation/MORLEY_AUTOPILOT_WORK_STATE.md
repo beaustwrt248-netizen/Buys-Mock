@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-14 22:31 AWST
+Last reconciled: 2026-09-14 23:09 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `1f40bef4e3d53bfe0352397c37623a183e32be7e`.
+Observed `main` head: `bf754a9421fd8bb7f9b86975207a32dd58ca37a8`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository and connected production services before each automated pass.
 
@@ -29,7 +29,8 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 - Native-authority parity remains merged: authenticated Admin web/mobile uses the dedicated parity core and read-only catalogue/release owners instead of broad legacy browser authority.
 - PR **#2134** fixes incomplete Admin catalogue loading by paging all active catalogue rows in deterministic order instead of relying on a single Supabase response page.
 - #2134 included cache/deployment contract updates and regression coverage. Treat source merge as proven; do not claim a production web deployment without separate deployment evidence.
-- Connected Vercel scope currently returns no teams/projects, so production Admin web deployment cannot yet be independently verified through that connector.
+- Admin web is published from this repository through GitHub Pages at the `buyshub.me` custom domain, with Cloudflare in front of the domain. Vercel is not part of the Morley deployment path and must not be treated as a deployment dependency or blocker.
+- Continue to require separate GitHub Pages/live-origin evidence before claiming a merged Admin web change is active in production; Cloudflare challenge behavior must not be bypassed.
 - Continue mobile-browser layout/freezing/accessibility and native-app parity auditing from current main.
 
 ### Backup / recovery
