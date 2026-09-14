@@ -1,1 +1,0 @@
-TDD red phase for #2040 narrow Nova revision index cleanup. Remove before merge.
