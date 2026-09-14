@@ -1,0 +1,23 @@
+/* Tablet + smartwatch catalogue connectivity grouping. Source result cards remain hidden inside each group so exact bound actions are preserved. */
+#morleyUniversalResults .morley-catalogue-model-group{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;padding:12px;border:1px solid #d9e4df;border-radius:14px;background:#fff;align-items:start}
+#morleyUniversalResults .morley-catalogue-model-group .morley-device-media{width:72px;height:72px;min-width:72px;min-height:72px;border-radius:12px;overflow:hidden;background:#f3f7f5;border:1px solid #e0e8e4}
+#morleyUniversalResults .morley-catalogue-model-group .morley-device-media img{display:block;width:100%;height:100%;object-fit:contain}
+#morleyUniversalResults .morley-catalogue-model-group .morley-device-media.is-loaded .morley-device-placeholder{display:none}
+#morleyUniversalResults .morley-catalogue-model-group .morley-result-copy{min-width:0}
+#morleyUniversalResults .morley-catalogue-model-group h3{margin:0 0 3px;font-size:15px;line-height:1.25;font-weight:900;color:#1c2b26}
+#morleyUniversalResults .morley-catalogue-model-group .morley-group-meta{margin:0;color:#62726b;font-size:11px;line-height:1.35}
+#morleyUniversalResults .morley-variant-field{margin-top:7px}
+#morleyUniversalResults .morley-variant-label{display:block;margin-bottom:4px;color:#62726b;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+#morleyUniversalResults .morley-variant-row{display:flex;flex-wrap:wrap;gap:5px}
+#morleyUniversalResults button.morley-variant-chip{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:30px;padding:0 9px;border:1px solid #cad9d2;border-radius:999px;background:#f3f7f5;color:#315348;font:800 11px/1 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:none}
+#morleyUniversalResults button.morley-variant-chip.active{border-color:#167a5a;background:#dff1e8;color:#0f684c}
+#morleyUniversalResults button.morley-variant-chip:disabled{opacity:.4;cursor:not-allowed}
+#morleyUniversalResults .morley-group-price{display:inline-flex;align-items:center;width:auto;min-height:22px;margin-top:7px;border-radius:999px;padding:3px 7px;background:#edf5f1;color:#587067;font-size:10px;font-weight:800}
+#morleyUniversalResults .morley-group-price.is-priced{background:#e2f3eb;color:#167a5a}
+#morleyUniversalResults .morley-catalogue-group-actions{grid-column:2;display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:7px}
+#morleyUniversalResults .morley-catalogue-group-actions button{min-height:40px;border-radius:12px}
+#morleyUniversalResults .morley-catalogue-group-actions .morley-group-open{background:#0f684c;color:#fff}
+#morleyUniversalResults .morley-catalogue-group-actions .morley-group-favourite{width:42px;padding:0;background:#eef4f0;color:#167a5a;border:1px solid #c5d7cf;font-size:20px}
+#morleyUniversalResults .morley-group-source-bin{display:none!important}
+#morleyUniversalResults .morley-grouped-result-count{grid-column:1/-1;margin:0 0 2px;color:#62726b;font-size:11px;font-weight:800}
+@media(min-width:761px){#morleyUniversalResults .morley-catalogue-model-group{grid-template-columns:80px minmax(0,1fr) minmax(210px,auto);align-items:center}#morleyUniversalResults .morley-catalogue-model-group .morley-device-media{width:80px;height:80px}#morleyUniversalResults .morley-catalogue-group-actions{grid-column:auto}}
