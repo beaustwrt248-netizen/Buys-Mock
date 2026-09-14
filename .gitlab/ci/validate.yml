@@ -9,3 +9,21 @@ validate:protected-boundaries:
   image: node:22-bookworm
   script:
     - node scripts/ci/assert-protected-boundaries.mjs
+
+governance:recovery-backup-contract:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/user-drive-backup-contract.test.mjs
+
+governance:catalogue-shared-model-classification:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/catalogue-shared-model-classification-contract.test.mjs
+
+governance:pricing-migration-supersession:
+  stage: validate
+  image: node:22-bookworm
+  script:
+    - node --test tests/pricing-migration-supersession-contract.test.mjs
