@@ -81,7 +81,7 @@ test('Guardian compatibility surface validates the canonical Nova parent boundar
 
 test('Admin web authority uses the native-parity shell and legacy visual authorities stay unloaded',()=>{
   assert.doesNotMatch(adminWorkspace,/desktop-workspace-fix\.css/);
-  assert.match(adminWorkspace,/admin-app-parity\.js\?v=3/);
+  assert.match(adminWorkspace,/admin-app-parity\.js\?v=4/);
   assert.match(adminWorkspace,/admin-user-access-parity\.js\?v=1/);
   assert.doesNotMatch(adminWorkspace,/\['adminHome','admin-home\.js\?v=8'\]/);
   assert.doesNotMatch(adminWorkspace,/\['adminV2Script','admin-v2\.js\?v=8'\]/);
