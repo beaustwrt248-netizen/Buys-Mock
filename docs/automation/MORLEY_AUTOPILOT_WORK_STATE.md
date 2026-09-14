@@ -1,8 +1,8 @@
 # Morley Autopilot Work-State Ledger
 
-Last reconciled: 2026-09-15 06:05 AWST
+Last reconciled: 2026-09-15 07:00 AWST
 Canonical repository baseline: protected `main`.
-Observed `main` head: `7eff0f9bcf116ab4348dec15da3ab76340b56ace`.
+Observed `main` head: `afb8d7b977a0990179017baac4b7d30bfa02e1a8`.
 
 This is the durable, non-sensitive state ledger for the consolidated Morley ecosystem automation. Reconcile it against live repository, CI, release and connected production services before each automated pass.
 
@@ -46,19 +46,20 @@ This is the durable, non-sensitive state ledger for the consolidated Morley ecos
 
 ### Nova knowledge / Nova Next
 
-- `nova-knowledge-maintenance` remains healthy: the latest completed production run observed through **2026-09-14 22:00 UTC** completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary; the scheduled **22:05 UTC** run was still in progress at observation time with no recorded error.
+- `nova-knowledge-maintenance` remains healthy: the latest eight observed production runs through **2026-09-14 22:55 UTC** all completed with `embedded_ready=4`, `embedded_error=0`, `ingested_error=0` and no error summary.
 - Current production Nova remains authoritative while Nova Next remains isolated.
 - PR **#2208** is **ready for review** at exact head `622945a4a2d7f9d2a1047eba34577a90bec2f93f`. Nova Next Isolated Validation, Nova Next APK Build, route/password accessibility, Quality Gate, Ultimate Parity, Repository Security, Recovery Backup, Path Stability, catalogue/pricing/email contracts and Restore Point Capture all passed.
 - The Nova Next APK validation produced a **debug PR artifact only**. Its `publish-nova-next-ota` job was intentionally skipped. No production OTA publication or route replacement occurred.
 - #2208 changes GitHub workflow/release surfaces and Nova OTA behavior. Merge/promotion/publication is therefore protected and requires explicit Beau approval; production Nova must remain authoritative until that boundary is deliberately crossed.
-- #2208 is behind current `main` only by later documentation/state-ledger commits; do not use that as a reason to bypass the protected review boundary.
+- #2208 remains mergeable and is behind current `main` only by later documentation/state-ledger commits; do not use that as a reason to bypass the protected review boundary.
 - Documentation PR **#2207** was closed unmerged as superseded because its earlier “GO FOR PROMOTION REVIEW” wording became stale relative to #2208.
 - Continue benchmark-based knowledge expansion, citation/source quality, unsupported-claim tracking, provider/fallback quality, latency/cost controls and tool-routing evaluation; corpus growth alone is not proof of answer quality.
 
 ### Catalogue audit / data integrity
 
 - The stale-run reconciliation repair is production-proven. Run `cc3cb62f-c42f-46e1-ae81-ea8adb937bea` is `completed`, finished `2026-09-14 15:10:58 UTC`, with terminal notes `verified=13; blocked=62; discrepancy=0; failed=0; pending=0; in_progress=0`.
-- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 153 blocked / 999 pending**. Current audit-run snapshot: **13 completed / 14 queued / 2 running**.
+- Bounded drain remains active without resumed enqueueing. Current queue snapshot: **961 verified / 162 blocked / 990 pending**. Current audit-run snapshot: **14 completed / 14 queued / 2 running**.
+- The two running audit runs remain genuinely nonterminal from live evidence: scheduled run `6b1e575c-8290-42b0-9ab2-46e22f17ac4f` retains 24 pending and manual seed-backlog run `e4933158-0df2-44ad-825c-7d70d8db4f54` retains 499 pending. Do not auto-finalize either run while those pending counts remain.
 - The queue continues to drain in bounded increments without creating a new queued run; enqueue remains paused.
 - Issue **#2142 remains closed as completed** after production proof of the stale-run repair.
 - Catalogue enqueue remains intentionally paused; do not restore it until bounded drain capacity and broader production behavior are proven safe.
