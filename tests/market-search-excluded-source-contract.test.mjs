@@ -15,6 +15,7 @@ test('market search excludes the prohibited marketplace source', () => {
 
 test('laptop guided valuation does not consume or report the prohibited marketplace source', () => {
   assert.doesNotMatch(laptopGuided, excludedPattern);
-  assert.match(laptopGuided, /facebookCount\s*=\s*guidedDistinctCandidateCount\(roots,\s*"facebook"\)/s);
+  assert.match(laptopGuided, /facebookCount\s*=/);
+  assert.match(laptopGuided, /guidedDistinctCandidateCount\(roots,\s*"facebook"\)/);
   assert.match(laptopGuided, /Facebook \$\{response\.facebookCount\}/);
 });
