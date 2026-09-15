@@ -130,6 +130,11 @@ jobs:
           gradle-version: '9.3.1'
 
       - name: Resolve guarded Nova Next release identity
+        env:
+          # versionCode 1 / Nova Next 0.1.0 is permanently unusable because its
+          # historical release tag did not target the exact APK build source.
+          # Keep this allow-list explicit: arbitrary version skips remain rejected.
+          NOVA_NEXT_QUARANTINED_VERSION_CODES: '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -156,9 +161,25 @@ jobs:
           published_code=metadata.get('versionCode')
           if isinstance(published_code, bool) or not isinstance(published_code, int):
               raise SystemExit('Nova Next published versionCode is invalid')
-          if current_code != published_code + 1:
+
+          raw_quarantine=os.environ.get('NOVA_NEXT_QUARANTINED_VERSION_CODES', '')
+          quarantined_codes=set()
+          for value in raw_quarantine.split(','):
+              value=value.strip()
+              if not value:
+                  continue
+              if not value.isdigit():
+                  raise SystemExit('Nova Next quarantined versionCode list is invalid')
+              quarantined_codes.add(int(value))
+
+          next_code=published_code + 1
+          while next_code in quarantined_codes:
+              next_code += 1
+          if current_code != next_code:
               raise SystemExit(
-                  f'Nova Next source versionCode {current_code} must be exactly one above published OTA {published_code}.')
+                  f'Nova Next source versionCode {current_code} must equal next publishable OTA code {next_code}; '
+                  f'published={published_code}, quarantined={sorted(quarantined_codes)}.'
+              )
 
           safe=re.sub(r'[^A-Za-z0-9._-]+','-',current_name).strip('-')
           values={
