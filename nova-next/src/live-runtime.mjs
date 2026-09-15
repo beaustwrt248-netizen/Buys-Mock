@@ -234,12 +234,9 @@ export function createLiveRuntime({
     const page = documentObj.querySelector('.page[data-route="chat"]');
     const composer = page?.querySelector('.composer');
     const suggestionList = page?.querySelector('.suggestion-list');
-    if (!page || !composer || !suggestionList) return;
+    const messages = documentObj.getElementById('novaNextChatMessages');
+    if (!page || !composer || !suggestionList || !messages) return;
     chatBound = true;
-
-    const messages = createElement(documentObj, 'div', 'chat-messages');
-    messages.id = 'novaNextChatMessages';
-    suggestionList.before(messages);
 
     const input = composer.querySelector('input');
     const send = composer.querySelector('button');
