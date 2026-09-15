@@ -91,13 +91,6 @@ export function createLiveRuntime({
     }
     if (password) password.required = true;
 
-    documentObj.querySelector('.divider')?.classList.add('is-hidden');
-    documentObj.querySelector('.social-row')?.classList.add('is-hidden');
-    documentObj.querySelector('.signup-copy')?.classList.add('is-hidden');
-    const loginOptions = documentObj.querySelector('.login-options');
-    if (loginOptions) {
-      loginOptions.innerHTML = '<span class="security-note">Enabled Morley Admin accounts only</span>';
-    }
     const preview = documentObj.getElementById('previewNote');
     if (preview) preview.textContent = 'Secure sign-in uses Morley Supabase Auth and Cloudflare Turnstile. Passwords are never stored by Nova.';
 
