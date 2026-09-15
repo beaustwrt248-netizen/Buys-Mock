@@ -10,8 +10,13 @@ const excludedPattern = new RegExp(excludedSource, 'i');
 
 test('market search excludes the prohibited marketplace source', () => {
   assert.doesNotMatch(marketSearch, excludedPattern);
+  assert.match(marketSearch, /used:\s*\["ebay",\s*"facebook"\]/);
+  assert.match(marketSearch, /braveFacebook\(q, limit\)/);
+  assert.match(marketSearch, /serpFacebook\(q\)/);
 });
 
 test('laptop guided valuation does not consume or report the prohibited marketplace source', () => {
   assert.doesNotMatch(laptopGuided, excludedPattern);
+  assert.match(laptopGuided, /facebookCount\s*=\s*guidedDistinctCandidateCount\(roots,\s*"facebook"\)/);
+  assert.match(laptopGuided, /Facebook \$\{response\.facebookCount\}/);
 });
