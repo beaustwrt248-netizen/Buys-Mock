@@ -1,0 +1,107 @@
+release:nova-ota-metadata-contract:
+  stage: release-check
+  image: python:3.12-bookworm
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+  script:
+    - mkdir -p .tmp
+    - |
+      set -euo pipefail
+      python3 scripts/nova_ota_metadata_contract.py \
+        --gradle android/novaapp/build.gradle \
+        --metadata nova/nova-update.json \
+        --repository "beaustwrt248-netizen/Buys-Mock" \
+        --github-env .tmp/nova-release.env
+      set -a
+      . .tmp/nova-release.env
+      set +a
+      test -n "${NOVA_RELEASE_TAG:-}" && test -n "${NOVA_RELEASE_FILE:-}" && test -n "${NOVA_EXPECTED_SHA256:-}"
+      curl --fail --silent --show-error \
+        -H 'Accept: application/vnd.github+json' \
+        "https://api.github.com/repos/beaustwrt248-netizen/Buys-Mock/releases/tags/${NOVA_RELEASE_TAG}" \
+        -o .tmp/nova-release.json
+      python3 scripts/nova_release_asset_contract.py \
+        --release-json .tmp/nova-release.json \
+        --asset-name "$NOVA_RELEASE_FILE" \
+        --expected-sha256 "$NOVA_EXPECTED_SHA256"
+
+release:ota-version-policy:
+  stage: release-check
+  image: python:3.12-bookworm
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+  before_script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=100
+  script:
+    - |
+      set -euo pipefail
+      BASE_SHA="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}"
+      test -n "$BASE_SHA" || { echo 'CI_MERGE_REQUEST_DIFF_BASE_SHA is required'; exit 1; }
+      if git diff --quiet "$BASE_SHA...$CI_COMMIT_SHA" -- android/app; then
+        echo 'No android/app changes; Morley OTA version policy is not applicable.'
+        exit 0
+      fi
+      export BASE_SHA
+      python3 - <<'PY'
+      import json
+      import os
+      import re
+      import subprocess
+      from pathlib import Path
+
+      def parse_gradle(text, label):
+          code_match = re.search(r'\bversionCode\s+(\d+)', text)
+          name_match = re.search(r"\bversionName\s+['\"]([^'\"]+)['\"]", text)
+          if not code_match or not name_match:
+              raise SystemExit(f'Could not parse Android versionCode/versionName from {label}')
+          return int(code_match.group(1)), name_match.group(1).strip()
+
+      def semver(value):
+          match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)(?:[-+].*)?', value)
+          return tuple(map(int, match.groups())) if match else None
+
+      base_sha = os.environ['BASE_SHA'].strip()
+      head_gradle = Path('android/app/build.gradle').read_text(encoding='utf-8')
+      try:
+          base_gradle = subprocess.check_output(['git','show',f'{base_sha}:android/app/build.gradle'], text=True)
+      except subprocess.CalledProcessError as exc:
+          raise SystemExit('Could not read base Android release identity') from exc
+      source_code, source_name = parse_gradle(head_gradle, 'MR head')
+      base_code, base_name = parse_gradle(base_gradle, 'MR base')
+      manifest = json.loads(Path('ota/latest.json').read_text(encoding='utf-8'))
+      published_code = int(manifest.get('versionCode', 0))
+      published_name = str(manifest.get('versionName', '')).strip()
+      if source_code != base_code + 1:
+          raise SystemExit(f'head versionCode {source_code} must be exactly one above MR base {base_code}')
+      source_semver, base_semver = semver(source_name), semver(base_name)
+      if source_semver is None or base_semver is None or source_semver <= base_semver:
+          raise SystemExit(f'Morley Android versionName {source_name!r} must be newer than MR base {base_name!r}')
+      if source_code != published_code + 1:
+          raise SystemExit(f'source versionCode {source_code} must be exactly one above published OTA {published_code}')
+      published_semver = semver(published_name)
+      if published_semver is None or source_semver <= published_semver:
+          raise SystemExit(f'Morley Android versionName {source_name!r} must be newer than OTA {published_name!r}')
+      print(f'OTA policy PASSED: base {base_name} ({base_code}) -> head {source_name} ({source_code}); published {published_name} ({published_code})')
+      PY
+
+.pending-authenticated-release:
+  stage: release-check
+  image: alpine:3.20
+  when: manual
+  allow_failure: true
+  script:
+    - echo 'This publishing/deployment action remains disabled until GitLab import, protected variables, environments and release permissions are authenticated and verified.'
+    - exit 1
+
+release:admin-ota-feed-deploy:
+  extends: .pending-authenticated-release
+
+release:auto-ota:
+  extends: .pending-authenticated-release
+
+release:deploy-admin-pages:
+  extends: .pending-authenticated-release
+
+release:publish-2-12-0:
+  extends: .pending-authenticated-release

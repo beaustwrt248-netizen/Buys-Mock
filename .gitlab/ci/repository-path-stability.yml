@@ -1,0 +1,5 @@
+governance:repository-path-stability:
+  stage: test
+  image: node:20-bookworm
+  script:
+    - node scripts/ci/check-repository-path-stability.mjs

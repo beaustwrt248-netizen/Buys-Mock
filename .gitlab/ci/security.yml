@@ -1,0 +1,111 @@
+security:protected-boundaries:
+  stage: security
+  image: node:22-bookworm
+  script:
+    - node scripts/ci/assert-protected-boundaries.mjs
+
+security:audit:
+  stage: security
+  image: python:3.12-bookworm
+  script:
+    - python3 scripts/security_audit.py
+    - python3 scripts/test_auto_review_merge_security.py
+    - python3 scripts/privacy_audit.py
+
+security:android-permissions-guard:
+  stage: security
+  image: python:3.12-bookworm
+  script:
+    - python3 scripts/check_android_pr_permissions.py
+
+security:guardian-platform:
+  stage: security
+  image: node:22-bookworm
+  script:
+    - node --check admin/guardian-platform.js
+    - node --check admin/guardian-live.js
+    - node --check admin/guardian-domain-telemetry.js
+    - node tests/guardian-platform.test.cjs
+    - grep -q "Protected boundary detected" admin/guardian-platform.js
+    - grep -q "missing telemetry must not be reported healthy" tests/guardian-platform.test.cjs
+    - grep -qi "final merge remains human-controlled" admin/guardian-repairs.js
+    - grep -q "sensitive domains use authenticated aggregate endpoints" admin/guardian-domain-telemetry.js
+    - grep -q "\['admin','manager'\]" supabase/functions/guardian-sensitive-readiness/index.ts
+    - grep -q "raw_evidence_exposed:false" supabase/functions/guardian-sensitive-readiness/index.ts
+    - grep -q "raw_prices_exposed:false" supabase/functions/guardian-sensitive-readiness/index.ts
+    - grep -q "raw_user_backups_exposed:false" supabase/functions/guardian-sensitive-readiness/index.ts
+    - grep -q "authority_expansion:false" supabase/functions/guardian-sensitive-readiness/index.ts
+
+security:nova-pr-guard:
+  stage: security
+  image: python:3.12-bookworm
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^nova\//'
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=100
+    - git diff --name-only "$CI_MERGE_REQUEST_DIFF_BASE_SHA...$CI_COMMIT_SHA" > /tmp/nova-files.txt
+    - git diff --unified=0 "$CI_MERGE_REQUEST_DIFF_BASE_SHA...$CI_COMMIT_SHA" > /tmp/nova.diff
+    - |
+      python3 - <<'PY'
+      import re
+      from pathlib import Path
+      files=Path('/tmp/nova-files.txt').read_text().splitlines()
+      diff=Path('/tmp/nova.diff').read_text(errors='replace')
+      added='\n'.join(l[1:] for l in diff.splitlines() if l.startswith('+') and not l.startswith('+++'))
+      guarded=[]
+      critical=[]
+      guarded_path=re.compile(r'^supabase/(migrations|functions)/|^\.github/workflows/|^\.gitlab/|AndroidManifest\.xml$|build\.gradle$|auth|permission|role|pricing.*approval|guardian.*policy|security.*boundary', re.I)
+      critical_path=re.compile(r'(^|/)\.env($|\.)|credential|private[-_]?key|keystore|signing|\.(jks|keystore|p12|pfx|pem|key)$', re.I)
+      for f in files:
+          if guarded_path.search(f): guarded.append(f)
+          if critical_path.search(f): critical.append(f)
+      critical_patterns=[
+          r'\bdisable\s+row\s+level\s+security\b',
+          r'\bgrant\s+all\b.*\b(to|role)\s+(anon|authenticated|public)\b',
+          r'\bservice[_-]?role\b',
+          r'\bdrop\s+(table|schema|database)\b',
+          r'\btruncate\b',
+          r'authority_expansion\s*[:=]\s*true',
+          r'raw_(evidence|prices|user_backups)_exposed\s*[:=]\s*true',
+      ]
+      for p in critical_patterns:
+          if re.search(p, added, re.I|re.M): critical.append('diff:'+p)
+      if critical:
+          print('Nova touched a critical trust, credential/signing, or destructive-production boundary:')
+          print('\n'.join(critical))
+          raise SystemExit(1)
+      print('Nova change is non-critical; required security/quality/parity checks remain authoritative.')
+      PY
+
+security:android-pr-readonly:
+  stage: security
+  tags:
+    - morley-android
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - java -version
+    - gradle --version
+    - test -n "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+    - python3 scripts/release_audit.py
+    - |
+      if [ -n "${FIREBASE_GOOGLE_SERVICES_JSON:-}" ]; then
+        printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+      else
+        cat > android/app/google-services.json <<'JSON'
+      {
+        "project_info":{"project_number":"123456789012","project_id":"morley-ci-placeholder","storage_bucket":"morley-ci-placeholder.appspot.com"},
+        "client":[{"client_info":{"mobilesdk_app_id":"1:123456789012:android:0000000000000000","android_client_info":{"package_name":"com.buysloans.hub"}},"api_key":[{"current_key":"AIzaSyMorleyCiPlaceholderKey000000000"}]}],
+        "configuration_version":"1"
+      }
+      JSON
+      fi
+    - python3 -m json.tool android/app/google-services.json >/dev/null
+    - gradle -p android testDebugUnitTest --stacktrace --console=plain
+    - gradle -p android lintDebug --stacktrace --console=plain
+    - gradle -p android assembleDebug --stacktrace --console=plain
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - android/app/build/outputs/apk/debug/*.apk

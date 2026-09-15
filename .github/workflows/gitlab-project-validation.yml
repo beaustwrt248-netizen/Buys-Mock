@@ -1,0 +1,140 @@
+name: GitLab Project Protection Audit
+
+on:
+  push:
+    branches:
+      - migration/gitlab-staged-20260914
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit GitLab protections without exposing values
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLAB_PROJECT_PATH: beaustwrt248-netizen/Buys-Mock
+      GITLAB_AUDIT_TOKEN: ${{ secrets.GITLAB_AUDIT_TOKEN }}
+    steps:
+      - name: Checkout migration revision
+        uses: actions/checkout@v4
+
+      - name: Require read-only GitLab audit credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITLAB_AUDIT_TOKEN:-}" || { echo 'GITLAB_AUDIT_TOKEN is not configured'; exit 1; }
+
+      - name: Capture sanitized GitLab protection metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_id="$(python3 - <<'PY'
+          import os, urllib.parse
+          print(urllib.parse.quote(os.environ['GITLAB_PROJECT_PATH'], safe=''))
+          PY
+          )"
+          api="https://gitlab.com/api/v4/projects/${project_id}"
+          auth_header="PRIVATE-TOKEN: ${GITLAB_AUDIT_TOKEN}"
+
+          branches_code="$(curl --silent --show-error --output /tmp/protected-branches.json --write-out '%{http_code}' --header "$auth_header" "$api/protected_branches?per_page=100")"
+          tags_code="$(curl --silent --show-error --output /tmp/protected-tags.json --write-out '%{http_code}' --header "$auth_header" "$api/protected_tags?per_page=100")"
+          variables_code="$(curl --silent --show-error --header "$auth_header" "$api/variables?per_page=100" --write-out '\n%{http_code}' | python3 -c 'import json,sys; lines=sys.stdin.read().splitlines(); code=lines[-1] if lines else "000"; body="\n".join(lines[:-1]); data=json.loads(body) if code == "200" and body else []; sanitized=[{k:item.get(k) for k in ("key","protected","masked","hidden","environment_scope","variable_type")} for item in data]; open("/tmp/variables-sanitized.json","w",encoding="utf-8").write(json.dumps(sanitized)); print(code)')"
+
+          BRANCHES_CODE="$branches_code" TAGS_CODE="$tags_code" VARIABLES_CODE="$variables_code" python3 - <<'PY'
+          import fnmatch, json, os, sys
+          from pathlib import Path
+
+          def load(path, code):
+              if code != '200':
+                  return []
+              try:
+                  return json.loads(Path(path).read_text(encoding='utf-8'))
+              except Exception:
+                  return []
+
+          branch_code=os.environ['BRANCHES_CODE']
+          tag_code=os.environ['TAGS_CODE']
+          variable_code=os.environ['VARIABLES_CODE']
+          branches=load('/tmp/protected-branches.json', branch_code)
+          tags=load('/tmp/protected-tags.json', tag_code)
+          variables=load('/tmp/variables-sanitized.json', variable_code)
+
+          def patterns_cover(patterns, ref):
+              return any(fnmatch.fnmatchcase(ref, p) for p in patterns)
+
+          branch_patterns=[str(item.get('name','')) for item in branches]
+          tag_patterns=[str(item.get('name','')) for item in tags]
+          main_protected=patterns_cover(branch_patterns, 'main')
+          release_samples=['v2.15.102','admin-v0.1.42','nova-v0.3.27']
+          release_tags_protected=all(patterns_cover(tag_patterns, sample) for sample in release_samples)
+
+          required=['BL_KEYSTORE_BASE64','BL_KEYSTORE_PASSWORD','BL_KEY_ALIAS','FIREBASE_GOOGLE_SERVICES_JSON']
+          by_key={str(item.get('key','')): item for item in variables}
+          missing=[key for key in required if key not in by_key]
+          unsafe=[key for key in required if key in by_key and not (bool(by_key[key].get('protected')) and bool(by_key[key].get('masked')))]
+
+          sanitized_branches=[]
+          for item in branches:
+              sanitized_branches.append({
+                  'name': item.get('name'),
+                  'allow_force_push': bool(item.get('allow_force_push', False)),
+                  'push_access': [x.get('access_level_description') for x in item.get('push_access_levels', [])],
+                  'merge_access': [x.get('access_level_description') for x in item.get('merge_access_levels', [])],
+              })
+          sanitized_tags=[]
+          for item in tags:
+              sanitized_tags.append({
+                  'name': item.get('name'),
+                  'create_access': [x.get('access_level_description') for x in item.get('create_access_levels', [])],
+              })
+
+          evidence={
+              'sha': os.environ.get('GITHUB_SHA',''),
+              'api_status': {'protected_branches': branch_code, 'protected_tags': tag_code, 'variables': variable_code},
+              'protected_branches': sanitized_branches,
+              'protected_tags': sanitized_tags,
+              'variables': variables,
+              'checks': {
+                  'main_protected': main_protected,
+                  'release_tags_protected': release_tags_protected,
+                  'required_variables_present': not missing,
+                  'required_variables_masked_and_protected': not unsafe and not missing,
+                  'missing_required_variables': missing,
+                  'unsafe_required_variables': unsafe,
+              },
+          }
+          Path('gitlab-project-protection-evidence.json').write_text(json.dumps(evidence, indent=2, sort_keys=True)+'\n', encoding='utf-8')
+          print(f"GitLab protection audit: main_protected={main_protected} release_tags_protected={release_tags_protected} required_variables_present={not missing} required_variables_safe={not unsafe and not missing}")
+
+          if any(code != '200' for code in (branch_code, tag_code, variable_code)):
+              print('One or more GitLab metadata endpoints were not readable with GITLAB_AUDIT_TOKEN.', file=sys.stderr)
+              sys.exit(2)
+          if not main_protected:
+              print('GitLab main is not protected by an exact or wildcard protected-branch rule.', file=sys.stderr)
+              sys.exit(3)
+          if not release_tags_protected:
+              print('GitLab release tag families are not fully covered by protected-tag rules.', file=sys.stderr)
+              sys.exit(4)
+          if missing or unsafe:
+              print(f"Required GitLab CI variable metadata is incomplete or unsafe; missing={','.join(missing) or 'none'} unsafe={','.join(unsafe) or 'none'}", file=sys.stderr)
+              sys.exit(5)
+          PY
+
+          rm -f /tmp/protected-branches.json /tmp/protected-tags.json /tmp/variables-sanitized.json
+
+      - name: Remove transient sanitized inputs
+        if: always()
+        shell: bash
+        run: rm -f /tmp/protected-branches.json /tmp/protected-tags.json /tmp/variables-sanitized.json
+
+      - name: Upload sanitized GitLab protection evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-project-protection-evidence-${{ github.sha }}
+          path: gitlab-project-protection-evidence.json
+          if-no-files-found: warn
+          retention-days: 14

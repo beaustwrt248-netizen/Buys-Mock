@@ -1,0 +1,101 @@
+name: GitLab Main Fast-Forward Sync
+
+on:
+  push:
+    branches:
+      - migration/gitlab-staged-20260914
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitlab-main-fast-forward-sync
+  cancel-in-progress: true
+
+jobs:
+  fast-forward:
+    name: Fast-forward GitLab main to verified GitHub main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLAB_PROJECT_URL: https://gitlab.com/beaustwrt248-netizen/Buys-Mock.git
+      GITLAB_MIGRATION_TOKEN: ${{ secrets.GITLAB_MIGRATION_TOKEN }}
+    steps:
+      - name: Checkout complete GitHub history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require migration credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITLAB_MIGRATION_TOKEN:-}" || { echo 'GITLAB_MIGRATION_TOKEN is not configured'; exit 1; }
+
+      - name: Configure temporary GitLab credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$HOME/.netrc" <<EOF
+          machine gitlab.com
+            login oauth2
+            password ${GITLAB_MIGRATION_TOKEN}
+          EOF
+          chmod 600 "$HOME/.netrc"
+
+      - name: Prove and fast-forward GitLab main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote remove gitlab 2>/dev/null || true
+          git remote add gitlab "$GITLAB_PROJECT_URL"
+          git fetch origin main --force
+
+          github_main="$(git rev-parse origin/main)"
+          gitlab_main_before="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+          test -n "$gitlab_main_before" || { echo 'GitLab main was not found'; exit 1; }
+
+          if [[ "$gitlab_main_before" == "$github_main" ]]; then
+            echo "GitLab main already matches GitHub main: $github_main"
+            exit 0
+          fi
+
+          if ! git cat-file -e "${gitlab_main_before}^{commit}" 2>/dev/null; then
+            git fetch origin "$gitlab_main_before" --depth=1 || true
+          fi
+          if ! git cat-file -e "${gitlab_main_before}^{commit}" 2>/dev/null; then
+            echo "GitLab main commit is not present in GitHub history; refusing to update."
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$gitlab_main_before" "$github_main"; then
+            echo "GitLab main is not an ancestor of GitHub main; refusing any rewrite."
+            echo "GitHub main: $github_main"
+            echo "GitLab main: $gitlab_main_before"
+            exit 1
+          fi
+
+          current_remote="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+          if [[ "$current_remote" != "$gitlab_main_before" ]]; then
+            echo "GitLab main changed during verification; refusing stale update."
+            exit 1
+          fi
+
+          echo "Verified fast-forward: $gitlab_main_before -> $github_main"
+          git push gitlab "$github_main:refs/heads/main"
+
+          gitlab_main_after="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+          if [[ "$gitlab_main_after" != "$github_main" ]]; then
+            echo "GitLab main did not reach the expected GitHub main SHA."
+            echo "Expected: $github_main"
+            echo "Actual: $gitlab_main_after"
+            exit 1
+          fi
+          echo "GitLab main fast-forward verified at $gitlab_main_after."
+
+      - name: Remove temporary GitLab credential
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.netrc"

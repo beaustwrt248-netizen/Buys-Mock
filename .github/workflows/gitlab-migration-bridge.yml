@@ -1,0 +1,311 @@
+name: GitLab Migration Bridge
+
+on:
+  push:
+    branches:
+      - migration/gitlab-staged-20260914
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitlab-migration-bridge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-and-observe:
+    name: Sync migration branch and observe GitLab pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      GITLAB_PROJECT_PATH: beaustwrt248-netizen/Buys-Mock
+      GITLAB_PROJECT_URL: https://gitlab.com/beaustwrt248-netizen/Buys-Mock.git
+      GITLAB_MIGRATION_TOKEN: ${{ secrets.GITLAB_MIGRATION_TOKEN }}
+    steps:
+      - name: Checkout exact GitHub revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require migration token without exposing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${GITLAB_MIGRATION_TOKEN:-}" ]]; then
+            echo "GITLAB_MIGRATION_TOKEN is not configured in GitHub Actions secrets."
+            exit 1
+          fi
+          echo "GitLab migration credential is configured."
+
+      - name: Configure temporary GitLab credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$HOME/.netrc" <<EOF
+          machine gitlab.com
+            login oauth2
+            password ${GITLAB_MIGRATION_TOKEN}
+          EOF
+          chmod 600 "$HOME/.netrc"
+
+      - name: Verify imported refs before changing anything
+        id: refs_before
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote remove gitlab 2>/dev/null || true
+          git remote add gitlab "$GITLAB_PROJECT_URL"
+          git fetch origin main --tags --force
+
+          github_main="$(git rev-parse origin/main)"
+          gitlab_main=""
+          for attempt in {1..12}; do
+            gitlab_main="$(git ls-remote gitlab refs/heads/main | awk '{print $1}')"
+            if [[ -n "$gitlab_main" && "$github_main" == "$gitlab_main" ]]; then
+              break
+            fi
+            echo "Waiting for GitLab main to converge to GitHub main (attempt $attempt/12)..."
+            sleep 5
+          done
+          gitlab_migration="$(git ls-remote gitlab refs/heads/${GITHUB_REF_NAME} | awk '{print $1}')"
+
+          if [[ -z "$gitlab_main" ]]; then
+            echo "GitLab main branch was not found."
+            exit 1
+          fi
+
+          echo "github_main=$github_main" >> "$GITHUB_OUTPUT"
+          echo "gitlab_main=$gitlab_main" >> "$GITHUB_OUTPUT"
+          echo "gitlab_migration_before=$gitlab_migration" >> "$GITHUB_OUTPUT"
+
+          if [[ "$github_main" != "$gitlab_main" ]]; then
+            echo "GitLab main does not match GitHub main after the bounded convergence wait; leaving both untouched."
+            echo "GitHub main: $github_main"
+            echo "GitLab main: $gitlab_main"
+            exit 1
+          else
+            echo "GitLab main matches GitHub main."
+          fi
+
+      - name: Sync only the migration branch to GitLab
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" != "migration/gitlab-staged-20260914" ]]; then
+            echo "Refusing to push unexpected branch: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
+          git push gitlab "HEAD:refs/heads/${GITHUB_REF_NAME}"
+
+          remote_sha="$(git ls-remote gitlab refs/heads/${GITHUB_REF_NAME} | awk '{print $1}')"
+          if [[ "$remote_sha" != "$GITHUB_SHA" ]]; then
+            echo "GitLab migration branch SHA mismatch after push."
+            echo "GitHub SHA: $GITHUB_SHA"
+            echo "GitLab SHA: $remote_sha"
+            exit 1
+          fi
+          echo "GitLab migration branch now matches $GITHUB_SHA."
+
+      - name: Sync missing tags without overwriting existing tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-remote --tags gitlab > /tmp/gitlab-tags-before.txt
+          declare -A remote_tags=()
+          while read -r sha ref; do
+            [[ -n "${sha:-}" && -n "${ref:-}" ]] || continue
+            [[ "$ref" == refs/tags/* ]] || continue
+            [[ "$ref" == *'^{}' ]] && continue
+            tag="${ref#refs/tags/}"
+            remote_tags["$tag"]="$sha"
+          done < /tmp/gitlab-tags-before.txt
+
+          while IFS= read -r tag; do
+            [[ -n "$tag" ]] || continue
+            local_sha="$(git rev-parse "refs/tags/$tag")"
+            remote_sha="${remote_tags[$tag]:-}"
+
+            if [[ -z "$remote_sha" ]]; then
+              echo "Creating missing GitLab tag $tag at $local_sha."
+              git push gitlab "refs/tags/$tag:refs/tags/$tag"
+              remote_tags["$tag"]="$local_sha"
+              continue
+            fi
+
+            if [[ "$remote_sha" != "$local_sha" ]]; then
+              echo "Refusing conflicting GitLab tag $tag."
+              echo "GitHub tag object: $local_sha"
+              echo "GitLab tag object: $remote_sha"
+              exit 1
+            fi
+          done < <(git for-each-ref --format='%(refname:strip=2)' refs/tags | sort)
+          rm -f /tmp/gitlab-tags-before.txt
+
+      - name: Verify tag coverage after create-only synchronization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-remote --tags origin | sed 's#refs/tags/##' | sort > /tmp/github-tags.txt
+          git ls-remote --tags gitlab | sed 's#refs/tags/##' | sort > /tmp/gitlab-tags.txt
+
+          if ! diff -u /tmp/github-tags.txt /tmp/gitlab-tags.txt > /tmp/tag-diff.txt; then
+            echo "GitLab tag refs still differ from GitHub after create-only synchronization."
+            cat /tmp/tag-diff.txt
+            exit 1
+          fi
+          echo "GitLab tag refs match GitHub."
+
+      - name: Wait for same-SHA GitLab pipeline and capture jobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_id="$(python3 - <<'PY'
+          import os, urllib.parse
+          print(urllib.parse.quote(os.environ['GITLAB_PROJECT_PATH'], safe=''))
+          PY
+          )"
+          api="https://gitlab.com/api/v4/projects/${project_id}"
+          auth_header="PRIVATE-TOKEN: ${GITLAB_MIGRATION_TOKEN}"
+          jobs_file="$RUNNER_TEMP/gitlab-pipeline-jobs.json"
+          traces_file="gitlab-failed-job-traces.txt"
+
+          normalize_jobs() {
+            local pipeline_id="$1"
+            local pipeline_status="$2"
+            local jobs_file="$3"
+            PIPELINE_ID="$pipeline_id" PIPELINE_STATUS="$pipeline_status" JOBS_FILE="$jobs_file" python3 - <<'PY'
+          import json, os
+
+          jobs = json.load(open(os.environ['JOBS_FILE'], encoding='utf-8'))
+          normalized = {
+              'sha': os.environ['GITHUB_SHA'],
+              'pipeline_id': int(os.environ['PIPELINE_ID']),
+              'pipeline_status': os.environ['PIPELINE_STATUS'],
+              'jobs': [
+                  {
+                      'id': item.get('id'),
+                      'name': item.get('name', ''),
+                      'status': item.get('status', ''),
+                      'failure_reason': item.get('failure_reason', ''),
+                      'stage': item.get('stage', ''),
+                      'tags': item.get('tag_list', []),
+                      'artifacts': [item.get('artifacts_file', {}).get('filename')] if item.get('artifacts_file', {}).get('filename') else [],
+                  }
+                  for item in jobs
+              ],
+          }
+          with open('gitlab-pipeline-result.json', 'w', encoding='utf-8') as fh:
+              json.dump(normalized, fh, indent=2, sort_keys=True)
+              fh.write('\n')
+          PY
+          }
+
+          capture_failed_traces() {
+            : > "$traces_file"
+            python3 - "$jobs_file" <<'PY' > "$RUNNER_TEMP/gitlab-failed-job-ids.txt"
+          import json, sys
+          jobs=json.load(open(sys.argv[1], encoding='utf-8'))
+          for job in jobs:
+              if job.get('status') == 'failed' and job.get('id') is not None:
+                  print(f"{job['id']}\t{job.get('name','')}\t{job.get('failure_reason','')}")
+          PY
+            local captured=0
+            while IFS=$'\t' read -r job_id job_name failure_reason; do
+              [[ -n "${job_id:-}" ]] || continue
+              {
+                printf '===== job %s (%s) failure_reason=%s =====\n' "$job_name" "$job_id" "$failure_reason"
+                curl --fail --silent --show-error --header "$auth_header" "$api/jobs/$job_id/trace" | tail -c 12000 || true
+                printf '\n===== end job %s =====\n\n' "$job_name"
+              } >> "$traces_file"
+              captured=$((captured + 1))
+              [[ "$captured" -ge 6 ]] && break
+            done < "$RUNNER_TEMP/gitlab-failed-job-ids.txt"
+            head -c 12000 "$traces_file" > "${traces_file}.bounded"
+            mv "${traces_file}.bounded" "$traces_file"
+          }
+
+          pipeline_id=""
+          for attempt in $(seq 1 30); do
+            response="$(curl --fail --silent --show-error --header "$auth_header" --get --data-urlencode "sha=$GITHUB_SHA" --data-urlencode "ref=$GITHUB_REF_NAME" "$api/pipelines?per_page=20")"
+            pipeline_id="$(python3 -c 'import json,sys; data=json.load(sys.stdin); print(data[0]["id"] if data else "")' <<< "$response")"
+            if [[ -n "$pipeline_id" ]]; then break; fi
+            echo "Waiting for GitLab pipeline for $GITHUB_SHA (attempt $attempt/30)..."
+            sleep 10
+          done
+
+          if [[ -z "$pipeline_id" ]]; then
+            echo "No GitLab pipeline appeared for the synchronized SHA."
+            exit 1
+          fi
+
+          echo "Found GitLab pipeline $pipeline_id for $GITHUB_SHA."
+          final_status=""
+          printf '[]\n' > "$jobs_file"
+          pending_tagged_polls=0
+          for attempt in $(seq 1 90); do
+            pipeline="$(curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id")"
+            status="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' <<< "$pipeline")"
+            curl --fail --silent --show-error --header "$auth_header" "$api/pipelines/$pipeline_id/jobs?per_page=100" > "$jobs_file"
+
+            detector="$(PENDING_TAGGED_POLLS="$pending_tagged_polls" PENDING_TAGGED_THRESHOLD=8 node scripts/ci/detect-gitlab-runner-block.mjs < "$jobs_file")"
+            pending_tagged_polls="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["nextPendingTaggedPolls"])' <<< "$detector")"
+            blocked="$(python3 -c 'import json,sys; print("true" if json.load(sys.stdin)["blocked"] else "false")' <<< "$detector")"
+            if [[ "$blocked" == "true" ]]; then
+              normalize_jobs "$pipeline_id" "blocked_runner" "$jobs_file"
+              echo "GitLab pipeline is blocked waiting for tagged runner capacity."
+              DETECTOR_JSON="$detector" python3 - <<'PY'
+          import json, os
+          data = json.loads(os.environ['DETECTOR_JSON'])
+          for job in data['blockedJobs']:
+              print(f"{job['name']}: tags={','.join(job['tags'])}")
+          PY
+              exit 1
+            fi
+
+            case "$status" in
+              success|failed|canceled|skipped|manual)
+                final_status="$status"
+                break
+                ;;
+            esac
+            echo "GitLab pipeline status: $status (poll $attempt/90; pending tagged polls: $pending_tagged_polls/8)"
+            sleep 30
+          done
+
+          if [[ -z "$final_status" ]]; then
+            normalize_jobs "$pipeline_id" "timeout" "$jobs_file"
+            echo "Timed out waiting for GitLab pipeline $pipeline_id."
+            exit 1
+          fi
+
+          normalize_jobs "$pipeline_id" "$final_status" "$jobs_file"
+          echo "GitLab pipeline completed with status: $final_status"
+          if [[ "$final_status" != "success" ]]; then
+            capture_failed_traces
+            python3 - <<'PY'
+          import json
+          data=json.load(open('gitlab-pipeline-result.json', encoding='utf-8'))
+          for job in data['jobs']:
+              if job['status'] not in ('success','skipped'):
+                  print(f"{job['name']}: {job['status']} ({job.get('failure_reason','')})")
+          PY
+            exit 1
+          fi
+
+      - name: Upload GitLab pipeline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-pipeline-evidence-${{ github.sha }}
+          path: |
+            gitlab-pipeline-result.json
+            gitlab-failed-job-traces.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove temporary GitLab credential
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.netrc"
