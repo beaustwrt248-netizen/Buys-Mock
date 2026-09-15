@@ -53,7 +53,7 @@ assert.match(gradle, /NOVA_OTA_MANIFEST_URL/);
 assert.match(gradle, /NOVA_OTA_CHANNEL/);
 
 const serviceWorker = read('service-worker.js');
-assert.match(serviceWorker, /nova-next-shell-v4/);
+assert.match(serviceWorker, /nova-next-shell-v5/);
 assert.match(serviceWorker, /NOVA_WEB_UPDATE_READY/);
 assert.match(completionUi, /NOVA_WEB_UPDATE_READY/);
 
