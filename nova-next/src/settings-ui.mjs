@@ -85,6 +85,15 @@ export function createSettingsUi({ preferences, documentObj = globalThis.documen
     showSheet('Notifications', body);
   }
 
+  function checkForUpdates() {
+    const userAgent = String(globalThis.navigator?.userAgent || '');
+    if (!userAgent.includes('NovaNextAndroid/')) {
+      onToast('OTA app updates are available in Nova Next for Android.');
+      return;
+    }
+    globalThis.location.href = 'novanext://check-updates';
+  }
+
   function bindAction(action, handler) {
     const button = documentObj.querySelector(`[data-action="${action}"]`);
     if (!button) return;
@@ -102,7 +111,8 @@ export function createSettingsUi({ preferences, documentObj = globalThis.documen
     bindAction('settings-account', openAccount);
     bindAction('settings-appearance', openAppearance);
     bindAction('settings-notifications', openNotifications);
+    bindAction('check-updates', checkForUpdates);
   }
 
-  return Object.freeze({ bind, openAccount, openAppearance, openNotifications, applyAppearance });
+  return Object.freeze({ bind, openAccount, openAppearance, openNotifications, checkForUpdates, applyAppearance });
 }
