@@ -244,6 +244,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # A release tag is immutable provenance. If it already exists, it must
+          # resolve to this exact release source before we refuse identity reuse.
+          NOVA_NEXT_TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$NOVA_NEXT_RELEASE_TAG" --jq .sha 2>/dev/null || true)"
+          if [ -n "$NOVA_NEXT_TAG_SHA" ] && [ "$NOVA_NEXT_TAG_SHA" != "$GITHUB_SHA" ]; then
+            echo "Refusing Nova Next release: tag $NOVA_NEXT_RELEASE_TAG resolves to $NOVA_NEXT_TAG_SHA and does not match source $GITHUB_SHA." >&2
+            exit 1
+          fi
+
           if gh release view "$NOVA_NEXT_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Nova Next release tag $NOVA_NEXT_RELEASE_TAG already exists; refusing version identity reuse." >&2
             exit 1
@@ -256,6 +265,11 @@ jobs:
             --title "Nova Next ${NOVA_NEXT_VERSION_NAME}" \
             --notes "Verified Nova Next Android OTA release. Built from ${GITHUB_SHA}; tests, lint, stable signer verification, package identity checks and SHA-256 integrity verification passed." \
             --latest=false
+
+          # Verify provenance after publication as well, before OTA metadata can
+          # be staged for protected promotion.
+          NOVA_NEXT_TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$NOVA_NEXT_RELEASE_TAG" --jq .sha)"
+          test "$NOVA_NEXT_TAG_SHA" = "$GITHUB_SHA" || { echo "Nova Next release tag $NOVA_NEXT_RELEASE_TAG does not match source $GITHUB_SHA" >&2; exit 1; }
 
       - name: Stage guarded Nova Next OTA metadata
         shell: bash
