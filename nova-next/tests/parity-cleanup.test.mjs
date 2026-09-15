@@ -29,5 +29,6 @@ test('remaining Settings rows are explicit staged actions instead of dead button
     assert.ok(html.includes(`data-action="${action}"`), action);
     assert.ok(app.includes(`action === '${action}'`), action);
   }
-  assert.ok(app.includes('not connected in Nova Next yet'));
+  assert.ok(app.includes('Settings control is temporarily unavailable. Reopen Settings and try again.'));
+  assert.equal(app.includes('not connected in Nova Next yet'), false);
 });
