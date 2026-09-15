@@ -13,6 +13,22 @@ function value(value, fallback = '—') {
   return value === null || value === undefined || value === '' ? fallback : String(value);
 }
 
+const FEATURE_ROUTE_TIMEOUT_MS = 8000;
+
+function withRouteDeadline(promise, timeoutMs = FEATURE_ROUTE_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const error = new Error('FEATURE_ROUTE_TIMEOUT');
+      error.code = 'FEATURE_ROUTE_TIMEOUT';
+      reject(error);
+    }, timeoutMs);
+    Promise.resolve(promise).then(
+      result => { clearTimeout(timer); resolve(result); },
+      error => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
 function fileToDataUrl(file, windowObj) {
   return new Promise((resolve, reject) => {
     const reader = new windowObj.FileReader();
@@ -28,6 +44,7 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
   let bound = false;
   let knowledgeLoaded = false;
   let controlLoaded = false;
+  let routeGeneration = 0;
 
   function showSheet(title, contentNode) {
     documentObj.querySelector('.feature-sheet-backdrop')?.remove();
@@ -124,10 +141,7 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
       submit.textContent = 'Analysing…';
       clear(result);
       try {
-        const response = await featureRuntime.proposeCode({
-          diagnostic: diagnostic.value,
-          candidateFiles: files.value.split(',').map(x => x.trim()).filter(Boolean)
-        });
+        const response = await featureRuntime.proposeCode({ diagnostic: diagnostic.value, candidateFiles: files.value.split(',').map(x => x.trim()).filter(Boolean) });
         const proposal = response?.proposal || {};
         result.append(el(documentObj, 'h3', '', 'Proposal summary'), el(documentObj, 'p', '', value(proposal.summary, 'No proposal returned.')));
         const changes = Array.isArray(proposal.changes) ? proposal.changes : [];
@@ -195,15 +209,18 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     page.append(search, results, el(documentObj, 'p', 'feature-boundary', 'This screen exposes read-only knowledge actions. Create, update, archive, restore and delete actions are not available to this client.'));
   }
 
-  async function loadKnowledge() {
+  async function loadKnowledge(generation = routeGeneration) {
     if (knowledgeLoaded) return;
     const page = documentObj.querySelector('.page[data-route="knowledge"]');
     if (!page) return;
     knowledgeLoaded = true;
     try {
-      renderKnowledge(await featureRuntime.knowledgeSummary());
+      const data = await withRouteDeadline(featureRuntime.knowledgeSummary());
+      if (generation !== routeGeneration) { knowledgeLoaded = false; return; }
+      renderKnowledge(data);
     } catch (error) {
       knowledgeLoaded = false;
+      if (generation !== routeGeneration) return;
       clear(page);
       page.append(el(documentObj, 'div', 'placeholder', 'Knowledge is temporarily unavailable.'));
       onError(error);
@@ -216,8 +233,8 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     return card;
   }
 
-  async function loadControlCentre() {
-    if (controlLoaded) return;
+  async function loadControlCentre(generation = routeGeneration, force = false) {
+    if (controlLoaded && !force) return;
     const page = documentObj.querySelector('.page[data-route="more"]');
     if (!page) return;
     controlLoaded = true;
@@ -228,7 +245,8 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     head.append(copy);
     page.append(head, el(documentObj, 'p', 'muted', 'Loading current Nova health…'));
     try {
-      const data = await featureRuntime.controlCentre();
+      const data = await withRouteDeadline(featureRuntime.controlCentre());
+      if (generation !== routeGeneration) { controlLoaded = false; return; }
       clear(page);
       page.append(head);
       const grid = el(documentObj, 'div', 'feature-status-grid');
@@ -245,7 +263,13 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
       page.append(grid, el(documentObj, 'p', 'feature-boundary', 'Guardian repair execution, approvals, deployment, release, OTA, pricing authority and user/role changes are intentionally absent from this client.'));
     } catch (error) {
       controlLoaded = false;
-      page.append(el(documentObj, 'p', 'live-status error', 'Control Centre data is unavailable.'));
+      if (generation !== routeGeneration) return;
+      clear(page);
+      page.append(head, el(documentObj, 'p', 'live-status error', 'Control Centre data is unavailable.'));
+      const retry = el(documentObj, 'button', 'primary-button', 'Retry Control Centre');
+      retry.type = 'button';
+      retry.addEventListener('click', () => loadControlCentre(routeGeneration, true));
+      page.append(retry);
       onError(error);
     }
   }
@@ -253,13 +277,10 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
   function prefillChat(prompt) {
     onNavigate('chat');
     const input = documentObj.getElementById('novaNextChatInput');
-    if (input) {
-      input.value = prompt;
-      input.focus();
-    }
+    if (input) { input.value = prompt; input.focus(); }
   }
 
-  async function renderHelp() {
+  async function renderHelp(generation = routeGeneration) {
     const page = documentObj.querySelector('.page[data-route="help"]');
     if (!page) return;
     clear(page);
@@ -267,15 +288,20 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
     const copy = el(documentObj, 'div');
     copy.append(el(documentObj, 'h1', '', 'Help & Support'), el(documentObj, 'p', '', 'Diagnostics and safe support shortcuts'));
     head.append(copy);
-    page.append(head);
+    const loading = el(documentObj, 'p', 'muted', 'Loading support diagnostics…');
+    page.append(head, loading);
 
-    const grid = el(documentObj, 'div', 'feature-status-grid');
     let integrations = [];
+    let diagnosticsError = null;
     try {
-      integrations = await featureRuntime.integrationStatus();
+      integrations = await withRouteDeadline(featureRuntime.integrationStatus());
     } catch (error) {
+      diagnosticsError = error;
       onError(error);
     }
+    if (generation !== routeGeneration) return;
+    loading.remove();
+    const grid = el(documentObj, 'div', 'feature-status-grid');
     const session = integrations.find(item => item.id === 'nova_session');
     const github = integrations.find(item => item.id === 'github_broker');
     grid.append(
@@ -285,7 +311,12 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
       statusCard('Files', 'Session-only', 'Selected files remain local unless you explicitly send supported content to Vision or Chat.')
     );
     page.append(grid);
-
+    if (diagnosticsError) {
+      const retry = el(documentObj, 'button', 'secondary-button', 'Retry diagnostics');
+      retry.type = 'button';
+      retry.addEventListener('click', () => renderHelp(routeGeneration));
+      page.append(retry);
+    }
     const actions = el(documentObj, 'div', 'workspace-actions');
     for (const [label, route] of [['Open Integrations','integrations'],['Open Automation','automation'],['Open Control Centre','more']]) {
       const button = el(documentObj, 'button', route === 'more' ? 'primary-button' : 'secondary-button', label);
@@ -308,7 +339,7 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
         if (name === 'Document Assistant') return prefillChat('Help me analyse and summarise a document. I will provide the content or file context.');
         if (name === 'Translate') return prefillChat('Translate the following text, preserving meaning and tone: ');
         if (name === 'Idea Generator') return prefillChat('Help me brainstorm practical ideas for: ');
-        if (name === 'Data Analysis') { onNavigate('more'); return loadControlCentre(); }
+        if (name === 'Data Analysis') { onNavigate('more'); return loadControlCentre(routeGeneration); }
         onToast(`${name || 'This tool'} is staged, but its dedicated live adapter is not connected yet.`);
       });
     }
@@ -321,9 +352,10 @@ export function createFeatureUi({ featureRuntime, documentObj = globalThis.docum
   }
 
   async function routeChanged(route) {
-    if (route === 'knowledge') await loadKnowledge();
-    if (route === 'more') await loadControlCentre();
-    if (route === 'help') await renderHelp();
+    const generation = ++routeGeneration;
+    if (route === 'knowledge') await loadKnowledge(generation);
+    if (route === 'more') await loadControlCentre(generation);
+    if (route === 'help') await renderHelp(generation);
   }
 
   return Object.freeze({ bind, routeChanged, loadKnowledge, loadControlCentre, pickImages, openCodeProposal, renderVision, renderHelp });
