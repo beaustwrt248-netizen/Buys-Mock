@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
-const marketSearch = await readFile(new URL('../supabase/functions/market-search-v2/index.ts', import.meta.url), 'utf8');
+const functionDir = new URL('../supabase/functions/', import.meta.url);
+const functionNames = await readdir(functionDir);
+const marketFunctionName = functionNames.find((name) => name.startsWith('market-search-v'));
+assert.ok(marketFunctionName, 'market search function must exist');
+const marketSearch = await readFile(new URL(`${marketFunctionName}/index.ts`, functionDir), 'utf8');
 const laptopGuided = await readFile(new URL('../android/app/src/main/java/com/buysloans/hub/LaptopGuidedScreen.kt', import.meta.url), 'utf8');
 
 const excludedSource = String.fromCharCode(103, 117, 109, 116, 114, 101, 101);
