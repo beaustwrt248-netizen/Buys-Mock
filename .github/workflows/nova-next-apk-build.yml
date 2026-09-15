@@ -231,6 +231,7 @@ jobs:
             "dist/${NOVA_NEXT_RELEASE_FILE}" \
             "dist/${NOVA_NEXT_RELEASE_FILE}.sha256" \
             --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
             --title "Nova Next ${NOVA_NEXT_VERSION_NAME}" \
             --notes "Verified Nova Next Android OTA release. Built from ${GITHUB_SHA}; tests, lint, stable signer verification, package identity checks and SHA-256 integrity verification passed." \
             --latest=false
