@@ -114,6 +114,14 @@ jobs:
           SHA="$(sha256sum "$APK" | awk '{print $1}')"
           [[ "$SHA" =~ ^[0-9a-f]{64}$ ]]
 
+          # A version tag is immutable provenance, not just a convenient release name.
+          # If it already exists, it must resolve to the exact green source commit.
+          TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha 2>/dev/null || true)"
+          if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+            echo "Refusing OTA: tag $TAG resolves to $TAG_SHA and does not match tested source $HEAD_SHA."
+            exit 1
+          fi
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; verifying its APK is identical."
             rm -rf existing-release
@@ -125,6 +133,11 @@ jobs:
             NOTES="$(git -C source log -1 --pretty=%s "$HEAD_SHA")"
             gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$HEAD_SHA" --title "B&L Morley $VERSION_NAME" --notes "$NOTES"
           fi
+
+          # Verify provenance again after creation/reuse so the feed can never be
+          # staged for a release whose immutable tag is bound to another commit.
+          TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)"
+          test "$TAG_SHA" = "$HEAD_SHA" || { echo "Release tag $TAG does not match tested source $HEAD_SHA"; exit 1; }
           printf '%s' "$SHA" > package/apk.sha256
 
       - name: Stage OTA manifest through protected main
