@@ -187,6 +187,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ADMIN_TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$ADMIN_RELEASE_TAG" --jq .sha 2>/dev/null || true)"
+          if [ -n "$ADMIN_TAG_SHA" ] && [ "$ADMIN_TAG_SHA" != "$GITHUB_SHA" ]; then
+            echo "Admin release tag $ADMIN_RELEASE_TAG does not match this exact build source; refusing immutable identity reuse." >&2
+            exit 1
+          fi
           if gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Admin release tag $ADMIN_RELEASE_TAG already exists; verifying exact immutable release identity."
             EXISTING_NAME="$(gh release view "$ADMIN_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json name --jq '.name')"
@@ -207,6 +212,11 @@ jobs:
               --title "Morley Admin ${ADMIN_VERSION_NAME}" \
               --notes "Signed Morley Admin Control OTA release. Built from ${GITHUB_SHA}; Admin tests, lint, stable signer verification and SHA-256 integrity verification passed." \
               --latest=false
+          fi
+          ADMIN_TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$ADMIN_RELEASE_TAG" --jq .sha)"
+          if [ "$ADMIN_TAG_SHA" != "$GITHUB_SHA" ]; then
+            echo "Admin release tag $ADMIN_RELEASE_TAG does not match exact build source after publication." >&2
+            exit 1
           fi
       - name: Publish Admin OTA metadata through protected main
         env:
