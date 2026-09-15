@@ -22,3 +22,9 @@ jobs:
           node-version: '20'
       - name: Verify canonical repository paths
         run: node scripts/ci/check-repository-path-stability.mjs
+      - name: Verify OTA release provenance contracts
+        run: |
+          node --test \
+            tests/morley-ota-release-provenance.test.mjs \
+            tests/nova-next-ota-release-provenance.test.mjs \
+            tests/admin-ota-release-provenance.test.mjs
