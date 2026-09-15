@@ -1,0 +1,49 @@
+name: OTA Release Provenance Contracts
+
+on:
+  pull_request:
+    branches: [ main, docs/ota-release-infrastructure-completion-20260916 ]
+    paths:
+      - '.github/workflows/auto-ota-release.yml'
+      - '.github/workflows/nova-next-apk-build.yml'
+      - '.github/workflows/admin-apk-build.yml'
+      - '.github/workflows/ota-release-contracts.yml'
+      - 'tests/morley-ota-release-provenance.test.mjs'
+      - 'tests/nova-next-ota-release-provenance.test.mjs'
+      - 'tests/admin-ota-release-provenance.test.mjs'
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/auto-ota-release.yml'
+      - '.github/workflows/nova-next-apk-build.yml'
+      - '.github/workflows/admin-apk-build.yml'
+      - '.github/workflows/ota-release-contracts.yml'
+      - 'tests/morley-ota-release-provenance.test.mjs'
+      - 'tests/nova-next-ota-release-provenance.test.mjs'
+      - 'tests/admin-ota-release-provenance.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provenance-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Node 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+      - name: Run OTA release provenance contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/morley-ota-release-provenance.test.mjs \
+            tests/nova-next-ota-release-provenance.test.mjs \
+            tests/admin-ota-release-provenance.test.mjs
