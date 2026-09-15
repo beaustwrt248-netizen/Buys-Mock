@@ -8,9 +8,7 @@ const marketFunctionName = functionNames.find((name) => name.startsWith('market-
 assert.ok(marketFunctionName, 'market search function must exist');
 const marketSearch = await readFile(new URL(`${marketFunctionName}/index.ts`, functionDir), 'utf8');
 const laptopGuided = await readFile(new URL('../android/app/src/main/java/com/buysloans/hub/LaptopGuidedScreen.kt', import.meta.url), 'utf8');
-
-const excludedSource = String.fromCharCode(103, 117, 109, 116, 114, 101, 101);
-const excludedPattern = new RegExp(excludedSource, 'i');
+const excludedPattern = new RegExp(String.fromCharCode(103, 117, 109, 116, 114, 101, 101), 'i');
 
 test('market search excludes the prohibited marketplace source', () => {
   assert.doesNotMatch(marketSearch, excludedPattern);
