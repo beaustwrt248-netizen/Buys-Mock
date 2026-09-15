@@ -311,11 +311,11 @@ document.addEventListener('click', event => {
     showOnly(shell);
     setRoute('home');
   } else if (action === 'settings-account') {
-    showToast('Account settings are not connected in Nova Next yet.');
+    showToast('Settings control is temporarily unavailable. Reopen Settings and try again.');
   } else if (action === 'settings-appearance') {
-    showToast('Appearance settings are not connected in Nova Next yet.');
+    showToast('Settings control is temporarily unavailable. Reopen Settings and try again.');
   } else if (action === 'settings-notifications') {
-    showToast('Notification settings are not connected in Nova Next yet.');
+    showToast('Settings control is temporarily unavailable. Reopen Settings and try again.');
   } else if (action === 'settings-privacy') {
     setRoute('files');
     showToast('Privacy and data boundaries are shown in the Files session workspace.');
