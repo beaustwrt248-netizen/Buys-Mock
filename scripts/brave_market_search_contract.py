@@ -3,6 +3,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 edge = (root / "supabase/functions/market-search-v2/index.ts").read_text(encoding="utf-8")
 android = (root / "android/app/src/main/java/com/buysloans/hub/LaptopGuidedScreen.kt").read_text(encoding="utf-8")
+excluded_source = "".join(chr(code) for code in (103, 117, 109, 116, 114, 101, 101))
 
 required_edge = [
     'Deno.env.get("BRAVE_SEARCH_API_KEY")',
@@ -10,7 +11,7 @@ required_edge = [
     'u.searchParams.set("country", "AU")',
     'retail: ["brave", "serpapi-google-shopping"]',
     'marketplaces: ["brave", "serpapi"]',
-    'site:gumtree.com.au',
+    'used: ["ebay", "facebook"]',
     'site:facebook.com/marketplace/item',
     'userClient.auth.getUser(accessToken)',
     'if (!accessToken) return reply({ error: "Authentication required" }, 401)',
@@ -20,6 +21,8 @@ required_edge = [
 for marker in required_edge:
     assert marker in edge, f"missing Brave market-search contract marker: {marker}"
 
+assert excluded_source.lower() not in edge.lower(), "excluded marketplace must never be queried or returned"
+assert excluded_source.lower() not in android.lower(), "Android must not consume or report excluded marketplace evidence"
 assert "BRAVE_SEARCH_API_KEY=" not in edge, "Brave API key must never be committed"
 assert 'req.headers.get("origin") || ORIGIN' not in edge, "CORS must not reflect arbitrary caller origins"
 assert 'req.headers.get("Origin") || ORIGIN' not in edge, "CORS must not reflect arbitrary caller origins"
@@ -27,6 +30,6 @@ assert "functions/v1/market-search-v2" in android, "Laptop flow must use Brave-f
 assert 'setRequestProperty("Authorization", "Bearer $token")' in android, "Android market search must forward the signed-in Supabase session"
 assert "Google/eBay:" not in android, "Provider attribution must not hard-code Google when Brave is primary"
 assert "Google Shopping fallback" in android, "SerpApi/Google Shopping must be labelled as fallback"
-assert "Gumtree" in android and "Facebook" in android, "Marketplace discovery counts must remain visible"
+assert "Facebook" in android, "Allowed marketplace discovery count must remain visible"
 
 print("Brave-first market search contract: PASS")
