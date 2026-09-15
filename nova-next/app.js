@@ -173,10 +173,34 @@ function registerIsolatedServiceWorker() {
   });
 }
 
+function setTextContent(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+function displayNameForUser(user) {
+  const metadataName = String(user?.user_metadata?.full_name || user?.user_metadata?.name || '').trim();
+  if (metadataName) return metadataName;
+  const email = String(user?.email || '').trim();
+  const localPart = email.split('@')[0] || '';
+  const readableLocalPart = localPart.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return readableLocalPart || 'Admin';
+}
+
 function markAuthenticatedSession(session) {
-  const email = String(session?.user?.email || '');
+  const user = session?.user || {};
+  const email = String(user?.email || '').trim();
+  const displayName = displayNameForUser(user);
+  const firstName = displayName.split(/\s+/)[0] || 'Admin';
+  const initial = Array.from(displayName)[0]?.toUpperCase() || 'A';
   const online = document.querySelector('.assistant-row p');
   if (online) online.innerHTML = '<span class="online-dot"></span> Guarded · Admin session';
+  setTextContent('novaNextProfileName', displayName);
+  setTextContent('novaNextProfileEmail', email || 'Signed-in account');
+  setTextContent('novaNextWelcomeName', firstName);
+  setTextContent('novaNextChatWelcomeName', firstName);
+  setTextContent('novaNextProfileAvatar', initial);
+  setTextContent('novaNextTopbarAvatar', initial);
   const preview = document.getElementById('previewNote');
   if (preview && email) preview.textContent = `Signed in securely as ${email}.`;
 }
