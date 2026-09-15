@@ -2,10 +2,10 @@
   "appId": "nova-next",
   "channel": "stable",
   "packageName": "com.buysloans.novanext",
-  "versionCode": 0,
-  "versionName": "0.0.0",
-  "downloadUrl": "",
-  "sha256": "",
+  "versionCode": 1,
+  "versionName": "0.1.0",
+  "downloadUrl": "https://github.com/beaustwrt248-netizen/Buys-Mock/releases/download/nova-next-v0.1.0/Nova-Next-0.1.0.apk",
+  "sha256": "c26ccd085da6b8bbd962d6c7c861ac2f83c1eb15a6af1713245bb0c84a1f12ad",
   "mandatory": false,
-  "notes": "Nova Next stable channel is initialised and awaiting its first signed release."
+  "notes": "Nova Next 0.1.0 is available."
 }
