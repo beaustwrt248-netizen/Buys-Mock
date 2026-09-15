@@ -1,18 +1,4 @@
-const WORKSPACE_ROUTE_TIMEOUT_MS = 8000;
-
-function withWorkspaceRouteDeadline(promise, timeoutMs = WORKSPACE_ROUTE_TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      const error = new Error('WORKSPACE_ROUTE_TIMEOUT');
-      error.code = 'WORKSPACE_ROUTE_TIMEOUT';
-      reject(error);
-    }, timeoutMs);
-    Promise.resolve(promise).then(
-      result => { clearTimeout(timer); resolve(result); },
-      error => { clearTimeout(timer); reject(error); }
-    );
-  });
-}
+import { WORKSPACE_ROUTE_TIMEOUT_MS, withWorkspaceRouteDeadline } from './workspace-route-deadline.mjs';
 
 function el(documentObj, tag, className = '', text = '') {
   const node = documentObj.createElement(tag);
@@ -549,8 +535,10 @@ export function createWorkspaceUi({
     }
     list.append(el(documentObj, 'div', 'workspace-empty', 'Checking verified connection status…'));
     try {
-      const items = await withWorkspaceRouteDeadline(featureRuntime.integrationStatus());
+      const items = await withWorkspaceRouteDeadline(featureRuntime.integrationStatus(), WORKSPACE_ROUTE_TIMEOUT_MS);
       if (generation !== integrationGeneration) return;
+      const unavailable = items.filter(item => item?.state === 'unavailable');
+      if (unavailable.length) throw new Error('INTEGRATION_STATUS_UNAVAILABLE', { cause: unavailable });
       clear(list);
       if (!items.length) {
         list.append(el(documentObj, 'div', 'workspace-empty', 'No identifiable integrations are available.'));

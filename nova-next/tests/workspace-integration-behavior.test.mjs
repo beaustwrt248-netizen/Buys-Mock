@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorkspaceUi } from '../src/workspace-ui.mjs';
+import { createFeatureRuntime } from '../src/feature-runtime.mjs';
 
 class Element {
   constructor(tag) { this.tagName = tag; this.children = []; this.listeners = {}; this.textContent = ''; }
@@ -43,7 +44,10 @@ test('hung integration request escapes loading and Retry integrations makes a fr
   const { ui, list, diagnostics } = setup(t, () => ++requests === 1 ? first.promise : Promise.resolve(status('Recovered')));
   const pending = ui.renderIntegrations();
   assert.match(text(list), /Checking verified connection status/);
-  t.mock.timers.tick(10000);
+  t.mock.timers.tick(5999);
+  await settle();
+  assert.match(text(list), /Checking verified connection status/);
+  t.mock.timers.tick(1);
   await settle();
   assert.doesNotMatch(text(list), /Checking verified connection status/);
   assert.match(text(list), /could not be verified/);
@@ -106,4 +110,26 @@ test('successful and empty integration responses remain stable beyond the deadli
   await ui.renderIntegrations();
   assert.match(text(list), /No identifiable integrations/);
   assert.equal(diagnostics.mock.calls.length, 0);
+});
+
+test('broker failure returned by the real runtime is safe and retryable', async t => {
+  let requests = 0;
+  const runtime = createFeatureRuntime({
+    getAccessToken: () => 'test-session',
+    edgeClient: { invoke: async () => {
+      if (++requests === 1) throw new Error('private-broker-diagnostic');
+      return { configured: true };
+    } }
+  });
+  const { ui, list, diagnostics } = setup(t, runtime.integrationStatus);
+  await ui.renderIntegrations();
+  assert.doesNotMatch(text(list), /private-broker-diagnostic/);
+  assert.match(text(list), /could not be verified/);
+  const retry = buttons(list).find(button => button.textContent === 'Retry integrations');
+  assert.ok(retry);
+  retry.click();
+  await settle();
+  assert.equal(requests, 2);
+  assert.match(text(list), /Read-only broker status is configured/);
+  assert.ok(diagnostics.mock.calls.length > 0);
 });

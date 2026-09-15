@@ -40,6 +40,7 @@ const CORE = [
   `${APP_PREFIX}src/voice-input.mjs`,
   `${APP_PREFIX}src/voice-ui.mjs`,
   `${APP_PREFIX}src/workspace-runtime.mjs`,
+  `${APP_PREFIX}src/workspace-route-deadline.mjs`,
   `${APP_PREFIX}src/workspace-store.mjs`,
   `${APP_PREFIX}src/workspace-ui.mjs`,
   `${APP_PREFIX}src/adapters/auth-adapter.mjs`,
