@@ -93,7 +93,9 @@ public final class MainActivity extends Activity {
                 Log.w(TAG, detail);
                 if (manualUpdateCheckInProgress && !isFinishing() && !isDestroyed()) {
                     manualUpdateCheckInProgress = false;
-                    Toast.makeText(MainActivity.this, detail, Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this,
+                            "Nova Next couldn't check for updates. Try again shortly.",
+                            Toast.LENGTH_LONG).show();
                 }
             }
         });
