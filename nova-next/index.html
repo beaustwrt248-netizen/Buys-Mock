@@ -52,13 +52,13 @@
       <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Main menu">
         <div class="drawer-brand"><div class="nova-mark nova-mark-sm" aria-hidden="true"><span></span><span></span></div><div><strong>NOVA AI</strong><small>Smarter Tools. Brighter Results.</small></div></div>
         <nav class="drawer-nav" id="drawerNav"></nav>
-        <div class="drawer-profile"><div class="avatar">B</div><div class="profile-copy"><strong>Beau John</strong><small>beau@example.com</small></div><button class="icon-button" type="button" title="Sign out" data-action="signout">↪</button></div>
+        <div class="drawer-profile"><div class="avatar" id="novaNextProfileAvatar">A</div><div class="profile-copy"><strong id="novaNextProfileName">Admin</strong><small id="novaNextProfileEmail">Signed-in account</small></div><button class="icon-button" type="button" title="Sign out" data-action="signout">↪</button></div>
       </aside>
 
       <header class="topbar">
         <button class="icon-button menu-button" id="menuButton" type="button" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><span></span><span></span><span></span></button>
         <div class="topbar-title"><strong>NOVA AI</strong><small id="topbarSubtitle">Your AI-Powered Assistant</small></div>
-        <button class="avatar avatar-button" type="button" aria-label="Open account">B</button>
+        <button class="avatar avatar-button" id="novaNextTopbarAvatar" type="button" aria-label="Open account">A</button>
       </header>
 
       <div class="page-stack" id="pageStack">
@@ -71,7 +71,7 @@
             <button data-tool="create"><span class="quick-icon">✦</span><span>Create</span></button>
             <button data-tool="research"><span class="quick-icon">⌕</span><span>Research</span></button>
           </div>
-          <article class="welcome-card"><div class="welcome-icon">♛</div><div><strong>Good morning, Beau</strong><span>Let's make today productive.</span></div></article>
+          <article class="welcome-card"><div class="welcome-icon">♛</div><div><strong>Welcome back, <span id="novaNextWelcomeName">Admin</span></strong><span>Let's make today productive.</span></div></article>
           <div class="section-heading"><h2>Quick Access</h2><button class="link-button" type="button" data-route-target="more">See All</button></div>
           <div class="access-grid">
             <button class="access-card" data-route-target="tasks"><span class="tile-icon blue">≡</span><span><strong>My Tasks</strong><small>Track your work</small></span></button>
@@ -87,7 +87,7 @@
             <div class="chat-scroll" id="novaNextChatScroll">
               <div class="chat-messages" id="novaNextChatMessages" aria-live="polite" aria-relevant="additions text"></div>
               <div class="chat-empty-state is-active">
-                <article class="chat-welcome">Hi Beau! 👋<br /><span>How can I help you today?</span></article>
+                <article class="chat-welcome">Hi <span id="novaNextChatWelcomeName">there</span>! 👋<br /><span>How can I help you today?</span></article>
                 <div class="suggestion-list" aria-label="Chat suggestions">
                   <button type="button"><span>◉</span>Summarise information</button>
                   <button type="button"><span>✎</span>Help me write something</button>
