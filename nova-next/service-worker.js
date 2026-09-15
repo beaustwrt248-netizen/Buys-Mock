@@ -1,4 +1,4 @@
-const CACHE = 'nova-next-shell-v4';
+const CACHE = 'nova-next-shell-v5';
 const APP_PREFIX = new URL('./', self.location.href).pathname;
 const CORE = [
   APP_PREFIX,
@@ -82,5 +82,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !STATIC_PATHS.has(url.pathname)) return;
 
-  event.respondWith(caches.match(request).then(hit => hit || fetch(request)));
+  event.respondWith(fetch(request).catch(async error => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }));
 });
