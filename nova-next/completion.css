@@ -37,7 +37,7 @@ body,
   height: 100%;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding-bottom: calc(var(--nova-bottom-nav-height) + var(--nova-safe-bottom) + 24px);
+  padding-bottom: calc(var(--nova-safe-bottom) + 24px);
   scrollbar-gutter: stable;
 }
 
@@ -52,7 +52,7 @@ body,
 }
 
 .chat-layout {
-  height: calc(100% - var(--nova-bottom-nav-height) - var(--nova-safe-bottom));
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -246,11 +246,7 @@ body,
   cursor: pointer;
 }
 
-@media (max-width: 360px) {
-  .page[data-route="chat"].is-active {
-    padding-inline: 14px;
-  }
-
+@media (max-width: 430px) {
   .filter-tabs {
     overflow-x: auto;
     justify-content: flex-start;
@@ -259,6 +255,12 @@ body,
 
   .filter-tabs::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .page[data-route="chat"].is-active {
+    padding-inline: 14px;
   }
 }
 
