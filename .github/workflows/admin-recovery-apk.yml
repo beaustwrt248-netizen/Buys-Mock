@@ -111,6 +111,12 @@ jobs:
             "dist/${ADMIN_RECOVERY_FILE}" \
             "dist/${ADMIN_RECOVERY_FILE}.sha256" \
             --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
             --title "Morley Admin Recovery ${ADMIN_RECOVERY_VERSION}" \
             --notes "Signed recovery build for devices where a legacy/debug Morley Admin package blocks the canonical installer. Package: com.buysloans.admin.recovery. This installs alongside the existing Admin app and does not alter the production OTA package identity." \
             --latest=false
+          ADMIN_RECOVERY_TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$ADMIN_RECOVERY_TAG" --jq .sha)"
+          if [ "$ADMIN_RECOVERY_TAG_SHA" != "$GITHUB_SHA" ]; then
+            echo "Admin recovery release tag $ADMIN_RECOVERY_TAG does not match exact tested source after publication." >&2
+            exit 1
+          fi
