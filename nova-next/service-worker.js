@@ -82,18 +82,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !STATIC_PATHS.has(url.pathname)) return;
 
-  event.respondWith((async () => {
-    try {
-      const response = await fetch(request);
-      if (response && response.ok) {
-        const cache = await caches.open(CACHE);
-        await cache.put(request, response.clone());
-      }
-      return response;
-    } catch (error) {
-      const cached = await caches.match(request);
-      if (cached) return cached;
-      throw error;
-    }
-  })());
+  event.respondWith(fetch(request).catch(async error => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }));
 });
