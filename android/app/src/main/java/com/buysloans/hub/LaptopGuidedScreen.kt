@@ -38,7 +38,6 @@ private const val GuidedApi = "https://ghdhairijqjqivqriigi.supabase.co/function
 private data class GuidedMarketResponse(
     val market: MarketResult,
     val retailProvider: String,
-    val gumtreeCount: Int,
     val facebookCount: Int,
     val queryCount: Int
 )
@@ -168,21 +167,23 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     val ready = basicReady && if (factoryProfile != null) {
         versionCode.isNotBlank() && LaptopFactoryVariantCatalog.configurationVerified(selected, versionCode, processor, ram, storage)
     } else true
-    val displayProcessor = if (ready) processor.removePrefix("${selected!!.brand} ") else ""
-    val displayConfiguration = if (ready) {
-        listOf(selected!!.brand, selected.model, versionCode.takeIf { it.isNotBlank() }, displayProcessor, ram, storage)
+    val readySelection = selected.takeIf { ready }
+    val displayProcessor = readySelection?.let { processor.removePrefix("${it.brand} ") }.orEmpty()
+    val displayConfiguration = readySelection?.let {
+        listOf(it.brand, it.model, versionCode.takeIf { code -> code.isNotBlank() }, displayProcessor, ram, storage)
             .filterNotNull()
             .joinToString(" ")
-    } else ""
+    }.orEmpty()
     if (displayConfiguration.isNotBlank()) Block("SELECTED CONFIGURATION", displayConfiguration)
 
     Button(
         onClick = {
+            val searchPreset = selected ?: return@Button
             result = null
             busy = true
             status = "Searching exact configuration evidence…"
             scope.launch {
-                runCatching { guidedMarket(selected!!, processor, ram, storage, versionCode) }
+                runCatching { guidedMarket(searchPreset, processor, ram, storage, versionCode) }
                     .onSuccess { response ->
                         result = response.market
                         val exact = response.market.exactGoogle.size + response.market.exactEbay.size
@@ -192,7 +193,7 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
                             "serpapi-google-shopping" -> "Google Shopping fallback"
                             else -> "Web retail"
                         }
-                        status = "$provider/eBay: $exact exact • $similar similar • ${response.market.rejected.size} rejected • ${response.queryCount} queries • Gumtree ${response.gumtreeCount} • Facebook ${response.facebookCount}"
+                        status = "$provider/eBay: $exact exact • $similar similar • ${response.market.rejected.size} rejected • ${response.queryCount} queries • Facebook ${response.facebookCount}"
                     }
                     .onFailure { status = it.message ?: "Search failed" }
                 busy = false
@@ -209,9 +210,9 @@ fun LaptopGuidedScreen() = Screen("💻 Laptop / MacBook") {
     Text(status, color = MorleyTextSecondary)
     if (!busy) result?.let { market ->
         Valuation(market, ask, 0.30, 0.58)
-        if (selected != null) {
+        selected?.let { selectedPreset ->
             LaptopFairBuyZonePanel(
-                preset = selected,
+                preset = selectedPreset,
                 processor = processor,
                 ram = ram,
                 storage = storage,
@@ -295,7 +296,6 @@ private suspend fun guidedMarket(
     return GuidedMarketResponse(
         market = market,
         retailProvider = providers.singleOrNull() ?: providers.firstOrNull().orEmpty(),
-        gumtreeCount = guidedDistinctCandidateCount(roots, "gumtree"),
         facebookCount = guidedDistinctCandidateCount(roots, "facebook"),
         queryCount = queries.size
     )
@@ -428,10 +428,15 @@ private fun guidedClassify(
         else -> MatchTier.REJECTED
     }
     if (!exact && !similar) reasons += "Insufficient exact configuration identity"
-    return Triple(tier, score, reasons.distinct().joinToString(" + "))
+    return Triple(tier, score, reasons.distinct().joinToString(" • "))
 }
 
-private fun normalizeGuided(value: String): String = value.lowercase()
+private fun normalizeGuided(value: String): String = value
+    .lowercase()
+    .replace("macbookpro", "macbook pro")
+    .replace("macbookair", "macbook air")
+    .replace("gb", " gb")
+    .replace("tb", " tb")
     .replace(Regex("[^a-z0-9]+"), " ")
     .replace(Regex("\\s+"), " ")
     .trim()
