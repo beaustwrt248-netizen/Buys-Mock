@@ -7,20 +7,24 @@ on:
       - '.github/workflows/auto-ota-release.yml'
       - '.github/workflows/nova-next-apk-build.yml'
       - '.github/workflows/admin-apk-build.yml'
+      - '.github/workflows/admin-recovery-apk.yml'
       - '.github/workflows/ota-release-contracts.yml'
       - 'tests/morley-ota-release-provenance.test.mjs'
       - 'tests/nova-next-ota-release-provenance.test.mjs'
       - 'tests/admin-ota-release-provenance.test.mjs'
+      - 'tests/admin-recovery-release-provenance.test.mjs'
   push:
     branches: [ main ]
     paths:
       - '.github/workflows/auto-ota-release.yml'
       - '.github/workflows/nova-next-apk-build.yml'
       - '.github/workflows/admin-apk-build.yml'
+      - '.github/workflows/admin-recovery-apk.yml'
       - '.github/workflows/ota-release-contracts.yml'
       - 'tests/morley-ota-release-provenance.test.mjs'
       - 'tests/nova-next-ota-release-provenance.test.mjs'
       - 'tests/admin-ota-release-provenance.test.mjs'
+      - 'tests/admin-recovery-release-provenance.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -46,4 +50,5 @@ jobs:
           node --test \
             tests/morley-ota-release-provenance.test.mjs \
             tests/nova-next-ota-release-provenance.test.mjs \
-            tests/admin-ota-release-provenance.test.mjs
+            tests/admin-ota-release-provenance.test.mjs \
+            tests/admin-recovery-release-provenance.test.mjs
