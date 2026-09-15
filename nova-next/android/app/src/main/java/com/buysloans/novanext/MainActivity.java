@@ -37,6 +37,7 @@ public final class MainActivity extends Activity {
     private Uri pendingCameraUri;
     private UpdateManager updateManager;
     private boolean initialUpdateCheckStarted;
+    private boolean manualUpdateCheckInProgress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +59,7 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onUpdateAvailable(UpdateManager.UpdateInfo info) {
+                manualUpdateCheckInProgress = false;
                 if (isFinishing() || isDestroyed()) return;
                 StringBuilder message = new StringBuilder();
                 if (!info.notes.isBlank()) message.append(info.notes).append("\n\n");
@@ -79,11 +81,20 @@ public final class MainActivity extends Activity {
             @Override
             public void onUpToDate() {
                 Log.d(TAG, "Nova Next is up to date");
+                if (manualUpdateCheckInProgress && !isFinishing() && !isDestroyed()) {
+                    manualUpdateCheckInProgress = false;
+                    Toast.makeText(MainActivity.this, "Nova Next is up to date", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onError(String message) {
-                Log.w(TAG, message == null ? "Nova Next update check failed" : message);
+                String detail = message == null ? "Nova Next update check failed" : message;
+                Log.w(TAG, detail);
+                if (manualUpdateCheckInProgress && !isFinishing() && !isDestroyed()) {
+                    manualUpdateCheckInProgress = false;
+                    Toast.makeText(MainActivity.this, detail, Toast.LENGTH_LONG).show();
+                }
             }
         });
     }
@@ -96,6 +107,7 @@ public final class MainActivity extends Activity {
 
     private void checkForUpdatesNow() {
         if (updateManager == null || isFinishing() || isDestroyed()) return;
+        manualUpdateCheckInProgress = true;
         Toast.makeText(this, "Checking Nova Next updates…", Toast.LENGTH_SHORT).show();
         updateManager.checkForUpdates();
     }
@@ -270,6 +282,7 @@ public final class MainActivity extends Activity {
             webView.destroy();
             webView = null;
         }
+        manualUpdateCheckInProgress = false;
         updateManager = null;
         super.onDestroy();
     }
