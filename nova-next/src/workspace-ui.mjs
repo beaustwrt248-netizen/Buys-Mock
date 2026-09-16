@@ -5,6 +5,18 @@ function el(documentObj, tag, className = '', text = '') {
   return node;
 }
 
+const WORKSPACE_ROUTE_TIMEOUT_MS = 6000;
+
+function withWorkspaceRouteDeadline(promise, timeoutMs = WORKSPACE_ROUTE_TIMEOUT_MS) {
+  let timer = null;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error('WORKSPACE_ROUTE_TIMEOUT'), { code: 'WORKSPACE_ROUTE_TIMEOUT' })), timeoutMs);
+  });
+  return Promise.race([Promise.resolve(promise), deadline]).finally(() => {
+    if (timer !== null) clearTimeout(timer);
+  });
+}
+
 function clear(node) {
   while (node?.firstChild) node.firstChild.remove();
 }
@@ -57,6 +69,7 @@ export function createWorkspaceUi({
 
   let bound = false;
   let activeTaskFilter = 'all';
+  let integrationGeneration = 0;
 
   function showSheet(title, contentNode) {
     documentObj.querySelector('.workspace-sheet-backdrop')?.remove();
@@ -521,9 +534,22 @@ export function createWorkspaceUi({
     for (const item of items) list.append(renderStatusItem(item));
   }
 
+  function renderIntegrationFailure(list, error) {
+    clear(list);
+    const card = el(documentObj, 'article', 'feature-status-card error');
+    card.append(el(documentObj, 'strong', '', 'Integration status could not be verified.'));
+    const retry = el(documentObj, 'button', 'secondary-button', 'Retry integrations');
+    retry.type = 'button';
+    retry.addEventListener('click', () => renderIntegrations());
+    card.append(retry);
+    list.append(card);
+    console.error('nova-next integration status', error);
+  }
+
   async function renderIntegrations() {
     const list = documentObj.getElementById('novaNextIntegrationsList');
     if (!list) return;
+    const generation = ++integrationGeneration;
     clear(list);
     if (!featureRuntime?.integrationStatus) {
       list.append(el(documentObj, 'div', 'workspace-empty', 'Integration status is unavailable.'));
@@ -531,7 +557,8 @@ export function createWorkspaceUi({
     }
     list.append(el(documentObj, 'div', 'workspace-empty', 'Checking verified connection status…'));
     try {
-      const items = await featureRuntime.integrationStatus();
+      const items = await withWorkspaceRouteDeadline(featureRuntime.integrationStatus());
+      if (generation !== integrationGeneration) return;
       clear(list);
       if (!items.length) {
         list.append(el(documentObj, 'div', 'workspace-empty', 'No identifiable integrations are available.'));
@@ -544,9 +571,8 @@ export function createWorkspaceUi({
         else list.append(renderStatusItem(item, { integration: true }));
       }
     } catch (error) {
-      clear(list);
-      list.append(el(documentObj, 'article', 'feature-status-card error', 'Integration status could not be verified.'));
-      console.error('nova-next integration status', error);
+      if (generation !== integrationGeneration) return;
+      renderIntegrationFailure(list, error);
     }
   }
 
