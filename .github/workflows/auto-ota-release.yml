@@ -116,7 +116,13 @@ jobs:
 
           # A version tag is immutable provenance, not just a convenient release name.
           # If it already exists, it must resolve to the exact green source commit.
-          TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq '.sha' 2>/dev/null || true)"
+          # gh can emit a 404 response body on stdout, so explicitly clear the
+          # captured value when the lookup fails instead of hiding failure with `|| true`.
+          if TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq '.sha' 2>/dev/null)"; then
+            :
+          else
+            TAG_SHA=""
+          fi
           if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$HEAD_SHA" ]; then
             echo "Refusing OTA: tag $TAG resolves to $TAG_SHA and does not match tested source $HEAD_SHA."
             exit 1
