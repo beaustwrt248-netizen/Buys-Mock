@@ -116,7 +116,7 @@ jobs:
 
           # A version tag is immutable provenance, not just a convenient release name.
           # If it already exists, it must resolve to the exact green source commit.
-          TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha 2>/dev/null || true)"
+          TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq '.sha' 2>/dev/null || true)"
           if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$HEAD_SHA" ]; then
             echo "Refusing OTA: tag $TAG resolves to $TAG_SHA and does not match tested source $HEAD_SHA."
             exit 1
@@ -192,16 +192,12 @@ jobs:
             exit 0
           fi
 
-          # Use the upstream build run ID, not this workflow's run ID. A rerun of
-          # this workflow therefore targets the same deterministic branch and PR.
           BRANCH="automation/morley-ota-${VERSION_NAME}-${{ github.event.workflow_run.id }}"
           PR_TITLE="Publish Morley $VERSION_NAME OTA metadata"
           git checkout -B "$BRANCH"
           git commit -m "$PR_TITLE"
           gh auth setup-git
 
-          # A previous attempt may already have pushed this exact branch. Reuse it
-          # when identical; otherwise refuse to overwrite unexpected remote state.
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
             git fetch origin "$BRANCH"
             LOCAL_TREE="$(git rev-parse HEAD^{tree})"
@@ -224,12 +220,6 @@ jobs:
             echo "Reusing existing OTA PR $PR_URL."
           fi
 
-          # PRs created with GITHUB_TOKEN do not reliably receive the repository's
-          # normal pull_request-required check contexts. Do not weaken protection or
-          # turn a successful signed release into a false-red workflow. Run the two
-          # lightweight audits as extra evidence, then leave the exact manifest PR as
-          # a protected handoff. A normal user-authored promotion PR can attach the
-          # full required checks and merge the identical manifest commit.
           gh workflow run security-audit.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run quality-gate.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           echo "Protected OTA handoff ready: $PR_URL"
